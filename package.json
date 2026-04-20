@@ -1,0 +1,30 @@
+{
+  "name": "aivo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AIVO - High-performance fitness web app and AI-native conversational platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "build:wasm": "bun run -C packages/aivo-compute build",
+    "test": "turbo run test",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean && rm -rf node_modules .turbo dist .wrangler"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "@types/node": "^22.13.5"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "packageManager": "bun@1.2.0",
+  "author": "AIVO Team",
+  "license": "MIT"
+}

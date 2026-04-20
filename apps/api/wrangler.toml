@@ -1,0 +1,16 @@
+name = "aivo-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-20"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aivo-db"
+database_id = "aivo-db"
+
+[build]
+command = "bun run build"
+
+[[routes]]
+pattern = "/api/*"
+zone_name = "aivo"

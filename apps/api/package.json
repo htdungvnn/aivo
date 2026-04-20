@@ -1,0 +1,26 @@
+{
+  "name": "@aivo/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler build",
+    "deploy": "wrangler deploy",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.7.2",
+    "@aivo/shared-types": "workspace:*",
+    "@aivo/compute": "workspace:*",
+    "@aivo/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250124.0",
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.99.0",
+    "eslint": "^9.18.0"
+  }
+}

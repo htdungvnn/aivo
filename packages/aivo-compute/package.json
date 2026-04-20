@@ -1,0 +1,29 @@
+{
+  "name": "@aivo/compute",
+  "version": "0.1.0",
+  "private": true,
+  "description": "High-performance fitness calculations compiled to WASM",
+  "main": "pkg/aivo_compute.js",
+  "types": "pkg/aivo_compute.d.ts",
+  "exports": {
+    ".": {
+      "types": "./pkg/aivo_compute.d.ts",
+      "import": "./pkg/aivo_compute.js",
+      "require": "./pkg/aivo_compute.cjs"
+    },
+    "./*.wasm": "./pkg/*.wasm"
+  },
+  "scripts": {
+    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
+    "test": "wasm-pack test --node --chrome --firefox --safari",
+    "clean": "rm -rf pkg target"
+  },
+  "files": ["pkg"],
+  "keywords": ["wasm", "fitness", "health", "calculations", "rust"],
+  "author": "AIVO Team",
+  "license": "MIT",
+  "devDependencies": {
+    "wasm-pack": "^0.13.0"
+  }
+}
