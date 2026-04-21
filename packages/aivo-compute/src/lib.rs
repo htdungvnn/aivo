@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
+use itertools::Itertools;
 
 /// Fitness calculation module providing high-performance WASM functions
 #[wasm_bindgen]

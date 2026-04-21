@@ -450,16 +450,28 @@ workoutsRouter.post("/", async (c) => {
     })
     .returning();
 
-  if (body.exercises) {
-    await drizzle.insert(drizzle.workoutExercises).values(
-      body.exercises.map((ex: any) => ({
-        id: crypto.randomUUID(),
-        workoutId: workout.id,
-        order: ex.order || 0,
-        ...ex,
-      }))
-    );
-  }
+// Client-provided exercise data (without generated fields)
+interface ClientExercise {
+  name: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  duration?: number;
+  notes?: string;
+  order?: number;
+}
+
+// ... later in code
+if (body.exercises) {
+  await drizzle.insert(drizzle.workoutExercises).values(
+    body.exercises.map((ex: ClientExercise) => ({
+      id: crypto.randomUUID(),
+      workoutId: workout.id,
+      order: ex.order ?? 0,
+      ...ex,
+    }))
+  );
+}
 
   return c.json(workout, 201);
 });
@@ -517,33 +529,159 @@ app.route("/calc", calcRouter);
 // AI Coach endpoints
 const aiRouter = new Hono<{ Bindings: Env }>();
 
+// Lazy-loaded optimizer instance
+let optimizerInitialized = false;
+let optimizerPromise: Promise<void> | null = null;
+
+async function ensureOptimizer() {
+  if (!optimizerInitialized) {
+    optimizerPromise = (async () => {
+      await initOptimizer();
+      optimizerInitialized = true;
+    })();
+    await optimizerPromise;
+  }
+}
+
 aiRouter.post("/chat", async (c) => {
+  const drizzle = createDrizzleInstance(c.env.DB);
+  const userId = c.req.header("X-User-Id");
+  const authHeader = c.req.header("Authorization");
+
+  if (!userId || !authHeader?.startsWith("Bearer ")) {
+    return c.json({ success: false, error: "Unauthorized" }, 401);
+  }
+
   const body = await c.req.json();
   const validated = z.object({
     userId: z.string(),
-    message: z.string().min(1).max(1000),
+    message: z.string().min(1).max(2000),
     context: z.array(z.string()).optional(),
   }).parse(body);
 
-  const drizzle = createDrizzleInstance(c.env.DB);
+  const openaiKey = c.env.OPENAI_API_KEY;
+  if (!openaiKey) {
+    return c.json({ success: false, error: "AI service not configured" }, 503);
+  }
 
-  const response = {
-    message: `I received your message: "${body.message}". AI integration coming soon!`,
-    timestamp: new Date().toISOString(),
-  };
+  try {
+    // Fetch recent conversation history for context
+    const history = await drizzle.query.conversations.findMany({
+      where: (conv, { eq }) => eq(conv.userId, userId),
+      orderBy: (conv, { desc }) => desc(conv.createdAt),
+      limit: 20,
+    });
 
-  await drizzle.insert(drizzle.conversations).values({
-    id: crypto.randomUUID(),
-    userId: validated.userId,
-    message: validated.message,
-    response: response.message,
-    context: validated.context ? JSON.stringify(validated.context) : null,
-    tokensUsed: response.message.split(" ").length,
-    model: "claude-3-sonnet",
-    createdAt: now(),
-  });
+    // Build messages array with token optimization
+    const systemPrompt = `You are AIVO, an expert AI fitness coach and nutrition advisor. You provide personalized, evidence-based advice on:
+- Workout programming and exercise technique
+- Nutrition planning and macro tracking
+- Recovery, sleep, and stress management
+- Goal setting and progress tracking
+- Body composition analysis
 
-  return c.json(response);
+Be encouraging, specific, and science-backed. When giving recommendations, consider the user's fitness level and goals. If asked about medical conditions, advise consulting a healthcare provider.`;
+
+    const messages: Array<{ role: string; content: string }> = [
+      { role: "system", content: systemPrompt },
+    ];
+
+    // Add context if provided
+    if (validated.context && validated.context.length > 0) {
+      messages.push({
+        role: "system",
+        content: `User context: ${validated.context.join("; ")}`,
+      });
+    }
+
+    // Add conversation history with token thinning
+    if (history.length > 0) {
+      // Ensure optimizer is initialized
+      await ensureOptimizer();
+
+      // Reconstruct conversation in chronological order (oldest first)
+      const conversationJson = JSON.stringify({
+        messages: history.reverse().map((msg) => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.message,
+        })),
+      });
+
+      // Apply token optimization
+      const optimizedJson = optimize_content_wasm(conversationJson, "");
+      const optimized = JSON.parse(optimizedJson);
+
+      // Parse optimized content back to messages
+      if (optimized.optimizedContent) {
+        try {
+          const optimizedData = JSON.parse(optimized.optimizedContent);
+          if (Array.isArray(optimizedData.messages)) {
+            messages.push(...optimizedData.messages.slice(-10)); // Keep up to 10 recent messages
+          }
+        } catch (_e) {
+          // Fallback to last 5 messages if optimization parsing fails
+          const recent = history.slice(0, 5).reverse();
+          recent.forEach((msg) => {
+            messages.push({
+              role: msg.role === "user" ? "user" : "assistant",
+              content: msg.message,
+            });
+          });
+        }
+      }
+    }
+
+    // Add current user message
+    messages.push({ role: "user", content: validated.message });
+
+    // Call OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`OpenAI error: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const aiMessage = data.choices[0]?.message?.content || "No response generated";
+    const tokensUsed = data.usage?.total_tokens || 0;
+
+    // Save conversation to database
+    await drizzle.insert(drizzle.conversations).values({
+      id: crypto.randomUUID(),
+      userId: validated.userId,
+      message: validated.message,
+      response: aiMessage,
+      context: validated.context ? JSON.stringify(validated.context) : null,
+      tokensUsed,
+      model: "gpt-4o-mini",
+      createdAt: now(),
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        message: aiMessage,
+        tokensUsed,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error("AI chat error:", error);
+    return c.json({ success: false, error: error.message || "Chat failed" }, 500);
+  }
 });
 
 aiRouter.get("/history/:userId", async (c) => {

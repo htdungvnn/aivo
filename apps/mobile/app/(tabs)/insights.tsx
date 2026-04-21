@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMetrics } from "@/contexts/MetricsContext";
@@ -43,8 +44,43 @@ export default function InsightsScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
 
+  // Haptic feedback helper
+  const triggerHaptic = async (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => {
+    if (Platform.OS === "web") return;
+    try {
+      switch (type) {
+        case "light":
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          break;
+        case "medium":
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          break;
+        case "heavy":
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          break;
+        case "success":
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          break;
+        case "warning":
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          break;
+        case "error":
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          break;
+      }
+    } catch (error) {
+      // Silently fail if haptics not available
+      console.log("Haptics not available:", error);
+    }
+  };
+
   useEffect(() => {
     refreshMetrics();
+  }, []);
+
+  const handleTabChange = useCallback((tab: "overview" | "upload" | "trends") => {
+    setActiveTab(tab);
+    triggerHaptic("light");
   }, []);
 
   const handlePickImage = async () => {
@@ -61,6 +97,7 @@ export default function InsightsScreen() {
       setImageFile(asset.uri);
       setError(null);
       setActiveTab("upload");
+      await triggerHaptic("light");
     }
   };
 
@@ -77,6 +114,7 @@ export default function InsightsScreen() {
       setImageFile(asset.uri);
       setError(null);
       setActiveTab("upload");
+      await triggerHaptic("light");
     }
   };
 
@@ -91,6 +129,8 @@ export default function InsightsScreen() {
       const fileName = `body-photo-${Date.now()}.jpg`;
       const uploadResult = await uploadBodyImage(imageFile, fileName);
 
+      await triggerHaptic("success");
+
       Alert.alert(
         "Upload Complete",
         "Your photo has been uploaded. Would you like to run AI analysis now?",
@@ -98,7 +138,9 @@ export default function InsightsScreen() {
           { text: "Later", style: "cancel" },
           {
             text: "Analyze",
-            onPress: () => handleAnalyze(uploadResult.imageUrl),
+            onPress: async () => {
+              await handleAnalyze(uploadResult.imageUrl);
+            },
           },
         ]
       );
@@ -106,7 +148,9 @@ export default function InsightsScreen() {
       setSelectedImage(null);
       setImageFile(null);
       setActiveTab("overview");
+      await triggerHaptic("light");
     } catch (err: any) {
+      await triggerHaptic("error");
       setError(err.message || "Failed to upload image");
     } finally {
       setUploading(false);
@@ -122,12 +166,15 @@ export default function InsightsScreen() {
 
     try {
       const result = await analyzeImage(url);
+      await triggerHaptic("success");
       Alert.alert("Analysis Complete", "Your body metrics have been updated!");
-      refreshMetrics();
+      await refreshMetrics();
       setSelectedImage(null);
       setImageFile(null);
       setActiveTab("overview");
+      await triggerHaptic("medium");
     } catch (err: any) {
+      await triggerHaptic("error");
       setError(err.message || "Failed to analyze image");
     } finally {
       setAnalyzing(false);
@@ -415,7 +462,7 @@ export default function InsightsScreen() {
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              onPress={() => setActiveTab(tab.key as any)}
+              onPress={() => handleTabChange(tab.key as any)}
               className={`flex-1 py-2 px-3 rounded-md flex-row items-center justify-center gap-1 ${
                 activeTab === tab.key ? "bg-cyan-600" : ""
               }`}

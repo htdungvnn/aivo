@@ -1,4 +1,6 @@
 import base from "@aivo/eslint-config";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default [...base, {
   files: ["**/*.ts", "**/*.tsx"],
@@ -7,11 +9,9 @@ export default [...base, {
       project: "./tsconfig.json",
     },
   },
-  plugins: ["@typescript-eslint", "react", "react-hooks"],
-  settings: {
-    react: {
-      version: "detect",
-    },
+  plugins: {
+    react,
+    "react-hooks": reactHooks,
   },
   rules: {
     // React specific

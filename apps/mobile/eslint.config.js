@@ -1,4 +1,7 @@
 import base from "@aivo/eslint-config";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactNative from "eslint-plugin-react-native";
 
 export default [...base, {
   files: ["**/*.ts", "**/*.tsx"],
@@ -7,11 +10,10 @@ export default [...base, {
       project: "./tsconfig.json",
     },
   },
-  plugins: ["@typescript-eslint", "react", "react-hooks", "react-native"],
-  settings: {
-    react: {
-      version: "detect",
-    },
+  plugins: {
+    react,
+    "react-hooks": reactHooks,
+    "react-native": reactNative,
   },
   rules: {
     // React Native specific

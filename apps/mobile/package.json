@@ -2,6 +2,7 @@
   "name": "@aivo/mobile",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "expo-router/entry",
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
@@ -24,6 +25,7 @@
     "expo-auth-session": "^6.1.1",
     "expo-crypto": "~14.0.1",
     "expo-file-system": "^55.0.17",
+    "expo-haptics": "~14.0.1",
     "expo-image-picker": "^55.0.19",
     "expo-media-library": "^55.0.15",
     "expo-router": "~4.0.17",

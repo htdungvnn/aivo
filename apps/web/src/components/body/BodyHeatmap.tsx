@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface HeatmapVectorPoint {
   x: number; // 0-100 normalized
@@ -16,6 +17,7 @@ export interface BodyHeatmapProps {
   onPointClick?: (point: HeatmapVectorPoint) => void;
   selectedMuscles?: string[];
   colorScale?: "heat" | "cool" | "monochrome";
+  animate?: boolean;
 }
 
 const MUSCLE_POSITIONS: Record<string, { x: number; y: number; zone: string }> = {
@@ -132,6 +134,7 @@ export function BodyHeatmap({
   onPointClick,
   selectedMuscles = [],
   colorScale = "heat",
+  animate = true,
 }: BodyHeatmapProps) {
   const viewBox = `0 0 200 400`;
 
@@ -152,69 +155,65 @@ export function BodyHeatmap({
       x: g.x,
       y: g.y,
       intensity: g.totalIntensity / g.count,
+      muscle: g.muscle,
     }));
   }, [vectorData]);
 
-  // Generate heatmap overlay circles
+  // Generate heatmap overlay circles with animation
   const heatmapOverlay = useMemo(() => {
-    return aggregatedPoints
-      .map((point) => {
-        const cx = point.x * 2; // Normalize to 200 width
-        const cy = point.y * 4; // Normalize to 400 height (0-100 -> 0-400)
-        const radius = getRadius(point.intensity);
-        const fill = getColor(point.intensity, colorScale);
-        const opacity = 0.5 + point.intensity * 0.4;
-        const isSelected = selectedMuscles.some(
-          (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
-        );
-
-        return (
-          <ellipse
-            key={`${point.x}-${point.y}`}
-            cx={cx}
-            cy={cy}
-            rx={radius}
-            ry={radius * 1.2}
-            fill={fill}
-            fillOpacity={isSelected ? 0.9 : opacity}
-            stroke={isSelected ? "#ffffff" : "transparent"}
-            strokeWidth={isSelected ? 2 : 0}
-            style={{ cursor: onPointClick ? "pointer" : "default" }}
-            onClick={() => onPointClick?.(point as HeatmapVectorPoint)}
-            onMouseEnter={(e) => {
-              if (onPointClick) {
-                (e.target as SVGEllipseElement).setAttribute("fill-opacity", "0.9");
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (onPointClick) {
-                (e.target as SVGEllipseElement).setAttribute("fill-opacity", String(opacity));
-              }
-            }}
-          />
-        );
-      })
-      .concat(
-        // Add muscle group labels
-        selectedMuscles.map((muscle) => {
-          const pos = MUSCLE_POSITIONS[muscle];
-          if (!pos) return null;
-          return (
-            <text
-              key={`label-${muscle}`}
-              x={pos.x * 2}
-              y={pos.y * 4 + 20}
-              textAnchor="middle"
-              fill="#94a3b8"
-              fontSize={8}
-              fontWeight={500}
-            >
-              {muscle.toUpperCase()}
-            </text>
-          );
-        })
+    return aggregatedPoints.map((point, index) => {
+      const cx = point.x * 2; // Normalize to 200 width
+      const cy = point.y * 4; // Normalize to 400 height (0-100 -> 0-400)
+      const radius = getRadius(point.intensity);
+      const fill = getColor(point.intensity, colorScale);
+      const opacity = 0.5 + point.intensity * 0.4;
+      const isSelected = selectedMuscles.some(
+        (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
       );
-  }, [aggregatedPoints, selectedMuscles, colorScale, onPointClick]);
+
+      // Staggered animation delay based on position
+      const delay = (point.x + point.y) * 0.01;
+
+      const circleProps = animate
+        ? {
+            initial: { r: 0, opacity: 0 },
+            animate: { r: radius, opacity: isSelected ? 0.9 : opacity },
+            transition: {
+              type: "spring",
+              stiffness: 200,
+              damping: 20,
+              delay,
+              duration: 0.6,
+            },
+            whileHover: {
+              r: radius * 1.2,
+              opacity: 1,
+              transition: { duration: 0.2 },
+            },
+          }
+        : {
+            r: radius,
+            opacity: isSelected ? 0.9 : opacity,
+          };
+
+      return (
+        <motion.ellipse
+          key={`${point.x}-${point.y}-${point.intensity}`}
+          cx={cx}
+          cy={cy}
+          rx={radius}
+          ry={radius * 1.2}
+          fill={fill}
+          fillOpacity={isSelected ? 0.9 : opacity}
+          stroke={isSelected ? "#ffffff" : "transparent"}
+          strokeWidth={isSelected ? 2 : 0}
+          style={{ cursor: onPointClick ? "pointer" : "default" }}
+          onClick={() => onPointClick?.(point as HeatmapVectorPoint)}
+          {...circleProps}
+        />
+      );
+    });
+  }, [aggregatedPoints, selectedMuscles, colorScale, onPointClick, animate]);
 
   return (
     <div className="relative flex items-center justify-center bg-slate-900/50 rounded-xl p-4">
@@ -235,8 +234,12 @@ export function BodyHeatmap({
           <path d={BODY_OUTLINE_FRONT} />
         </g>
 
-        {/* Heatmap overlay */}
-        <g filter="url(#glow)">{heatmapOverlay}</g>
+        {/* Heatmap overlay with animation */}
+        <g filter="url(#glow)">
+          <AnimatePresence mode="popLayout">
+            {heatmapOverlay}
+          </AnimatePresence>
+        </g>
       </svg>
     </div>
   );
