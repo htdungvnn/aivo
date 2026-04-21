@@ -56,8 +56,8 @@ export const CalcRouter = () => {
       })
       .parse(body);
 
-    const bmi = FitnessCalculator.calculate_bmi(weight, height);
-    const category = FitnessCalculator.get_bmi_category(bmi);
+    const bmi = FitnessCalculator.calculateBMI(weight, height);
+    const category = FitnessCalculator.getBMICategory(bmi);
 
     return c.json({ bmi, category });
   });
@@ -116,9 +116,9 @@ export const CalcRouter = () => {
       })
       .parse(body);
 
-    const bmr = FitnessCalculator.calculate_bmr(weight, height, age, gender === "male");
-    const tdee = FitnessCalculator.calculate_tdee(bmr, activityLevel);
-    const target = FitnessCalculator.calculate_target_calories(tdee, goal);
+    const bmr = FitnessCalculator.calculateBMR(weight, height, age, gender === "male");
+    const tdee = FitnessCalculator.calculateTDEE(bmr, activityLevel);
+    const target = FitnessCalculator.calculateTargetCalories(tdee, goal);
 
     return c.json({ bmr, tdee, targetCalories: target });
   });
@@ -159,7 +159,7 @@ export const CalcRouter = () => {
       })
       .parse(body);
 
-    const oneRepMax = FitnessCalculator.calculate_one_rep_max(weight, reps);
+    const oneRepMax = FitnessCalculator.calculateOneRepMax(weight, reps);
 
     return c.json({ oneRepMax });
   });

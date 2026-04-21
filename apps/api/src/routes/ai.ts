@@ -3,7 +3,6 @@ import { z } from "zod";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { createDrizzleInstance } from "@aivo/db";
 import { optimize_content_wasm } from "@aivo/optimizer";
-import { now } from "hono/utils";
 
 export interface Env {
   DB: D1Database;
@@ -98,12 +97,17 @@ export const AIRouter = () => {
 
       // Add conversation history with token thinning
       if (history.length > 0) {
-        const conversationJson = JSON.stringify({
-          messages: history.reverse().map((msg) => ({
-            role: msg.role === "user" ? "user" : "assistant",
-            content: msg.message,
-          })),
+        // Transform conversations into OpenAI message format
+        // Each conversation row has user message and assistant response
+        const allMessages: Array<{ role: string; content: string }> = [];
+        history.reverse().forEach((conv) => {
+          allMessages.push({ role: "user", content: conv.message });
+          if (conv.response) {
+            allMessages.push({ role: "assistant", content: conv.response });
+          }
         });
+
+        const conversationJson = JSON.stringify({ messages: allMessages });
 
         const optimizedJson = optimize_content_wasm(conversationJson, "");
         const optimized = JSON.parse(optimizedJson);
@@ -115,14 +119,14 @@ export const AIRouter = () => {
               messages.push(...optimizedData.messages.slice(-10));
             }
           } catch {
-            const recent = history.slice(0, 5).reverse();
-            recent.forEach((msg) => {
-              messages.push({
-                role: msg.role === "user" ? "user" : "assistant",
-                content: msg.message,
-              });
-            });
+            // Fallback to recent messages
+            const recent = allMessages.slice(-10);
+            messages.push(...recent);
           }
+        } else {
+          // If no optimization, take recent messages directly
+          const recent = allMessages.slice(-10);
+          messages.push(...recent);
         }
       }
 
@@ -143,11 +147,14 @@ export const AIRouter = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json() as { error?: { message?: string } };
         throw new Error(`OpenAI error: ${error.error?.message || response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as {
+        choices: { message: { content: string } }[];
+        usage?: { total_tokens: number };
+      };
       const aiMessage = data.choices[0]?.message?.content || "No response generated";
       const tokensUsed = data.usage?.total_tokens || 0;
 
@@ -159,7 +166,7 @@ export const AIRouter = () => {
         context: validated.context ? JSON.stringify(validated.context) : null,
         tokensUsed,
         model: "gpt-4o-mini",
-        createdAt: now(),
+        createdAt: Date.now(),
       });
 
       return c.json({

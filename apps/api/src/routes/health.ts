@@ -5,7 +5,8 @@ import { FitnessCalculator } from "@aivo/compute";
 import { createDrizzleInstance } from "@aivo/db";
 import { validateBodyMetrics } from "../services/validation";
 
-export interface Env {
+// Env type for health router (matches AppEnv in index.ts)
+interface Env {
   AUTH_SECRET: string;
   DB: D1Database;
   R2_BUCKET: R2Bucket;
@@ -129,7 +130,7 @@ const createHealthCheck = () => {
     // 5. Check WASM Compute
     try {
       const wasmStart = Date.now();
-      const bmi = FitnessCalculator.calculate_bmi(70, 1.75);
+      const bmi = FitnessCalculator.calculateBMI(70, 1.75);
       const wasmLatency = Date.now() - wasmStart;
 
       services.push({

@@ -1,4 +1,4 @@
-import { R2Bucket } from "@cloudflare/workers-types";
+// Import removed to avoid type conflicts - using any for R2Bucket
 import { FitnessCalculator } from "@aivo/compute";
 
 export interface BodyMetricResponse {
@@ -135,7 +135,7 @@ export function validateImage(buffer: Buffer): { valid: boolean; error?: string 
 }
 
 export async function uploadImage(
-  bucket: R2Bucket,
+  bucket: any,
   options: {
     userId: string;
     image: Buffer;
@@ -154,7 +154,7 @@ export async function uploadImage(
     customMetadata: options.metadata,
   });
 
-  const url = `https://${bucket.name}.r2.cloudflarestorage.com/${key}`;
+  const url = `https://${(bucket as any).name || "bucket"}.r2.cloudflarestorage.com/${key}`;
 
   return { url, key };
 }
@@ -200,11 +200,13 @@ export async function analyzeImageWithAI(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json() as { error?: { message?: string } };
     throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as {
+    choices: { message: { content: string } }[];
+  };
   const content = data.choices[0]?.message?.content;
 
   if (!content) {

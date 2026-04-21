@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDrizzleInstance } from '@aivo/db';
-import { validateBodyMetrics } from '../src/services/validation';
+import { validateBodyMetrics } from '../services/validation';
 
 // Mock environment
 const mockEnv = {

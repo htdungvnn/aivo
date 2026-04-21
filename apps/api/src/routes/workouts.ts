@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { createDrizzleInstance } from "@aivo/db";
-import { now } from "hono/utils";
 
 export interface Env {
   DB: D1Database;
@@ -97,7 +96,7 @@ export const WorkoutsRouter = () => {
       .values({
         ...validated,
         id: crypto.randomUUID(),
-        createdAt: now(),
+        createdAt: Date.now(),
         completedAt: null,
       })
       .returning();

@@ -3,6 +3,9 @@
  * Handles image uploads, downloads, and management for Cloudflare R2
  */
 
+// Use any for R2Bucket to avoid type incompatibilities between global and module types
+type AnyR2Bucket = any;
+
 // Type guard for R2 errors
 function isR2Error(error: unknown): error is { code: string } {
   return typeof error === "object" && error !== null && "code" in error;
@@ -38,10 +41,11 @@ export function generateR2Key(userId: string, filename: string, prefix = "body-i
  * Generate a presigned URL for uploading directly from client
  * (For future use when clients upload directly to R2)
  */
-export function generatePresignedUrl(bucket: R2Bucket, key: string, contentType: string, _ttlSeconds = 3600): string {
+export function generatePresignedUrl(bucket: AnyR2Bucket, key: string, contentType: string, _ttlSeconds = 3600): string {
   // Note: This is a simplified version. In production, use the R2 presign API
   // via `r2.presignedPutObject` or the Workers API
-  return `https://${bucket.name}.r2.dev/${key}`;
+  const bucketName = bucket.name || "bucket";
+  return `https://${bucketName}.r2.dev/${key}`;
 }
 
 /**
@@ -50,7 +54,7 @@ export function generatePresignedUrl(bucket: R2Bucket, key: string, contentType:
  * @param options - Upload options
  * @returns Object info with public URL
  */
-export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): Promise<R2ObjectInfo> {
+export async function uploadImage(bucket: AnyR2Bucket, options: R2UploadOptions): Promise<R2ObjectInfo> {
   const { userId, image, filename = `image-${Date.now()}.jpg`, contentType, metadata = {} } = options;
 
   const key = generateR2Key(userId, filename);
@@ -69,7 +73,7 @@ export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): P
 
   return {
     key,
-    url: `https://${bucket.name}.r2.dev/${key}`,
+    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
     size: image.byteLength || image.length,
     contentType,
     uploadedAt: new Date(),
@@ -79,20 +83,20 @@ export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): P
 /**
  * Delete image from R2 bucket
  */
-export async function deleteImage(bucket: R2Bucket, key: string): Promise<void> {
+export async function deleteImage(bucket: AnyR2Bucket, key: string): Promise<void> {
   await bucket.delete(key);
 }
 
 /**
  * Get image metadata from R2
  */
-export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2ObjectInfo | null> {
+export async function getImageInfo(bucket: AnyR2Bucket, key: string): Promise<R2ObjectInfo | null> {
   try {
     const object = await bucket.head(key);
 
     return {
       key,
-      url: `https://${bucket.name}.r2.dev/${key}`,
+      url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
       size: object.size,
       contentType: object.httpMetadata?.contentType || "application/octet-stream",
       uploadedAt: new Date(object.uploaded || Date.now()),
@@ -108,7 +112,7 @@ export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2Obj
 /**
  * List objects for a user
  */
-export async function listUserImages(bucket: R2Bucket, userId: string, prefix = "body-images"): Promise<R2ObjectInfo[]> {
+export async function listUserImages(bucket: AnyR2Bucket, userId: string, prefix = "body-images"): Promise<R2ObjectInfo[]> {
   const userPrefix = `${prefix}/${userId}/`;
   const objects = await bucket.list({
     prefix: userPrefix,
@@ -116,7 +120,7 @@ export async function listUserImages(bucket: R2Bucket, userId: string, prefix = 
 
   return objects.objects.map((obj) => ({
     key: obj.key,
-    url: `https://${bucket.name}.r2.dev/${obj.key}`,
+    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${obj.key}`,
     size: obj.size,
     contentType: obj.httpMetadata?.contentType || "application/octet-stream",
     uploadedAt: new Date(obj.uploaded || Date.now()),
