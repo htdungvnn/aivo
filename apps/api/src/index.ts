@@ -241,7 +241,6 @@ app.get("/health", async (c) => {
 
   // 6. Check AI Optimizer
   try {
-    await initOptimizer();
     const testText = "This is a test message for optimizer validation.";
     const result = optimize_content_wasm(testText, "");
 
@@ -588,17 +587,11 @@ app.route("/calc", calcRouter);
 const aiRouter = new Hono<{ Bindings: Env }>();
 
 // Lazy-loaded optimizer instance
-let optimizerInitialized = false;
-let optimizerPromise: Promise<void> | null = null;
+// WASM optimizer auto-initializes on import
+let optimizerInitialized = true;
 
 async function ensureOptimizer() {
-  if (!optimizerInitialized) {
-    optimizerPromise = (async () => {
-      await initOptimizer();
-      optimizerInitialized = true;
-    })();
-    await optimizerPromise;
-  }
+  // No explicit initialization needed - WASM module is ready on import
 }
 
 aiRouter.post("/chat", async (c) => {
