@@ -161,7 +161,7 @@ export function BodyHeatmap({
 
   // Generate heatmap overlay circles with animation
   const heatmapOverlay = useMemo(() => {
-    return aggregatedPoints.map((point, index) => {
+    const circles = aggregatedPoints.map((point, index) => {
       const cx = point.x * 2; // Normalize to 200 width
       const cy = point.y * 4; // Normalize to 400 height (0-100 -> 0-400)
       const radius = getRadius(point.intensity);
@@ -171,19 +171,19 @@ export function BodyHeatmap({
         (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
       );
 
-      // Staggered animation delay based on position
+      // Staggered animation delay based on position for organic feel
       const delay = (point.x + point.y) * 0.01;
 
       const circleProps = animate
         ? {
-            initial: { r: 0, opacity: 0 },
-            animate: { r: radius, opacity: isSelected ? 0.9 : opacity },
+            initial: { r: 0, opacity: 0, cx, cy },
+            animate: { r: radius, opacity: isSelected ? 0.9 : opacity, cx, cy },
+            exit: { r: 0, opacity: 0, cx, cy },
             transition: {
-              type: "spring",
-              stiffness: 200,
-              damping: 20,
-              delay,
-              duration: 0.6,
+              r: { type: "spring", stiffness: 200, damping: 20, delay, duration: 0.6 },
+              opacity: { duration: 0.3, delay },
+              cx: { duration: 0.5, delay: 0.1 },
+              cy: { duration: 0.5, delay: 0.1 },
             },
             whileHover: {
               r: radius * 1.2,
@@ -198,7 +198,7 @@ export function BodyHeatmap({
 
       return (
         <motion.ellipse
-          key={`${point.x}-${point.y}-${point.intensity}`}
+          key={`${point.muscle}-${Math.round(point.x)}-${Math.round(point.y)}`}
           cx={cx}
           cy={cy}
           rx={radius}
@@ -208,11 +208,38 @@ export function BodyHeatmap({
           stroke={isSelected ? "#ffffff" : "transparent"}
           strokeWidth={isSelected ? 2 : 0}
           style={{ cursor: onPointClick ? "pointer" : "default" }}
+          layout
           onClick={() => onPointClick?.(point as HeatmapVectorPoint)}
           {...circleProps}
         />
       );
     });
+
+    // Add muscle group labels with layout animations
+    const labels = selectedMuscles.map((muscle) => {
+      const pos = MUSCLE_POSITIONS[muscle];
+      if (!pos) return null;
+      return (
+        <motion.text
+          key={`label-${muscle}`}
+          x={pos.x * 2}
+          y={pos.y * 4 + 20}
+          textAnchor="middle"
+          fill="#94a3b8"
+          fontSize={8}
+          fontWeight={500}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          layout
+        >
+          {muscle.toUpperCase()}
+        </motion.text>
+      );
+    });
+
+    return [...circles, ...labels];
   }, [aggregatedPoints, selectedMuscles, colorScale, onPointClick, animate]);
 
   return (

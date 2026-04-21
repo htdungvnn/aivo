@@ -3,6 +3,11 @@
  * Handles image uploads, downloads, and management for Cloudflare R2
  */
 
+// Type guard for R2 errors
+function isR2Error(error: unknown): error is { code: string } {
+  return typeof error === "object" && error !== null && "code" in error;
+}
+
 export interface R2UploadOptions {
   userId: string;
   image: Buffer | Uint8Array;
@@ -92,8 +97,8 @@ export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2Obj
       contentType: object.httpMetadata?.contentType || "application/octet-stream",
       uploadedAt: new Date(object.uploaded || Date.now()),
     };
-  } catch (error: any) {
-    if (error.code === "NotFound") {
+  } catch (error: unknown) {
+    if (isR2Error(error) && error.code === "NotFound") {
       return null;
     }
     throw error;

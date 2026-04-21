@@ -12,7 +12,7 @@ export default function AIChatScreen() {
   const [input, setInput] = useState("");
 
   const sendMessage = () => {
-    if (!input.trim()) return;
+    if (!input.trim()) {return;}
 
     setMessages([
       ...messages,

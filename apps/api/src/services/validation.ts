@@ -13,7 +13,7 @@ export class BodyMetricsValidator {
     height: number,
     age: number,
     gender: "male" | "female",
-    fitnessLevel: string
+    _fitnessLevel: string
   ): { valid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -66,7 +66,7 @@ export class BodyMetricsValidator {
     bodyFat: number,
     age: number,
     gender: "male" | "female",
-    fitnessLevel: string
+    _fitnessLevel: string
   ): { valid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];

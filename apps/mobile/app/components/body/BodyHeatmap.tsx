@@ -1,9 +1,18 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { View, Dimensions } from "react-native";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from "react-native-reanimated";
 import Svg, { Ellipse, G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HEATMAP_SIZE = Math.min(SCREEN_WIDTH - 64, 320);
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const MUSCLE_POSITIONS: Record<string, { x: number; y: number }> = {
   chest: { x: 50, y: 42 },
@@ -56,11 +65,61 @@ const BODY_OUTLINE_FRONT = `
 `;
 
 function getColor(intensity: number): string {
-  if (intensity < 0.2) return "rgba(59, 130, 246, 0.6)"; // blue-500
-  if (intensity < 0.4) return "rgba(6, 182, 212, 0.7)"; // cyan-500
-  if (intensity < 0.6) return "rgba(34, 197, 94, 0.7)"; // green-500
-  if (intensity < 0.8) return "rgba(234, 179, 8, 0.7)"; // yellow-500
+  if (intensity < 0.2) {return "rgba(59, 130, 246, 0.6)";} // blue-500
+  if (intensity < 0.4) {return "rgba(6, 182, 212, 0.7)";} // cyan-500
+  if (intensity < 0.6) {return "rgba(34, 197, 94, 0.7)";} // green-500
+  if (intensity < 0.8) {return "rgba(234, 179, 8, 0.7)";} // yellow-500
   return "rgba(249, 115, 22, 0.8)"; // orange-500
+}
+
+// Animated circle component with progressive morphing
+function AnimatedHeatmapCircle({
+  point,
+  onPress,
+  isSelected,
+}: {
+  point: { x: number; y: number; intensity: number; muscle: string };
+  onPress?: () => void;
+  isSelected: boolean;
+}) {
+  const cx = useSharedValue(point.x * 2);
+  const cy = useSharedValue(point.y * 4);
+  const radius = useSharedValue(6 + point.intensity * 5);
+  const opacity = useSharedValue(0.5 + point.intensity * 0.4);
+
+  const handlePress = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress?.();
+  }, [onPress]);
+
+  // Animate to new values when point changes
+  useEffect(() => {
+    const newCx = point.x * 2;
+    const newCy = point.y * 4;
+    const newRadius = 6 + point.intensity * 5;
+    const newOpacity = 0.5 + point.intensity * 0.4;
+
+    cx.value = withSpring(newCx, { damping: 20, stiffness: 200 });
+    cy.value = withSpring(newCy, { damping: 20, stiffness: 200 });
+    radius.value = withSpring(newRadius, { damping: 20, stiffness: 200 });
+    opacity.value = withSpring(newOpacity, { damping: 20, stiffness: 200 });
+  }, [point.x, point.y, point.intensity, cx, cy, radius, opacity]);
+
+  return (
+    <AnimatedCircle
+      cx={cx}
+      cy={cy}
+      r={radius}
+      fill={getColor(point.intensity)}
+      opacity={isSelected ? 1 : opacity}
+      stroke={isSelected ? "#ffffff" : "transparent"}
+      strokeWidth={isSelected ? 2 : 0}
+      onPress={handlePress}
+      style={useAnimatedStyle(() => ({
+        opacity: isSelected ? 1 : opacity.value,
+      }))}
+    />
+  );
 }
 
 export interface BodyHeatmapProps {
@@ -85,27 +144,20 @@ export function BodyHeatmap({ vectorData, onPointPress }: BodyHeatmapProps) {
       groups[key].count++;
     });
 
-    return Object.values(groups).map((g, index) => {
-      const cx = g.x * 2;
-      const cy = g.y * 4;
-      const radius = 6 + (g.totalI / g.count) * 5;
-      const fill = getColor(g.totalI / g.count);
-      const opacity = 0.5 + (g.totalI / g.count) * 0.4;
+    return Object.values(groups).map((g) => {
+      const avgX = g.x;
+      const avgY = g.y;
+      const intensity = g.totalI / g.count;
+      const muscle = vectorData.find(
+        (p) => Math.abs(p.x - g.x) < 2 && Math.abs(p.y - g.y) < 2
+      )?.muscle || "";
 
       return (
-        <Circle
-          key={index}
-          cx={cx}
-          cy={cy}
-          r={radius}
-          fill={fill.replace(/[\d.]+\)$/, `${opacity})`)}
-          onPress={() => {
-            // Find closest muscle name
-            const muscle = vectorData.find(
-              (p) => Math.abs(p.x - g.x) < 2 && Math.abs(p.y - g.y) < 2
-            )?.muscle;
-            onPointPress?.(muscle || "", g.totalI / g.count);
-          }}
+        <AnimatedHeatmapCircle
+          key={`${muscle}_${Math.round(avgX)}_${Math.round(avgY)}`}
+          point={{ x: avgX, y: avgY, intensity, muscle }}
+          onPress={() => onPointPress?.(muscle, intensity)}
+          isSelected={false}
         />
       );
     });

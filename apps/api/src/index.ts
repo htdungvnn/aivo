@@ -618,7 +618,7 @@ Be encouraging, specific, and science-backed. When giving recommendations, consi
           if (Array.isArray(optimizedData.messages)) {
             messages.push(...optimizedData.messages.slice(-10)); // Keep up to 10 recent messages
           }
-        } catch (_e) {
+        } catch (_) {
           // Fallback to last 5 messages if optimization parsing fails
           const recent = history.slice(0, 5).reverse();
           recent.forEach((msg) => {
@@ -678,9 +678,10 @@ Be encouraging, specific, and science-backed. When giving recommendations, consi
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI chat error:", error);
-    return c.json({ success: false, error: error.message || "Chat failed" }, 500);
+    const message = error instanceof Error ? error.message : "Chat failed";
+    return c.json({ success: false, error: message }, 500);
   }
 });
 
@@ -913,9 +914,9 @@ bodyRouter.post("/vision/analyze", async (c) => {
         createdAt: savedAnalysis.createdAt,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Vision analysis error:", error);
-    const message = error.message || "Analysis failed";
+    const message = error instanceof Error ? error.message : "Analysis failed";
     return c.json({ success: false, error: message }, 500);
   }
 });
@@ -954,7 +955,7 @@ bodyRouter.get("/metrics", async (c) => {
       return c.json({ success: true, data: cachedData });
     }
 
-    const where: any = { userId };
+    const where: { userId: string; timestamp?: { gte?: number; lte?: number } } = { userId };
     if (startDate !== undefined || endDate !== undefined) {
       where.timestamp = {};
       if (startDate !== undefined) { where.timestamp.gte = startDate; }
@@ -1095,8 +1096,8 @@ bodyRouter.get("/heatmaps", async (c) => {
         userId: string;
         timestamp: number;
         imageUrl: string;
-        vectorData: any[] | null;
-        metadata: any | null;
+        vectorData: unknown[] | null;
+        metadata: unknown | null;
       }>
     >(c.env.BODY_INSIGHTS_CACHE, cacheKey);
 
@@ -1470,7 +1471,7 @@ Do not include any explanatory text. Only return the JSON.`;
       analysis: parsed,
       confidence: 0.85, // OpenAI provides confidence implicitly via model
     };
-  } catch (_e) {
+  } catch (_) {
     console.error("Failed to parse AI response:", content);
     throw new Error("Invalid analysis response from AI");
   }

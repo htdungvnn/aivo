@@ -58,16 +58,16 @@ export function PostureAnalysisCard({ assessment, loading = false }: PostureAnal
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-400";
-    if (score >= 60) return "text-blue-400";
-    if (score >= 40) return "text-amber-400";
+    if (score >= 80) {return "text-emerald-400";}
+    if (score >= 60) {return "text-blue-400";}
+    if (score >= 40) {return "text-amber-400";}
     return "text-red-400";
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    if (score >= 40) return "Fair";
+    if (score >= 80) {return "Excellent";}
+    if (score >= 60) {return "Good";}
+    if (score >= 40) {return "Fair";}
     return "Needs Work";
   };
 

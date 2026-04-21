@@ -39,7 +39,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLoginSuccess = async (userData: any, token: string) => {
+  const handleLoginSuccess = async (userData: unknown, token: string) => {
     try {
       await AsyncStorage.setItem(TOKEN_KEY, token);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
@@ -96,7 +96,9 @@ export default function LoginScreen() {
         {/* Google Button */}
         <TouchableOpacity
           style={[styles.button, styles.googleButton]}
-          onPress={() => handleGoogleLogin(handleLoginSuccess)}
+          onPress={() => {
+            void handleGoogleLogin(handleLoginSuccess);
+          }}
         >
           <View style={styles.buttonIcon}>
             <Text style={styles.googleIcon}>G</Text>
@@ -107,7 +109,9 @@ export default function LoginScreen() {
         {/* Facebook Button */}
         <TouchableOpacity
           style={[styles.button, styles.facebookButton]}
-          onPress={() => handleFacebookLogin(handleLoginSuccess)}
+          onPress={() => {
+            void handleFacebookLogin(handleLoginSuccess);
+          }}
         >
           <View style={styles.buttonIcon}>
             <Text style={styles.facebookIcon}>f</Text>
@@ -131,7 +135,7 @@ export default function LoginScreen() {
   );
 }
 
-async function handleGoogleLogin(onSuccess: (user: any, token: string) => void) {
+async function handleGoogleLogin(onSuccess: (user: unknown, token: string) => void) {
   try {
     const authUrl = `${API_URL}/api/auth/google`;
 
@@ -165,7 +169,7 @@ async function handleGoogleLogin(onSuccess: (user: any, token: string) => void) 
   }
 }
 
-async function handleFacebookLogin(onSuccess: (user: any, token: string) => void) {
+async function handleFacebookLogin(onSuccess: (user: unknown, token: string) => void) {
   try {
     // For Facebook, we need to open a web view with the OAuth flow
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent("aivo://auth/facebook/callback")}&response_type=token&scope=${encodeURIComponent("email,public_profile")}`;
@@ -214,7 +218,7 @@ function extractFacebookToken(url: string): string | null {
   try {
     // Facebook returns access_token in the fragment
     const hash = url.split("#")[1];
-    if (!hash) return null;
+    if (!hash) {return null;}
     const params = new URLSearchParams(hash);
     return params.get("access_token");
   } catch {

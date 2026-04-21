@@ -46,7 +46,7 @@ export default function InsightsScreen() {
 
   // Haptic feedback helper
   const triggerHaptic = async (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web") {return;}
     try {
       switch (type) {
         case "light":
@@ -119,7 +119,7 @@ export default function InsightsScreen() {
   };
 
   const handleUpload = async () => {
-    if (!imageFile || !user) return;
+    if (!imageFile || !user) {return;}
 
     setUploading(true);
     setError(null);
@@ -138,8 +138,8 @@ export default function InsightsScreen() {
           { text: "Later", style: "cancel" },
           {
             text: "Analyze",
-            onPress: async () => {
-              await handleAnalyze(uploadResult.imageUrl);
+            onPress: () => {
+              void handleAnalyze(uploadResult.imageUrl);
             },
           },
         ]
@@ -149,9 +149,10 @@ export default function InsightsScreen() {
       setImageFile(null);
       setActiveTab("overview");
       await triggerHaptic("light");
-    } catch (err: any) {
+    } catch (err: unknown) {
       await triggerHaptic("error");
-      setError(err.message || "Failed to upload image");
+      const message = err instanceof Error ? err.message : "Failed to upload image";
+      setError(message);
     } finally {
       setUploading(false);
     }
@@ -159,7 +160,7 @@ export default function InsightsScreen() {
 
   const handleAnalyze = async (imageUrl?: string) => {
     const url = imageUrl || selectedImage;
-    if (!url) return;
+    if (!url) {return;}
 
     setAnalyzing(true);
     setError(null);
@@ -173,9 +174,10 @@ export default function InsightsScreen() {
       setImageFile(null);
       setActiveTab("overview");
       await triggerHaptic("medium");
-    } catch (err: any) {
+    } catch (err: unknown) {
       await triggerHaptic("error");
-      setError(err.message || "Failed to analyze image");
+      const message = err instanceof Error ? err.message : "Failed to analyze image";
+      setError(message);
     } finally {
       setAnalyzing(false);
     }
@@ -316,14 +318,18 @@ export default function InsightsScreen() {
                   ) : (
                     <>
                       <TouchableOpacity
-                        onPress={handleUpload}
+                        onPress={() => {
+                          void handleUpload();
+                        }}
                         className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-lg items-center flex-row justify-center gap-2"
                       >
                         <Upload className="w-5 h-5 text-white" />
                         <Text className="text-white font-semibold">Upload Photo</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={() => handleAnalyze(selectedImage)}
+                        onPress={() => {
+                          void handleAnalyze(selectedImage);
+                        }}
                         disabled={analyzing}
                         className="bg-slate-800 py-3 rounded-lg items-center flex-row justify-center gap-2 border border-slate-700"
                       >
@@ -351,7 +357,9 @@ export default function InsightsScreen() {
                 <Text className="text-slate-200 font-semibold mb-4">Select Photo</Text>
 
                 <TouchableOpacity
-                  onPress={handleTakePhoto}
+                  onPress={() => {
+                    void handleTakePhoto();
+                  }}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center mb-3"
                 >
                   <Camera className="w-12 h-12 text-cyan-400 mb-2" />
