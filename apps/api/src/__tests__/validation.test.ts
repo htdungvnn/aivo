@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { BodyMetricsValidator } from '../validation';
 
 describe('BodyMetricsValidator', () => {

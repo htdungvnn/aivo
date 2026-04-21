@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { describe, it, expect, beforeEach, vi } from '@jest/globals';
 import { validateWeight } from '../src/services/validation';
 

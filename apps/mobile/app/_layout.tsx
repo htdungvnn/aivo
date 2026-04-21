@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { MetricsProvider } from "@/contexts/MetricsContext";
 
 export default function RootLayout() {
@@ -35,19 +36,21 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        ) : (
-          <MetricsProvider>
-            <>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="workout/[id]" options={{ headerShown: true, title: "Workout" }} />
-              <Stack.Screen name="ai-chat" options={{ headerShown: true, title: "AI Coach" }} />
-            </>
-          </MetricsProvider>
-        )}
-      </Stack>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {!isAuthenticated ? (
+            <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+          ) : (
+            <MetricsProvider>
+              <>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="workout/[id]" options={{ headerShown: true, title: "Workout" }} />
+                <Stack.Screen name="ai-chat" options={{ headerShown: true, title: "AI Coach" }} />
+              </>
+            </MetricsProvider>
+          )}
+        </Stack>
+      </AuthProvider>
     </>
   );
 }

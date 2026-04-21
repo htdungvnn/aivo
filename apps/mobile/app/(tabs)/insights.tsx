@@ -15,9 +15,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMetrics } from "@/contexts/MetricsContext";
 import { launchImageLibraryAsync, MediaTypeOptions, launchCameraAsync } from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
-import { BodyHeatmap } from "./BodyHeatmap";
-import { BodyMetricChart, HealthScoreGauge, MuscleBalanceChart } from "./BodyMetricChart";
-import { PostureAnalysisCard } from "./PostureAnalysisCard";
+import { BodyHeatmap } from "@/components/body/BodyHeatmap";
+import { BodyMetricChart, HealthScoreGauge, MuscleBalanceChart } from "@/components/body/BodyMetricChart";
+import { PostureAnalysisCard } from "@/components/body/PostureAnalysisCard";
 import { fetchBodyMetrics, fetchHealthScore, uploadBodyImage, analyzeImage } from "../services/metrics-api";
 import {
   Camera,

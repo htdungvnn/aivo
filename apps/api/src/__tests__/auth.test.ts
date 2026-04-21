@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { describe, it, expect, beforeEach, vi, afterEach } from '@jest/globals';
 import { Hono } from 'hono';
 import { jwtVerify, sign } from 'jose';
@@ -132,7 +133,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
@@ -166,7 +167,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(401);
       expect(json.error).toBe('Invalid token');
@@ -192,7 +193,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(400);
       expect(json.error).toBe('ID token required');
@@ -286,7 +287,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
@@ -323,7 +324,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(401);
     });
@@ -356,7 +357,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
@@ -385,7 +386,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(401);
       expect(json.error).toBe('Token expired');
@@ -418,7 +419,7 @@ describe('Authentication API', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(mockDb.sessions.delete).toHaveBeenCalledWith({

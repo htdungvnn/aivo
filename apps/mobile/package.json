@@ -18,6 +18,8 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@aivo/api-client": "workspace:*",
+    "@aivo/body-compute": "workspace:*",
     "@aivo/compute": "workspace:*",
     "@aivo/shared-types": "workspace:*",
     "@react-native-async-storage/async-storage": "^1.23.1",

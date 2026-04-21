@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+/// <reference types="jest" />
 import { describe, it, expect, beforeEach, afterEach, vi } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -35,7 +37,7 @@ describe('API Health Check', () => {
 
     const request = new Request('http://localhost:8787/health');
     const response = await app.fetch(request);
-    const data = await response.json();
+    const data = await response.json() as any;
 
     expect(response.status).toBe(200);
     expect(data.status).toBe('ok');

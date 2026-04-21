@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { describe, it, expect } from '@jest/globals';
 
 // Simple unit tests for API package

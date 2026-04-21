@@ -1,30 +1,33 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
+import { createApiClient, type BodyMetric, type HealthScoreResult, type ApiResponse } from "@aivo/api-client";
 
-// Types (copied from API service - in production would be from shared-types)
-export interface BodyMetric {
-  id: string;
-  userId: string;
-  timestamp: number;
-  weight?: number;
-  bodyFatPercentage?: number;
-  muscleMass?: number;
-  bmi?: number;
-}
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
 
-export interface HealthScore {
-  score: number;
-  category: "poor" | "fair" | "good" | "excellent";
-  recommendations: string[];
+// Storage keys
+const STORAGE_KEYS = {
+  TOKEN: "aivo_token",
+  USER_ID: "aivo_user_id",
+  METRICS: "aivo_metrics_cache",
+  HEALTH_SCORE: "aivo_health_score_cache",
+};
+
+// Create API client with platform-specific token storage
+function getApiClient() {
+  return createApiClient({
+    baseUrl: API_URL,
+    tokenProvider: async () => (await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN)) || "",
+    userIdProvider: async () => (await SecureStore.getItemAsync(STORAGE_KEYS.USER_ID)) || "",
+  });
 }
 
 export interface MetricsState {
   metrics: BodyMetric[];
   latestMetric: BodyMetric | null;
-  healthScore: HealthScore | null;
+  healthScore: HealthScoreResult | null;
   loading: boolean;
   error: string | null;
-  optimisticUpdate: BodyMetric | null; // Track pending optimistic update
+  optimisticUpdate: BodyMetric | null;
 }
 
 interface MetricsContextType extends MetricsState {
@@ -34,11 +37,6 @@ interface MetricsContextType extends MetricsState {
 }
 
 const MetricsContext = createContext<MetricsContextType | undefined>(undefined);
-
-const STORAGE_KEYS = {
-  METRICS: "aivo_metrics_cache",
-  HEALTH_SCORE: "aivo_health_score_cache",
-};
 
 export function MetricsProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<MetricsState>({
@@ -52,14 +50,17 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
 
   const loadCachedData = useCallback(async () => {
     try {
-      const cachedMetrics = await SecureStore.getItemAsync(STORAGE_KEYS.METRICS);
-      const cachedScore = await SecureStore.getItemAsync(STORAGE_KEYS.HEALTH_SCORE);
+      const [cachedMetrics, cachedScore] = await Promise.all([
+        SecureStore.getItemAsync(STORAGE_KEYS.METRICS),
+        SecureStore.getItemAsync(STORAGE_KEYS.HEALTH_SCORE),
+      ]);
 
       if (cachedMetrics) {
+        const metrics = JSON.parse(cachedMetrics);
         setState((prev) => ({
           ...prev,
-          metrics: JSON.parse(cachedMetrics),
-          latestMetric: JSON.parse(cachedMetrics)[0] || null,
+          metrics,
+          latestMetric: metrics[0] || null,
         }));
       }
       if (cachedScore) {
@@ -77,35 +78,29 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
+      const api = getApiClient();
       const [metricsRes, scoreRes] = await Promise.allSettled([
-        fetch("http://localhost:8787/api/body/metrics?limit=30", {
-          headers: { Authorization: `Bearer ${await SecureStore.getItemAsync("aivo_token")}` },
-        }),
-        fetch("http://localhost:8787/api/body/health-score", {
-          headers: {
-            Authorization: `Bearer ${await SecureStore.getItemAsync("aivo_token")}`,
-            "X-User-Id": await SecureStore.getItemAsync("aivo_user_id"),
-          },
-        }),
+        api.getBodyMetrics({ limit: 30 }),
+        api.getHealthScore(),
       ]);
 
       if (metricsRes.status === "fulfilled") {
-        const metricsData = await metricsRes.value.json();
+        const { data } = metricsRes.value;
         setState((prev) => ({
           ...prev,
-          metrics: metricsData.data || [],
-          latestMetric: metricsData.data?.[0] || null,
+          metrics: data || [],
+          latestMetric: data?.[0] || null,
         }));
-        await SecureStore.setItemAsync(STORAGE_KEYS.METRICS, JSON.stringify(metricsData.data || []));
+        await SecureStore.setItemAsync(STORAGE_KEYS.METRICS, JSON.stringify(data || []));
       }
 
       if (scoreRes.status === "fulfilled") {
-        const scoreData = await scoreRes.value.json();
+        const { data } = scoreRes.value;
         setState((prev) => ({
           ...prev,
-          healthScore: scoreData.data,
+          healthScore: data || null,
         }));
-        await SecureStore.setItemAsync(STORAGE_KEYS.HEALTH_SCORE, JSON.stringify(scoreData.data));
+        await SecureStore.setItemAsync(STORAGE_KEYS.HEALTH_SCORE, JSON.stringify(data));
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to load metrics";
@@ -116,36 +111,20 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addMetric = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
-    const token = await SecureStore.getItemAsync("aivo_token");
-    const userId = await SecureStore.getItemAsync("aivo_user_id");
-
-    const response = await fetch("http://localhost:8787/api/body/metrics", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "X-User-Id": userId,
-      },
-      body: JSON.stringify(metric),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to add metric");
-    }
-
-    const newMetric = await response.json();
-    // Invalidate cache
+    const api = getApiClient();
+    const { data } = await api.createBodyMetric(metric);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
-    return newMetric;
+    return data;
   };
 
   const addMetricOptimistic = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
-    const token = await SecureStore.getItemAsync("aivo_token");
+    const api = getApiClient();
+    const userId = await SecureStore.getItemAsync(STORAGE_KEYS.USER_ID) || "";
 
     // Create optimistic metric with temporary ID
     const optimisticMetric: BodyMetric = {
       id: `temp-${Date.now()}`,
-      userId: await SecureStore.getItemAsync("aivo_user_id") || "",
+      userId,
       timestamp: Math.floor(Date.now() / 1000),
       weight: metric.weight,
       bodyFatPercentage: metric.bodyFatPercentage,
@@ -162,36 +141,16 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     }));
 
     try {
-      const response = await fetch("http://localhost:8787/api/body/metrics", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-User-Id": optimisticMetric.userId,
-        },
-        body: JSON.stringify(metric),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add metric");
-      }
-
-      const newMetric = await response.json();
+      const { data: newMetric } = await api.createBodyMetric(metric);
 
       // Replace optimistic metric with real one
-      setState((prev) => {
-        const updatedMetrics = prev.metrics.map((m) =>
-          m.id === optimisticMetric.id ? newMetric : m
-        );
-        return {
-          ...prev,
-          metrics: updatedMetrics,
-          latestMetric: newMetric,
-          optimisticUpdate: null,
-        };
-      });
+      setState((prev) => ({
+        ...prev,
+        metrics: prev.metrics.map((m) => (m.id === optimisticMetric.id ? newMetric : m)),
+        latestMetric: newMetric,
+        optimisticUpdate: null,
+      }));
 
-      // Invalidate cache
       await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
       return newMetric;
     } catch (error) {

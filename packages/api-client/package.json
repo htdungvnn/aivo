@@ -1,0 +1,25 @@
+{
+  "name": "@aivo/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform-agnostic API client for AIVO",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "tsc --noEmit && echo 'Type check passed - api-client is valid'"
+  },
+  "dependencies": {
+    "@aivo/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@aivo/jest-config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}

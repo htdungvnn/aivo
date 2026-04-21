@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-export interface HeatmapVectorPoint {
-  x: number; // 0-100 normalized
-  y: number;
-  intensity: number; // 0-1
-  muscle: string;
-}
+import {
+  MUSCLE_POSITIONS,
+  BODY_OUTLINE_FRONT,
+  HeatmapRenderer,
+  type HeatmapVectorPoint,
+} from "@aivo/body-compute";
 
 export interface BodyHeatmapProps {
   vectorData: HeatmapVectorPoint[];
@@ -19,112 +18,6 @@ export interface BodyHeatmapProps {
   colorScale?: "heat" | "cool" | "monochrome";
   animate?: boolean;
 }
-
-const MUSCLE_POSITIONS: Record<string, { x: number; y: number; zone: string }> = {
-  chest: { x: 50, y: 42, zone: "front_torso" },
-  "chest_upper": { x: 50, y: 35, zone: "front_torso" },
-  "chest_lower": { x: 50, y: 50, zone: "front_torso" },
-  back: { x: 50, y: 55, zone: "back_torso" },
-  "back_upper": { x: 50, y: 48, zone: "back_torso" },
-  "back_lower": { x: 50, y: 65, zone: "back_torso" },
-  shoulders: { x: 24, y: 38, zone: "front_torso" },
-  "shoulders_rear": { x: 76, y: 38, zone: "back_torso" },
-  biceps: { x: 18, y: 45, zone: "front_arm" },
-  triceps: { x: 22, y: 50, zone: "back_arm" },
-  forearms: { x: 12, y: 55, zone: "front_arm" },
-  abs: { x: 50, y: 62, zone: "front_torso" },
-  core: { x: 50, y: 68, zone: "front_torso" },
-  obliques: { x: 30, y: 58, zone: "front_torso" },
-  quadriceps: { x: 30, y: 82, zone: "front_leg" },
-  hamstrings: { x: 30, y: 92, zone: "back_leg" },
-  glutes: { x: 38, y: 82, zone: "back_torso" },
-  calves: { x: 30, y: 100, zone: "front_leg" },
-  neck: { x: 50, y: 15, zone: "front_torso" },
-};
-
-function getColor(intensity: number, scale: string): { baseColor: string; opacity: number } {
-  const i = Math.max(0, Math.min(1, intensity));
-  const opacity = 0.4 + i * 0.5;
-
-  switch (scale) {
-    case "cool":
-      return { baseColor: "rgba(6, 182, 212, ", opacity };
-    case "monochrome":
-      return { baseColor: "rgba(255, 255, 255, ", opacity };
-    case "heat":
-    default:
-      if (i < 0.2) {return { baseColor: "rgba(59, 130, 246, ", opacity };}
-      if (i < 0.4) {return { baseColor: "rgba(6, 182, 212, ", opacity };}
-      if (i < 0.6) {return { baseColor: "rgba(34, 197, 94, ", opacity };}
-      if (i < 0.8) {return { baseColor: "rgba(234, 179, 8, ", opacity };}
-      return { baseColor: "rgba(249, 115, 22, ", opacity };
-  }
-}
-
-function getRadius(intensity: number, baseRadius: number = 8): number {
-  return baseRadius + intensity * 6;
-}
-
-// SVG paths for body outline (front and back)
-const BODY_OUTLINE_FRONT = `
-  M 50 15
-  C 42 15, 35 18, 32 22
-  C 29 26, 28 30, 28 35
-  C 28 38, 27 40, 25 42
-  C 23 44, 20 46, 15 48
-  C 10 50, 7 52, 5 56
-  C 3 60, 3 65, 4 70
-  C 5 75, 6 80, 7 90
-  C 8 100, 10 110, 12 120
-  M 12 120 C 15 118, 20 115, 25 112
-  M 50 15
-  C 58 15, 65 18, 68 22
-  C 71 26, 72 30, 72 35
-  C 72 38, 73 40, 75 42
-  C 77 44, 80 46, 85 48
-  C 90 50, 93 52, 95 56
-  C 97 60, 97 65, 96 70
-  C 95 75, 94 80, 93 90
-  C 92 100, 90 110, 88 120
-  M 88 120 C 85 118, 80 115, 75 112
-  M 30 28 C 30 40, 32 55, 32 70
-  C 32 85, 30 100, 28 115
-  M 70 28 C 70 40, 68 55, 68 70
-  C 68 85, 70 100, 72 115
-  M 32 115 C 28 118, 20 120, 15 122
-  M 68 115 C 72 118, 80 120, 85 122
-  M 45 100 C 40 100, 35 105, 32 115
-  M 55 100 C 60 100, 65 105, 68 115
-`.trim();
-
-const BODY_OUTLINE_BACK = `
-  M 50 15
-  C 42 15, 35 18, 32 22
-  C 29 26, 28 30, 28 35
-  C 28 38, 27 40, 25 42
-  C 23 44, 20 46, 15 48
-  C 10 50, 7 52, 5 56
-  C 3 60, 3 65, 4 70
-  C 5 75, 6 80, 7 90
-  C 8 100, 10 110, 12 120
-  M 12 120 C 15 118, 20 115, 25 112
-  M 50 15
-  C 58 15, 65 18, 68 22
-  C 71 26, 72 30, 72 35
-  C 72 38, 73 40, 75 42
-  C 77 44, 80 46, 85 48
-  C 90 50, 93 52, 95 56
-  C 97 60, 97 65, 96 70
-  C 95 75, 94 80, 93 90
-  C 92 100, 90 110, 88 120
-  M 88 120 C 85 118, 80 115, 75 112
-  M 30 32 C 30 45, 32 60, 32 75
-  C 32 90, 30 105, 28 120
-  M 70 32 C 70 45, 68 60, 68 75
-  C 68 90, 70 105, 72 120
-  M 32 120 C 28 123, 20 125, 15 127
-  M 68 120 C 72 123, 80 125, 85 127
-`.trim();
 
 export function BodyHeatmap({
   vectorData,
@@ -137,34 +30,16 @@ export function BodyHeatmap({
 }: BodyHeatmapProps) {
   const viewBox = `0 0 200 400`;
 
-  // Group points by muscle for aggregation
-  const aggregatedPoints = useMemo(() => {
-    const groups: Record<string, { x: number; y: number; count: number; totalIntensity: number }> = {};
+  // Use shared business logic for data preparation
+  const preparedData = useMemo(() => {
+    return HeatmapRenderer.prepare(vectorData, { width: 200, height: 400, colorScale });
+  }, [vectorData, colorScale]);
 
-    vectorData.forEach((point) => {
-      const key = `${point.muscle}_${Math.round(point.x)}_${Math.round(point.y)}`;
-      if (!groups[key]) {
-        groups[key] = { x: point.x, y: point.y, count: 0, totalIntensity: 0 };
-      }
-      groups[key].count++;
-      groups[key].totalIntensity += point.intensity;
-    });
-
-    return Object.values(groups).map((g) => ({
-      x: g.x,
-      y: g.y,
-      intensity: g.totalIntensity / g.count,
-      muscle: g.muscle,
-    }));
-  }, [vectorData]);
+  const { points: aggregatedPoints } = preparedData;
 
   // Generate heatmap overlay circles with animation
   const heatmapOverlay = useMemo(() => {
     const circles = aggregatedPoints.map((point, index) => {
-      const cx = point.x * 2; // Normalize to 200 width
-      const cy = point.y * 4; // Normalize to 400 height (0-100 -> 0-400)
-      const radius = getRadius(point.intensity);
-      const { baseColor, opacity: colorOpacity } = getColor(point.intensity, colorScale);
       const isSelected = selectedMuscles.some(
         (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
       );
@@ -174,9 +49,9 @@ export function BodyHeatmap({
 
       const circleProps = animate
         ? {
-            initial: { r: 0, opacity: 0, cx, cy },
-            animate: { r: radius, opacity: isSelected ? 1 : colorOpacity, cx, cy },
-            exit: { r: 0, opacity: 0, cx, cy },
+            initial: { r: 0, opacity: 0, cx: point.cx, cy: point.cy },
+            animate: { r: point.radius, opacity: isSelected ? 1 : parseFloat(point.color.match(/[\d.]+\)/)?.[0] || "0.5"), cx: point.cx, cy: point.cy },
+            exit: { r: 0, opacity: 0, cx: point.cx, cy: point.cy },
             transition: {
               r: { type: "spring", stiffness: 200, damping: 20, delay, duration: 0.6 },
               opacity: { duration: 0.3, delay },
@@ -184,25 +59,25 @@ export function BodyHeatmap({
               cy: { duration: 0.5, delay: 0.1 },
             },
             whileHover: {
-              r: radius * 1.2,
+              r: point.radius * 1.2,
               opacity: 1,
               transition: { duration: 0.2 },
             },
           }
         : {
-            r: radius,
-            opacity: isSelected ? 1 : colorOpacity,
+            r: point.radius,
+            opacity: isSelected ? 1 : parseFloat(point.color.match(/[\d.]+\)/)?.[0] || "0.5"),
           };
 
       return (
         <motion.ellipse
           key={`${point.muscle}-${Math.round(point.x)}-${Math.round(point.y)}`}
-          cx={cx}
-          cy={cy}
-          rx={radius}
-          ry={radius * 1.2}
-          fill={baseColor}
-          fillOpacity={isSelected ? 1 : colorOpacity}
+          cx={point.cx}
+          cy={point.cy}
+          rx={point.radius}
+          ry={point.radius * 1.2}
+          fill={point.color}
+          fillOpacity={1}
           stroke={isSelected ? "#ffffff" : "transparent"}
           strokeWidth={isSelected ? 2 : 0}
           style={{ cursor: onPointClick ? "pointer" : "default" }}
@@ -216,7 +91,7 @@ export function BodyHeatmap({
     // Add muscle group labels with layout animations
     const labels = selectedMuscles.map((muscle) => {
       const pos = MUSCLE_POSITIONS[muscle];
-      if (!pos) {return null;}
+      if (!pos) { return null; }
       return (
         <motion.text
           key={`label-${muscle}`}
@@ -238,7 +113,7 @@ export function BodyHeatmap({
     });
 
     return [...circles, ...labels];
-  }, [aggregatedPoints, selectedMuscles, colorScale, onPointClick, animate]);
+  }, [aggregatedPoints, selectedMuscles, onPointClick, animate]);
 
   return (
     <div className="relative flex items-center justify-center bg-slate-900/50 rounded-xl p-4">

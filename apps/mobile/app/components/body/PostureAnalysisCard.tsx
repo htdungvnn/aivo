@@ -1,35 +1,18 @@
 import React from "react";
 import { View, Text } from "react-native";
-
-export interface PostureIssue {
-  type: string;
-  severity: "mild" | "moderate" | "severe";
-}
-
-export interface PostureAssessment {
-  score: number;
-  issues: PostureIssue[];
-  recommendations: string[];
-}
+import {
+  PostureAssessment,
+  PostureIssueType,
+  POSTURE_ISSUE_LABELS,
+  SEVERITY_STYLES,
+  getScoreColor,
+  getScoreLabel,
+} from "@aivo/shared-types";
 
 interface PostureAnalysisCardProps {
   assessment?: PostureAssessment;
   loading?: boolean;
 }
-
-const ISSUE_LABELS: Record<string, string> = {
-  forward_head: "Forward Head",
-  rounded_shoulders: "Rounded Shoulders",
-  hyperlordosis: "Hyperlordosis",
-  kyphosis: "Kyphosis",
-  pelvic_tilt: "Pelvic Tilt",
-};
-
-const SEVERITY_COLORS = {
-  mild: "#fbbf24",
-  moderate: "#f97316",
-  severe: "#ef4444",
-};
 
 export function PostureAnalysisCard({ assessment, loading = false }: PostureAnalysisCardProps) {
   if (loading) {
@@ -56,20 +39,6 @@ export function PostureAnalysisCard({ assessment, loading = false }: PostureAnal
       </View>
     );
   }
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) {return "text-emerald-400";}
-    if (score >= 60) {return "text-blue-400";}
-    if (score >= 40) {return "text-amber-400";}
-    return "text-red-400";
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) {return "Excellent";}
-    if (score >= 60) {return "Good";}
-    if (score >= 40) {return "Fair";}
-    return "Needs Work";
-  };
 
   return (
     <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
@@ -99,15 +68,18 @@ export function PostureAnalysisCard({ assessment, loading = false }: PostureAnal
           <Text className="text-slate-300 text-sm font-medium mb-2">Detected Issues</Text>
           <View className="space-y-2">
             {assessment.issues.map((issue, index) => {
-              const info = ISSUE_LABELS[issue.type] || issue.type;
+              const info = POSTURE_ISSUE_LABELS[issue.type as PostureIssueType];
+              const styles = SEVERITY_STYLES[issue.severity];
               return (
                 <View
                   key={index}
-                  className={`flex-row items-center justify-between p-2 rounded-lg border ${issue.severity === "severe" ? "border-red-500/30 bg-red-500/10" : issue.severity === "moderate" ? "border-orange-500/30 bg-orange-500/10" : "border-amber-500/30 bg-amber-500/10"}`}
+                  className="flex-row items-center justify-between p-2 rounded-lg border"
+                  style={{ backgroundColor: styles.bg, borderColor: styles.border }}
                 >
-                  <Text className="text-slate-200 text-sm capitalize">{info}</Text>
+                  <Text className="text-slate-200 text-sm">{info?.label || issue.type}</Text>
                   <Text
-                    className={`text-xs font-semibold px-2 py-0.5 rounded ${issue.severity === "severe" ? "bg-red-500/30 text-red-400" : issue.severity === "moderate" ? "bg-orange-500/30 text-orange-400" : "bg-amber-500/30 text-amber-400"}`}
+                    className="text-xs font-semibold px-2 py-0.5 rounded"
+                    style={{ backgroundColor: styles.bg, color: styles.text }}
                   >
                     {issue.severity}
                   </Text>

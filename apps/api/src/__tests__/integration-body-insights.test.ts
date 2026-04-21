@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+/// <reference types="jest" />
 import { describe, it, expect, beforeEach, afterEach, vi } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -155,6 +157,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should fetch metrics with date range filter', async () => {
+      const now = Math.floor(Date.now() / 1000);
       const mockResult = {
         success: true,
         data: [
@@ -269,7 +272,7 @@ describe('API Integration - Body Insights', () => {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as any;
 
       expect(data.choices[0].message.content).toBeDefined();
       const parsed = JSON.parse(data.choices[0].message.content);
@@ -333,13 +336,20 @@ describe('API Integration - Body Insights', () => {
         return c.json({ success: true, data: result.data });
       });
 
+      const mockMetricsResponse = {
+        data: [
+          { id: '1', userId: 'user123', weight: 70, timestamp: Math.floor(Date.now() / 1000) - 86400 },
+          { id: '2', userId: 'user123', weight: 71, timestamp: Math.floor(Date.now() / 1000) },
+        ],
+      };
+
       mockEnv.DB.execute = vi.fn().mockResolvedValue({
         data: mockMetricsResponse.data,
       });
 
       const request = new Request('http://localhost:8787/api/body/metrics?userId=user123&limit=10');
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
@@ -359,7 +369,7 @@ describe('API Integration - Body Insights', () => {
 
       const request = new Request('http://localhost:8787/api/body/metrics');
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(400);
       expect(json.error).toBe('userId is required');
@@ -414,7 +424,7 @@ describe('API Integration - Body Insights', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
@@ -468,7 +478,7 @@ describe('API Integration - Body Insights', () => {
       });
 
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.data.score).toBeGreaterThanOrEqual(0);
@@ -489,7 +499,7 @@ describe('API Integration - Body Insights', () => {
 
       const request = new Request('http://localhost:8787/api/body/health-score');
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(400);
     });
@@ -524,7 +534,7 @@ describe('API Integration - Body Insights', () => {
 
       const request = new Request('http://localhost:8787/api/body/heatmaps?userId=user123&limit=1');
       const response = await app.fetch(request);
-      const json = await response.json();
+      const json = await response.json() as any;
 
       expect(response.status).toBe(200);
       expect(json.data).toHaveLength(1);

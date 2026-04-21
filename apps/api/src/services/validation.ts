@@ -240,9 +240,9 @@ export class BodyMetricsValidator {
 /**
  * Quick validation function for API use
  */
-export async function validateBodyMetrics(
+export function validateBodyMetrics(
   metrics: Parameters<typeof BodyMetricsValidator.validateCompleteMetrics>["0"]
-): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
+): { valid: boolean; errors: string[]; warnings: string[] } {
   const result = BodyMetricsValidator.validateCompleteMetrics(metrics);
   return {
     valid: result.valid,

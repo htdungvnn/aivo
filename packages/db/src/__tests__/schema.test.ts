@@ -1,21 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+/// <reference types="jest" />
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { sql } from 'drizzle-orm';
-import * as schema from '../src/schema';
+import * as schema from '../schema';
 
 // Mock Drizzle instance for testing
 const mockDrizzle = {
-  execute: vi.fn(),
-  executeSql: vi.fn(),
-  batch: vi.fn(),
-  query: vi.fn(),
-  migrate: vi.fn(),
-  raw: vi.fn(),
-  _connect: vi.fn(),
-  _dispose: vi.fn(),
-  drizzle: vi.fn(),
+  execute: jest.fn(),
+  executeSql: jest.fn(),
+  batch: jest.fn(),
+  query: jest.fn(),
+  migrate: jest.fn(),
+  raw: jest.fn(),
+  _connect: jest.fn(),
+  _dispose: jest.fn(),
+  drizzle: jest.fn(),
 };
 
-vi.mock('../src/index', () => ({
+jest.mock('../index', () => ({
   db: mockDrizzle,
 }));
 
@@ -23,66 +24,67 @@ describe('Database Schema', () => {
   describe('Users Table', () => {
     it('should have correct columns defined', () => {
       expect(schema.users).toBeDefined();
-      expect(schema.users.fields.id).toBeDefined();
-      expect(schema.users.fields.email).toBeDefined();
-      expect(schema.users.fields.name).toBeDefined();
-      expect(schema.users.fields.createdAt).toBeDefined();
+      expect(schema.users.id).toBeDefined();
+      expect(schema.users.email).toBeDefined();
+      expect(schema.users.name).toBeDefined();
+      expect(schema.users.createdAt).toBeDefined();
     });
 
     it('should define email as unique', () => {
-      expect(schema.users.fields.email.unique).toBe(true);
+      // In Drizzle 0.45, uniqueness is in the column config
+      expect(schema.users.email).toHaveProperty('unique', true);
     });
 
     it('should have proper field types', () => {
-      expect(schema.users.fields.id.type).toBe('text');
-      expect(schema.users.fields.email.type).toBe('text');
-      expect(schema.users.fields.age.type).toBe('integer');
-      expect(schema.users.fields.height.type).toBe('real');
+      expect(schema.users.id.dataType).toBe('text');
+      expect(schema.users.email.dataType).toBe('text');
+      expect(schema.users.age.dataType).toBe('integer');
+      expect(schema.users.height.dataType).toBe('real');
     });
   });
 
   describe('BodyMetrics Table', () => {
     it('should have all required fields', () => {
       expect(schema.bodyMetrics).toBeDefined();
-      expect(schema.bodyMetrics.fields.id).toBeDefined();
-      expect(schema.bodyMetrics.fields.userId).toBeDefined();
-      expect(schema.bodyMetrics.fields.timestamp).toBeDefined();
-      expect(schema.bodyMetrics.fields.weight).toBeDefined();
-      expect(schema.bodyMetrics.fields.bodyFatPercentage).toBeDefined();
-      expect(schema.bodyMetrics.fields.muscleMass).toBeDefined();
-      expect(schema.bodyMetrics.fields.bmi).toBeDefined();
+      expect(schema.bodyMetrics.id).toBeDefined();
+      expect(schema.bodyMetrics.userId).toBeDefined();
+      expect(schema.bodyMetrics.timestamp).toBeDefined();
+      expect(schema.bodyMetrics.weight).toBeDefined();
+      expect(schema.bodyMetrics.bodyFatPercentage).toBeDefined();
+      expect(schema.bodyMetrics.muscleMass).toBeDefined();
+      expect(schema.bodyMetrics.bmi).toBeDefined();
     });
 
     it('should have optional fields for partial data', () => {
       // weight, bodyFatPercentage, muscleMass should be optional (real without notNull)
-      expect(schema.bodyMetrics.fields.weight.notNull).toBeUndefined();
+      expect(schema.bodyMetrics.weight.notNull).toBeUndefined();
     });
   });
 
   describe('BodyHeatmaps Table', () => {
     it('should have vector data field', () => {
       expect(schema.bodyHeatmaps).toBeDefined();
-      expect(schema.bodyHeatmaps.fields.vectorData).toBeDefined();
+      expect(schema.bodyHeatmaps.vectorData).toBeDefined();
     });
 
     it('should store JSON vector data as text', () => {
-      expect(schema.bodyHeatmaps.fields.vectorData.type).toBe('text');
+      expect(schema.bodyHeatmaps.vectorData.dataType).toBe('text');
     });
   });
 
   describe('VisionAnalyses Table', () => {
     it('should have analysis JSON field', () => {
       expect(schema.visionAnalyses).toBeDefined();
-      expect(schema.visionAnalyses.fields.analysis).toBeDefined();
+      expect(schema.visionAnalyses.analysis).toBeDefined();
     });
 
     it('should store confidence score', () => {
-      expect(schema.visionAnalyses.fields.confidence).toBeDefined();
-      expect(schema.visionAnalyses.fields.confidence.type).toBe('real');
+      expect(schema.visionAnalyses.confidence).toBeDefined();
+      expect(schema.visionAnalyses.confidence.dataType).toBe('real');
     });
 
     it('should require imageUrl', () => {
-      expect(schema.visionAnalyses.fields.imageUrl.notNull).toBe(true);
+      expect(schema.visionAnalyses.imageUrl.notNull).toBe(true);
     });
   });
 
@@ -102,7 +104,7 @@ describe('Database Schema', () => {
 
 describe('Database Queries', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Body Metrics Queries', () => {
@@ -121,7 +123,7 @@ describe('Database Queries', () => {
         ],
       };
 
-      mockDrizzle.execute = vi.fn().mockResolvedValue(mockResult);
+      mockDrizzle.execute = jest.fn().mockResolvedValue(mockResult);
 
       const result = await mockDrizzle.execute(sql`
         SELECT * FROM bodyMetrics
@@ -143,7 +145,7 @@ describe('Database Queries', () => {
         timestamp: now,
       };
 
-      mockDrizzle.execute = vi.fn().mockResolvedValue({ success: true, data: mockInsert });
+      mockDrizzle.execute = jest.fn().mockResolvedValue({ success: true, data: mockInsert });
 
       const result = await mockDrizzle.execute(sql`
         INSERT INTO bodyMetrics (id, userId, weight, timestamp)
@@ -171,7 +173,7 @@ describe('Database Queries', () => {
         createdAt: now,
       };
 
-      mockDrizzle.execute = vi.fn().mockResolvedValue({ success: true, data: mockAnalysis });
+      mockDrizzle.execute = jest.fn().mockResolvedValue({ success: true, data: mockAnalysis });
 
       const result = await mockDrizzle.execute(sql`
         INSERT INTO visionAnalyses (id, userId, imageUrl, analysis, confidence, createdAt)

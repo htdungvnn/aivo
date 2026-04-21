@@ -1,42 +1,18 @@
 "use client";
 
 import React from "react";
+import type { PostureAssessment } from "@aivo/shared-types";
+import {
+  POSTURE_ISSUE_LABELS,
+  SEVERITY_STYLES,
+  getScoreColor,
+  getScoreLabel,
+} from "@aivo/shared-types";
 
-export interface PostureIssue {
-  type: "forward_head" | "rounded_shoulders" | "hyperlordosis" | "kyphosis" | "pelvic_tilt";
-  severity: "mild" | "moderate" | "severe";
-}
-
-export interface PostureAssessment {
-  score: number; // 0-100
-  issues: PostureIssue[];
-  recommendations: string[];
-}
-
-export interface PostureAnalysisCardProps {
+interface PostureAnalysisCardProps {
   assessment?: PostureAssessment;
   loading?: boolean;
 }
-
-const ISSUE_LABELS: Record<string, { label: string; description: string }> = {
-  forward_head: { label: "Forward Head", description: "Head positioned too far forward" },
-  rounded_shoulders: { label: "Rounded Shoulders", description: "Shoulders rolled forward" },
-  hyperlordosis: { label: "Hyperlordosis", description: "Excessive lower back arch" },
-  kyphosis: { label: "Kyphosis", description: "Upper back rounding" },
-  pelvic_tilt: { label: "Pelvic Tilt", description: "Anterior or posterior pelvic tilt" },
-};
-
-const SEVERITY_COLORS = {
-  mild: "#fbbf24", // amber-400
-  moderate: "#f97316", // orange-500
-  severe: "#ef4444", // red-500
-};
-
-const SEVERITY_BG = {
-  mild: "bg-amber-500/20 border-amber-500/30",
-  moderate: "bg-orange-500/20 border-orange-500/30",
-  severe: "bg-red-500/20 border-red-500/30",
-};
 
 export function PostureAnalysisCard({
   assessment,
@@ -66,20 +42,6 @@ export function PostureAnalysisCard({
       </div>
     );
   }
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) {return "text-emerald-400";}
-    if (score >= 60) {return "text-blue-400";}
-    if (score >= 40) {return "text-amber-400";}
-    return "text-red-400";
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) {return "Excellent";}
-    if (score >= 60) {return "Good";}
-    if (score >= 40) {return "Fair";}
-    return "Needs Work";
-  };
 
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
@@ -113,18 +75,21 @@ export function PostureAnalysisCard({
           <h4 className="text-slate-300 text-sm font-medium mb-3">Detected Issues</h4>
           <div className="space-y-2">
             {assessment.issues.map((issue, index) => {
-              const info = ISSUE_LABELS[issue.type];
+              const info = POSTURE_ISSUE_LABELS[issue.type];
+              const styles = SEVERITY_STYLES[issue.severity];
               return (
                 <div
                   key={index}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${SEVERITY_BG[issue.severity]}`}
+                  className="flex items-center justify-between p-3 rounded-lg border"
+                  style={{ backgroundColor: styles.bg, borderColor: styles.border }}
                 >
                   <div>
                     <div className="text-slate-200 font-medium text-sm">{info.label}</div>
                     <div className="text-slate-400 text-xs">{info.description}</div>
                   </div>
                   <span
-                    className={`text-xs font-semibold px-2 py-1 rounded ${SEVERITY_BG[issue.severity].split(" ")[1]}`}
+                    className="text-xs font-semibold px-2 py-1 rounded"
+                    style={{ backgroundColor: styles.bg, color: styles.text }}
                   >
                     {issue.severity}
                   </span>

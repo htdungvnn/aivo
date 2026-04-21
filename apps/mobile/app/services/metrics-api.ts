@@ -3,47 +3,15 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { BodyMetric, HealthScoreResult, VisionAnalysis, BodyHeatmapData } from "@aivo/shared-types";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
-
-export interface BodyMetric {
-  id: string;
-  userId: string;
-  timestamp: number;
-  weight?: number;
-  bodyFatPercentage?: number;
-  muscleMass?: number;
-  boneMass?: number;
-  waterPercentage?: number;
-  bmi?: number;
-  waistCircumference?: number;
-  chestCircumference?: number;
-  hipCircumference?: number;
-  notes?: string;
-  source?: "ai" | "manual";
-}
 
 export interface AnalysisResult extends VisionAnalysis {
   bodyComposition?: {
     bodyFatEstimate: number;
     muscleMassEstimate: number;
   };
-}
-
-export interface HealthScore {
-  score: number;
-  category: "poor" | "fair" | "good" | "excellent";
-  factors: Record<string, unknown>;
-  recommendations: string[];
-}
-
-export interface HeatmapData {
-  id: string;
-  userId: string;
-  timestamp: number;
-  imageUrl?: string;
-  vectorData: Array<{ x: number; y: number; muscle: string; intensity: number }>;
-  metadata: Record<string, unknown>;
 }
 
 /**
@@ -165,6 +133,7 @@ export async function uploadBodyImage(imageUri: string, fileName: string): Promi
   const blob = await response.blob();
 
   const formData = new FormData();
+  // @ts-expect-error - React Native FormData file object with uri
   formData.append("image", {
     uri: imageUri,
     type: blob.type,
@@ -226,7 +195,7 @@ export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
 /**
  * Fetch health score
  */
-export async function fetchHealthScore(): Promise<HealthScore> {
+export async function fetchHealthScore(): Promise<HealthScoreResult> {
   const token = await getToken();
   if (!token) {
     throw new Error("Not authenticated");
@@ -268,7 +237,8 @@ export function transformMetricData(metrics: BodyMetric[], metricKey: keyof Body
   return metrics
     .filter((m) => m[metricKey] !== undefined && m[metricKey] !== null)
     .map((m) => ({
-      date: formatTimestamp(m.timestamp),
+      // Convert Date to timestamp number if needed
+      date: formatTimestamp(typeof m.timestamp === 'number' ? m.timestamp : m.timestamp.getTime()),
       value: (m[metricKey] as number) * (metricKey === "bodyFatPercentage" ? 100 : 1),
     }))
     .reverse();
