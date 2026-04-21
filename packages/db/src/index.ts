@@ -1,25 +1,62 @@
 import { drizzle } from "drizzle-orm/d1";
 import { migrate } from "drizzle-orm/d1/migrator";
-import * as schema from "./schema";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
+import {
+  users,
+  sessions,
+  bodyMetrics,
+  bodyHeatmaps,
+  visionAnalyses,
+  workouts,
+  workoutExercises,
+  dailySchedules,
+  workoutTemplates,
+  conversations,
+  aiRecommendations,
+  memoryNodes,
+  memoryEdges,
+  compressedContexts,
+  gamificationProfiles,
+  badges,
+  achievements,
+  socialProofCards,
+  activityEvents,
+  systemMetrics,
+  userAnalytics,
+  shareableContent,
+  migrations,
+} from "./schema";
 
-export { schema };
+const fullSchema = {
+  users,
+  sessions,
+  bodyMetrics,
+  bodyHeatmaps,
+  visionAnalyses,
+  workouts,
+  workoutExercises,
+  dailySchedules,
+  workoutTemplates,
+  conversations,
+  aiRecommendations,
+  memoryNodes,
+  memoryEdges,
+  compressedContexts,
+  gamificationProfiles,
+  badges,
+  achievements,
+  socialProofCards,
+  activityEvents,
+  systemMetrics,
+  userAnalytics,
+  shareableContent,
+  migrations,
+} satisfies Record<string, SQLiteTable<any>>;
 
-export interface D1Database {
-  exec: (statements: string[]) => Promise<{ success: boolean }>;
-  prepare: (sql: string) => D1PreparedStatement;
+export async function migrateDb(db: unknown) {
+  await migrate(drizzle(db as any, { schema: fullSchema }), { migrationsFolder: "./drizzle/migrations" });
 }
 
-export interface D1PreparedStatement {
-  bind: (params: unknown[]) => D1PreparedStatement;
-  first: () => Promise<unknown>;
-  all: () => Promise<unknown[]>;
-  run: () => Promise<{ success: boolean }>;
-}
-
-export async function migrateDb(db: D1Database) {
-  await migrate(drizzle(db), { migrationsFolder: "./drizzle/migrations" });
-}
-
-export function createDrizzleInstance(db: D1Database) {
-  return drizzle(db, { schema });
+export function createDrizzleInstance(db: unknown) {
+  return drizzle(db as any, { schema: fullSchema });
 }

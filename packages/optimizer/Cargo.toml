@@ -1,0 +1,25 @@
+[package]
+name = "aivo-optimizer"
+version = "0.1.0"
+edition = "2021"
+description = "Content optimization module for LLM token cost reduction - minification, semantic pruning, keyword extraction, and token counting"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+js-sys = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "z"  # Optimize for size
+lto = true
+codegen-units = 1
+panic = "abort"

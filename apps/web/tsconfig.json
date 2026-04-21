@@ -1,9 +1,12 @@
 {
-  "extends": "next/core-web-vitals",
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -18,11 +21,32 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@aivo/shared-types": ["../../packages/shared-types/src"],
-      "@aivo/compute": ["../../packages/aivo-compute/pkg"]
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "@aivo/shared-types": [
+        "../../packages/shared-types/src"
+      ],
+      "@aivo/compute": [
+        "../../packages/aivo-compute/pkg"
+      ]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

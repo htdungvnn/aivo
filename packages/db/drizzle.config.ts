@@ -3,7 +3,8 @@ import type { Config } from "drizzle-kit";
 export default {
   schema: "./src/schema.ts",
   out: "./drizzle/migrations",
-  driver: "d1",
+  dialect: "sqlite",
+  driver: "d1-http",
   dbCredentials: {
     databaseName: "aivo-db",
     localStorageKey: "drizzle:telemetry",

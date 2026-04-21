@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  type-check-and-lint:
+    name: Type Check & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check all packages
+        run: pnpm run type-check
+
+      - name: Lint all packages
+        run: pnpm run lint
+
+  build-wasm:
+    name: Build WASM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build WASM
+        run: pnpm run build:wasm
+
+      - name: Verify WASM output
+        run: |
+          test -f packages/aivo-compute/pkg/aivo_compute.js || exit 1
+          test -f packages/aivo-compute/pkg/aivo_compute_bg.wasm || exit 1
+          test -f packages/aivo-compute/pkg/aivo_compute.d.ts || exit 1
+
+  build-all:
+    name: Build All Packages
+    runs-on: ubuntu-latest
+    needs: [type-check-and-lint, build-wasm]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Verify build outputs
+        run: |
+          # API build
+          test -d dist/apps/api || echo "API dist not found (expected for Workers)"
+          # Web build
+          test -d apps/web/.next || echo "Web .next not found"
+          # Compute package
+          test -d packages/aivo-compute/pkg || echo "Compute pkg not found"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: [type-check-and-lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm run test
+        env:
+          CI: true

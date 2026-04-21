@@ -1,5 +1,4 @@
 {
-  "extends": "@cloudflare/workers-types/tsconfig",
   "compilerOptions": {
     "strict": true,
     "target": "ES2020",
@@ -13,7 +12,8 @@
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
       "@aivo/db": ["../../packages/db/src"]
-    }
+    },
+    "types": ["@cloudflare/workers-types"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

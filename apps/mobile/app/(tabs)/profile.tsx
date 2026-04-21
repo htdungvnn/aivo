@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { User, Settings, LogOut, Bell, Shield, HelpCircle } from "lucide-react-native";
 
 export default function ProfileScreen() {

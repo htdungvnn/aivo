@@ -18,18 +18,25 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate:local": "bunx wrangler d1 migrations apply aivo-db --local",
-    "migrate:remote": "bunx wrangler d1 migrations apply aivo-db",
+    "migrate:local": "pnpm exec wrangler d1 migrations apply aivo-db --local",
+    "migrate:remote": "pnpm exec wrangler d1 migrations apply aivo-db",
     "studio": "drizzle-kit studio",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "drizzle-orm": "^0.40.0",
-    "@cloudflare/d1": "^1.4.5"
+    "drizzle-orm": "^0.41.0",
+    "@cloudflare/d1": "^1.4.1"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.29.1",
+    "@aivo/jest-config": "workspace:*",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.13.5",
+    "drizzle-kit": "^0.29.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.6",
     "typescript": "^5.7.3",
     "wrangler": "^3.99.0"
   }

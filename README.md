@@ -9,18 +9,19 @@ High-performance fitness platform and AI-native conversational platform.
 
 ## Features
 
-- **Web**: Next.js 15 web app with Tailwind CSS
-- **Mobile**: Expo SDK 54 React Native app with NativeWind v4
+- **Web**: Next.js 15 web app with Tailwind CSS + Google/Facebook OAuth
+- **Mobile**: Expo SDK 54 React Native app with NativeWind v4 + Google/Facebook OAuth
 - **API**: Cloudflare Workers with Hono framework
 - **Compute**: Rust WebAssembly for performance-critical fitness calculations
 - **Database**: Cloudflare D1 with Drizzle ORM
+- **Auth**: Google & Facebook OAuth (passwordless login)
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) >= 1.2.0
+- [Node.js](https://nodejs.org/) >= 18
+- [pnpm](https://pnpm.io/) >= 9
 - [Rust](https://rustup.rs/) with wasm32 target
 - [wasm-pack](https://rustwasm.github.io/wasm-pack/install/)
-- [Node.js](https://nodejs.org/) (for compatibility)
 - [Cloudflare Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLI
 - [Expo CLI](https://docs.expo.dev/get-started/installation/) (for mobile development)
 
@@ -31,13 +32,13 @@ High-performance fitness platform and AI-native conversational platform.
 ```bash
 git clone <your-repo>
 cd aivo
-bun install
+pnpm install
 ```
 
 ### 2. Build WASM Compute Package
 
 ```bash
-bun run build:wasm
+pnpm run build:wasm
 ```
 
 ### 3. Start Development Services
@@ -45,23 +46,23 @@ bun run build:wasm
 Using Turborepo (runs all services):
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 Or start individual services:
 
 ```bash
 # Web (Next.js)
-cd apps/web && bun run dev
+cd apps/web && pnpm run dev
 
 # Mobile App
-cd apps/mobile && bunx expo start
+cd apps/mobile && pnpmx expo start
 
 # API (Cloudflare Workers)
-cd apps/api && bunx wrangler dev
+cd apps/api && pnpmx wrangler dev
 
 # Database Studio
-cd packages/db && bunx drizzle-kit studio
+cd packages/db && pnpmx drizzle-kit studio
 ```
 
 ## Project Structure
@@ -78,6 +79,7 @@ aivo/
 │   └── db/                # Drizzle ORM schema & migrations
 ├── .claude/               # Claude Code configuration
 ├── package.json           # Root workspace config
+├── pnpm-workspace.yaml    # pnpm workspace configuration
 └── turbo.json             # Turborepo pipeline config
 ```
 
@@ -86,13 +88,13 @@ aivo/
 ### Root Level
 
 ```bash
-bun run build        # Build all packages
-bun run dev          # Run all dev services (via turborepo)
-bun run lint         # Lint all packages
-bun run type-check   # Type check all packages
-bun run test         # Run tests for all packages
-bun run clean        # Clean all build artifacts
-bun run build:wasm   # Build WASM package only
+pnpm run build        # Build all packages
+pnpm run dev          # Run all dev services (via turborepo)
+pnpm run lint         # Lint all packages
+pnpm run type-check   # Type check all packages
+pnpm run test         # Run tests for all packages
+pnpm run clean        # Clean all build artifacts
+pnpm run build:wasm   # Build WASM package only
 ```
 
 ### Package-Specific
@@ -105,24 +107,24 @@ See individual `package.json` files in each package for specific scripts.
 
 ```bash
 cd apps/api
-bunx wrangler d1 create aivo-db
+pnpmx wrangler d1 create aivo-db
 ```
 
 ### Create Migration
 
 ```bash
 cd packages/db
-bunx drizzle-kit generate
+pnpmx drizzle-kit generate
 ```
 
 ### Apply Migrations
 
 ```bash
 # Local development
-bunx wrangler d1 migrations apply aivo-db --local
+pnpmx wrangler d1 migrations apply aivo-db --local
 
 # Production
-bunx wrangler d1 migrations apply aivo-db
+pnpmx wrangler d1 migrations apply aivo-db
 ```
 
 ## Building for Production
@@ -130,20 +132,20 @@ bunx wrangler d1 migrations apply aivo-db
 ### 1. Build WASM
 
 ```bash
-bun run build:wasm
+pnpm run build:wasm
 ```
 
 ### 2. Build All Packages
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 ### 3. Deploy API
 
 ```bash
 cd apps/api
-bunx wrangler deploy
+pnpmx wrangler deploy
 ```
 
 ## Key Technologies
@@ -157,18 +159,24 @@ bunx wrangler deploy
 | Database | Cloudflare D1 | - |
 | ORM | Drizzle | 0.40+ |
 | Compute | Rust WASM | stable |
-| Package Manager | Bun | 1.2+ |
+| Package Manager | pnpm | 9+ |
 | Build System | Turborepo | 2.3+ |
 
 ## Development Guidelines
 
 1. **Shared Types**: Always update `packages/shared-types` when changing interfaces
-2. **WASM Changes**: Run `bun run build:wasm` after any Rust modifications
+2. **WASM Changes**: Run `pnpm run build:wasm` after any Rust modifications
 3. **Database**: Use Drizzle migrations for all schema changes
 4. **Type Safety**: All TypeScript should be in strict mode
 5. **Workers**: No Node.js standard library in Cloudflare Workers
 
 ## API Endpoints
+
+### Authentication (Google/Facebook OAuth Only)
+- `POST /api/auth/google` - Google OAuth callback
+- `POST /api/auth/facebook` - Facebook OAuth callback
+- `POST /api/auth/verify` - Verify JWT token
+- `POST /api/auth/logout` - Invalidate session
 
 ### Health
 - `GET /health` - Service health check
@@ -176,7 +184,6 @@ bunx wrangler deploy
 ### Users
 - `GET /users` - List users
 - `GET /users/:id` - Get user by ID
-- `POST /users` - Create user
 
 ### Workouts
 - `GET /workouts?userId=` - List workouts
@@ -191,11 +198,32 @@ bunx wrangler deploy
 - `POST /calc/calories` - Calculate TDEE and targets
 - `POST /calc/one-rep-max` - Calculate 1RM
 
+## OAuth Setup
+
+### Google Cloud Console
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create OAuth 2.0 Client ID
+3. Add authorized JavaScript origins and redirect URIs
+4. Copy Client ID to environment variables
+
+### Facebook Developers
+1. Go to https://developers.facebook.com/apps
+2. Create app with "Consumer" type
+3. Add "Facebook Login" product
+4. Configure OAuth redirect URIs
+5. Copy App ID to environment variables
+
+See `.claude/CLAUDE.md` for detailed authentication documentation.
+
+## Deployment
+
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructions.
+
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch
-3. Run `bun run type-check` and `bun run lint`
+3. Run `pnpm run type-check` and `pnpm run lint`
 4. Commit your changes
 5. Push to the branch
 6. Open a Pull Request

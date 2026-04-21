@@ -11,20 +11,23 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "build:wasm": "bun run -C packages/aivo-compute build",
+    "build:wasm": "pnpm --filter @aivo/compute run build && pnpm --filter @aivo/optimizer run build",
+    "build:compute": "pnpm --filter @aivo/compute run build",
+    "build:optimizer": "pnpm --filter @aivo/optimizer run build",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules .turbo dist .wrangler"
   },
   "devDependencies": {
+    "@jest/globals": "^30.3.0",
+    "@types/node": "^22.13.5",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.3",
-    "@types/node": "^22.13.5"
+    "typescript": "^5.7.3"
   },
-  "engines": {
-    "bun": ">=1.2.0"
-  },
-  "packageManager": "bun@1.2.0",
+  "packageManager": "pnpm@9.12.0",
   "author": "AIVO Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.0.0"
+  }
 }

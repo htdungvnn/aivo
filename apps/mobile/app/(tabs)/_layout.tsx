@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Activity, Dumbbell, MessageCircle, User } from "lucide-react-native";
+import { Activity, Dumbbell, MessageCircle, User, BarChart2 } from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -43,6 +43,13 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: "Insights",
+          tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
         }}
       />
     </Tabs>

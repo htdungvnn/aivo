@@ -8,8 +8,20 @@ binding = "DB"
 database_name = "aivo-db"
 database_id = "aivo-db"
 
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "aivo-images"
+
+[[kv_namespaces]]
+binding = "BODY_INSIGHTS_CACHE"
+id = "aivo-body-cache"
+preview_id = "aivo-body-cache-preview"
+
+[vars]
+AUTH_SECRET = "change-this-in-production"
+
 [build]
-command = "bun run build"
+command = "pnpm run build"
 
 [[routes]]
 pattern = "/api/*"

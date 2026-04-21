@@ -1,0 +1,29 @@
+{
+  "name": "@aivo/jest-config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared Jest configuration for AIVO packages",
+  "type": "module",
+  "main": "base.js",
+  "exports": {
+    ".": "./base.js",
+    "./web": "./web.js",
+    "./react-native": "./react-native.js"
+  },
+  "scripts": {
+    "test": "echo \"No tests in config package\""
+  },
+  "peerDependencies": {
+    "jest": "^29.0.0 || ^30.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^6.6.0",
+    "@types/jest": "^29.5.0",
+    "ts-jest": "^29.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "typescript": "^5.7.3"
+  }
+}
