@@ -14,7 +14,7 @@ const mockDrizzle = {
   _connect: jest.fn(),
   _dispose: jest.fn(),
   drizzle: jest.fn(),
-};
+} as any;
 
 jest.mock('../index', () => ({
   db: mockDrizzle,
@@ -123,7 +123,7 @@ describe('Database Queries', () => {
         ],
       };
 
-      mockDrizzle.execute = jest.fn().mockResolvedValue(mockResult);
+      mockDrizzle.execute.mockResolvedValue(mockResult);
 
       const result = await mockDrizzle.execute(sql`
         SELECT * FROM bodyMetrics
@@ -145,12 +145,12 @@ describe('Database Queries', () => {
         timestamp: now,
       };
 
-      mockDrizzle.execute = jest.fn().mockResolvedValue({ success: true, data: mockInsert });
+      mockDrizzle.execute.mockResolvedValue({ success: true, data: mockInsert });
 
       const result = await mockDrizzle.execute(sql`
         INSERT INTO bodyMetrics (id, userId, weight, timestamp)
         VALUES (?, ?, ?, ?)
-      `, ['new-metric-id', 'user123', 72.5, now]);
+      `, ['new-metric-id', 'user123', 72.5, now]) as any;
 
       expect(result.data.id).toBe('new-metric-id');
     });
@@ -173,7 +173,7 @@ describe('Database Queries', () => {
         createdAt: now,
       };
 
-      mockDrizzle.execute = jest.fn().mockResolvedValue({ success: true, data: mockAnalysis });
+      mockDrizzle.execute.mockResolvedValue({ success: true, data: mockAnalysis });
 
       const result = await mockDrizzle.execute(sql`
         INSERT INTO visionAnalyses (id, userId, imageUrl, analysis, confidence, createdAt)
@@ -185,7 +185,7 @@ describe('Database Queries', () => {
         mockAnalysis.analysis,
         mockAnalysis.confidence,
         mockAnalysis.createdAt,
-      ]);
+      ]) as any;
 
       expect(result.data.id).toBe('analysis-123');
     });

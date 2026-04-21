@@ -17,8 +17,8 @@ export interface AnalysisResult extends VisionAnalysis {
 /**
  * Get authentication token
  */
-function getToken(): string | null {
-  return AsyncStorage.getItem("aivo_token");
+async function getToken(): Promise<string | null> {
+  return await AsyncStorage.getItem("aivo_token");
 }
 
 /**
@@ -88,7 +88,7 @@ export async function createBodyMetric(metric: Partial<BodyMetric>): Promise<Bod
 /**
  * Fetch heatmap data
  */
-export async function fetchHeatmaps(limit: number = 10): Promise<HeatmapData[]> {
+export async function fetchHeatmaps(limit: number = 10): Promise<BodyHeatmapData[]> {
   const token = await getToken();
   if (!token) {
     throw new Error("Not authenticated");
@@ -226,7 +226,7 @@ export async function fetchHealthScore(): Promise<HealthScoreResult> {
  * Convert Unix timestamp to date string for charts
  */
 export function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
+  const date = new Date(timestamp);
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -237,8 +237,7 @@ export function transformMetricData(metrics: BodyMetric[], metricKey: keyof Body
   return metrics
     .filter((m) => m[metricKey] !== undefined && m[metricKey] !== null)
     .map((m) => ({
-      // Convert Date to timestamp number if needed
-      date: formatTimestamp(typeof m.timestamp === 'number' ? m.timestamp : m.timestamp.getTime()),
+      date: formatTimestamp(m.timestamp),
       value: (m[metricKey] as number) * (metricKey === "bodyFatPercentage" ? 100 : 1),
     }))
     .reverse();

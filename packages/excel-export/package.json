@@ -1,0 +1,23 @@
+{
+  "name": "@aivo/excel-export",
+  "version": "0.1.0",
+  "description": "Excel, CSV, JSON export utilities for AIVO platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@aivo/shared-types": "workspace:*",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/xlsx": "^0.0.36",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

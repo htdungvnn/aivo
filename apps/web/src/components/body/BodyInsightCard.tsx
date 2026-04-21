@@ -5,56 +5,11 @@ import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
 import type { MetricDataPoint } from "./BodyMetricsChart";
 import { BodyMetricChart } from "./BodyMetricsChart";
-import type { PostureAssessment } from "./PostureAnalysisCard";
+import type { VisionAnalysis, HealthScoreResult, BodyMetric, BodyHeatmapData } from "@aivo/shared-types";
 import { PostureAnalysisCard } from "./PostureAnalysisCard";
 
-export interface BodyHeatmapData {
-  id: string;
-  userId: string;
-  timestamp: number;
-  imageUrl?: string;
-  vectorData: Array<{ x: number; y: number; muscle: string; intensity: number }>;
-  metadata: Record<string, any>;
-}
-
-export interface BodyMetric {
-  id: string;
-  userId: string;
-  timestamp: number;
-  weight?: number;
-  bodyFatPercentage?: number;
-  muscleMass?: number;
-  bmi?: number;
-  waistCircumference?: number;
-  chestCircumference?: number;
-  hipCircumference?: number;
-  notes?: string;
-}
-
-export interface VisionAnalysis {
-  id: string;
-  userId: string;
-  imageUrl: string;
-  processedUrl?: string;
-  analysis: {
-    posture?: PostureAssessment;
-    symmetry?: any;
-    muscleDevelopment: Array<{ muscle: string; score: number; zone?: string }>;
-    bodyComposition?: {
-      bodyFatEstimate: number;
-      muscleMassEstimate: number;
-    };
-  };
-  confidence: number;
-  createdAt: number;
-}
-
-export interface HealthScore {
-  score: number;
-  category: "poor" | "fair" | "good" | "excellent";
-  factors: Record<string, any>;
-  recommendations: string[];
-}
+// Use types from shared-types directly
+// BodyHeatmapData, BodyMetric, VisionAnalysis, HealthScoreResult are all imported
 
 interface BodyInsightCardProps {
   userId: string;
@@ -67,8 +22,7 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
   const [metrics, setMetrics] = useState<BodyMetric[]>([]);
   const [latestMetric, setLatestMetric] = useState<BodyMetric | null>(null);
   const [heatmapData, setHeatmapData] = useState<BodyHeatmapData | null>(null);
-  const [visionAnalysis, setVisionAnalysis] = useState<VisionAnalysis | null>(null);
-  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
+  const [healthScore, setHealthScore] = useState<HealthScoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {

@@ -2,12 +2,8 @@
 
 import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  MUSCLE_POSITIONS,
-  BODY_OUTLINE_FRONT,
-  HeatmapRenderer,
-  type HeatmapVectorPoint,
-} from "@aivo/body-compute";
+import { HeatmapRenderer, type HeatmapVectorPoint } from "@aivo/body-compute";
+import { MUSCLE_POSITIONS, BODY_OUTLINE_FRONT } from "@aivo/shared-types";
 
 export interface BodyHeatmapProps {
   vectorData: HeatmapVectorPoint[];
@@ -39,7 +35,7 @@ export function BodyHeatmap({
 
   // Generate heatmap overlay circles with animation
   const heatmapOverlay = useMemo(() => {
-    const circles = aggregatedPoints.map((point, index) => {
+    const circles = aggregatedPoints.map((point) => {
       const isSelected = selectedMuscles.some(
         (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
       );

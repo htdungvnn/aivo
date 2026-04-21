@@ -6,12 +6,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import Svg, { Ellipse, G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
-import {
-  MUSCLE_POSITIONS,
-  BODY_OUTLINE_FRONT,
-  HeatmapRenderer,
-  type HeatmapVectorPoint,
-} from "@aivo/shared-types";
+import { MUSCLE_POSITIONS, BODY_OUTLINE_FRONT } from "@aivo/shared-types";
+import { HeatmapRenderer, type HeatmapVectorPoint } from "@aivo/body-compute";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HEATMAP_SIZE = Math.min(SCREEN_WIDTH - 64, 320);
@@ -47,9 +43,9 @@ function AnimatedHeatmapCircle({ point, onPress, isSelected }: AnimatedHeatmapCi
     <AnimatedCircle
       cx={point.cx}
       cy={point.cy}
-      r={radius}
+      r={radius as any}
       fill={HeatmapRenderer.color(point.intensity, "heat")}
-      opacity={isSelected ? 1 : opacity}
+      opacity={isSelected ? 1 : (opacity as any)}
       stroke={isSelected ? "#ffffff" : "transparent"}
       strokeWidth={isSelected ? 2 : 0}
       onPress={handlePress}

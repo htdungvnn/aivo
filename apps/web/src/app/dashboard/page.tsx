@@ -8,7 +8,6 @@ import {
   Dumbbell,
   Heart,
   TrendingUp,
-  BarChart3,
   Calendar,
   Award,
   Target,

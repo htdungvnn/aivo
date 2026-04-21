@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme, VictoryBar, VictoryArea, VictoryTooltip } from "victory-native";
+import { CartesianChart, Line, Bar, Area, CartesianAxis, type CartesianChartRenderArg } from "victory-native";
 
 export interface MetricDataPoint {
   date: string;
@@ -40,12 +40,7 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
     );
   }
 
-  // Sort by date (assuming MM/dd format, but could be any format)
-  const sortedData = [...data].sort((a, b) => {
-    // Simple sort - in production, parse dates properly
-    return 0;
-  });
-
+  const sortedData = [...data].map((d, i) => ({ x: i, y: d.value, date: d.date }));
   const maxValue = Math.max(...data.map((d) => d.value));
   const minValue = Math.min(...data.map((d) => d.value));
   const range = maxValue - minValue || 1;
@@ -53,49 +48,54 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
 
   return (
     <View style={[styles.container, { height }]}>
-      <VictoryChart
-        theme={VictoryTheme.material}
+      <CartesianChart
         domain={{ y: [Math.max(0, minValue - padding), maxValue + padding] }}
         padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
         style={{
           parent: { backgroundColor: "transparent" },
         }}
+        data={sortedData}
+        xKey="x"
+        yKey="y"
       >
-        <VictoryAxis
-          dependentAxis
-          style={{
-            tickLabels: { fill: "#94a3b8", fontSize: 10, fontFamily: "System" },
-            axis: { stroke: "#334155" },
-            tickLines: { stroke: "#334155" },
-            grid: { stroke: "#1e293b", strokeDasharray: "3,3" },
-          }}
-          tickFormat={(t) => `${t.toFixed(1)}${unit}`}
-        />
-        <VictoryAxis
-          style={{
-            tickLabels: { fill: "#94a3b8", fontSize: 10, fontFamily: "System" },
-            axis: { stroke: "#334155" },
-            tickLines: { stroke: "#334155" },
-          }}
-          tickValues={data.map((_, i) => i)}
-          tickFormat={(_, i) => data[i]?.date || ""}
-        />
-        <VictoryArea
-          data={sortedData}
-          style={{
-            data: { fill: chartColor, fillOpacity: 0.3 },
-            parent: { border: "none" },
-          }}
-          interpolation="monotoneX"
-        />
-        <VictoryLine
-          data={sortedData}
-          style={{
-            data: { stroke: chartColor, strokeWidth: 2 },
-          }}
-          interpolation="monotoneX"
-        />
-      </VictoryChart>
+        {(chartProps: CartesianChartRenderArg<{ x: number; y: number }>) => {
+          const { xScale, yScale } = chartProps;
+          const xTickValues = data.map((_, i) => i);
+
+          return (
+            <>
+              <CartesianAxis
+                xScale={xScale}
+                yScale={yScale}
+                tickCount={{ x: data.length, y: 5 }}
+                tickValues={{ x: xTickValues, y: undefined }}
+                formatXLabel={(_: any, i: number) => data[i]?.date || ""}
+                formatYLabel={(t: number) => `${t.toFixed(1)}${unit}`}
+                axisSide={{ x: "bottom", y: "left" }}
+                style={{
+                  axis: { stroke: "#334155" },
+                  tickLabels: { fill: "#94a3b8", fontSize: 10, fontFamily: "System" },
+                  ticks: { stroke: "#334155" },
+                  grid: { stroke: "#1e293b", strokeDasharray: "3,3" },
+                }}
+                lineColor={{ grid: "#1e293b", frame: "#334155" }}
+                lineWidth={{ grid: 1, frame: 1 }}
+                labelColor="#94a3b8"
+              />
+              <Area
+                points={[{ x: "x", y: "y" }]}
+                style={{ fill: chartColor, fillOpacity: 0.3 }}
+                interpolation="monotoneX"
+              />
+              <Line
+                points={[{ x: "x", y: "y" }]}
+                style={{ stroke: chartColor, strokeWidth: 2 }}
+                interpolation="monotoneX"
+              />
+            </>
+          );
+        }}
+      </CartesianChart>
     </View>
   );
 }
@@ -121,41 +121,48 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
     );
   }
 
+  const barData = data.map((d, i) => ({ x: i, y: d.current, muscle: d.muscle }));
+  const xTickValues = data.map((_, i) => i);
+
   return (
     <View style={[styles.container, { height }]}>
-      <VictoryChart
-        theme={VictoryTheme.material}
-        domain={{ x: [0, 100] }}
+      <CartesianChart
+        domain={{ x: [0, 100], y: [0, 100] }}
         padding={{ top: 20, bottom: 50, left: 60, right: 20 }}
         style={{ parent: { backgroundColor: "transparent" } }}
+        data={barData}
+        xKey="x"
+        yKey="y"
       >
-        <VictoryAxis
-          dependentAxis
-          style={{
-            tickLabels: { fill: "#94a3b8", fontSize: 10 },
-            axis: { stroke: "#334155" },
-            tickLines: { stroke: "#334155" },
-            grid: { stroke: "#1e293b", strokeDasharray: "3,3" },
-          }}
-          tickFormat={(t) => `${t}%`}
-        />
-        <VictoryAxis
-          style={{
-            tickLabels: { fill: "#94a3b8", fontSize: 9 },
-            axis: { stroke: "#334155" },
-            tickLines: { stroke: "#334155" },
-          }}
-          tickValues={data.map((_, i) => i)}
-          tickFormat={(_, i) => data[i]?.muscle.toUpperCase().slice(0, 6) || ""}
-        />
-        <VictoryBar
-          data={data.map((d, i) => ({ x: i, y: d.current }))}
-          style={{
-            data: { fill: "#22c55e" },
-          }}
-          cornerRadius={{ top: 4 }}
-        />
-      </VictoryChart>
+        {(chartProps: CartesianChartRenderArg<{ x: number; y: number }>) => {
+          const { xScale, yScale } = chartProps;
+
+          return (
+            <>
+              <CartesianAxis
+                xScale={xScale}
+                yScale={yScale}
+                tickCount={{ x: xTickValues.length, y: 5 }}
+                tickValues={{ x: xTickValues, y: undefined }}
+                formatXLabel={(_: any, i: number) => data[i]?.muscle.toUpperCase().slice(0, 6) || ""}
+                formatYLabel={(t: number) => `${t}%`}
+                axisSide={{ x: "bottom", y: "left" }}
+                style={{
+                  tickLabels: { fill: "#94a3b8", fontSize: 9 },
+                }}
+                lineColor={{ grid: "#1e293b", frame: "#334155" }}
+                lineWidth={1}
+                labelColor="#94a3b8"
+              />
+              <Bar
+                points={[{ x: "x", y: "y" }]}
+                style={{ fill: "#22c55e" }}
+                cornerRadius={{ top: 4 }}
+              />
+            </>
+          );
+        }}
+      </CartesianChart>
     </View>
   );
 }

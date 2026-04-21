@@ -113,6 +113,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
   const addMetric = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
     const api = getApiClient();
     const { data } = await api.createBodyMetric(metric);
+    if (!data) throw new Error('Failed to create metric: no data returned');
     await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
     return data;
   };
@@ -142,6 +143,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const { data: newMetric } = await api.createBodyMetric(metric);
+      if (!newMetric) throw new Error('No data returned from API');
 
       // Replace optimistic metric with real one
       setState((prev) => ({

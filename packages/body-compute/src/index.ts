@@ -1,11 +1,8 @@
 import type {
   BodyMetric,
   HealthScoreResult,
-  PostureAssessment,
   HeatmapVectorPoint,
   BodyHeatmapData,
-  VisionAnalysis,
-  MuscleGroup,
 } from "@aivo/shared-types";
 import {
   aggregateHeatmapPoints,
@@ -264,3 +261,6 @@ export class PostureAnalyzer {
     return getScoreGradient(score);
   }
 }
+
+// Re-export types from shared-types for convenient consumption
+export type { BodyMetric, HealthScoreResult, HeatmapVectorPoint, BodyHeatmapData };

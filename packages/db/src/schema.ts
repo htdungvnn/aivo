@@ -60,6 +60,7 @@ export const bodyMetrics = sqliteTable("body_metrics", {
   waistCircumference: real("waist_circumference"),
   chestCircumference: real("chest_circumference"),
   hipCircumference: real("hip_circumference"),
+  source: text("source"), // "manual", "ai", "device"
   notes: text("notes"),
 });
 

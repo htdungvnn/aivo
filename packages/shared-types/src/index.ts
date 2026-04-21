@@ -70,7 +70,7 @@ export interface AuthResponse {
 export interface BodyMetric {
   id: string;
   userId: string;
-  timestamp: Date;
+  timestamp: number; // Unix timestamp in milliseconds
   weight?: number; // kg
   bodyFatPercentage?: number; // 0-100
   muscleMass?: number; // kg
@@ -80,6 +80,7 @@ export interface BodyMetric {
   waistCircumference?: number; // cm
   chestCircumference?: number; // cm
   hipCircumference?: number; // cm
+  source?: "manual" | "ai" | "device";
   notes?: string;
 }
 
@@ -87,13 +88,16 @@ export interface BodyMetric {
 export interface BodyHeatmapData {
   id: string;
   userId: string;
-  timestamp: Date;
+  timestamp: number; // Unix timestamp in milliseconds
   imageUrl?: string; // R2 stored SVG/PNG
   vectorData: HeatmapVectorPoint[];
-  metadata: {
-    analysisSource: "ai_vision" | "manual_input" | "device_sync";
-    confidence: number; // 0-1
-    zones: MuscleZone[];
+  metadata?: {
+    analysisSource?: "ai_vision" | "manual_input" | "device_sync";
+    confidence?: number; // 0-1
+    zones?: MuscleZone[];
+    analysisId?: string;
+    generatedAt?: string;
+    pointCount?: number;
   };
 }
 
@@ -146,7 +150,7 @@ export interface VisionAnalysis {
     bodyComposition?: BodyCompositionEstimate;
   };
   confidence: number;
-  createdAt: Date;
+  createdAt: number; // Unix timestamp in milliseconds
 }
 
 export interface PostureAssessment {
