@@ -16,7 +16,15 @@
     "build:optimizer": "pnpm --filter @aivo/optimizer run build",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
-    "clean": "turbo run clean && rm -rf node_modules .turbo dist .wrangler"
+    "clean": "turbo run clean && rm -rf node_modules .turbo dist .wrangler",
+    "deploy": "./scripts/deploy.sh",
+    "deploy:quick": "./scripts/quick-deploy.sh",
+    "deploy:local": "./scripts/deploy.sh --local",
+    "migrate": "./scripts/migrate.sh",
+    "migrate:remote": "./scripts/migrate.sh --remote",
+    "health": "./scripts/health.sh",
+    "dev:all": "./scripts/dev.sh",
+    "setup": "./scripts/setup-dev.sh"
   },
   "devDependencies": {
     "@jest/globals": "^30.3.0",
