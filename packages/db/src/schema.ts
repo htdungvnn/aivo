@@ -4,14 +4,16 @@ import {
   integer,
   real,
   primaryKey,
+  index,
+  unique,
+  relation,
 } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
 
 // ============================================
 // AIVO DATABASE SCHEMA for Cloudflare D1 (SQLite)
 // ============================================
 
-const now = () => sql`${Math.floor(Date.now() / 1000)}`;
+// Timestamps are set by application code using Math.floor(Date.now() / 1000)
 
 // Users table
 export const users = sqliteTable("users", {
@@ -29,8 +31,9 @@ export const users = sqliteTable("users", {
   picture: text("picture"),
   emailVerified: integer("email_verified").default(0),
   onboardingCompleted: integer("onboarding_completed").default(0),
-  createdAt: integer("created_at").default(now()).notNull(),
-  updatedAt: integer("updated_at").default(now()).notNull(),
+  receiveMonthlyReports: integer("receive_monthly_reports").default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 
 // Sessions table
@@ -42,15 +45,15 @@ export const sessions = sqliteTable("sessions", {
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   expiresAt: integer("expires_at"),
-  createdAt: integer("created_at").default(now()).notNull(),
-  updatedAt: integer("updated_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 
 // Body metrics table
 export const bodyMetrics = sqliteTable("body_metrics", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  timestamp: integer("timestamp").default(now()).notNull(),
+  timestamp: integer("timestamp").notNull(),
   weight: real("weight"),
   bodyFatPercentage: real("body_fat_percentage"),
   muscleMass: real("muscle_mass"),
@@ -68,7 +71,7 @@ export const bodyMetrics = sqliteTable("body_metrics", {
 export const bodyHeatmaps = sqliteTable("body_heatmaps", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  timestamp: integer("timestamp").default(now()).notNull(),
+  timestamp: integer("timestamp").notNull(),
   imageUrl: text("image_url"),
   vectorData: text("vector_data"),
   metadata: text("metadata"),
@@ -82,7 +85,7 @@ export const visionAnalyses = sqliteTable("vision_analyses", {
   processedUrl: text("processed_url"),
   analysis: text("analysis"),
   confidence: real("confidence"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
 });
 
 // Workouts table
@@ -97,7 +100,7 @@ export const workouts = sqliteTable("workouts", {
   endTime: integer("end_time"),
   notes: text("notes"),
   metrics: text("metrics"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
   completedAt: integer("completed_at"),
   status: text("status"),
 });
@@ -152,7 +155,7 @@ export const conversations = sqliteTable("conversations", {
   context: text("context"),
   tokensUsed: integer("tokens_used"),
   model: text("model"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
 });
 
 // AI recommendations table
@@ -169,7 +172,7 @@ export const aiRecommendations = sqliteTable("ai_recommendations", {
   isRead: integer("is_read").default(0),
   isDismissed: integer("is_dismissed").default(0),
   feedback: text("feedback"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
 });
 
 // Memory nodes table
@@ -201,7 +204,7 @@ export const compressedContexts = sqliteTable("compressed_contexts", {
   compressionRatio: real("compression_ratio"),
   strategy: text("strategy"),
   context: text("context"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
   expiresAt: integer("expires_at"),
 });
 
@@ -216,7 +219,14 @@ export const gamificationProfiles = sqliteTable("gamification_profiles", {
   streakCurrent: integer("streak_current").default(0),
   streakLongest: integer("streak_longest").default(0),
   lastActivityDate: text("last_activity_date"),
-});
+  freezeCount: integer("freeze_count").default(0),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => ({
+  user: relation(() => users, {
+    fields: [table.userId],
+    references: [users.id],
+  }),
+}));
 
 // Badges table
 export const badges = sqliteTable("badges", {
@@ -226,7 +236,7 @@ export const badges = sqliteTable("badges", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   icon: text("icon"),
-  earnedAt: integer("earned_at").default(now()).notNull(),
+  earnedAt: integer("earned_at").notNull(),
   tier: text("tier"),
 });
 
@@ -252,7 +262,7 @@ export const socialProofCards = sqliteTable("social_proof_cards", {
   subtitle: text("subtitle"),
   data: text("data"),
   shareableImageUrl: text("shareable_image_url"),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
   isPublic: integer("is_public").default(0),
 });
 
@@ -264,7 +274,7 @@ export const activityEvents = sqliteTable("activity_events", {
   type: text("type"),
   payload: text("payload"),
   clientTimestamp: integer("client_timestamp").notNull(),
-  serverTimestamp: integer("server_timestamp").default(now()).notNull(),
+  serverTimestamp: integer("server_timestamp").notNull(),
   deviceInfo: text("device_info"),
 });
 
@@ -291,6 +301,66 @@ export const userAnalytics = sqliteTable("user_analytics", {
   lastActive: integer("last_active"),
 });
 
+// Daily check-ins table for streak tracking
+export const dailyCheckins = sqliteTable("daily_checkins", {
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // ISO date format: YYYY-MM-DD
+  checkedInAt: integer("checked_in_at"),
+  source: text("source"), // "workout", "manual", "auto"
+  workoutId: text("workout_id").references(() => workouts.id),
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  unique('unique_user_date').on(table.userId, table.date),
+]);
+
+// Streak freezes table - tracks freeze purchases and usage
+export const streakFreezes = sqliteTable("streak_freezes", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  purchasedAt: integer("purchased_at").notNull(),
+  usedAt: integer("used_at"),
+  usedOnDate: text("used_on_date"), // date the freeze was applied to
+  expiresAt: integer("expires_at"), // freeze expires after X days if not used
+  pointsSpent: integer("points_spent").default(50), // default cost 50 points
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+]);
+
+// Point transactions table - tracks all point earnings and spending
+export const pointTransactions = sqliteTable("point_transactions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "earn", "spend", "bonus", "penalty"
+  amount: integer("amount").notNull(),
+  reason: text("reason").notNull(),
+  relatedId: text("related_id"), // workout_id, badge_id, etc.
+  balanceAfter: integer("balance_after").notNull(),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_created_at').on(table.createdAt),
+]);
+
+// Leaderboard snapshots table - historical leaderboard data
+export const leaderboardSnapshots = sqliteTable("leaderboard_snapshots", {
+  date: text("date").primaryKey(), // ISO date YYYY-MM-DD
+  snapshotAt: integer("snapshot_at").notNull(),
+  data: text("data").notNull(), // JSON array of { userId, rank, points, streak }
+});
+
+// Social relationships table - friend connections
+export const socialRelationships = sqliteTable("social_relationships", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  friendId: text("friend_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").default("accepted"), // "pending", "accepted", "blocked"
+  createdAt: integer("created_at").notNull(),
+	}, (table) => [
+	  index('idx_user').on(table.userId),
+	  index('idx_friend').on(table.friendId),
+	  unique('unique_user_friend').on(table.userId, table.friendId),
+	]);
+
 // Shareable content table
 export const shareableContent = sqliteTable("shareable_content", {
   id: text("id").primaryKey(),
@@ -303,14 +373,14 @@ export const shareableContent = sqliteTable("shareable_content", {
   isPublic: integer("is_public").default(0),
   likes: integer("likes").default(0),
   shares: integer("shares").default(0),
-  createdAt: integer("created_at").default(now()).notNull(),
+  createdAt: integer("created_at").notNull(),
 });
 
 // Migrations table
 export const migrations = sqliteTable("migrations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  appliedAt: integer("applied_at").default(now()).notNull(),
+  appliedAt: integer("applied_at").notNull(),
   hash: text("hash").notNull(),
   version: integer("version"),
 });
@@ -340,4 +410,9 @@ export const schema = {
   userAnalytics,
   shareableContent,
   migrations,
+  dailyCheckins,
+  streakFreezes,
+  pointTransactions,
+  leaderboardSnapshots,
+  socialRelationships,
 };

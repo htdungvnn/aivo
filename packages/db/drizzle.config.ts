@@ -6,8 +6,10 @@ export default {
   dialect: "sqlite",
   driver: "d1-http",
   dbCredentials: {
+    accountId: process.env.CF_ACCOUNT_ID,
     databaseName: "aivo-db",
-    localStorageKey: "drizzle:telemetry",
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+    token: process.env.CF_D1_TOKEN,
   },
+  verbose: true,
+  strict: true,
 } satisfies Config;

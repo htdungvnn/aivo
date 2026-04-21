@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
-use itertools::Itertools;
 
 /// Fitness calculation module providing high-performance WASM functions
 #[wasm_bindgen]
@@ -579,6 +578,422 @@ impl FitnessCalculator {
     };
 
     to_value(&result).unwrap_or(JsValue::NULL)
+  }
+}
+
+// ============================================
+// GAMIFICATION MODULES
+// ============================================
+
+/// Streak calculation module for processing user check-ins
+#[wasm_bindgen]
+pub struct StreakCalculator;
+
+#[wasm_bindgen]
+impl StreakCalculator {
+  /// Calculate current streak from an array of check-in dates
+  /// Dates should be in ISO format (YYYY-MM-DD) and sorted ascending
+  #[wasm_bindgen(js_name = "calculateStreak")]
+  pub fn calculate_streak(checkin_dates: Vec<String>) -> usize {
+    if checkin_dates.is_empty() {
+      return 0;
+    }
+
+    let today = chrono::Utc::now().date_naive();
+    let mut current_streak = 0;
+    let mut expected_date = today;
+
+    // Iterate from most recent backwards
+    for date_str in checkin_dates.iter().rev() {
+      if let Ok(checkin_date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        if checkin_date == expected_date {
+          current_streak += 1;
+          expected_date = expected_date.succ_opt().unwrap_or(expected_date);
+        } else if checkin_date < expected_date {
+          break;
+        }
+      }
+    }
+
+    current_streak
+  }
+
+  /// Find longest streak from check-in history
+  #[wasm_bindgen(js_name = "findLongestStreak")]
+  pub fn find_longest_streak(checkin_dates: Vec<String>) -> usize {
+    if checkin_dates.is_empty() {
+      return 0;
+    }
+
+    let mut dates: Vec<chrono::NaiveDate> = checkin_dates
+      .iter()
+      .filter_map(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+      .collect();
+    dates.sort();
+
+    let mut longest = 0;
+    let mut current = 1;
+
+    for i in 1..dates.len() {
+      if dates[i] == dates[i - 1].succ_opt().unwrap_or(dates[i - 1]) {
+        current += 1;
+      } else {
+        longest = longest.max(current);
+        current = 1;
+      }
+    }
+    longest.max(current)
+  }
+
+  /// Check if user has checked in today
+  #[wasm_bindgen(js_name = "hasCheckedInToday")]
+  pub fn has_checked_in_today(checkin_dates: Vec<String>) -> bool {
+    let today = chrono::Utc::now().date_naive();
+    checkin_dates.iter().any(|d| {
+      chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+        .map(|date| date == today)
+        .unwrap_or(false)
+    })
+  }
+
+  /// Get next check-in date
+  #[wasm_bindgen(js_name = "getNextCheckinDate")]
+  pub fn get_next_checkin_date(has_checked_in_today: bool) -> String {
+    let today = chrono::Utc::now().date_naive();
+    let target_date = if has_checked_in_today {
+      today.succ_opt().unwrap_or(today)
+    } else {
+      today
+    };
+    target_date.format("%Y-%m-%d").to_string()
+  }
+
+  /// Batch process streaks from JSON string input
+  /// Input: JSON object { "userId1": ["2024-01-01", "2024-01-02"], ... }
+  #[wasm_bindgen(js_name = "batchCalculateStreaks")]
+  pub fn batch_calculate_streaks(json_input: &str) -> String {
+    #[derive(serde::Deserialize)]
+    struct StreakInput {
+      #[serde(rename = "userId")]
+      user_id: String,
+      checkins: Vec<String>,
+    }
+
+    let input_map: std::collections::HashMap<String, Vec<String>> = match serde_json::from_str(json_input) {
+      Ok(map) => map,
+      Err(_) => return String::from("{}"),
+    };
+
+    #[derive(serde::Serialize)]
+    struct StreakData {
+      current: usize,
+      longest: usize,
+      last_checkin: Option<String>,
+      needs_checkin: bool,
+    }
+
+    let mut results = serde_json::Map::new();
+
+    for (user_id, dates) in input_map {
+      let current = Self::calculate_streak(dates.clone());
+      let longest = Self::find_longest_streak(dates.clone());
+      let has_today = Self::has_checked_in_today(dates.clone());
+
+      let last_checkin = dates.iter()
+        .filter_map(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .max()
+        .map(|d| d.format("%Y-%m-%d").to_string());
+
+      let data = StreakData {
+        current,
+        longest,
+        last_checkin,
+        needs_checkin: !has_today,
+      };
+
+      if let Ok(json_val) = serde_json::to_value(data) {
+        results.insert(user_id, json_val);
+      }
+    }
+
+    serde_json::to_string(&results).unwrap_or_default()
+  }
+}
+
+/// Leaderboard ranking engine
+#[wasm_bindgen]
+pub struct LeaderboardEngine;
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct UserScore {
+  #[serde(rename = "userId")]
+  user_id: String,
+  points: i64,
+  streak: i32,
+  #[serde(rename = "displayName")]
+  display_name: Option<String>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct RankedUser {
+  #[serde(rename = "userId")]
+  user_id: String,
+  rank: usize,
+  points: i64,
+  streak: i32,
+  #[serde(rename = "displayName")]
+  display_name: Option<String>,
+  #[serde(rename = "percentile")]
+  percentile: f64,
+}
+
+#[wasm_bindgen]
+impl LeaderboardEngine {
+  /// Calculate rankings from a list of users with points
+  /// Input: array of { userId, points, streak, name }
+  /// Returns: array sorted by rank with position information
+  #[wasm_bindgen(js_name = "calculateRankings")]
+  pub fn calculate_rankings(users: JsValue) -> JsValue {
+    let users_list: Vec<UserScore> = serde_wasm_bindgen::from_value(users).unwrap_or_default();
+
+    // Sort by points descending, then streak descending
+    let mut users_list = users_list;
+    users_list.sort_by(|a, b| {
+      b.points.cmp(&a.points)
+        .then_with(|| b.streak.cmp(&a.streak))
+    });
+
+    let total = users_list.len() as f64;
+    let mut ranked: Vec<RankedUser> = Vec::new();
+
+    for (index, user) in users_list.iter().enumerate() {
+      ranked.push(RankedUser {
+        user_id: user.user_id.clone(),
+        rank: index + 1,
+        points: user.points,
+        streak: user.streak,
+        display_name: user.display_name.clone(),
+        percentile: ((index + 1) as f64 / total) * 100.0,
+      });
+    }
+
+    to_value(&ranked).unwrap_or(JsValue::NULL)
+  }
+
+  /// Get top N users from leaderboard
+  #[wasm_bindgen(js_name = "getTopUsers")]
+  pub fn get_top_users(users: JsValue, limit: usize) -> JsValue {
+    let ranked = Self::calculate_rankings(users);
+    let ranked_vec: Vec<RankedUser> = serde_wasm_bindgen::from_value(ranked).unwrap_or_default();
+    let top: Vec<&RankedUser> = ranked_vec.iter().take(limit).collect();
+    to_value(&top).unwrap_or(JsValue::NULL)
+  }
+
+  /// Get user's rank and stats from leaderboard
+  #[wasm_bindgen(js_name = "findUserRank")]
+  pub fn find_user_rank(users: JsValue, user_id: &str) -> JsValue {
+    let ranked_list: Vec<RankedUser> = serde_wasm_bindgen::from_value(users).unwrap_or_default();
+    for user in ranked_list {
+      if user.user_id == user_id {
+        return to_value(&user).unwrap_or(JsValue::NULL);
+      }
+    }
+    JsValue::NULL
+  }
+
+  /// Determine if user is in top percentile (for KV cache threshold)
+  #[wasm_bindgen(js_name = "isInTopPercentile")]
+  pub fn is_in_top_percentile(users: JsValue, user_id: &str, percentile_threshold: f64) -> bool {
+    let ranked_list: Vec<RankedUser> = serde_wasm_bindgen::from_value(users).unwrap_or_default();
+    for user in ranked_list {
+      if user.user_id == user_id {
+        return user.percentile <= percentile_threshold;
+      }
+    }
+    false
+  }
+}
+
+/// Share card generator for viral sharing
+#[wasm_bindgen]
+pub struct ShareCardGenerator;
+
+#[wasm_bindgen]
+impl ShareCardGenerator {
+  /// Generate an SVG share card with user's fitness achievements
+  #[wasm_bindgen(js_name = "generateShareSVG")]
+  pub fn generate_share_svg(
+    user_name: &str,
+    streak_days: u32,
+    points: u32,
+    rank: Option<u32>,
+    bmi: Option<f64>,
+    hide_weight: bool,
+    theme: &str,
+  ) -> String {
+    let primary_color = match theme {
+      "dark" => "#1a1a2e",
+      "neon" => "#00ff88",
+      "ocean" => "#0077be",
+      "sunset" => "#ff6b35",
+      _ => "#6366f1", // default indigo
+    };
+
+    let secondary_color = match theme {
+      "dark" => "#16213e",
+      "neon" => "#00cc6a",
+      "ocean" => "#00b4d8",
+      "sunset" => "#f7c59f",
+      _ => "#818cf8",
+    };
+
+    let text_color = match theme {
+      "dark" => "#ffffff",
+      _ => "#1f2937",
+    };
+
+    let mut svg = String::from(r#"<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">"#);
+
+    // Background gradient
+    svg.push_str(&format!(
+      r#"<defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:{};stop-opacity:1" />
+          <stop offset="100%" style="stop-color:{};stop-opacity:1" />
+        </linearGradient>
+      </defs>"#,
+      primary_color, secondary_color
+    ));
+
+    // Background rectangle
+    svg.push_str(r#"<rect width="100%" height="100%" fill="url(#bg)"/>"#);
+
+    // Logo/App name
+    svg.push_str(&format!(
+      r#"<text x="540" y="120" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="{}" text-anchor="middle">AIVO</text>"#,
+      text_color
+    ));
+
+    // User name
+    svg.push_str(&format!(
+      r#"<text x="540" y="220" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="{}" text-anchor="middle">{}</text>"#,
+      text_color, user_name
+    ));
+
+    // Streak section
+    svg.push_str(&format!(
+      r#"<text x="540" y="400" font-family="Arial, sans-serif" font-size="36" fill="{}" text-anchor="middle" opacity="0.8">CURRENT STREAK</text>"#,
+      text_color
+    ));
+
+    let streak_color = if streak_days >= 30 { "#ffd700" } else if streak_days >= 7 { "#ff6b6b" } else { text_color };
+    svg.push_str(&format!(
+      r#"<text x="540" y="520" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="{}" text-anchor="middle">{}</text>"#,
+      streak_color, streak_days
+    ));
+
+    svg.push_str(&format!(
+      r#"<text x="540" y="580" font-family="Arial, sans-serif" font-size="32" fill="{}" text-anchor="middle">DAYS IN A ROW</text>"#,
+      text_color
+    ));
+
+    // Fire emoji for streak
+    svg.push_str(r#"<text x="540" y="680" font-family="Arial, sans-serif" font-size="80" text-anchor="middle">🔥</text>"#);
+
+    // Points section
+    svg.push_str(&format!(
+      r#"<text x="540" y="860" font-family="Arial, sans-serif" font-size="36" fill="{}" text-anchor="middle" opacity="0.8">TOTAL POINTS</text>"#,
+      text_color
+    ));
+
+    svg.push_str(&format!(
+      r#"<text x="540" y="980" font-family="Arial, sans-serif" font-size="96" font-weight="bold" fill="{}" text-anchor="middle">{}</text>"#,
+      text_color, points
+    ));
+
+    // Rank (if available)
+    if let Some(rank_val) = rank {
+      svg.push_str(&format!(
+        r#"<text x="540" y="1100" font-family="Arial, sans-serif" font-size="36" fill="{}" text-anchor="middle" opacity="0.8">GLOBAL RANK</text>"#,
+        text_color
+      ));
+
+      svg.push_str(&format!(
+        r#"<text x="540" y="1220" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="{}" text-anchor="middle">#{}</text>"#,
+        streak_color, rank_val
+      ));
+    }
+
+    // BMI (if not hidden)
+    if let Some(bmi_val) = bmi {
+      if !hide_weight {
+        svg.push_str(&format!(
+          r#"<text x="540" y="1400" font-family="Arial, sans-serif" font-size="36" fill="{}" text-anchor="middle" opacity="0.8">CURRENT BMI</text>"#,
+          text_color
+        ));
+
+        svg.push_str(&format!(
+          r#"<text x="540" y="1520" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="{}" text-anchor="middle">{:.1}</text>"#,
+          text_color, bmi_val
+        ));
+      }
+    }
+
+    // Footer with CTA
+    svg.push_str(&format!(
+      r#"<text x="540" y="1750" font-family="Arial, sans-serif" font-size="28" fill="{}" text-anchor="middle" opacity="0.6">Join me on AIVO - Your AI Fitness Companion</text>"#,
+      text_color
+    ));
+
+    // Download link text
+    svg.push_str(&format!(
+      r#"<text x="540" y="1850" font-family="Arial, sans-serif" font-size="24" fill="{}" text-anchor="middle" opacity="0.5">aivo.app</text>"#,
+      text_color
+    ));
+
+    svg.push_str("</svg>");
+    svg
+  }
+
+  /// Generate share card with full user profile data
+  #[wasm_bindgen(js_name = "generateShareCard")]
+  pub fn generate_share_card(
+    user_name: &str,
+    profile_data: JsValue,
+    options: JsValue,
+  ) -> String {
+    // Parse options
+    let opts: serde_json::Value = serde_wasm_bindgen::from_value(options).unwrap_or_default();
+
+    let streak_days = opts.get("streakDays")
+      .and_then(|v| v.as_u64())
+      .unwrap_or(0) as u32;
+
+    let points = opts.get("points")
+      .and_then(|v| v.as_u64())
+      .unwrap_or(0) as u32;
+
+    let rank = opts.get("rank")
+      .and_then(|v| v.as_u64())
+      .map(|r| r as u32);
+
+    let hide_weight = opts.get("hideWeight")
+      .and_then(|v| v.as_bool())
+      .unwrap_or(false);
+
+    let theme = opts.get("theme")
+      .and_then(|v| v.as_str())
+      .unwrap_or("default");
+
+    // Extract BMI from profile data using serde
+    #[derive(serde::Deserialize, Default)]
+    struct Profile {
+      bmi: Option<f64>,
+    }
+    let profile: Profile = serde_wasm_bindgen::from_value(profile_data).unwrap_or_default();
+    let bmi = profile.bmi;
+
+    Self::generate_share_svg(user_name, streak_days, points, rank, bmi, hide_weight, theme)
   }
 }
 

@@ -5,18 +5,17 @@ export interface BodyMetricResponse {
   id: string;
   userId: string;
   timestamp: number;
-  weight?: number;
-  bodyFatPercentage?: number;
-  muscleMass?: number;
-  boneMass?: number;
-  waterPercentage?: number;
-  bmi?: number;
-  waistCircumference?: number;
-  chestCircumference?: number;
-  hipCircumference?: number;
-  notes?: string;
-  source?: "ai" | "manual";
-  visionAnalysisId?: string;
+  weight?: number | null;
+  bodyFatPercentage?: number | null;
+  muscleMass?: number | null;
+  boneMass?: number | null;
+  waterPercentage?: number | null;
+  bmi?: number | null;
+  waistCircumference?: number | null;
+  chestCircumference?: number | null;
+  hipCircumference?: number | null;
+  notes?: string | null;
+  source?: string | null;
 }
 
 export interface PostureAssessment {

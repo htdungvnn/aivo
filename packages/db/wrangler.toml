@@ -1,0 +1,13 @@
+name = "aivo-db"
+compatibility_date = "2025-04-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aivo-db"
+database_id = "aivo-db"
+
+# Path to migrations
+migrations_dir = "./drizzle/migrations"
+
+# Use the db package's schema
+# Note: wrangler migrations apply doesn't need a main entry

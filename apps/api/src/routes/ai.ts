@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { createDrizzleInstance } from "@aivo/db";
+import { createDrizzleInstance, conversations } from "@aivo/db";
 import { optimize_content_wasm } from "@aivo/optimizer";
 
 export interface Env {
@@ -158,7 +158,7 @@ export const AIRouter = () => {
       const aiMessage = data.choices[0]?.message?.content || "No response generated";
       const tokensUsed = data.usage?.total_tokens || 0;
 
-      await drizzle.insert(drizzle.conversations).values({
+      await drizzle.insert(conversations).values({
         id: crypto.randomUUID(),
         userId: validated.userId,
         message: validated.message,

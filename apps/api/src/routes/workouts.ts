@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { createDrizzleInstance } from "@aivo/db";
+import { createDrizzleInstance, workouts } from "@aivo/db";
+import { eq, desc } from "drizzle-orm";
+import type { D1Database } from "@cloudflare/d1";
 
 export interface Env {
   DB: D1Database;
@@ -56,12 +58,14 @@ export const WorkoutsRouter = () => {
   router.get("/", async (c) => {
     const userId = c.req.query("userId");
     const drizzle = createDrizzleInstance(c.env.DB);
-    const where = userId ? { userId } : undefined;
-    const workouts = await drizzle.query.workouts.findMany({
-      where,
-      orderBy: (workouts, { desc }) => desc(workouts.createdAt),
-    });
-    return c.json(workouts);
+    const queryOptions: Parameters<typeof drizzle.query.workouts.findMany>[0] = {
+      orderBy: (t, { desc }) => desc(t.createdAt),
+    };
+    if (userId) {
+      queryOptions.where = eq(workouts.userId, userId);
+    }
+    const workoutList = await drizzle.query.workouts.findMany(queryOptions);
+    return c.json(workoutList);
   });
 
   // Create workout
@@ -92,7 +96,7 @@ export const WorkoutsRouter = () => {
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const [workout] = await drizzle
-      .insert(drizzle.workouts)
+      .insert(workouts)
       .values({
         ...validated,
         id: crypto.randomUUID(),

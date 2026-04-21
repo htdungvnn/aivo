@@ -16,6 +16,7 @@ import {
   generateHeatmapSVG,
   validateImage,
 } from "../services/body-insights";
+import { schema } from "@aivo/db/schema";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -171,7 +172,7 @@ export const BodyRouter = () => {
       });
 
       const [savedAnalysis] = await drizzle
-        .insert(drizzle.visionAnalyses)
+        .insert(schema.visionAnalyses)
         .values({
           id: crypto.randomUUID(),
           userId,
@@ -185,7 +186,7 @@ export const BodyRouter = () => {
 
       const bodyComposition = analysis.analysis.bodyComposition;
       if (bodyComposition) {
-        await drizzle.insert(drizzle.bodyMetrics).values({
+        await drizzle.insert(schema.bodyMetrics).values({
           id: crypto.randomUUID(),
           userId,
           timestamp: Date.now(),
@@ -251,15 +252,15 @@ export const BodyRouter = () => {
         return c.json({ success: true, data: cachedData });
       }
 
-      const where: { userId: string; timestamp?: { gte?: number; lte?: number } } = { userId };
-      if (startDate !== undefined || endDate !== undefined) {
-        where.timestamp = {};
-        if (startDate !== undefined) { where.timestamp.gte = startDate; }
-        if (endDate !== undefined) { where.timestamp.lte = endDate; }
-      }
-
       const metrics: BodyMetricResponse[] = await drizzle.query.bodyMetrics.findMany({
-        where,
+        where: (bm, { eq, gte, lte, and }) => {
+          const conditions = [
+            eq(bm.userId, userId),
+            ...(startDate !== undefined ? [gte(bm.timestamp, startDate)] : []),
+            ...(endDate !== undefined ? [lte(bm.timestamp, endDate)] : []),
+          ];
+          return conditions.length > 1 ? and(...conditions) : conditions[0];
+        },
         orderBy: (bm, { desc }) => desc(bm.timestamp),
         limit,
       });
@@ -342,7 +343,7 @@ export const BodyRouter = () => {
       }
 
       const [metric] = await drizzle
-        .insert(drizzle.bodyMetrics)
+        .insert(schema.bodyMetrics)
         .values({
           id: crypto.randomUUID(),
           userId,
@@ -468,7 +469,7 @@ export const BodyRouter = () => {
       });
 
       const [heatmap] = await drizzle
-        .insert(drizzle.bodyHeatmaps)
+        .insert(schema.bodyHeatmaps)
         .values({
           id: crypto.randomUUID(),
           userId,
@@ -490,7 +491,7 @@ export const BodyRouter = () => {
         data: {
           ...heatmap,
           vectorData,
-          metadata: { ...JSON.parse(heatmap.metadata), vectorData },
+          metadata: heatmap.metadata ? { ...JSON.parse(heatmap.metadata), vectorData } : { vectorData },
         },
       });
     } catch (error) {

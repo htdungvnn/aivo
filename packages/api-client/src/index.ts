@@ -4,6 +4,30 @@ import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Wo
 export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation };
 
 /**
+ * Export format types
+ */
+export type ExportFormat = "xlsx" | "csv" | "json";
+
+/**
+ * Export options for filtering data
+ */
+export interface ExportOptions {
+  format: ExportFormat;
+  startDate?: string; // ISO date string
+  endDate?: string; // ISO date string
+}
+
+/**
+ * Export result containing file data
+ */
+export interface ExportResult {
+  filename: string;
+  contentType: string;
+  data: ArrayBuffer;
+  size: number;
+}
+
+/**
  * Configuration for the API client
  */
 export interface ApiClientConfig {
@@ -190,9 +214,6 @@ export class ApiClient {
   }
 
   async uploadBodyImage(file: { uri: string; type: string; name: string }): Promise<ApiResponse<{ imageUrl: string; key: string }>> {
-    const token = await this.tokenProvider();
-    const userId = this.userIdProvider ? await this.userIdProvider() : null;
-
     const formData = new FormData();
     // @ts-ignore - React Native FormData file handling
     formData.append("image", {
@@ -201,11 +222,10 @@ export class ApiClient {
       name: file.name,
     });
 
-    const headers: Record<string, string> = {
-      "X-User-Id": userId || "",
-    };
+    const headers = await this.getAuthHeaders();
 
     // Don't set Content-Type for FormData - browser/RN will set boundary automatically
+    delete headers["Content-Type"];
 
     const response = await fetch(`${this.baseUrl}/body/upload`, {
       method: "POST",
@@ -298,6 +318,126 @@ export class ApiClient {
       body: JSON.stringify({ weightLifted, reps, method }),
     });
   }
+
+  // ==================== Export APIs ====================
+
+  /**
+   * Export user data in specified format
+   *
+   * @param options - Export options including format and optional date range
+   * @returns Export result with file data
+   *
+   * @example
+   * ```ts
+   * const result = await client.exportData({ format: "xlsx" });
+   * // Download file
+   * const blob = new Blob([result.data], { type: result.contentType });
+   * const url = URL.createObjectURL(blob);
+   * const a = document.createElement("a");
+   * a.href = url;
+   * a.download = result.filename;
+   * a.click();
+   * ```
+   */
+  async exportData(
+    options: ExportOptions
+  ): Promise<ApiResponse<ExportResult>> {
+    const url = new URL("/export", this.baseUrl);
+    url.searchParams.append("format", options.format);
+    if (options.startDate) url.searchParams.append("startDate", options.startDate);
+    if (options.endDate) url.searchParams.append("endDate", options.endDate);
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: await this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(
+        error.error || error.message || "Export failed",
+        response.status
+      );
+    }
+
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const contentDisposition = response.headers.get("content-disposition") || "";
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    const filename = filenameMatch?.[1] || `aivo-export-${Date.now()}.${options.format}`;
+
+    const buffer = await response.arrayBuffer();
+
+    return {
+      success: true,
+      data: {
+        filename,
+        contentType,
+        data: buffer,
+        size: buffer.byteLength,
+      },
+      timestamp: new Date(),
+    };
+  }
+
+  /**
+   * Get export template file
+   *
+   * @param format - Template format (xlsx, csv, pdf)
+   * @returns Template file data
+   */
+  async getTemplate(format: ExportFormat): Promise<ApiResponse<ExportResult>> {
+    const url = new URL("/export/template", this.baseUrl);
+    url.searchParams.append("format", format);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: await this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(
+        error.error || error.message || "Template fetch failed",
+        response.status
+      );
+    }
+
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const contentDisposition = response.headers.get("content-disposition") || "";
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    const filename = filenameMatch?.[1] || `aivo-template-${format}-${Date.now()}.${format}`;
+
+    const buffer = await response.arrayBuffer();
+
+    return {
+      success: true,
+      data: {
+        filename,
+        contentType,
+        data: buffer,
+        size: buffer.byteLength,
+      },
+      timestamp: new Date(),
+    };
+  }
+}
+
+/**
+ * Helper function to download a file in browser environment
+ * @param result - Export result from API
+ */
+export function downloadExport(result: ExportResult): void {
+  const blob = new Blob([result.data], { type: result.contentType });
+  const url = URL.createObjectURL(blob);
+
+  // Create download link and trigger
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = result.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**

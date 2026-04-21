@@ -8,6 +8,7 @@ import type {
   Workout,
   WorkoutExercise,
   DailySchedule,
+  ScheduledWorkout,
   BodyMetric,
   BodyHeatmapData,
   VisionAnalysis,
@@ -18,13 +19,17 @@ import type {
   Achievement,
   SocialProofCard,
   ActivityEvent,
+  WorkoutExercise as SharedWorkoutExercise,
 } from "@aivo/shared-types";
+
+// Import Drizzle tables
+import { users, workouts, workoutExercises, dailySchedules, bodyMetrics, bodyHeatmaps, visionAnalyses, conversations, aiRecommendations, gamificationProfiles, badges, achievements, socialProofCards, activityEvents } from "@aivo/db";
 
 interface EnvWithR2 {
   DB: D1Database;
 }
 
-type ExportFormat = "xlsx" | "csv" | "json" | "pdf";
+type ExportFormat = "xlsx" | "csv" | "json";
 
 const ExportQuerySchema = z.object({
   startDate: z.string().datetime().optional(),
@@ -32,54 +37,237 @@ const ExportQuerySchema = z.object({
   format: z.enum(["xlsx", "csv", "json"]).default("xlsx"),
 });
 
+// Helper: Convert Unix timestamp (seconds) to Date
+const toDate = (timestamp: number | null | undefined): Date | undefined => {
+  if (timestamp == null) return undefined;
+  return new Date(timestamp * 1000);
+};
+
+// Helper: Parse JSON string safely
+const parseJson = <T>(str: string | null | undefined, fallback: T): T => {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+// Helper: Convert integer flag to boolean
+const toBool = (val: number | null | undefined): boolean => {
+  if (val == null) return false;
+  return val === 1 || val === true;
+};
+
+// Transform DB row to User
+const transformUser = (row: any): User => ({
+  id: row.id,
+  email: row.email,
+  name: row.name,
+  age: row.age ?? undefined,
+  gender: row.gender ?? undefined,
+  height: row.height ?? undefined,
+  weight: row.weight ?? undefined,
+  restingHeartRate: row.resting_heart_rate ?? undefined,
+  maxHeartRate: row.max_heart_rate ?? undefined,
+  fitnessLevel: row.fitness_level ?? undefined,
+  goals: row.goals ? parseJson<string[]>(row.goals, []) : undefined,
+  picture: row.picture ?? undefined,
+  createdAt: toDate(row.created_at)!,
+  updatedAt: toDate(row.updated_at)!,
+});
+
+// Transform DB row to Workout (exercises added separately)
+const transformWorkout = (row: any): Workout => ({
+  id: row.id,
+  userId: row.user_id,
+  type: row.type,
+  name: row.name ?? undefined,
+  duration: row.duration,
+  caloriesBurned: row.calories_burned ?? undefined,
+  startTime: toDate(row.start_time)!,
+  endTime: toDate(row.end_time)!,
+  notes: row.notes ?? undefined,
+  metrics: row.metrics ? parseJson(row.metrics, {}) : undefined,
+  exercises: undefined,
+  createdAt: toDate(row.created_at)!,
+  completedAt: row.completed_at ? toDate(row.completed_at) : undefined,
+  status: row.status,
+});
+
+// Transform DB row to WorkoutExercise
+const transformWorkoutExercise = (row: any): SharedWorkoutExercise => ({
+  id: row.id,
+  name: row.name,
+  sets: row.sets,
+  reps: row.reps,
+  weight: row.weight ?? undefined,
+  restTime: row.rest_time ?? undefined,
+  notes: row.notes ?? undefined,
+  order: row.order,
+  rpe: row.rpe ?? undefined,
+});
+
+// Transform DB row to ScheduledWorkout (from daily_schedules with joined workout)
+const transformScheduledWorkout = (schedule: any, workout: any | null): ScheduledWorkout => {
+  if (!workout) {
+    return {
+      workoutId: schedule.workout_id ?? undefined,
+      templateId: undefined,
+      customName: "Untitled",
+      type: (schedule.type as any) ?? "other",
+      duration: schedule.duration ?? 0,
+      estimatedCalories: schedule.estimated_calories ?? 0,
+      exercises: [],
+      notes: undefined,
+    };
+  }
+  return {
+    workoutId: workout.id,
+    templateId: undefined,
+    customName: workout.name ?? (workout.type as string),
+    type: workout.type,
+    duration: workout.duration,
+    estimatedCalories: workout.calories_burned ?? 0,
+    exercises: [],
+    notes: workout.notes ?? undefined,
+  };
+};
+
+// Transform DB row to DailySchedule
+const transformDailySchedule = (row: any, workout: any = null): DailySchedule => ({
+  id: row.id,
+  userId: row.user_id,
+  date: row.date,
+  workout: row.workout_id ? transformScheduledWorkout(row, workout) : undefined,
+  recoveryTasks: parseJson(row.recovery_tasks, []),
+  nutritionGoals: parseJson(row.nutrition_goals, []),
+  sleepGoal: parseJson(row.sleep_goal, undefined),
+  generatedBy: row.generated_by as any,
+  optimizationScore: row.optimization_score ?? undefined,
+  adjustmentsMade: parseJson(row.adjustments_made, []),
+});
+
+// Transform DB row to BodyMetric
+const transformBodyMetric = (row: any): BodyMetric => ({
+  id: row.id,
+  userId: row.user_id,
+  timestamp: row.timestamp * 1000,
+  weight: row.weight ?? undefined,
+  bodyFatPercentage: row.body_fat_percentage ?? undefined,
+  muscleMass: row.muscle_mass ?? undefined,
+  boneMass: row.bone_mass ?? undefined,
+  waterPercentage: row.water_percentage ?? undefined,
+  bmi: row.bmi ?? undefined,
+  waistCircumference: row.waist_circumference ?? undefined,
+  chestCircumference: row.chest_circumference ?? undefined,
+  hipCircumference: row.hip_circumference ?? undefined,
+  source: row.source ?? undefined,
+  notes: row.notes ?? undefined,
+});
+
+// Transform DB row to BodyHeatmapData
+const transformBodyHeatmap = (row: any): BodyHeatmapData => ({
+  id: row.id,
+  userId: row.user_id,
+  timestamp: row.timestamp * 1000,
+  imageUrl: row.image_url ?? undefined,
+  vectorData: parseJson(row.vector_data, []),
+  metadata: parseJson(row.metadata, undefined),
+});
+
+// Transform DB row to VisionAnalysis
+const transformVisionAnalysis = (row: any): VisionAnalysis => ({
+  id: row.id,
+  userId: row.user_id,
+  imageUrl: row.image_url,
+  processedUrl: row.processed_url ?? undefined,
+  analysis: parseJson(row.analysis, {}),
+  confidence: row.confidence ?? 0,
+  createdAt: row.created_at * 1000,
+});
+
+// Transform DB row to Conversation
+const transformConversation = (row: any): Conversation => ({
+  id: row.id,
+  userId: row.user_id,
+  message: row.message,
+  response: row.response,
+  context: row.context ? (parseJson<string[]>(row.context, []) as string[]) : undefined,
+  tokensUsed: row.tokens_used,
+  model: row.model ?? undefined,
+  createdAt: toDate(row.created_at)!,
+});
+
+// Transform DB row to AIRecommendation
+const transformAIRecommendation = (row: any): AIRecommendation => ({
+  id: row.id,
+  userId: row.user_id,
+  type: row.type,
+  title: row.title,
+  description: row.description,
+  confidence: row.confidence ?? 0,
+  reasoning: row.reasoning ?? undefined,
+  actions: parseJson(row.actions, []),
+  expiresAt: row.expires_at ? toDate(row.expires_at) : undefined,
+  isRead: toBool(row.is_read),
+  isDismissed: toBool(row.is_dismissed),
+  feedback: row.feedback ? (parseJson(row.feedback, {}) as any) : undefined,
+  createdAt: toDate(row.created_at)!,
+});
+
+// Transform DB row to Badge
+const transformBadge = (row: any): Badge => ({
+  id: row.id,
+  type: row.type as any,
+  name: row.name,
+  description: row.description,
+  icon: row.icon,
+  earnedAt: toDate(row.earned_at)!,
+  tier: row.tier as any,
+});
+
+// Transform DB row to Achievement
+const transformAchievement = (row: any): Achievement => ({
+  id: row.id,
+  userId: row.user_id,
+  type: row.type as any,
+  progress: row.progress ?? 0,
+  target: row.target,
+  reward: row.reward,
+  completed: toBool(row.completed),
+  completedAt: row.completed_at ? toDate(row.completed_at) : undefined,
+  claimed: toBool(row.claimed),
+});
+
+// Transform DB row to SocialProofCard
+const transformSocialProofCard = (row: any): SocialProofCard => ({
+  id: row.id,
+  userId: row.user_id,
+  type: row.type as any,
+  title: row.title,
+  subtitle: row.subtitle ?? "",
+  data: parseJson(row.data, { value: 0, label: "", icon: "", color: "" }),
+  shareableImageUrl: row.shareable_image_url ?? undefined,
+  createdAt: toDate(row.created_at)!,
+  isPublic: toBool(row.is_public),
+});
+
+// Transform DB row to ActivityEvent
+const transformActivityEvent = (row: any): ActivityEvent => ({
+  id: row.id,
+  userId: row.user_id,
+  workoutId: row.workout_id ?? undefined,
+  type: row.type as any,
+  payload: parseJson(row.payload, {}),
+  clientTimestamp: toDate(row.client_timestamp)!,
+  serverTimestamp: toDate(row.server_timestamp)!,
+  deviceInfo: row.device_info ? (parseJson(row.device_info, {}) as any) : undefined,
+});
+
 export const ExportRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
-  /**
-   * @swagger
-   * /api/export:
-   *   post:
-   *     summary: Export user data
-   *     description: Generate and download user's complete fitness data in various formats
-   *     tags: [export]
-   *     security:
-   *       - bearer: []
-   *     requestBody:
-   *       required: false
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               startDate:
-   *                 type: string
-   *                 format: date-time
-   *               endDate:
-   *                 type: string
-   *                 format: date-time
-   *               format:
-   *                 type: string
-   *                 enum: [xlsx, csv, json]
-   *                 default: xlsx
-   *     responses:
-   *       200:
-   *         description: Exported file
-   *         content:
-   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-   *             schema:
-   *               type: string
-   *               format: binary
-   *           text/csv:
-   *             schema:
-   *               type: string
-   *           application/json:
-   *             schema:
-   *               type: object
-   *       401:
-   *         description: Unauthorized
-   *       500:
-   *         description: Server error
-   */
   router.post("/", async (c) => {
     const userId = c.req.header("X-User-Id");
     const authHeader = c.req.header("Authorization");
@@ -94,155 +282,162 @@ export const ExportRouter = () => {
 
       const drizzle = createDrizzleInstance(c.env.DB);
 
-      // Verify user exists
-      const user = await drizzle.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, userId),
+      // Verify user exists using new Drizzle 0.45 API
+      const userRows = await drizzle.query.users.findFirst({
+        where: (u, { eq }) => eq(u.id, userId),
       });
-
-      if (!user) {
+      if (!userRows) {
         return c.json({ success: false, error: "User not found" }, 404);
       }
+      const user = transformUser(userRows);
 
-      // Fetch all user data with date filters if provided
-      const dateFilter = startDate || endDate
-        ? (where: any) => {
-            if (startDate) where.timestamp = { gte: new Date(startDate).getTime() };
-            if (endDate) {
-              where.timestamp = where.timestamp || {};
-              where.timestamp.lte = new Date(endDate).getTime();
-            }
-          }
-        : undefined;
+      // Build date filter for timestamp fields (milliseconds)
+      const startTimeMs = startDate ? new Date(startDate).getTime() : null;
+      const endTimeMs = endDate ? new Date(endDate).getTime() : null;
 
-      // Fetch data in parallel
+      // Fetch all user data in parallel using new Drizzle 0.45 API
       const [
-        workouts,
-        bodyMetrics,
-        bodyHeatmaps,
-        visionAnalyses,
-        conversations,
-        aiRecommendations,
-        dailySchedules,
-        gamificationProfile,
-        badges,
-        achievements,
-        socialProofCards,
-        activityEvents,
+        workoutRows,
+        bodyMetricRows,
+        bodyHeatmapRows,
+        visionAnalysisRows,
+        conversationRows,
+        aiRecommendationRows,
+        dailyScheduleRows,
+        gamificationProfileRows,
+        badgeRows,
+        achievementRows,
+        socialProofCardRows,
+        activityEventRows,
       ] = await Promise.all([
         // Workouts
         drizzle.query.workouts.findMany({
-          where: { userId },
+          where: (w, { eq }) => eq(w.userId, userId),
           orderBy: (w, { desc }) => desc(w.createdAt),
-        }).then((w) => w as Workout[]),
-
-        // Body Metrics
-        dateFilter
-          ? drizzle.query.bodyMetrics.findMany({
-              where: (bm, { and }) =>
-                and(
-                  (bm, { eq }) => eq(bm.userId, userId),
-                  (bm, { gte }) => gte(bm.timestamp, new Date(startDate!).getTime()),
-                  (bm, { lte }) => lte(bm.timestamp, new Date(endDate!).getTime())
-                ),
-              orderBy: (bm, { desc }) => desc(bm.timestamp),
-            }).then((m) => m as BodyMetric[])
-          : drizzle.query.bodyMetrics.findMany({
-              where: (bm, { eq }) => eq(bm.userId, userId),
-              orderBy: (bm, { desc }) => desc(bm.timestamp),
-            }).then((m) => m as BodyMetric[]),
-
+        }),
+        // Body Metrics with optional date range
+        drizzle.query.bodyMetrics.findMany({
+          where: (bm, { eq }) => eq(bm.userId, userId),
+          ...(startTimeMs && endTimeMs && {
+            timestamp: { gte: startTimeMs, lte: endTimeMs }
+          }),
+          orderBy: (bm, { desc }) => desc(bm.timestamp),
+        }),
         // Body Heatmaps
         drizzle.query.bodyHeatmaps.findMany({
           where: (bh, { eq }) => eq(bh.userId, userId),
           orderBy: (bh, { desc }) => desc(bh.timestamp),
-        }).then((h) =>
-          h.map((h) => ({
-            ...h,
-            vectorData: h.vectorData ? JSON.parse(h.vectorData) : [],
-            metadata: h.metadata ? JSON.parse(h.metadata) : undefined,
-          })) as BodyHeatmapData[]
-        ),
-
+        }),
         // Vision Analyses
         drizzle.query.visionAnalyses.findMany({
           where: (va, { eq }) => eq(va.userId, userId),
           orderBy: (va, { desc }) => desc(va.createdAt),
-        }).then((v) => v as VisionAnalysis[]),
-
+        }),
         // Conversations
         drizzle.query.conversations.findMany({
           where: (c, { eq }) => eq(c.userId, userId),
           orderBy: (c, { desc }) => desc(c.createdAt),
-        }).then((c) => c as Conversation[]),
-
+        }),
         // AI Recommendations
         drizzle.query.aiRecommendations.findMany({
           where: (ar, { eq }) => eq(ar.userId, userId),
           orderBy: (ar, { desc }) => desc(ar.createdAt),
-        }).then((r) => r as AIRecommendation[]),
-
+        }),
         // Daily Schedules
         drizzle.query.dailySchedules.findMany({
           where: (ds, { eq }) => eq(ds.userId, userId),
-          orderBy: (ds, { desc }) => desc(ds.id), // Using ID as proxy for date
-        }).then((s) => s as DailySchedule[]),
-
+          orderBy: (ds, { desc }) => desc(ds.id),
+        }),
         // Gamification Profile
         drizzle.query.gamificationProfiles.findFirst({
           where: (gp, { eq }) => eq(gp.userId, userId),
-        }).then((p) => p as GamificationProfile | undefined),
-
+        }),
         // Badges
         drizzle.query.badges.findMany({
           where: (b, { eq }) => eq(b.userId, userId),
           orderBy: (b, { desc }) => desc(b.earnedAt),
-        }).then((b) => b as Badge[]),
-
+        }),
         // Achievements
         drizzle.query.achievements.findMany({
           where: (a, { eq }) => eq(a.userId, userId),
-        }).then((a) => a as Achievement[]),
-
+        }),
         // Social Proof Cards
         drizzle.query.socialProofCards.findMany({
           where: (spc, { eq }) => eq(spc.userId, userId),
           orderBy: (spc, { desc }) => desc(spc.createdAt),
-        }).then((c) => c as SocialProofCard[]),
-
+        }),
         // Activity Events
         drizzle.query.activityEvents.findMany({
           where: (ae, { eq }) => eq(ae.userId, userId),
           orderBy: (ae, { desc }) => desc(ae.serverTimestamp),
-        }).then((e) => e as ActivityEvent[]),
+        }),
       ]);
 
-      // Enrich workouts with exercises
-      const workoutIds = workouts.map((w) => w.id);
-      const workoutExercises = await drizzle.query.workoutExercices.findMany({
-        where: (we, { inArray }) => inArray(we.workoutId, workoutIds),
-        orderBy: (we, { asc }) => asc(we.order),
-      }).then((e) => e as WorkoutExercise[]);
+      // Transform DB rows to shared-types
+      const transformedWorkouts: Workout[] = workoutRows.map(transformWorkout);
+      const bodyMetricsList: BodyMetric[] = bodyMetricRows.map(transformBodyMetric);
+      const bodyHeatmapsList: BodyHeatmapData[] = bodyHeatmapRows.map(transformBodyHeatmap);
+      const visionAnalysesList: VisionAnalysis[] = visionAnalysisRows.map(transformVisionAnalysis);
+      const conversationsList: Conversation[] = conversationRows.map(transformConversation);
+      const aiRecommendationsList: AIRecommendation[] = aiRecommendationRows.map(transformAIRecommendation);
+      const dailySchedulesList: DailySchedule[] = dailyScheduleRows.map(transformDailySchedule);
+      const gamificationProfile = gamificationProfileRows ? {
+        ...transformUser({ ...gamificationProfileRows, ...users }),
+        totalPoints: gamificationProfileRows.total_points,
+        level: gamificationProfileRows.level,
+        currentXp: gamificationProfileRows.current_xp,
+        xpToNextLevel: gamificationProfileRows.xp_to_next_level,
+        streak: {
+          current: gamificationProfileRows.streak_current,
+          longest: gamificationProfileRows.streak_longest,
+          lastActivityDate: gamificationProfileRows.last_activity_date,
+        },
+        badges: [],
+        achievements: [],
+        socialProofCards: [],
+        leaderboardPosition: gamificationProfileRows.leaderboard_position ?? undefined,
+      } as GamificationProfile : undefined;
+      const badgesList: Badge[] = badgeRows.map(transformBadge);
+      const achievementsList: Achievement[] = achievementRows.map(transformAchievement);
+      const socialProofCardsList: SocialProofCard[] = socialProofCardRows.map(transformSocialProofCard);
+      const activityEventsList: ActivityEvent[] = activityEventRows.map(transformActivityEvent);
 
-      const workoutsWithExercises = workouts.map((workout) => ({
-        ...workout,
-        exercises: workoutExercises.filter((e) => e.workoutId === workout.id),
-      }));
+      // Fetch workout exercises separately and enrich workouts
+      const workoutIds = transformedWorkouts.map((w) => w.id);
+      let workoutExercises: SharedWorkoutExercise[] = [];
+      if (workoutIds.length > 0) {
+        const exerciseRows = await drizzle
+          .query.workoutExercises
+          .findMany({
+            where: (we, { inArray }) => inArray(we.workoutId, workoutIds),
+            orderBy: (we, { asc }) => asc(we.order),
+          });
+        workoutExercises = exerciseRows.map(transformWorkoutExercise);
+      }
+
+      // Enrich workouts with exercises
+      const workoutsWithExercises: (Workout & { exercises?: SharedWorkoutExercise[] })[] = transformedWorkouts.map(
+        (workout) => ({
+          ...workout,
+          exercises: workoutExercises.filter((e) => e.workoutId === workout.id),
+        })
+      );
 
       // Prepare comprehensive data
       const exportData = {
         user,
         workouts: workoutsWithExercises,
-        dailySchedules,
-        bodyMetrics,
-        bodyHeatmaps,
-        visionAnalyses,
-        conversations,
-        aiRecommendations,
+        dailySchedules: dailySchedulesList,
+        bodyMetrics: bodyMetricsList,
+        bodyHeatmaps: bodyHeatmapsList,
+        visionAnalyses: visionAnalysesList,
+        conversations: conversationsList,
+        aiRecommendations: aiRecommendationsList,
         gamificationProfile,
-        badges,
-        achievements,
-        socialProofCards,
-        activityEvents,
+        badges: badgesList,
+        achievements: achievementsList,
+        socialProofCards: socialProofCardsList,
+        activityEvents: activityEventsList,
       };
 
       // Generate file based on format
@@ -254,7 +449,6 @@ export const ExportRouter = () => {
 
       switch (format) {
         case "csv":
-          // For CSV, we'll generate a ZIP of multiple CSVs (simplified: JSON for now)
           contentType = "application/json";
           filename = `aivo-export-${userId}-${dateStr}.json`;
           buffer = Buffer.from(generateJSON(exportData));
@@ -291,31 +485,6 @@ export const ExportRouter = () => {
     }
   });
 
-  /**
-   * @swagger
-   * /api/export/template:
-   *   get:
-   *     summary: Download export template
-   *     description: Get an empty template file with all column headers for data import
-   *     tags: [export]
-   *     parameters:
-   *       - in: query
-   *         name: format
-   *         schema:
-   *           type: string
-   *           enum: [xlsx, csv, json]
-   *           default: xlsx
-   *     responses:
-   *       200:
-   *         description: Template file
-   *         content:
-   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-   *             schema:
-   *               type: string
-   *               format: binary
-   *       401:
-   *         description: Unauthorized
-   */
   router.get("/template", async (c) => {
     const userId = c.req.header("X-User-Id");
     const authHeader = c.req.header("Authorization");
@@ -335,7 +504,6 @@ export const ExportRouter = () => {
       case "csv":
         contentType = "text/csv";
         filename = `aivo-template-${dateStr}.csv`;
-        // Simple CSV template with headers only
         const csvHeaders = [
           "User ID",
           "Workout ID",
@@ -356,7 +524,6 @@ export const ExportRouter = () => {
       case "xlsx":
       default:
         const generator = new ExcelGenerator();
-        // Create empty template with headers only
         const emptyData = {
           user: {
             id: "",
@@ -403,13 +570,31 @@ export const ExportRouter = () => {
   return router;
 };
 
-// Helper function for Drizzle where clauses (replicated from other routes)
+// Drizzle query builder helpers
+function eq(column: any) {
+  return (value: any) => ({ eq: value });
+}
+
 function and(...conditions: any[]) {
   return { and: conditions };
 }
-function gte(field: any, value: any) {
+
+function gte(column: any, value: any) {
   return { gte: value };
 }
-function lte(field: any, value: any) {
+
+function lte(column: any, value: any) {
   return { lte: value };
+}
+
+function inArray(column: any, values: any[]) {
+  return { in: values };
+}
+
+function desc(column: any) {
+  return { desc: column };
+}
+
+function asc(column: any) {
+  return { asc: column };
 }

@@ -17,6 +17,14 @@ binding = "BODY_INSIGHTS_CACHE"
 id = "aivo-body-cache"
 preview_id = "aivo-body-cache-preview"
 
+[[kv_namespaces]]
+binding = "LEADERBOARD_CACHE"
+id = "aivo-leaderboard"
+preview_id = "aivo-leaderboard-preview"
+
+[triggers]
+crons = ["0 0 * * *", "0 9 1 * *"]  # Daily at midnight + monthly on 1st
+
 [vars]
 AUTH_SECRET = "change-this-in-production"
 

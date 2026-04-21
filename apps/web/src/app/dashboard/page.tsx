@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -13,12 +13,17 @@ import {
   Target,
   ChevronRight,
   Plus,
+  Download,
+  FileSpreadsheet,
+  FileJson,
+  FileText,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BodyInsightCard } from "@/components/body/BodyInsightCard";
+import { createApiClient, type ExportFormat } from "@aivo/api-client";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -29,6 +34,11 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -36,6 +46,53 @@ export default function DashboardPage() {
       router.push("/login");
     }
   }, [loading, isAuthenticated, router]);
+
+  const handleExport = useCallback(async () => {
+    if (!user) return;
+
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const token = localStorage.getItem("aivo_token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const client = createApiClient({
+        baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787/api",
+        tokenProvider: async () => token,
+        userIdProvider: async () => user.id,
+      });
+
+      const options: Parameters<typeof client.exportData>[0] = {
+        format: exportFormat,
+      };
+      if (exportStartDate) options.startDate = exportStartDate;
+      if (exportEndDate) options.endDate = exportEndDate;
+
+      const result = await client.exportData(options);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Export failed");
+      }
+
+      // Download the file
+      const blob = new Blob([result.data.data], { type: result.data.contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [user, exportFormat, exportStartDate, exportEndDate]);
 
   if (!mounted || loading) {
     return (
@@ -133,6 +190,138 @@ export default function DashboardPage() {
             Welcome back, {user.name}!
           </h1>
           <p className="text-gray-400">Your AI fitness companion is ready to optimize your journey.</p>
+        </motion.div>
+
+        {/* Export Data Card */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="mb-8"
+        >
+          <Card className="bg-gradient-to-br from-cyan-900/30 via-slate-900/60 to-blue-900/30 border-cyan-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-cyan-500/20 rounded-lg">
+                  <Download className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Export Your Data</h2>
+                  <p className="text-sm text-gray-400">Download your complete fitness journey</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                {/* Format Selection */}
+                <div className="lg:col-span-3">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Format
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExportFormat("xlsx")}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                        exportFormat === "xlsx"
+                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                          : "bg-slate-800/50 border-slate-700/50 text-gray-300 hover:border-slate-600"
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportFormat("csv")}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                        exportFormat === "csv"
+                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                          : "bg-slate-800/50 border-slate-700/50 text-gray-300 hover:border-slate-600"
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportFormat("json")}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                        exportFormat === "json"
+                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                          : "bg-slate-800/50 border-slate-700/50 text-gray-300 hover:border-slate-600"
+                      }`}
+                    >
+                      <FileJson className="w-4 h-4" />
+                      JSON
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date Range */}
+                <div className="lg:col-span-4">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Date Range (Optional)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={exportStartDate}
+                      onChange={(e) => setExportStartDate(e.target.value)}
+                      className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      placeholder="Start date"
+                    />
+                    <span className="flex items-center text-gray-500">to</span>
+                    <input
+                      type="date"
+                      value={exportEndDate}
+                      onChange={(e) => setExportEndDate(e.target.value)}
+                      className="flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      placeholder="End date"
+                    />
+                  </div>
+                </div>
+
+                {/* Export Button */}
+                <div className="lg:col-span-5 flex items-end">
+                  <Button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium py-2.5 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExporting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export {exportFormat.toUpperCase()}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Error Display */}
+              {exportError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg"
+                >
+                  <p className="text-red-300 text-sm">{exportError}</p>
+                </motion.div>
+              )}
+
+              {/* Info Text */}
+              <p className="mt-3 text-xs text-gray-500">
+                Includes all your workouts, body metrics, schedules, AI interactions, and gamification data.
+                {exportFormat === "xlsx" && " Image links will be clickable in the spreadsheet."}
+                Leave date range empty to export all data.
+              </p>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Quick Stats Grid */}
