@@ -15,6 +15,6 @@ export default [
       "no-var": "error",
       "prefer-const": "error",
     },
-    ignores: ["node_modules/", "dist/", "pkg/", "target/", "build/"],
+    ignores: ["node_modules/", "dist/", "pkg/", "target/", "build/", ".next/", ".expo/"],
   },
 ];

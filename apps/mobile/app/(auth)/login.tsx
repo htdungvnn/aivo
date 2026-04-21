@@ -39,14 +39,17 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLoginSuccess = async (userData: unknown, token: string) => {
-    try {
-      await AsyncStorage.setItem(TOKEN_KEY, token);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
-      setIsAuthenticated(true);
-    } catch (error) {
-      Alert.alert("Error", "Failed to save login session");
-    }
+  const handleLoginSuccess = (userData: unknown, token: string) => {
+    (async () => {
+      try {
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error("Failed to save login session:", e);
+        Alert.alert("Error", "Failed to save login session");
+      }
+    })();
   };
 
   const handleLogout = async () => {

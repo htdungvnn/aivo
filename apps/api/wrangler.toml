@@ -20,9 +20,6 @@ preview_id = "aivo-body-cache-preview"
 [vars]
 AUTH_SECRET = "change-this-in-production"
 
-[build]
-command = "pnpm run build"
-
 [[routes]]
 pattern = "/api/*"
 zone_name = "aivo"

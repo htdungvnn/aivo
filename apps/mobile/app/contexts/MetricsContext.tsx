@@ -24,11 +24,13 @@ export interface MetricsState {
   healthScore: HealthScore | null;
   loading: boolean;
   error: string | null;
+  optimisticUpdate: BodyMetric | null; // Track pending optimistic update
 }
 
 interface MetricsContextType extends MetricsState {
   refreshMetrics: () => Promise<void>;
   addMetric: (metric: Partial<BodyMetric>) => Promise<BodyMetric>;
+  addMetricOptimistic: (metric: Partial<BodyMetric>) => Promise<BodyMetric>;
 }
 
 const MetricsContext = createContext<MetricsContextType | undefined>(undefined);
@@ -45,6 +47,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     healthScore: null,
     loading: true,
     error: null,
+    optimisticUpdate: null,
   });
 
   const loadCachedData = useCallback(async () => {
@@ -104,8 +107,9 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
         }));
         await SecureStore.setItemAsync(STORAGE_KEYS.HEALTH_SCORE, JSON.stringify(scoreData.data));
       }
-    } catch (error: any) {
-      setState((prev) => ({ ...prev, error: error.message || "Failed to load metrics" }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to load metrics";
+      setState((prev) => ({ ...prev, error: message }));
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
@@ -135,6 +139,73 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     return newMetric;
   };
 
+  const addMetricOptimistic = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
+    const token = await SecureStore.getItemAsync("aivo_token");
+
+    // Create optimistic metric with temporary ID
+    const optimisticMetric: BodyMetric = {
+      id: `temp-${Date.now()}`,
+      userId: await SecureStore.getItemAsync("aivo_user_id") || "",
+      timestamp: Math.floor(Date.now() / 1000),
+      weight: metric.weight,
+      bodyFatPercentage: metric.bodyFatPercentage,
+      muscleMass: metric.muscleMass,
+      bmi: metric.bmi,
+    };
+
+    // Immediately update state
+    setState((prev) => ({
+      ...prev,
+      metrics: [optimisticMetric, ...prev.metrics],
+      latestMetric: optimisticMetric,
+      optimisticUpdate: optimisticMetric,
+    }));
+
+    try {
+      const response = await fetch("http://localhost:8787/api/body/metrics", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-User-Id": optimisticMetric.userId,
+        },
+        body: JSON.stringify(metric),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add metric");
+      }
+
+      const newMetric = await response.json();
+
+      // Replace optimistic metric with real one
+      setState((prev) => {
+        const updatedMetrics = prev.metrics.map((m) =>
+          m.id === optimisticMetric.id ? newMetric : m
+        );
+        return {
+          ...prev,
+          metrics: updatedMetrics,
+          latestMetric: newMetric,
+          optimisticUpdate: null,
+        };
+      });
+
+      // Invalidate cache
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
+      return newMetric;
+    } catch (error) {
+      // Revert optimistic update on error
+      setState((prev) => ({
+        ...prev,
+        metrics: prev.metrics.filter((m) => m.id !== optimisticMetric.id),
+        latestMetric: prev.metrics[0] || null,
+        optimisticUpdate: null,
+      }));
+      throw error;
+    }
+  };
+
   useEffect(() => {
     loadCachedData();
   }, [loadCachedData]);
@@ -143,6 +214,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     ...state,
     refreshMetrics,
     addMetric,
+    addMetricOptimistic,
   };
 
   return <MetricsContext.Provider value={value}>{children}</MetricsContext.Provider>;

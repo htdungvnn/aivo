@@ -2,6 +2,8 @@
  * API service for body metrics and insights
  */
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
 
 export interface BodyMetric {
@@ -21,31 +23,17 @@ export interface BodyMetric {
   source?: "ai" | "manual";
 }
 
-export interface VisionAnalysis {
-  id: string;
-  userId: string;
-  imageUrl: string;
-  processedUrl?: string;
-  analysis: {
-    posture?: {
-      score: number;
-      issues: Array<{ type: string; severity: string }>;
-    };
-    symmetry?: any;
-    muscleDevelopment: Array<{ muscle: string; score: number; zone?: string }>;
-    bodyComposition?: {
-      bodyFatEstimate: number;
-      muscleMassEstimate: number;
-    };
+export interface AnalysisResult extends VisionAnalysis {
+  bodyComposition?: {
+    bodyFatEstimate: number;
+    muscleMassEstimate: number;
   };
-  confidence: number;
-  createdAt: number;
 }
 
 export interface HealthScore {
   score: number;
   category: "poor" | "fair" | "good" | "excellent";
-  factors: Record<string, any>;
+  factors: Record<string, unknown>;
   recommendations: string[];
 }
 
@@ -55,7 +43,7 @@ export interface HeatmapData {
   timestamp: number;
   imageUrl?: string;
   vectorData: Array<{ x: number; y: number; muscle: string; intensity: number }>;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -181,7 +169,7 @@ export async function uploadBodyImage(imageUri: string, fileName: string): Promi
     uri: imageUri,
     type: blob.type,
     name: fileName,
-  } as any);
+  });
 
   const uploadResponse = await fetch(`${API_URL}/api/body/upload`, {
     method: "POST",
@@ -202,7 +190,7 @@ export async function uploadBodyImage(imageUri: string, fileName: string): Promi
 /**
  * Trigger AI vision analysis
  */
-export async function analyzeImage(imageUrl: string): Promise<VisionAnalysis> {
+export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
   const token = await getToken();
   if (!token) {
     throw new Error("Not authenticated");

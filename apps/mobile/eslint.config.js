@@ -5,6 +5,7 @@ import reactNative from "eslint-plugin-react-native";
 
 export default [...base, {
   files: ["**/*.ts", "**/*.tsx"],
+  ignores: [".expo/"],
   languageOptions: {
     parserOptions: {
       project: "./tsconfig.json",

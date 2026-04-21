@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 export default [...base, {
   files: ["**/*.ts", "**/*.tsx"],
+  ignores: [".next/**", ".next", "out/", "build/"],
   languageOptions: {
     parserOptions: {
       project: "./tsconfig.json",

@@ -50,7 +50,7 @@ export default function BodyInsightPage() {
   };
 
   const handleUpload = async () => {
-    if (!imageFile || !user) return;
+    if (!imageFile || !user) {return;}
 
     setUploading(true);
     setUploadProgress(0);
@@ -101,7 +101,7 @@ export default function BodyInsightPage() {
   };
 
   const handleAnalyze = async () => {
-    if (!selectedImage || !user) return;
+    if (!selectedImage || !user) {return;}
 
     setAnalyzing(true);
     setError(null);

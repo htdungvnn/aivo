@@ -42,23 +42,22 @@ const MUSCLE_POSITIONS: Record<string, { x: number; y: number; zone: string }> =
   neck: { x: 50, y: 15, zone: "front_torso" },
 };
 
-function getColor(intensity: number, scale: string): string {
+function getColor(intensity: number, scale: string): { baseColor: string; opacity: number } {
   const i = Math.max(0, Math.min(1, intensity));
+  const opacity = 0.4 + i * 0.5;
 
   switch (scale) {
     case "cool":
-      // Cyan to blue
-      return `rgba(6, 182, 212, ${0.3 + i * 0.7})`;
+      return { baseColor: "rgba(6, 182, 212, ", opacity };
     case "monochrome":
-      return `rgba(255, 255, 255, ${0.2 + i * 0.8})`;
+      return { baseColor: "rgba(255, 255, 255, ", opacity };
     case "heat":
     default:
-      // Blue -> Cyan -> Green -> Yellow -> Orange -> Red
-      if (i < 0.2) return `rgba(59, 130, 246, ${0.4 + i * 0.6})`; // blue-500
-      if (i < 0.4) return `rgba(6, 182, 212, ${0.4 + (i - 0.2) * 5 * 0.6})`; // cyan-500
-      if (i < 0.6) return `rgba(34, 197, 94, ${0.4 + (i - 0.4) * 5 * 0.6})`; // green-500
-      if (i < 0.8) return `rgba(234, 179, 8, ${0.4 + (i - 0.6) * 5 * 0.6})`; // yellow-500
-      return `rgba(249, 115, 22, ${0.4 + (i - 0.8) * 5 * 0.6})`; // orange-500
+      if (i < 0.2) {return { baseColor: "rgba(59, 130, 246, ", opacity };}
+      if (i < 0.4) {return { baseColor: "rgba(6, 182, 212, ", opacity };}
+      if (i < 0.6) {return { baseColor: "rgba(34, 197, 94, ", opacity };}
+      if (i < 0.8) {return { baseColor: "rgba(234, 179, 8, ", opacity };}
+      return { baseColor: "rgba(249, 115, 22, ", opacity };
   }
 }
 
@@ -165,8 +164,7 @@ export function BodyHeatmap({
       const cx = point.x * 2; // Normalize to 200 width
       const cy = point.y * 4; // Normalize to 400 height (0-100 -> 0-400)
       const radius = getRadius(point.intensity);
-      const fill = getColor(point.intensity, colorScale);
-      const opacity = 0.5 + point.intensity * 0.4;
+      const { baseColor, opacity: colorOpacity } = getColor(point.intensity, colorScale);
       const isSelected = selectedMuscles.some(
         (m) => MUSCLE_POSITIONS[m] && Math.abs(MUSCLE_POSITIONS[m].x - point.x) < 5
       );
@@ -177,7 +175,7 @@ export function BodyHeatmap({
       const circleProps = animate
         ? {
             initial: { r: 0, opacity: 0, cx, cy },
-            animate: { r: radius, opacity: isSelected ? 0.9 : opacity, cx, cy },
+            animate: { r: radius, opacity: isSelected ? 1 : colorOpacity, cx, cy },
             exit: { r: 0, opacity: 0, cx, cy },
             transition: {
               r: { type: "spring", stiffness: 200, damping: 20, delay, duration: 0.6 },
@@ -193,7 +191,7 @@ export function BodyHeatmap({
           }
         : {
             r: radius,
-            opacity: isSelected ? 0.9 : opacity,
+            opacity: isSelected ? 1 : colorOpacity,
           };
 
       return (
@@ -203,8 +201,8 @@ export function BodyHeatmap({
           cy={cy}
           rx={radius}
           ry={radius * 1.2}
-          fill={fill}
-          fillOpacity={isSelected ? 0.9 : opacity}
+          fill={baseColor}
+          fillOpacity={isSelected ? 1 : colorOpacity}
           stroke={isSelected ? "#ffffff" : "transparent"}
           strokeWidth={isSelected ? 2 : 0}
           style={{ cursor: onPointClick ? "pointer" : "default" }}
@@ -218,7 +216,7 @@ export function BodyHeatmap({
     // Add muscle group labels with layout animations
     const labels = selectedMuscles.map((muscle) => {
       const pos = MUSCLE_POSITIONS[muscle];
-      if (!pos) return null;
+      if (!pos) {return null;}
       return (
         <motion.text
           key={`label-${muscle}`}

@@ -33,7 +33,7 @@ import {
 export default function InsightsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { metrics, loading, refreshMetrics } = useMetrics();
+  const { metrics, loading, refreshMetrics, addMetricOptimistic } = useMetrics();
 
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -160,16 +160,35 @@ export default function InsightsScreen() {
 
   const handleAnalyze = async (imageUrl?: string) => {
     const url = imageUrl || selectedImage;
-    if (!url) {return;}
+    if (!url) { return; }
 
     setAnalyzing(true);
     setError(null);
 
     try {
       const result = await analyzeImage(url);
+
+      // Create optimistic update from body composition estimates
+      const bodyComposition = result.analysis?.bodyComposition;
+      if (bodyComposition && (bodyComposition.bodyFatEstimate || bodyComposition.muscleMassEstimate)) {
+        const optimisticMetric = {
+          weight: undefined, // AI doesn't estimate weight from image
+          bodyFatPercentage: bodyComposition.bodyFatEstimate,
+          muscleMass: bodyComposition.muscleMassEstimate,
+          bmi: undefined,
+        };
+
+        try {
+          await addMetricOptimistic(optimisticMetric);
+        } catch (optErr) {
+          console.log("Optimistic update failed, will refresh instead:", optErr);
+          await refreshMetrics();
+        }
+      }
+
       await triggerHaptic("success");
       Alert.alert("Analysis Complete", "Your body metrics have been updated!");
-      await refreshMetrics();
+
       setSelectedImage(null);
       setImageFile(null);
       setActiveTab("overview");
@@ -368,7 +387,9 @@ export default function InsightsScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={handlePickImage}
+                  onPress={() => {
+                    void handlePickImage();
+                  }}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center"
                 >
                   <ImageIcon className="w-12 h-12 text-cyan-400 mb-2" />
@@ -470,7 +491,7 @@ export default function InsightsScreen() {
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              onPress={() => handleTabChange(tab.key as any)}
+              onPress={() => handleTabChange(tab.key as "overview" | "upload" | "trends")}
               className={`flex-1 py-2 px-3 rounded-md flex-row items-center justify-center gap-1 ${
                 activeTab === tab.key ? "bg-cyan-600" : ""
               }`}

@@ -49,12 +49,12 @@ export function BodyMetricCard({
   };
 
   const getChangeColor = () => {
-    if (change === undefined || change === 0) return "text-slate-400";
+    if (change === undefined || change === 0) {return "text-slate-400";}
     return change > 0 ? "text-emerald-400" : "text-red-400";
   };
 
   const getChangeArrow = () => {
-    if (change === undefined || change === 0) return null;
+    if (change === undefined || change === 0) {return null;}
     return change > 0 ? (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />

@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
-import { BodyMetricChart, MetricDataPoint } from "./BodyMetricsChart";
-import { PostureAnalysisCard, PostureAssessment } from "./PostureAnalysisCard";
+import type { MetricDataPoint } from "./BodyMetricsChart";
+import { BodyMetricChart } from "./BodyMetricsChart";
+import type { PostureAssessment } from "./PostureAnalysisCard";
+import { PostureAnalysisCard } from "./PostureAnalysisCard";
 
 export interface BodyHeatmapData {
   id: string;

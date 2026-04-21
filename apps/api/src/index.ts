@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { z } from "zod";
-import { OpenAPIHono, createDocument } from "@hono/zod-openapi";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { SwaggerUI } from "@hono/swagger-ui";
 
 import { FitnessCalculator } from "@aivo/compute";
 import { createDrizzleInstance } from "@aivo/db";
-import { optimize_content_wasm, init as initOptimizer } from "@aivo/optimizer";
+import { optimize_content_wasm } from "@aivo/optimizer";
 import { validateBodyMetrics } from "./services/validation";
 
 // ============================================
@@ -32,23 +32,6 @@ if (process.env.NODE_ENV !== "production") {
 // ============================================
 // TYPES & INTERFACES
 // ============================================
-
-// Google OAuth token info response
-interface GoogleTokenInfo {
-  email: string;
-  sub: string;
-  name?: string;
-  picture?: string;
-}
-
-// Facebook OAuth token info response
-interface FacebookTokenInfo {
-  email: string;
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  picture?: { data: { url: string } };
-}
 
 // Define Cloudflare Workers environment type
 interface Env {
@@ -98,32 +81,8 @@ interface HealthResponse {
 // SWAGGER DOCUMENTATION
 // ============================================
 
-const document = createDocument({
-  info: {
-    title: "AIVO API",
-    version: "1.0.0",
-    description: "AIVO Fitness Platform - AI-powered fitness intelligence API",
-  },
-  servers: [
-    {
-      url: process.env.NODE_ENV === "production"
-        ? "https://api.aivo.yourdomain.com"
-        : "http://localhost:8787",
-      description: process.env.NODE_ENV === "production" ? "Production" : "Development",
-    },
-  ],
-  tags: [
-    { name: "auth", description: "Authentication endpoints" },
-    { name: "users", description: "User management" },
-    { name: "workouts", description: "Workout tracking" },
-    { name: "calc", description: "Fitness calculations (WASM)" },
-    { name: "ai", description: "AI coach and chat" },
-    { name: "body", description: "Body insights and metrics" },
-    { name: "health", description: "System health monitoring" },
-  ],
-});
-
-app.openapi = document;
+// OpenAPI document is generated automatically by OpenAPIHono from route annotations
+// It will be served at /openapi.json endpoint using app.getOpenAPIDocument()
 
 // ============================================
 // HEALTH CHECK ENDPOINT (COMPREHENSIVE)
@@ -409,7 +368,7 @@ app.get("/docs", async (c) => {
  *               type: object
  */
 app.get("/openapi.json", async (c) => {
-  return c.json(document);
+  return c.json(app.getOpenAPIDocument());
 });
 
 // ============================================
@@ -1319,27 +1278,48 @@ bodyRouter.get("/health-score", async (c) => {
 
     if (metric?.bmi) {
       const bmi = metric.bmi;
-      if (bmi >= 18.5 && bmi <= 24.9) factors.bmi = 1;
-      else if (bmi >= 25 && bmi <= 29.9) factors.bmi = 0.7;
-      else if (bmi >= 30) factors.bmi = 0.3;
-      else factors.bmi = 0.5;
-    } else factors.bmi = 0.5;
+      if (bmi >= 18.5 && bmi <= 24.9) {
+        factors.bmi = 1;
+      } else if (bmi >= 25 && bmi <= 29.9) {
+        factors.bmi = 0.7;
+      } else if (bmi >= 30) {
+        factors.bmi = 0.3;
+      } else {
+        factors.bmi = 0.5;
+      }
+    } else {
+      factors.bmi = 0.5;
+    }
 
     if (metric?.bodyFatPercentage) {
       const bf = metric.bodyFatPercentage;
-      if (bf < 0.12) factors.bodyFat = 0.8;
-      else if (bf >= 0.12 && bf <= 0.25) factors.bodyFat = 1;
-      else if (bf > 0.25 && bf <= 0.30) factors.bodyFat = 0.7;
-      else factors.bodyFat = 0.3;
-    } else factors.bodyFat = 0.5;
+      if (bf < 0.12) {
+        factors.bodyFat = 0.8;
+      } else if (bf >= 0.12 && bf <= 0.25) {
+        factors.bodyFat = 1;
+      } else if (bf > 0.25 && bf <= 0.30) {
+        factors.bodyFat = 0.7;
+      } else {
+        factors.bodyFat = 0.3;
+      }
+    } else {
+      factors.bodyFat = 0.5;
+    }
 
     if (metric?.muscleMass && user?.weight) {
       const muscleRatio = metric.muscleMass / user.weight;
-      if (muscleRatio >= 0.35 && muscleRatio <= 0.45) factors.muscleMass = 1;
-      else if (muscleRatio >= 0.30 && muscleRatio < 0.35) factors.muscleMass = 0.8;
-      else if (muscleRatio > 0.45 && muscleRatio <= 0.50) factors.muscleMass = 0.9;
-      else factors.muscleMass = 0.5;
-    } else factors.muscleMass = 0.5;
+      if (muscleRatio >= 0.35 && muscleRatio <= 0.45) {
+        factors.muscleMass = 1;
+      } else if (muscleRatio >= 0.30 && muscleRatio < 0.35) {
+        factors.muscleMass = 0.8;
+      } else if (muscleRatio > 0.45 && muscleRatio <= 0.50) {
+        factors.muscleMass = 0.9;
+      } else {
+        factors.muscleMass = 0.5;
+      }
+    } else {
+      factors.muscleMass = 0.5;
+    }
 
     const fitnessMap: Record<string, number> = {
       beginner: 0.4,
@@ -1358,10 +1338,15 @@ bodyRouter.get("/health-score", async (c) => {
       100;
 
     let category: HealthScoreResponse["category"];
-    if (score >= 80) category = "excellent";
-    else if (score >= 60) category = "good";
-    else if (score >= 40) category = "fair";
-    else category = "poor";
+    if (score >= 80) {
+      category = "excellent";
+    } else if (score >= 60) {
+      category = "good";
+    } else if (score >= 40) {
+      category = "fair";
+    } else {
+      category = "poor";
+    }
 
     const recommendations: string[] = [];
     if (factors.bmi < 0.7) {

@@ -1,11 +1,9 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { View, Dimensions } from "react-native";
 import * as Haptics from "expo-haptics";
 import Animated, {
-  useAnimatedStyle,
+  useSharedValue,
   withSpring,
-  withTiming,
-  runOnJS,
 } from "react-native-reanimated";
 import Svg, { Ellipse, G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
@@ -84,15 +82,15 @@ function AnimatedHeatmapCircle({
 }) {
   const cx = useSharedValue(point.x * 2);
   const cy = useSharedValue(point.y * 4);
-  const radius = useSharedValue(6 + point.intensity * 5);
-  const opacity = useSharedValue(0.5 + point.intensity * 0.4);
+  const radius = useSharedValue(0);
+  const opacity = useSharedValue(0);
 
-  const handlePress = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handlePress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress?.();
   }, [onPress]);
 
-  // Animate to new values when point changes
+  // Animate on mount and when point updates
   useEffect(() => {
     const newCx = point.x * 2;
     const newCy = point.y * 4;
@@ -115,9 +113,6 @@ function AnimatedHeatmapCircle({
       stroke={isSelected ? "#ffffff" : "transparent"}
       strokeWidth={isSelected ? 2 : 0}
       onPress={handlePress}
-      style={useAnimatedStyle(() => ({
-        opacity: isSelected ? 1 : opacity.value,
-      }))}
     />
   );
 }
