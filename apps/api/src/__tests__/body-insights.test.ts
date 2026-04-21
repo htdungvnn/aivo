@@ -29,7 +29,9 @@ const mockEnv = {
 describe('API Health Check', () => {
   it('should return health status', async () => {
     const app = new Hono();
-    app.get('/health', () => new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+    app.get('/health', () => {
+      return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+    });
 
     const request = new Request('http://localhost:8787/health');
     const response = await app.fetch(request);

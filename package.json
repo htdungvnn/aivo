@@ -29,10 +29,10 @@
   "devDependencies": {
     "@jest/globals": "^30.3.0",
     "@types/node": "^22.13.5",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.3"
+    "turbo": "^2.9.6",
+    "typescript": "^6.0.3"
   },
-  "packageManager": "pnpm@9.12.0",
+  "packageManager": "pnpm@10.33.0",
   "author": "AIVO Team",
   "license": "MIT",
   "dependencies": {

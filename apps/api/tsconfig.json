@@ -13,7 +13,8 @@
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
       "@aivo/db": ["../../packages/db/src"]
     },
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

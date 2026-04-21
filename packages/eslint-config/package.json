@@ -12,8 +12,8 @@
     "lint": "eslint . --ext .js,.ts,.tsx"
   },
   "peerDependencies": {
-    "eslint": "^9.0.0",
-    "typescript": "^5.0.0"
+    "eslint": "^10.0.0",
+    "typescript": "^6.0.0"
   },
   "dependencies": {
     "@eslint/js": "^9.18.0",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.22.0",
-    "eslint": "^9.18.0",
-    "typescript": "^5.7.3"
+    "eslint": "^10.2.1",
+    "typescript": "^6.0.3"
   }
 }

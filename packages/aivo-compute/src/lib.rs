@@ -723,4 +723,56 @@ mod tests {
     );
     assert!(score_json != wasm_bindgen::JsValue::NULL);
   }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_health_score_all_params_none() {
+    let score_json = FitnessCalculator::calculate_health_score(
+      None, None, None, None, None, true,
+    );
+    assert!(score_json != wasm_bindgen::JsValue::NULL);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_lean_body_mass_zero_weight() {
+    let lbm = FitnessCalculator::calculate_lean_body_mass(0.0, 15.0);
+    assert_eq!(lbm, 0.0);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_lean_body_mass_invalid_body_fat() {
+    let lbm = FitnessCalculator::calculate_lean_body_mass(70.0, -5.0);
+    assert_eq!(lbm, 0.0);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_estimate_body_fat_from_bmi_invalid() {
+    let bf = FitnessCalculator::estimate_body_fat_from_bmi(0.0, 30.0, true);
+    assert_eq!(bf, 0.0);
+    let bf2 = FitnessCalculator::estimate_body_fat_from_bmi(25.0, 0.0, false);
+    assert_eq!(bf2, 0.0);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_muscle_balance_score_empty_inputs() {
+    let scores = vec![];
+    let optimal = vec![];
+    let score = FitnessCalculator::calculate_muscle_balance_score(&scores, &optimal);
+    assert_eq!(score, 0.0);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_muscle_balance_score_mismatched_lengths() {
+    let scores = vec![100.0, 80.0];
+    let optimal = vec![0.5];
+    let score = FitnessCalculator::calculate_muscle_balance_score(&scores, &optimal);
+    assert_eq!(score, 0.0);
+  }
+
+  #[wasm_bindgen_test]
+  fn test_calculate_muscle_balance_score_zero_max() {
+    let scores = vec![0.0, 0.0, 0.0];
+    let optimal = vec![0.33, 0.33, 0.34];
+    let score = FitnessCalculator::calculate_muscle_balance_score(&scores, &optimal);
+    assert_eq!(score, 0.0);
+  }
 }

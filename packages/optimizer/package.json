@@ -23,6 +23,6 @@
   "author": "AIVO Team",
   "license": "MIT",
   "devDependencies": {
-    "wasm-pack": "^0.13.0"
+    "wasm-pack": "^0.14.0"
   }
 }
