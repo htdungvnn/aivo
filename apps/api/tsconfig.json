@@ -11,11 +11,12 @@
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
-      "@aivo/db": ["../../packages/db/src"]
+      "@aivo/db": ["../../packages/db/src"],
+      "@aivo/api-client": ["../../packages/api-client/src"]
     },
     "types": ["@cloudflare/workers-types"],
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "src/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
 }

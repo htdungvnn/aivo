@@ -5,8 +5,7 @@ import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
 import type { MetricDataPoint } from "./BodyMetricsChart";
 import { BodyMetricChart } from "./BodyMetricsChart";
-import type { VisionAnalysis, HealthScoreResult, BodyMetric, BodyHeatmapData } from "@aivo/shared-types";
-import { PostureAnalysisCard } from "./PostureAnalysisCard";
+import type { HealthScoreResult, BodyMetric, BodyHeatmapData } from "@aivo/shared-types";
 
 // Use types from shared-types directly
 // BodyHeatmapData, BodyMetric, VisionAnalysis, HealthScoreResult are all imported
@@ -290,9 +289,6 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
           </div>
         </div>
       )}
-
-      {/* Posture Analysis */}
-      <PostureAnalysisCard assessment={visionAnalysis?.analysis.posture} loading={loading} />
 
       {/* Recommendations */}
       {healthScore?.recommendations && healthScore.recommendations.length > 0 && (

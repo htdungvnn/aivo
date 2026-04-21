@@ -16,6 +16,7 @@
   "dependencies": {
     "@aivo/compute": "workspace:*",
     "@aivo/db": "workspace:*",
+    "@aivo/excel-export": "workspace:*",
     "@aivo/optimizer": "workspace:*",
     "@aivo/shared-types": "workspace:*",
     "@hono/swagger-ui": "^0.6.1",

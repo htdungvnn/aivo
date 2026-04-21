@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { migrate } from "drizzle-orm/d1/migrator";
-import type { SQLiteTable } from "drizzle-orm/sqlite-core";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
 import {
   users,
   sessions,
@@ -27,7 +27,8 @@ import {
   migrations,
 } from "./schema";
 
-const fullSchema = {
+// Export individual tables for direct imports
+export {
   users,
   sessions,
   bodyMetrics,
@@ -51,12 +52,39 @@ const fullSchema = {
   userAnalytics,
   shareableContent,
   migrations,
-} satisfies Record<string, SQLiteTable<any>>;
+};
+
+// Build schema object for Drizzle - using simple object without 'as const'
+export const dbSchema = {
+  users,
+  sessions,
+  bodyMetrics,
+  bodyHeatmaps,
+  visionAnalyses,
+  workouts,
+  workoutExercises,
+  dailySchedules,
+  workoutTemplates,
+  conversations,
+  aiRecommendations,
+  memoryNodes,
+  memoryEdges,
+  compressedContexts,
+  gamificationProfiles,
+  badges,
+  achievements,
+  socialProofCards,
+  activityEvents,
+  systemMetrics,
+  userAnalytics,
+  shareableContent,
+  migrations,
+};
 
 export async function migrateDb(db: unknown) {
-  await migrate(drizzle(db as any, { schema: fullSchema }), { migrationsFolder: "./drizzle/migrations" });
+  await migrate(drizzle(db as any, { schema: dbSchema }), { migrationsFolder: "./drizzle/migrations" });
 }
 
-export function createDrizzleInstance(db: unknown) {
-  return drizzle(db as any, { schema: fullSchema });
+export function createDrizzleInstance(db: unknown): DrizzleD1Database<typeof dbSchema> {
+  return drizzle(db as any, { schema: dbSchema }) as DrizzleD1Database<typeof dbSchema>;
 }

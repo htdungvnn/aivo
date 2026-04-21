@@ -11,6 +11,7 @@ import { CalcRouter } from "./routes/calc";
 import { AIRouter } from "./routes/ai";
 import { BodyRouter } from "./routes/body";
 import { HealthRouter } from "./routes/health";
+import { ExportRouter } from "./routes/export";
 
 // Define Cloudflare Workers environment type
 export interface AppEnv {
@@ -44,6 +45,7 @@ app.route("/workouts", WorkoutsRouter());
 app.route("/calc", CalcRouter());
 app.route("/ai", AIRouter());
 app.route("/body", BodyRouter());
+app.route("/api/export", ExportRouter());
 app.route("/health", HealthRouter());
 
 // Swagger UI documentation

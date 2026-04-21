@@ -1,4 +1,8 @@
-import * as XLSX from 'xlsx';
+import { read, write, utils } from 'xlsx';
+import type {
+  WorkBook,
+  WorkSheet,
+} from 'xlsx';
 import type {
   User,
   Workout,
@@ -55,68 +59,68 @@ export class ExcelGenerator {
    * Generate complete Excel workbook from user data
    */
   generateAll(data: ComprehensiveUserData): Buffer {
-    const wb = XLSX.XLSX.utils.book_new();
+    const wb = utils.book_new();
 
     // Add all sheets
     wb.SheetNames.push('User Profile');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateUserProfileSheet(data.user), 'User Profile');
+    utils.book_append_sheet(wb, this.generateUserProfileSheet(data.user), 'User Profile');
 
     wb.SheetNames.push('Workouts');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateWorkoutsSheet(data.workouts), 'Workouts');
+    utils.book_append_sheet(wb, this.generateWorkoutsSheet(data.workouts), 'Workouts');
 
     wb.SheetNames.push('Workout Exercises');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateWorkoutExercisesSheet(data.workouts), 'Workout Exercises');
+    utils.book_append_sheet(wb, this.generateWorkoutExercisesSheet(data.workouts), 'Workout Exercises');
 
     wb.SheetNames.push('Daily Schedules');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateDailySchedulesSheet(data.dailySchedules), 'Daily Schedules');
+    utils.book_append_sheet(wb, this.generateDailySchedulesSheet(data.dailySchedules), 'Daily Schedules');
 
     wb.SheetNames.push('Body Metrics');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateBodyMetricsSheet(data.bodyMetrics), 'Body Metrics');
+    utils.book_append_sheet(wb, this.generateBodyMetricsSheet(data.bodyMetrics), 'Body Metrics');
 
     wb.SheetNames.push('Body Heatmaps');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateBodyHeatmapsSheet(data.bodyHeatmaps), 'Body Heatmaps');
+    utils.book_append_sheet(wb, this.generateBodyHeatmapsSheet(data.bodyHeatmaps), 'Body Heatmaps');
 
     wb.SheetNames.push('Vision Analyses');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateVisionAnalysesSheet(data.visionAnalyses), 'Vision Analyses');
+    utils.book_append_sheet(wb, this.generateVisionAnalysesSheet(data.visionAnalyses), 'Vision Analyses');
 
     wb.SheetNames.push('AI Conversations');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateAIInteractionsSheet(data.conversations), 'AI Conversations');
+    utils.book_append_sheet(wb, this.generateAIInteractionsSheet(data.conversations), 'AI Conversations');
 
     wb.SheetNames.push('AI Recommendations');
-    XLSX.XLSX.utils.book_append_sheet(wb, this.generateAIRecommendationsSheet(data.aiRecommendations), 'AI Recommendations');
+    utils.book_append_sheet(wb, this.generateAIRecommendationsSheet(data.aiRecommendations), 'AI Recommendations');
 
     if (data.gamificationProfile) {
       wb.SheetNames.push('Gamification');
-      XLSX.XLSX.utils.book_append_sheet(wb, this.generateGamificationSheet(data.gamificationProfile), 'Gamification');
+      utils.book_append_sheet(wb, this.generateGamificationSheet(data.gamificationProfile), 'Gamification');
     }
 
     if (data.badges.length > 0) {
       wb.SheetNames.push('Badges');
-      XLSX.XLSX.utils.book_append_sheet(wb, this.generateBadgesSheet(data.badges), 'Badges');
+      utils.book_append_sheet(wb, this.generateBadgesSheet(data.badges), 'Badges');
     }
 
     if (data.achievements.length > 0) {
       wb.SheetNames.push('Achievements');
-      XLSX.XLSX.utils.book_append_sheet(wb, this.generateAchievementsSheet(data.achievements), 'Achievements');
+      utils.book_append_sheet(wb, this.generateAchievementsSheet(data.achievements), 'Achievements');
     }
 
     if (data.socialProofCards.length > 0) {
       wb.SheetNames.push('Social Content');
-      XLSX.XLSX.utils.book_append_sheet(wb, this.generateSocialProofSheet(data.socialProofCards), 'Social Content');
+      utils.book_append_sheet(wb, this.generateSocialProofSheet(data.socialProofCards), 'Social Content');
     }
 
     if (data.activityEvents.length > 0) {
       wb.SheetNames.push('Activity Events');
-      XLSX.XLSX.utils.book_append_sheet(wb, this.generateActivityEventsSheet(data.activityEvents), 'Activity Events');
+      utils.book_append_sheet(wb, this.generateActivityEventsSheet(data.activityEvents), 'Activity Events');
     }
 
-    return XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return write(wb, { bookType: 'xlsx', type: 'buffer' });
   }
 
   /**
    * Generate User Profile sheet
    */
-  generateUserProfileSheet(user: User): XLSX.WorkSheet {
+  generateUserProfileSheet(user: User): WorkSheet {
     const headers = [
       'ID',
       'Email',
@@ -130,8 +134,6 @@ export class ExcelGenerator {
       'Fitness Level',
       'Goals',
       'Profile Picture URL',
-      'Email Verified',
-      'Onboarding Completed',
       'Created At',
       'Updated At',
     ];
@@ -151,20 +153,18 @@ export class ExcelGenerator {
         user.fitnessLevel ?? '',
         user.goals?.join('; ') ?? '',
         user.picture ? this.makeHyperlink(user.picture, 'View Image') : '',
-        user.emailVerified ? 'Yes' : 'No',
-        user.onboardingCompleted ? 'Yes' : 'No',
         this.formatDate(user.createdAt),
         this.formatDate(user.updatedAt),
       ],
     ];
 
-    return XLSX.XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Workouts sheet (summary level)
    */
-  generateWorkoutsSheet(workouts: (Workout & { exercises?: WorkoutExercise[] })): XLSX.WorkSheet {
+  generateWorkoutsSheet(workouts: (Workout & { exercises?: WorkoutExercise[] })[]): WorkSheet {
     const headers = [
       'Workout ID',
       'User ID',
@@ -201,7 +201,7 @@ export class ExcelGenerator {
       ]);
     }
 
-    const sheet = XLSX.XLSX.utils.aoa_to_sheet(rows);
+    const sheet = utils.aoa_to_sheet(rows);
     this.setColumnWidths(sheet, [12, 12, 12, 20, 12, 14, 20, 20, 30, 12, 12, 20, 20]);
     return sheet;
   }
@@ -209,7 +209,7 @@ export class ExcelGenerator {
   /**
    * Generate Workout Exercises sheet (detailed)
    */
-  generateWorkoutExercisesSheet(workouts: (Workout & { exercises?: WorkoutExercise[] })): XLSX.WorkSheet {
+  generateWorkoutExercisesSheet(workouts: (Workout & { exercises?: WorkoutExercise[] })[]): WorkSheet {
     const headers = [
       'Exercise ID',
       'Workout ID',
@@ -246,13 +246,13 @@ export class ExcelGenerator {
       }
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Daily Schedules sheet
    */
-  generateDailySchedulesSheet(schedules: DailySchedule[]): XLSX.WorkSheet {
+  generateDailySchedulesSheet(schedules: DailySchedule[]): WorkSheet {
     const headers = [
       'Schedule ID',
       'Date',
@@ -288,13 +288,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Body Metrics sheet
    */
-  generateBodyMetricsSheet(metrics: BodyMetric[]): XLSX.WorkSheet {
+  generateBodyMetricsSheet(metrics: BodyMetric[]): WorkSheet {
     const headers = [
       'Metric ID',
       'User ID',
@@ -333,7 +333,7 @@ export class ExcelGenerator {
       ]);
     }
 
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    const sheet = utils.aoa_to_sheet(rows);
     this.setColumnWidths(sheet, [12, 12, 20, 12, 14, 14, 12, 12, 10, 22, 22, 20, 10, 30]);
     return sheet;
   }
@@ -341,7 +341,7 @@ export class ExcelGenerator {
   /**
    * Generate Body Heatmaps sheet
    */
-  generateBodyHeatmapsSheet(heatmaps: BodyHeatmapData[]): XLSX.WorkSheet {
+  generateBodyHeatmapsSheet(heatmaps: BodyHeatmapData[]): WorkSheet {
     const headers = [
       'Heatmap ID',
       'User ID',
@@ -371,13 +371,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Vision Analyses sheet
    */
-  generateVisionAnalysesSheet(analyses: VisionAnalysis[]): XLSX.WorkSheet {
+  generateVisionAnalysesSheet(analyses: VisionAnalysis[]): WorkSheet {
     const headers = [
       'Analysis ID',
       'User ID',
@@ -404,13 +404,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate AI Conversations sheet
    */
-  generateAIInteractionsSheet(conversations: Conversation[]): XLSX.WorkSheet {
+  generateAIInteractionsSheet(conversations: Conversation[]): WorkSheet {
     const headers = [
       'Conversation ID',
       'User ID',
@@ -435,7 +435,7 @@ export class ExcelGenerator {
       ]);
     }
 
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    const sheet = utils.aoa_to_sheet(rows);
     this.setColumnWidths(sheet, [12, 12, 20, 50, 50, 12, 15]);
     return sheet;
   }
@@ -443,7 +443,7 @@ export class ExcelGenerator {
   /**
    * Generate AI Recommendations sheet
    */
-  generateAIRecommendationsSheet(recommendations: AIRecommendation[]): XLSX.WorkSheet {
+  generateAIRecommendationsSheet(recommendations: AIRecommendation[]): WorkSheet {
     const headers = [
       'Recommendation ID',
       'User ID',
@@ -474,13 +474,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Gamification sheet
    */
-  generateGamificationSheet(profile: GamificationProfile): XLSX.WorkSheet {
+  generateGamificationSheet(profile: GamificationProfile): WorkSheet {
     const headers = [
       'User ID',
       'Total Points',
@@ -508,16 +508,15 @@ export class ExcelGenerator {
       ],
     ];
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Badges sheet
    */
-  generateBadgesSheet(badges: Badge[]): XLSX.WorkSheet {
+  generateBadgesSheet(badges: Badge[]): WorkSheet {
     const headers = [
       'Badge ID',
-      'User ID',
       'Type',
       'Name',
       'Description',
@@ -531,7 +530,6 @@ export class ExcelGenerator {
     for (const badge of badges) {
       rows.push([
         badge.id,
-        badge.userId,
         badge.type,
         badge.name,
         badge.description,
@@ -541,13 +539,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Achievements sheet
    */
-  generateAchievementsSheet(achievements: Achievement[]): XLSX.WorkSheet {
+  generateAchievementsSheet(achievements: Achievement[]): WorkSheet {
     const headers = [
       'Achievement ID',
       'User ID',
@@ -576,13 +574,13 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Social Proof Cards sheet
    */
-  generateSocialProofSheet(cards: SocialProofCard[]): XLSX.WorkSheet {
+  generateSocialProofSheet(cards: SocialProofCard[]): WorkSheet {
     const headers = [
       'Card ID',
       'User ID',
@@ -591,10 +589,7 @@ export class ExcelGenerator {
       'Subtitle',
       'Data (JSON)',
       'Shareable Image URL',
-      'Platform',
       'Is Public',
-      'Likes',
-      'Shares',
       'Created At',
     ];
 
@@ -609,21 +604,18 @@ export class ExcelGenerator {
         card.subtitle ?? '',
         JSON.stringify(card.data),
         card.shareableImageUrl ? this.makeHyperlink(card.shareableImageUrl, 'View Image') : '',
-        card.platform,
         card.isPublic ? 'Yes' : 'No',
-        card.likes,
-        card.shares,
         this.formatDate(card.createdAt),
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   /**
    * Generate Activity Events sheet
    */
-  generateActivityEventsSheet(events: ActivityEvent[]): XLSX.WorkSheet {
+  generateActivityEventsSheet(events: ActivityEvent[]): WorkSheet {
     const headers = [
       'Event ID',
       'User ID',
@@ -654,7 +646,7 @@ export class ExcelGenerator {
       ]);
     }
 
-    return XLSX.utils.aoa_to_sheet(rows);
+    return utils.aoa_to_sheet(rows);
   }
 
   // ==================== Helper Methods ====================
@@ -691,8 +683,8 @@ export class ExcelGenerator {
   /**
    * Set reasonable column widths for a sheet
    */
-  private setColumnWidths(sheet: XLSX.WorkSheet, widths: number[]): void {
-    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  private setColumnWidths(sheet: WorkSheet, widths: number[]): void {
+    const range = utils.decode_range(sheet['!ref'] || 'A1');
     for (let i = 0; i < widths.length && i < range.e.c; i++) {
       const col = String.fromCharCode(65 + i);
       sheet[`${col}:${col}`] = { wch: widths[i] };

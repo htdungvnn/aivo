@@ -71,17 +71,17 @@ export interface BodyMetric {
   id: string;
   userId: string;
   timestamp: number; // Unix timestamp in milliseconds
-  weight?: number; // kg
-  bodyFatPercentage?: number; // 0-100
-  muscleMass?: number; // kg
-  boneMass?: number; // kg
-  waterPercentage?: number; // 0-100
-  bmi?: number;
-  waistCircumference?: number; // cm
-  chestCircumference?: number; // cm
-  hipCircumference?: number; // cm
+  weight?: number | null; // kg, nullable in DB
+  bodyFatPercentage?: number | null; // 0-100, nullable in DB
+  muscleMass?: number | null; // kg, nullable in DB
+  boneMass?: number | null; // kg, nullable in DB
+  waterPercentage?: number | null; // 0-100, nullable in DB
+  bmi?: number | null; // nullable in DB
+  waistCircumference?: number | null; // cm, nullable in DB
+  chestCircumference?: number | null; // cm, nullable in DB
+  hipCircumference?: number | null; // cm, nullable in DB
   source?: "manual" | "ai" | "device";
-  notes?: string;
+  notes?: string | null; // nullable in DB
 }
 
 // 2D Vector Heatmap data structure
