@@ -59,6 +59,15 @@ Traditional AI chatbots forget everything between sessions. AIVO's memory system
    - Manages memory lifecycle and pruning
    - Provides public API for chat integration
 
+## Recent Improvements (April 2026)
+
+- ✅ Fixed TypeScript strict mode compliance
+- ✅ Improved type guards with proper null checks and type assertions
+- ✅ Fixed enum imports (MemoryType, RelationshipType) for runtime access
+- ✅ Added eslint-disable pragmas for console statements where appropriate
+- ✅ All 48 unit tests passing
+- ✅ Lint and build passing across monorepo
+
 ## Memory Types
 
 | Type | Description | Examples |
@@ -302,5 +311,6 @@ pnpm type-check  # Type verification
 
 ---
 
-**Last Updated:** 2025-04-20  
-**Version:** 1.0.0
+**Last Updated:** 2026-04-22  
+**Version:** 1.1.0 (TypeScript strict mode, lint fixes, improved type guards)
+

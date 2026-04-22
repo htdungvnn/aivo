@@ -1923,7 +1923,6 @@ pub struct AnalysisSummary {
     pub risk_level: String, // "low", "medium", "high", "critical"
 }
 
-#[wasm_bindgen]
 impl CorrelationAnalyzer {
     /// Calculate arithmetic mean of a slice
     fn mean(data: &[f64]) -> f64 {
@@ -1947,7 +1946,7 @@ impl CorrelationAnalyzer {
 
     /// Calculate Pearson correlation coefficient between two variables
     /// Returns (r, p_value) where p_value is approximate significance
-    fn pearson_correlation(x: &[f64], y: &[f64]) -> (f64, f64) {
+    pub fn pearson_correlation(x: &[f64], y: &[f64]) -> (f64, f64) {
         if x.len() != y.len() || x.len() < 3 {
             return (0.0, 1.0);
         }
@@ -2007,7 +2006,7 @@ impl CorrelationAnalyzer {
 
     /// Detect anomalies using Z-score method
     /// Returns points where |z-score| > threshold (default 2.0)
-    fn detect_anomalies(data: &[f64], dates: &[String], factor_name: &str, threshold: f64) -> Vec<AnomalyPoint> {
+    pub fn detect_anomalies(data: &[f64], dates: &[String], factor_name: &str, threshold: f64) -> Vec<AnomalyPoint> {
         if data.len() < 5 {
             return Vec::new();
         }
@@ -2067,7 +2066,7 @@ impl CorrelationAnalyzer {
 
     /// Calculate nutrition consistency score (0-100)
     /// Based on variance from targets and meal timing consistency
-    fn calculate_nutrition_consistency(
+    pub fn calculate_nutrition_consistency(
         daily_calories: &[f64],
         targets: &[f64],
         _late_night_count: usize,
@@ -2101,7 +2100,7 @@ impl CorrelationAnalyzer {
     }
 
     /// Calculate sleep consistency score (0-100)
-    fn calculate_sleep_consistency(durations: &[f64], qualities: &[f64]) -> f64 {
+    pub fn calculate_sleep_consistency(durations: &[f64], qualities: &[f64]) -> f64 {
         if durations.len() < 3 {
             return 50.0;
         }
@@ -2164,7 +2163,7 @@ impl CorrelationAnalyzer {
 
     /// Determine if correlation is statistically significant
     /// Using simplified threshold based on sample size and r-value
-    fn is_significant(r: f64, n: usize) -> bool {
+    pub fn is_significant(r: f64, n: usize) -> bool {
         if n < 10 {
             return r.abs() > 0.7; // Higher threshold for small samples
         }
@@ -2172,7 +2171,7 @@ impl CorrelationAnalyzer {
     }
 
     /// Calculate confidence score based on sample size and correlation strength
-    fn calculate_confidence(r: f64, n: usize) -> f64 {
+    pub fn calculate_confidence(r: f64, n: usize) -> f64 {
         let sample_confidence = (n as f64 / 30.0).min(1.0) * 0.5; // 50% weight for sample size
         let correlation_confidence = r.abs() * 0.5; // 50% weight for correlation strength
         (sample_confidence + correlation_confidence).min(1.0)

@@ -206,8 +206,18 @@ pub fn extract_health_entities(content: &str) -> Vec<HealthMetrics> {
         current.weight_kg = Some(weight_kg);
     }
 
-    // Pattern matching for BMI
-    if let Some(bmi) = extract_number_with_unit(&lower, &["bmi", "body mass index"]) {
+    // Pattern matching for BMI - look for number after "bmi" keyword
+    if let Some(pos) = lower.find("bmi") {
+        // Look for number in the text after "bmi" (within next 20 chars)
+        let start = pos + 3; // after "bmi"
+        let end = (start + 20).min(lower.len());
+        let after = &lower[start..end];
+        if let Some(bmi) = extract_number(after) {
+            if (10.0..=50.0).contains(&bmi) {
+                current.bmi = Some(bmi);
+            }
+        }
+    } else if let Some(bmi) = extract_number_with_unit(&lower, &["body mass index"]) {
         if (10.0..=50.0).contains(&bmi) {
             current.bmi = Some(bmi);
         }

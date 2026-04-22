@@ -28,55 +28,12 @@ impl Default for TokenConfig {
     }
 }
 
-/// Estimate token count for a JSON string
-/// Optimized for WASM: no regex, minimal allocations
-pub fn estimate_tokens(json: &str) -> usize {
-    let mut count = 0;
-    let mut in_string = false;
-    let mut escape_next = false;
-    let mut consecutive_spaces = 0;
-
-    for ch in json.chars() {
-        if escape_next {
-            escape_next = false;
-            count += 1; // Escaped char counts as 1
-            consecutive_spaces = 0;
-            continue;
-        }
-
-        match ch {
-            '\\' => {
-                escape_next = true;
-            }
-            '"' => {
-                in_string = !in_string;
-                count += 1;
-                consecutive_spaces = 0;
-            }
-            _ if in_string => {
-                // Inside string: count characters, compress consecutive whitespace
-                if ch.is_whitespace() {
-                    consecutive_spaces += 1;
-                    if consecutive_spaces == 1 {
-                        count += 1; // Count first whitespace only
-                    }
-                } else {
-                    count += 1;
-                    consecutive_spaces = 0;
-                }
-            }
-            _ => {
-                // Outside string: structural chars that matter
-                if !ch.is_whitespace() && ch != ',' && ch != ':' {
-                    count += 1;
-                }
-                consecutive_spaces = 0;
-            }
-        }
-    }
-
-    // Apply char-to-token ratio
-    (count as f64 / 4.0).ceil() as usize
+/// Estimate token count for a JSON string or plain text
+/// Uses simple heuristic: ~4 characters per token for English text
+/// This is optimized for WASM and works for both JSON and plain text
+pub fn estimate_tokens(input: &str) -> usize {
+    let char_count = input.chars().count();
+    (char_count as f64 / 4.0).ceil() as usize
 }
 
 /// Count tokens in a conversation message
@@ -158,7 +115,7 @@ mod tests {
     fn test_estimate_tokens_simple() {
         let text = "Hello world!";
         // ~12 chars / 4 = 3 tokens
-        let tokens = estimate_tokens(&format!(r#"{{"content": "{}"}}"#, text));
+        let tokens = estimate_tokens(text);
         assert!(tokens >= 2 && tokens <= 4);
     }
 

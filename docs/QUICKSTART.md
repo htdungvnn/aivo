@@ -273,5 +273,5 @@ aivo/
 
 ---
 
-**Last Updated:** 2025-04-20  
+**Last Updated:** 2026-04-22  
 **Minimum Requirements:** Node 18, Rust 1.70, pnpm 9

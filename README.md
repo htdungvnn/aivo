@@ -161,6 +161,8 @@ pnpmx wrangler deploy
 | Compute | Rust WASM | stable |
 | Package Manager | pnpm | 9+ |
 | Build System | Turborepo | 2.3+ |
+| Linting | ESLint | 10.x |
+| TypeScript | 5.x (strict mode) |
 
 ## Development Guidelines
 
@@ -224,10 +226,26 @@ See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructi
 1. Fork the repository
 2. Create your feature branch
 3. Run `pnpm run type-check` and `pnpm run lint`
-4. Commit your changes
+4. Commit your changes (follow conventional commits)
 5. Push to the branch
 6. Open a Pull Request
+
+### Code Quality Standards
+
+- All TypeScript code must pass strict type checking
+- ESLint rules are enforced across all packages
+- Import statements must use `import type` for type-only imports
+- Enums used as values must use regular `import` (not `import type`)
+- Console statements are allowed in production code for logging
 
 ## License
 
 MIT
+
+---
+
+**Version:** 1.0.1  
+**Last Updated:** 2026-04-22  
+**Maintained by:** AIVO Team
+
+

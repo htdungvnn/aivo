@@ -26,6 +26,9 @@ import { InfographicRouter } from "./routes/infographic";
 // import { LiveWorkoutRouter } from "./routes/live-workout";
 import { MetabolicRouter } from "./routes/metabolic";
 import { postureRouter } from "./routes/posture";
+import { AdminTestRouter } from "./routes/admin-test";
+
+// Temporarily disabled - WIP with type errors
 // import { formRouter } from "./routes/form-analyze";
 export interface AppEnv {
   AUTH_SECRET: string;
@@ -165,6 +168,10 @@ app.route("/api/infographic", InfographicRouter());
 // app.route("/api/live-workout", LiveWorkoutRouter());
 app.route("/api/metabolic", MetabolicRouter());
 app.route("/api/posture", postureRouter());
+// Admin test data endpoint (development only)
+if (process.env.NODE_ENV !== "production") {
+  app.route("/api/admin/test", AdminTestRouter());
+}
 
 // ============================================
 // PROTECTED SWAGGER UI (Production)

@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod biometric_stats {
     use wasm_bindgen_test::*;
-    use aivo_compute::{CorrelationAnalyzer, AnomalyPoint, DailyBiometricData};
+    use aivo_compute::{CorrelationAnalyzer, DailyBiometricData};
 
     wasm_bindgen_test_configure!(run_in_browser);
 

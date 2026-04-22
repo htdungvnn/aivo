@@ -446,5 +446,5 @@ Currently no hard rate limits. Recommended usage:
 
 ---
 
-**Last Updated:** 2025-04-20  
+**Last Updated:** 2026-04-22  
 **API Version:** 1.0.0

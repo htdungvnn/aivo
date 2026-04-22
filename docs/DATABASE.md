@@ -517,6 +517,53 @@ wrangler d1 execute aivo-db-restore --file backup.sql
 
 ---
 
-**Last Updated:** 2025-04-20  
+## Mock Data for Testing
+
+For UI/UX and API testing, a comprehensive mock data set is available.
+
+### Quick Setup
+
+```bash
+# Apply migrations to local DB
+pnpm exec wrangler d1 migrations apply aivo-db --local
+
+# Seed with mock data
+cd packages/db
+pnpm run seed:mock
+```
+
+### Admin Test User
+
+The seed creates an admin user with:
+
+- Email: `admin@aivo.ai`
+- User ID: `admin-user-001`
+- 4 weeks of workout history
+- Body metrics for 30 days
+- 8 memory nodes with relationships
+- 15 AI conversations
+- Gamification (Level 12, 2850 points, 7-day streak)
+- Sleep logs, goals, badges, and notifications
+
+### Admin API Endpoints (Dev Only)
+
+Available at `/api/admin/test/*` when `NODE_ENV !== "production"`:
+
+- `GET /health-check` - Health status
+- `GET /stats` - Dashboard statistics
+- `GET /user/:userId` - Full user profile with all related data
+- `GET /workouts` - Workout history with filters
+- `GET /conversations` - Chat history
+- `GET /memories` - Memory nodes with filters
+- `GET /body-metrics` - Body measurement trends
+- `GET /recovery` - Recovery and fatigue data
+- `GET /gamification` - Points, badges, streaks
+- `GET /ai-activity` - AI interaction metrics
+
+See [Mock Data Guide](../MOCK_DATA.md) for complete documentation.
+
+---
+
+**Last Updated:** 2026-04-22  
 **Schema Version:** 1.0.0  
 **Drizzle Version:** 0.45.2

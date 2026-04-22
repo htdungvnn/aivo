@@ -15,7 +15,7 @@
   },
   "peerDependencies": {
     "jest": "^29.0.0 || ^30.0.0",
-    "typescript": "^6.0.0"
+    "typescript": ">=5.4.5"
   },
   "dependencies": {
     "@testing-library/jest-dom": "^6.6.0",
@@ -24,6 +24,6 @@
   },
   "devDependencies": {
     "jest": "^30.3.0",
-    "typescript": "^6.0.3"
+    "typescript": "5.4.5"
   }
 }

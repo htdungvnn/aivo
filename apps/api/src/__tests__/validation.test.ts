@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { BodyMetricsValidator } from '../validation';
+import { BodyMetricsValidator } from '../services/validation';
 
 describe('BodyMetricsValidator', () => {
   describe('validateWeight', () => {

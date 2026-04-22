@@ -17,6 +17,7 @@ Welcome to AIVO - the AI-native fitness coaching platform.
 - Solves the "Goldfish Memory" problem by remembering user facts
 - Critical health information prioritization
 - Graph-based memory storage with relationships
+- **Recent:** TypeScript strict mode compliant, 100% lint pass, 48 passing tests
 
 ### AI Coaching
 
@@ -41,8 +42,9 @@ Welcome to AIVO - the AI-native fitness coaching platform.
 
 ## Operations
 
-- **[Deployment Guide](../DEPLOYMENT.md)** - Deploy to Cloudflare Workers and app stores
+- **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to Cloudflare Workers and app stores
 - **[Testing Guide](./TESTING.md)** - Unit, integration, and E2E tests
+- **[Mock Data Guide](./MOCK_DATA.md)** - Admin test data for UI/UX testing
 - **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## Package Reference
@@ -119,6 +121,6 @@ FACEBOOK_APP_ID=...
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** 2025-04-20  
+**Version:** 1.1.0  
+**Last Updated:** 2026-04-22  
 **Maintained by:** AIVO Team

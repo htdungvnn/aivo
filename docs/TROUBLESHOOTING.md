@@ -441,5 +441,5 @@ wasm-objdump -x pkg/aivo_compute_bg.wasm | head -50
 
 ---
 
-**Last Updated:** 2025-04-20  
+**Last Updated:** 2026-04-22  
 **Maintainer:** AIVO Team

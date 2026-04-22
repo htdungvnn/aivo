@@ -422,5 +422,5 @@ wrangler d1 migrations apply aivo-db --local
 
 ---
 
-**Last Updated:** 2025-04-20  
+**Last Updated:** 2026-04-22  
 **Testing Framework:** Jest 29, Vitest (planned)

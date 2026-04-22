@@ -318,7 +318,7 @@ The WASM module is bundled with the Cloudflare Workers API:
 
 ---
 
-**Last Updated:** 2025-04-20  
+**Last Updated:** 2026-04-22  
 **Version:** 1.0.0  
 **Rust:** 1.70+  
 **wasm-pack:** 0.12+
