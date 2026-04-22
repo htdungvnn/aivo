@@ -1,8 +1,6 @@
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --foreground-rgb: 255, 255, 255;
@@ -210,7 +208,9 @@ body {
     --sidebar-ring: oklch(0.556 0 0);
   }
   * {
-    @apply border-border outline-ring/50;
+    /* Using Tailwind v4 arbitrary values syntax */
+    border-color: var(--border);
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
   }
   body {
     @apply bg-background text-foreground;

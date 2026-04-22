@@ -52,6 +52,9 @@ const ExportQuerySchema = z.object({
   endDate: z.string().datetime().optional(),
   format: z.enum(["xlsx", "csv", "json"]).default("xlsx"),
 });
+
+// Helper: Convert timestamp to Date
+const toDate = (timestamp: number | null | undefined): Date | undefined => {
   if (timestamp === null || timestamp === undefined) { return undefined; }
   return new Date(timestamp * 1000);
 };
@@ -73,7 +76,7 @@ const toBool = (val: number | null | undefined): boolean => {
 };
 
 // Transform DB row to User
-const transformUser = (row: UserRow): User => ({
+const transformUser = (row: any): User => ({
   id: row.id,
   email: row.email,
   name: row.name,
@@ -91,10 +94,10 @@ const transformUser = (row: UserRow): User => ({
 });
 
 // Transform DB row to Workout (exercises added separately)
-const transformWorkout = (row: WorkoutRow): Workout => ({
+const transformWorkout = (row: any): Workout => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type,
+  type: row.type as any,
   name: row.name ?? undefined,
   duration: row.duration,
   caloriesBurned: row.calories_burned ?? undefined,
@@ -105,11 +108,11 @@ const transformWorkout = (row: WorkoutRow): Workout => ({
   exercises: undefined,
   createdAt: toDate(row.created_at)!,
   completedAt: row.completed_at ? toDate(row.completed_at) : undefined,
-  status: row.status,
+  status: row.status as any,
 });
 
 // Transform DB row to WorkoutExercise
-const transformWorkoutExercise = (row: WorkoutExerciseRow): SharedWorkoutExercise => ({
+const transformWorkoutExercise = (row: any): SharedWorkoutExercise => ({
   id: row.id,
   workoutId: row.workout_id,
   name: row.name,
@@ -123,7 +126,7 @@ const transformWorkoutExercise = (row: WorkoutExerciseRow): SharedWorkoutExercis
 });
 
 // Transform DB row to ScheduledWorkout (from daily_schedules with joined workout)
-const transformScheduledWorkout = (schedule: DailyScheduleRow, workout: WorkoutRow | null): ScheduledWorkout => {
+const transformScheduledWorkout = (schedule: any, workout: any | null): ScheduledWorkout => {
   if (!workout) {
     return {
       workoutId: schedule.workout_id ?? undefined,
@@ -139,8 +142,8 @@ const transformScheduledWorkout = (schedule: DailyScheduleRow, workout: WorkoutR
   return {
     workoutId: workout.id,
     templateId: undefined,
-    customName: workout.name ?? (workout.type as string),
-    type: workout.type,
+    customName: workout.name ?? (workout.type as any),
+    type: workout.type as any,
     duration: workout.duration,
     estimatedCalories: workout.calories_burned ?? 0,
     exercises: [],
@@ -149,7 +152,7 @@ const transformScheduledWorkout = (schedule: DailyScheduleRow, workout: WorkoutR
 };
 
 // Transform DB row to DailySchedule
-const transformDailySchedule = (row: DailyScheduleRow, workout: WorkoutRow | null = null): DailySchedule => ({
+const transformDailySchedule = (row: any, workout: any | null = null): DailySchedule => ({
   id: row.id,
   userId: row.user_id,
   date: row.date,
@@ -157,13 +160,13 @@ const transformDailySchedule = (row: DailyScheduleRow, workout: WorkoutRow | nul
   recoveryTasks: parseJson(row.recovery_tasks, []),
   nutritionGoals: parseJson(row.nutrition_goals, []),
   sleepGoal: parseJson(row.sleep_goal, undefined),
-  generatedBy: row.generated_by as string,
+  generatedBy: row.generated_by as any,
   optimizationScore: row.optimization_score ?? undefined,
   adjustmentsMade: parseJson(row.adjustments_made, []),
 });
 
 // Transform DB row to BodyMetric
-const transformBodyMetric = (row: BodyMetricRow): BodyMetric => ({
+const transformBodyMetric = (row: any): BodyMetric => ({
   id: row.id,
   userId: row.user_id,
   timestamp: row.timestamp * 1000,
@@ -181,7 +184,7 @@ const transformBodyMetric = (row: BodyMetricRow): BodyMetric => ({
 });
 
 // Transform DB row to BodyHeatmapData
-const transformBodyHeatmap = (row: BodyHeatmapRow): BodyHeatmapData => ({
+const transformBodyHeatmap = (row: any): BodyHeatmapData => ({
   id: row.id,
   userId: row.user_id,
   timestamp: row.timestamp * 1000,
@@ -191,7 +194,7 @@ const transformBodyHeatmap = (row: BodyHeatmapRow): BodyHeatmapData => ({
 });
 
 // Transform DB row to VisionAnalysis
-const transformVisionAnalysis = (row: VisionAnalysisRow): VisionAnalysis => ({
+const transformVisionAnalysis = (row: any): VisionAnalysis => ({
   id: row.id,
   userId: row.user_id,
   imageUrl: row.image_url,
@@ -202,7 +205,7 @@ const transformVisionAnalysis = (row: VisionAnalysisRow): VisionAnalysis => ({
 });
 
 // Transform DB row to Conversation
-const transformConversation = (row: ConversationRow): Conversation => ({
+const transformConversation = (row: any): Conversation => ({
   id: row.id,
   userId: row.user_id,
   message: row.message,
@@ -214,10 +217,10 @@ const transformConversation = (row: ConversationRow): Conversation => ({
 });
 
 // Transform DB row to AIRecommendation
-const transformAIRecommendation = (row: AIRecommendationRow): AIRecommendation => ({
+const transformAIRecommendation = (row: any): AIRecommendation => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type,
+  type: row.type as any,
   title: row.title,
   description: row.description,
   confidence: row.confidence ?? 0,
@@ -226,26 +229,26 @@ const transformAIRecommendation = (row: AIRecommendationRow): AIRecommendation =
   expiresAt: row.expires_at ? toDate(row.expires_at) : undefined,
   isRead: toBool(row.is_read),
   isDismissed: toBool(row.is_dismissed),
-  feedback: row.feedback ? (parseJson(row.feedback, {}) as Record<string, unknown>) : undefined,
+  feedback: row.feedback ? (parseJson(row.feedback, {}) as any) : undefined,
   createdAt: toDate(row.created_at)!,
 });
 
 // Transform DB row to Badge
-const transformBadge = (row: BadgeRow): Badge => ({
+const transformBadge = (row: any): Badge => ({
   id: row.id,
-  type: row.type as string,
+  type: row.type as any,
   name: row.name,
   description: row.description,
   icon: row.icon,
   earnedAt: toDate(row.earned_at)!,
-  tier: row.tier as string,
+  tier: row.tier as any,
 });
 
 // Transform DB row to Achievement
-const transformAchievement = (row: AchievementRow): Achievement => ({
+const transformAchievement = (row: any): Achievement => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type as string,
+  type: row.type as any,
   progress: row.progress ?? 0,
   target: row.target,
   reward: row.reward,
@@ -255,10 +258,10 @@ const transformAchievement = (row: AchievementRow): Achievement => ({
 });
 
 // Transform DB row to SocialProofCard
-const transformSocialProofCard = (row: SocialProofCardRow): SocialProofCard => ({
+const transformSocialProofCard = (row: any): SocialProofCard => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type as string,
+  type: row.type as any,
   title: row.title,
   subtitle: row.subtitle ?? "",
   data: parseJson(row.data, { value: 0, label: "", icon: "", color: "" }),
@@ -268,15 +271,15 @@ const transformSocialProofCard = (row: SocialProofCardRow): SocialProofCard => (
 });
 
 // Transform DB row to ActivityEvent
-const transformActivityEvent = (row: ActivityEventRow): ActivityEvent => ({
+const transformActivityEvent = (row: any): ActivityEvent => ({
   id: row.id,
   userId: row.user_id,
   workoutId: row.workout_id ?? undefined,
-  type: row.type as string,
+  type: row.type as any,
   payload: parseJson(row.payload, {}),
   clientTimestamp: toDate(row.client_timestamp)!,
   serverTimestamp: toDate(row.server_timestamp)!,
-  deviceInfo: row.device_info ? (parseJson(row.device_info, {}) as Record<string, unknown>) : undefined,
+  deviceInfo: row.device_info ? (parseJson(row.device_info, {}) as any) : undefined,
 });
 
 export const ExportRouter = () => {
@@ -299,7 +302,7 @@ export const ExportRouter = () => {
       // Verify user exists using new Drizzle 0.45 API
       const userRows = await drizzle.query.users.findFirst({
         where: (u, { eq }) => eq(u.id, userId),
-      });
+      }) as any;
       if (!userRows) {
         return c.json({ success: false, error: "User not found" }, 404);
       }
@@ -328,61 +331,61 @@ export const ExportRouter = () => {
         drizzle.query.workouts.findMany({
           where: (w, { eq }) => eq(w.userId, userId),
           orderBy: (w, { desc }) => desc(w.createdAt),
-        }),
+        }) as any,
         // Body Metrics with optional date range
         drizzle.query.bodyMetrics.findMany({
           where: (bm, { and, gte, lte, eq }) =>
             and(eq(bm.userId, userId), ...(startTimeMs && endTimeMs ? [gte(bm.timestamp, startTimeMs), lte(bm.timestamp, endTimeMs)] : [])),
           orderBy: (bm, { desc }) => desc(bm.timestamp),
-        }),
+        }) as any,
         // Body Heatmaps
         drizzle.query.bodyHeatmaps.findMany({
           where: (bh, { eq }) => eq(bh.userId, userId),
           orderBy: (bh, { desc }) => desc(bh.createdAt),
-        }),
+        }) as any,
         // Vision Analyses
         drizzle.query.visionAnalyses.findMany({
           where: (va, { eq }) => eq(va.userId, userId),
           orderBy: (va, { desc }) => desc(va.createdAt),
-        }),
+        }) as any,
         // Conversations
         drizzle.query.conversations.findMany({
           where: (c, { eq }) => eq(c.userId, userId),
           orderBy: (c, { desc }) => desc(c.createdAt),
-        }),
+        }) as any,
         // AI Recommendations
         drizzle.query.aiRecommendations.findMany({
           where: (ar, { eq }) => eq(ar.userId, userId),
           orderBy: (ar, { desc }) => desc(ar.createdAt),
-        }),
+        }) as any,
         // Daily Schedules
         drizzle.query.dailySchedules.findMany({
           where: (ds, { eq }) => eq(ds.userId, userId),
           orderBy: (ds, { desc }) => desc(ds.id),
-        }),
+        }) as any,
         // Gamification Profile
         drizzle.query.gamificationProfiles.findFirst({
           where: (gp, { eq }) => eq(gp.userId, userId),
-        }),
+        }) as any,
         // Badges
         drizzle.query.badges.findMany({
           where: (b, { eq }) => eq(b.userId, userId),
           orderBy: (b, { desc }) => desc(b.earnedAt),
-        }),
+        }) as any,
         // Achievements
         drizzle.query.achievements.findMany({
           where: (a, { eq }) => eq(a.userId, userId),
-        }),
+        }) as any,
         // Social Proof Cards
         drizzle.query.socialProofCards.findMany({
           where: (spc, { eq }) => eq(spc.userId, userId),
           orderBy: (spc, { desc }) => desc(spc.createdAt),
-        }),
+        }) as any,
         // Activity Events
         drizzle.query.activityEvents.findMany({
           where: (ae, { eq }) => eq(ae.userId, userId),
           orderBy: (ae, { desc }) => desc(ae.serverTimestamp),
-        }),
+        }) as any,
       ]);
 
       // Transform DB rows to shared-types
@@ -429,7 +432,7 @@ export const ExportRouter = () => {
           .findMany({
             where: (we, { inArray }) => inArray(we.workoutId, workoutIds),
             orderBy: (we, { asc }) => asc(we.order),
-          });
+          }) as any;
         workoutExercises = exerciseRows.map(transformWorkoutExercise);
       }
 
@@ -497,7 +500,7 @@ export const ExportRouter = () => {
       );
       c.header("Content-Length", buffer.length.toString());
 
-      return c.body(buffer as Body);
+      return c.body(buffer as any);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Export error:", error);
@@ -585,7 +588,7 @@ export const ExportRouter = () => {
     c.header("Content-Disposition", `attachment; filename="${filename}"`);
     c.header("Content-Length", buffer.length.toString());
 
-    return c.body(buffer);
+    return c.body(buffer as any);
   });
 
   return router;

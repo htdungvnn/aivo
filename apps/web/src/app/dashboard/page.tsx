@@ -8,11 +8,8 @@ import {
   Dumbbell,
   Heart,
   TrendingUp,
-  Calendar,
-  Award,
   Target,
   ChevronRight,
-  Plus,
   Download,
   FileSpreadsheet,
   FileJson,
@@ -25,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BodyInsightCard } from "@/components/body/BodyInsightCard";
 import { BodyHeatmapSection } from "@/components/body/BodyHeatmapSection";
+import { RecoveryDashboard } from "@/components/biometric";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
 
 const fadeInUp = {
@@ -122,19 +120,6 @@ export default function DashboardPage() {
     { name: "HIIT Session", date: "Today, 7:00 AM", duration: "45 min", calories: "520 kcal", color: "red" },
     { name: "Strength Training", date: "Yesterday, 6:30 PM", duration: "60 min", calories: "380 kcal", color: "blue" },
     { name: "Morning Run", date: "2 days ago, 6:00 AM", duration: "35 min", calories: "280 kcal", color: "green" },
-  ];
-
-  const upcoming = [
-    { day: "Today", time: "6:00 PM", name: "Upper Body Strength", type: "Strength" },
-    { day: "Tomorrow", time: "7:00 AM", name: "Morning Cardio", type: "Cardio" },
-    { day: "Wed", time: "6:30 PM", name: "Leg Day", type: "Strength" },
-  ];
-
-  const achievements = [
-    { name: "7-Day Streak", unlocked: true },
-    { name: "10K Steps", unlocked: true },
-    { name: "First 5K", unlocked: false },
-    { name: "Protein Master", unlocked: false },
   ];
 
   return (
@@ -526,74 +511,13 @@ export default function DashboardPage() {
               {user && <BodyInsightCard userId={user.id} apiUrl={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"} />}
             </motion.div>
 
-            {/* Upcoming Workouts */}
+            {/* Biometric Recovery Dashboard */}
             <motion.div
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
             >
-              <Card className="bg-slate-900/60 border-slate-800/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-500/20 rounded-lg">
-                        <Calendar className="w-5 h-5 text-orange-400" />
-                      </div>
-                      <h2 className="text-lg font-semibold text-white">Upcoming</h2>
-                    </div>
-                    <Button variant="ghost" size="icon" className="w-8 h-8 hover:bg-slate-800">
-                      <Plus className="w-4 h-4 text-gray-400" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {upcoming.map((item, i) => (
-                      <div key={i} className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/30">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-cyan-400">{item.day}</span>
-                          <span className="text-xs text-gray-500">{item.time}</span>
-                        </div>
-                        <p className="font-medium text-white text-sm">{item.name}</p>
-                        <p className="text-xs text-gray-400">{item.type}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Achievements */}
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUp}
-            >
-              <Card className="bg-gradient-to-br from-amber-900/20 via-slate-900/60 to-orange-900/20 border-amber-500/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-amber-500/20 rounded-lg">
-                      <Award className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <h2 className="text-lg font-semibold text-white">Achievements</h2>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {achievements.map((achievement, i) => (
-                      <div
-                        key={i}
-                        className={`p-3 rounded-lg text-center border ${
-                          achievement.unlocked
-                            ? "bg-amber-500/10 border-amber-500/30"
-                            : "bg-slate-800/50 border-slate-700/30 opacity-50"
-                        }`}
-                      >
-                        <div className={`text-lg mb-1 ${achievement.unlocked ? "text-amber-400" : "text-gray-500"}`}>
-                          {achievement.unlocked ? "🏆" : "🔒"}
-                        </div>
-                        <p className="text-xs text-gray-300">{achievement.name}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <RecoveryDashboard />
             </motion.div>
           </div>
         </div>

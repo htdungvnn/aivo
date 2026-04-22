@@ -1,7 +1,7 @@
-import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult } from "@aivo/shared-types";
+import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate } from "@aivo/shared-types";
 
 // Re-export types for convenient consumption by mobile/web apps
-export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult };
+export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate };
 
 /**
  * Export format types
@@ -605,6 +605,185 @@ export class ApiClient {
     const url = new URL("/biometric/recovery-score", this.baseUrl);
     if (period) url.searchParams.append("period", period);
     return this.request(url.toString());
+  }
+
+  // ==================== Nutrition APIs ====================
+
+  /**
+   * Upload a food image to R2 storage
+   */
+  async uploadFoodImage(file: Blob | File): Promise<ApiResponse<UploadImageResponse["data"]>> {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const headers = await this.getAuthHeaders();
+
+    // Don't set Content-Type for FormData - browser/RN will set boundary automatically
+    delete headers["Content-Type"];
+
+    const response = await fetch(`${this.baseUrl}/nutrition/upload`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Upload failed", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<UploadImageResponse["data"]>>;
+  }
+
+  /**
+   * Analyze a food image with AI vision
+   */
+  async analyzeFoodImage(imageUrl: string, mealType?: VisionAnalysisRequest["mealType"]): Promise<ApiResponse<FoodVisionAnalysis>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/nutrition/vision/analyze`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ imageUrl, mealType } as VisionAnalysisRequest),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Analysis failed", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<FoodVisionAnalysis>>;
+  }
+
+  /**
+   * Create food log entries from AI analysis results
+   */
+  async createFoodLogFromAnalysis(data: CreateFromAnalysisRequest): Promise<ApiResponse<FoodLog>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/nutrition/logs/from-analysis`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to create food log", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<FoodLog>>;
+  }
+
+  /**
+   * Create a manual food log entry
+   */
+  async createFoodLog(data: FoodLogCreate): Promise<ApiResponse<FoodLog>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/nutrition/logs`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to create food log", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<FoodLog>>;
+  }
+
+  /**
+   * Get food logs for a specific date
+   */
+  async getFoodLogs(date: string): Promise<ApiResponse<FoodLog[]>> {
+    const url = new URL(`/nutrition/logs?date=${encodeURIComponent(date)}`, this.baseUrl);
+    return this.request(url.toString());
+  }
+
+  /**
+   * Get food logs for a date range
+   */
+  async getFoodLogsRange(startDate: string, endDate: string): Promise<ApiResponse<FoodLog[]>> {
+    const url = new URL(`/nutrition/logs/range?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, this.baseUrl);
+    return this.request(url.toString());
+  }
+
+  /**
+   * Update a food log entry
+   */
+  async updateFoodLog(id: string, data: FoodLogUpdate): Promise<ApiResponse<FoodLog>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/nutrition/logs/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to update food log", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<FoodLog>>;
+  }
+
+  /**
+   * Delete a food log entry
+   */
+  async deleteFoodLog(id: string): Promise<ApiResponse<{ success: boolean }>> {
+    return this.request(`/nutrition/logs/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  /**
+   * Get daily nutrition summary
+   */
+  async getDailyNutritionSummary(date?: string): Promise<ApiResponse<DailyNutritionSummary>> {
+    const url = new URL("/nutrition/summary/daily", this.baseUrl);
+    if (date) url.searchParams.append("date", date);
+    return this.request(url.toString());
+  }
+
+  /**
+   * Get macro targets for user
+   */
+  async getMacroTargets(): Promise<ApiResponse<MacroTargets>> {
+    return this.request("/nutrition/targets");
+  }
+
+  /**
+   * Set/update macro targets
+   */
+  async setMacroTargets(data: Partial<MacroTargets>): Promise<ApiResponse<MacroTargets>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/nutrition/targets`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to set macro targets", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<MacroTargets>>;
+  }
+
+  /**
+   * Search food items by name
+   */
+  async searchFoodItems(query: string, limit?: number): Promise<ApiResponse<FoodItem[]>> {
+    const url = new URL("/nutrition/food-items/search", this.baseUrl);
+    url.searchParams.append("q", query);
+    if (limit) url.searchParams.append("limit", limit.toString());
+    return this.request(url.toString());
+  }
+
+  /**
+   * Get a food item by ID
+   */
+  async getFoodItem(id: string): Promise<ApiResponse<FoodItem>> {
+    return this.request(`/nutrition/food-items/${encodeURIComponent(id)}`);
   }
 }
 

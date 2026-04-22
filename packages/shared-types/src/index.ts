@@ -1552,6 +1552,69 @@ export interface MacroTargets {
   createdAt: number;
 }
 
+// Nutrition API request/response types
+export interface UploadImageResponse {
+  success: boolean;
+  data: {
+    imageUrl: string;
+    key: string;
+    userId: string;
+    uploadedAt: string;
+  };
+}
+
+export interface VisionAnalysisRequest {
+  imageUrl: string;
+  mealType?: MealType;
+}
+
+export interface CreateFromAnalysisRequest {
+  analysisId?: string;
+  detectedItems: Array<{
+    name: string;
+    confidence: number;
+    estimatedPortionG: number;
+    portionUnit: string;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g?: number;
+    sugar_g?: number;
+    matchedFoodItemId?: string;
+  }>;
+  mealType: MealType;
+  timestamp?: number;
+}
+
+export interface FoodLogCreate {
+  mealType: MealType;
+  foodItemId?: string;
+  customName?: string;
+  estimatedPortionG?: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  loggedAt?: number;
+}
+
+export interface FoodLogUpdate {
+  mealType?: MealType;
+  foodItemId?: string;
+  customName?: string;
+  estimatedPortionG?: number;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  loggedAt?: number;
+}
+
 // ============================================
 // SECTION 18: AI-GENERATED INFOGRAPHICS
 // ============================================
@@ -2149,4 +2212,315 @@ export interface RecoveryScoreResult {
 // ============================================
 // Re-export all adaptive planner types from the separate module
 export * from "./adaptive-planner";
+
+// ============================================
+// SECTION 21: MULTI-AGENT NUTRITION EXPERT
+// ============================================
+
+/**
+ * Agent types for specialized nutrition consultation
+ */
+export type NutritionAgentType = "chef" | "medical" | "budget";
+
+/**
+ * Request to consult with nutrition agents
+ */
+export interface NutritionConsultRequest {
+  userId: string;
+  query: string;
+  context: NutritionConsultContext;
+  preferredAgents?: NutritionAgentType[]; // If empty, orchestrator routes automatically
+  maxResponseTimeMs?: number;
+}
+
+/**
+ * Contextual information for nutrition consultation
+ */
+export interface NutritionConsultContext {
+  // User profile data (populated from database)
+  userProfile?: {
+    age?: number;
+    gender?: Gender;
+    height?: number;
+    weight?: number;
+    fitnessGoals?: UserGoal[];
+    activityLevel?: ActivityLevel;
+  };
+
+  // Dietary restrictions & allergies (CRITICAL for medical agent)
+  allergies?: string[]; // e.g., ["peanuts", "shellfish", "dairy"]
+  intolerances?: string[]; // e.g., ["gluten", "lactose"]
+  medicalConditions?: string[]; // e.g., ["diabetes", "hypertension", "celiac"]
+  medications?: Array<{
+    name: string;
+    dosage?: string;
+    frequency?: string;
+  }>;
+
+  // Budget constraints (for budget agent)
+  budget?: {
+    daily?: number; // Daily food budget in local currency
+    weekly?: number;
+    monthly?: number;
+    currency: string;
+    priceSensitivity: "low" | "medium" | "high";
+  };
+
+  // Available ingredients (for chef agent)
+  availableIngredients?: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+    expirationDate?: string; // ISO date
+    isPerishable: boolean;
+  }>;
+
+  // Kitchen capabilities
+  kitchenTools?: string[]; // e.g., ["oven", "blender", "microwave", "air_fryer"]
+  skillLevel?: "beginner" | "intermediate" | "advanced";
+
+  // Dietary preferences
+  dietType?: "omnivore" | "vegetarian" | "vegan" | "pescatarian" | "keto" | "paleo" | "mediterranean";
+  macroPreferences?: {
+    proteinGrams?: number;
+    carbsGrams?: number;
+    fatGrams?: number;
+    calorieTarget?: number;
+  };
+}
+
+/**
+ * Response from a single agent
+ */
+export interface AgentResponse {
+  agentType: NutritionAgentType;
+  success: boolean;
+  content: string;
+  confidence: number; // 0-1, AI's confidence in the advice
+  warnings?: string[]; // e.g., ["This recipe contains peanuts - user is allergic"]
+  metadata?: Record<string, unknown>;
+  processingTimeMs: number;
+}
+
+/**
+ * Orchestrated consultation response
+ */
+export interface NutritionConsultResponse {
+  success: boolean;
+  sessionId: string;
+  userQuery: string;
+  agentsConsulted: NutritionAgentType[];
+  responses: AgentResponse[];
+  synthesizedAdvice: string; // Orchestrator's combined recommendation
+  primaryAgent: NutritionAgentType; // Agent that provided the most relevant response
+  warnings: string[]; // Consolidated safety warnings
+  processingTimeMs: number;
+}
+
+/**
+ * Stored consultation record (for database)
+ */
+export interface StoredNutritionConsult {
+  id: string;
+  userId: string;
+  sessionId: string;
+  query: string;
+  context: NutritionConsultContext;
+  agentsConsulted: NutritionAgentType[];
+  responses: AgentResponse[];
+  synthesizedAdvice: string;
+  warnings: string[];
+  processingTimeMs: number;
+  createdAt: Date;
+  userRating?: number; // 1-5, optional user feedback
+  feedback?: string; // Optional user comments
+}
+
+/**
+ * Chef Agent specific types
+ */
+export interface ChefAgentRequest extends NutritionConsultRequest {
+  context: NutritionConsultContext & {
+    availableIngredients: NonNullable<NutritionConsultContext["availableIngredients"]>;
+    kitchenTools: NonNullable<NutritionConsultContext["kitchenTools"]>;
+    skillLevel: NonNullable<NutritionConsultContext["skillLevel"]>;
+  };
+}
+
+export interface ChefAgentResponse extends AgentResponse {
+  agentType: "chef";
+  recipe?: Recipe;
+  ingredientSubstitutions?: Array<{
+    original: string;
+    substitute: string;
+    reason: string;
+  }>;
+  missingIngredients?: string[];
+  estimatedPrepTimeMinutes?: number;
+  estimatedCookTimeMinutes?: number;
+  difficultyLevel?: "easy" | "medium" | "hard";
+  servings?: number;
+  nutritionEstimate?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
+/**
+ * Generated recipe from Chef Agent
+ */
+export interface Recipe {
+  name: string;
+  description: string;
+  ingredients: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+    notes?: string;
+  }>;
+  instructions: Array<{
+    step: number;
+    text: string;
+    durationMinutes?: number;
+    tips?: string[];
+  }>;
+  tips: string[];
+  warnings?: string[]; // e.g., ["Handle raw chicken carefully"]
+  storageInstructions?: string;
+  reheatingInstructions?: string;
+  allergenAlerts?: string[]; // e.g., ["Contains dairy", "May contain traces of nuts"]
+}
+
+/**
+ * Medical Agent specific types
+ */
+export interface MedicalAgentRequest extends NutritionConsultRequest {
+  context: NutritionConsultContext & {
+    allergies: string[];
+    intolerances: string[];
+    medicalConditions: string[];
+    medications: NonNullable<NutritionConsultContext["medications"]>;
+  };
+}
+
+export interface MedicalAgentResponse extends AgentResponse {
+  agentType: "medical";
+  safetyAlerts: Array<{
+    severity: "critical" | "warning" | "info";
+    type: "allergy" | "drug_interaction" | "contraindication" | "condition_risk";
+    substance: string;
+    reason: string;
+    recommendation: string;
+  }>;
+  nutrientWarnings?: Array<{
+    nutrient: string;
+    currentIntake?: number;
+    target?: number;
+    status: "excess" | "deficient" | "imbalanced";
+    impact: string;
+  }>;
+  safeAlternatives?: string[];
+  disclaimer: string; // Legal medical disclaimer
+}
+
+/**
+ * Budget Agent specific types
+ */
+export interface BudgetAgentRequest extends NutritionConsultRequest {
+  context: NutritionConsultContext & {
+    budget: NonNullable<NutritionConsultContext["budget"]>;
+  };
+}
+
+export interface BudgetAgentResponse extends AgentResponse {
+  agentType: "budget";
+  costAnalysis?: {
+    estimatedTotalCost: number;
+    costPerServing: number;
+    costPerCalorie: number;
+    breakdown: Array<{
+      ingredient: string;
+      quantity: number;
+      unit: string;
+      unitCost: number;
+      totalCost: number;
+    }>;
+  };
+  budgetCompliance: "within_budget" | "over_budget" | "under_budget";
+  savingsOpportunities?: Array<{
+    type: "substitute_ingredient" | "buy_in_bulk" | "different_brand" | "seasonal_alternative";
+    description: string;
+    estimatedSavings: number;
+    suggestion: string;
+  }>;
+  costOptimizedAlternatives?: Array<{
+    original: string;
+    alternative: string;
+    reason: string;
+    savings: number;
+  }>;
+  shoppingTips?: string[];
+}
+
+/**
+ * Agent system prompt templates (for easy customization)
+ */
+export const AGENT_SYSTEM_PROMPTS: Record<NutritionAgentType, string> = {
+  chef: `You are a professional chef and nutritionist specializing in practical home cooking.
+
+Your expertise:
+- Creating delicious, nutritious recipes from available ingredients
+- Ingredient substitutions for allergies/restrictions
+- Cooking techniques for all skill levels
+- Meal prep and efficiency
+
+Guidelines:
+- Prioritize food safety (proper cooking temperatures, cross-contamination avoidance)
+- Consider available kitchen tools and skill level
+- Include clear, step-by-step instructions
+- Provide realistic prep and cook times
+- Suggest variations for dietary preferences
+- Always include allergen warnings when applicable
+
+Output format: Valid JSON matching the Recipe schema.`,
+
+  medical: `You are a medical nutrition specialist with expertise in food-drug interactions and dietary contraindications.
+
+Your expertise:
+- Food-drug interactions (MAO inhibitors, blood thinners, etc.)
+- Condition-specific dietary restrictions (diabetes, hypertension, kidney disease, etc.)
+- Allergen identification and severity assessment
+- Nutrient-drug interactions
+
+CRITICAL SAFETY RULES:
+1. If a user mentions a life-threatening allergy (anaphylaxis risk), mark as CRITICAL severity
+2. Flag grapefruit interactions with statins, blood pressure meds
+3. Warn about vitamin K interactions with warfarin
+4. Flag high-potassium foods for kidney disease patients
+5. Flag high-sodium foods for hypertension patients
+
+DISCLAIMER: You are not a substitute for medical advice. Users should consult their healthcare provider.
+
+Output format: Valid JSON matching the MedicalAgentResponse schema.`,
+
+  budget: `You are a grocery shopping and meal budget optimization expert.
+
+Your expertise:
+- Cost per calorie and cost per gram protein calculations
+- Seasonal produce pricing
+- Bulk buying strategies
+- Store brand vs name brand comparisons
+- Reducing food waste
+
+Guidelines:
+- Provide realistic cost estimates based on average grocery prices
+- Suggest cheaper protein sources (eggs, beans, chicken thighs vs breasts)
+- Recommend frozen vegetables for cost savings
+- Suggest plant-based proteins as budget alternatives
+- Consider unit prices (price per oz/lb) not just total price
+
+Output format: Valid JSON matching the BudgetAgentResponse schema.`,
+};
 

@@ -2493,6 +2493,662 @@ impl CorrelationAnalyzer {
 // END OF BIOMETRIC CORRELATION MODULE
 // ==========================================
 
+// ============================================
+// VOICE-TO-ACTION PARSER MODULE
+// ============================================
+
+/// Natural language parser for voice-entered fitness and nutrition data
+/// Parses free-form text like "Had a bowl of Pho for breakfast, did 3 sets of bench press"
+/// into structured data matching D1 database schemas
+#[wasm_bindgen]
+pub struct VoiceParser;
+
+/// Parsed food log entry
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct ParsedFoodEntry {
+    pub meal_type: Option<String>,
+    pub food_name: String,
+    pub estimated_calories: Option<f64>,
+    pub protein_g: Option<f64>,
+    pub carbs_g: Option<f64>,
+    pub fat_g: Option<f64>,
+    pub fiber_g: Option<f64>,
+    pub confidence: f64, // 0-1 parsing confidence
+    pub portion_size: Option<String>, // e.g., "1 bowl", "200g"
+}
+
+/// Parsed workout entry
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct ParsedWorkoutEntry {
+    pub workout_type: Option<String>,
+    pub exercise_name: String,
+    pub sets: Option<i32>,
+    pub reps: Option<i32>,
+    pub weight: Option<f64>,
+    pub weight_unit: Option<String>, // "kg", "lbs"
+    pub duration_minutes: Option<i32>,
+    pub rpe: Option<f64>, // Rate of Perceived Exertion 1-10
+    pub confidence: f64,
+}
+
+/// Parsed body metric entry
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct ParsedBodyMetric {
+    pub metric_type: String, // "weight", "body_fat", " waist", etc.
+    pub value: f64,
+    pub unit: String, // "kg", "cm", "%"
+    pub confidence: f64,
+}
+
+/// Complete voice entry parse result
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct VoiceParseResult {
+    pub has_food: bool,
+    pub has_workout: bool,
+    pub has_body_metric: bool,
+    pub food_entries: Vec<ParsedFoodEntry>,
+    pub workout_entries: Vec<ParsedWorkoutEntry>,
+    pub body_metrics: Vec<ParsedBodyMetric>,
+    pub detected_meal_type: Option<String>, // inferred from context
+    pub detected_workout_type: Option<String>,
+    pub overall_confidence: f64,
+    pub needs_clarification: bool, // true if ambiguous, requires user confirmation
+    pub clarification_questions: Vec<String>,
+}
+
+/// Common food database for calorie and macro estimation
+const FOOD_DB: &[(&str, f64, f64, f64, f64)] = &[
+    // Format: (name, calories per 100g, protein_g, carbs_g, fat_g)
+    ("pho", 150.0, 8.0, 20.0, 3.0),
+    ("banh mi", 250.0, 10.0, 30.0, 10.0),
+    ("rice", 130.0, 2.7, 28.0, 0.3),
+    ("chicken breast", 165.0, 31.0, 0.0, 3.6),
+    ("chicken", 165.0, 31.0, 0.0, 3.6),
+    ("beef", 250.0, 26.0, 0.0, 15.0),
+    ("salmon", 208.0, 20.0, 0.0, 13.0),
+    ("salad", 30.0, 1.5, 5.0, 0.2),
+    ("egg", 155.0, 13.0, 1.1, 11.0),
+    ("bread", 265.0, 9.0, 49.0, 3.2),
+    ("oatmeal", 389.0, 16.9, 66.0, 6.9),
+    ("banana", 89.0, 1.1, 22.8, 0.3),
+    ("apple", 52.0, 0.3, 13.8, 0.2),
+    ("coffee", 2.0, 0.3, 0.0, 0.0),
+    ("espresso", 1.0, 0.1, 0.0, 0.0),
+    ("milk", 61.0, 3.2, 4.8, 3.3),
+    ("cheese", 402.0, 25.0, 1.3, 33.0),
+    ("yogurt", 61.0, 3.5, 4.7, 3.3),
+    ("pasta", 158.0, 5.8, 31.0, 0.9),
+    ("pizza", 266.0, 11.0, 33.0, 10.0),
+    ("burger", 250.0, 17.0, 30.0, 12.0),
+    ("fries", 312.0, 3.4, 41.0, 17.0),
+    ("protein shake", 120.0, 25.0, 5.0, 1.0),
+    ("whey protein", 120.0, 24.0, 3.0, 1.0),
+];
+
+/// Common exercise name variations mapped to standardized names
+const EXERCISE_ALIASES: &[(&str, &str, &str)] = &[
+    ("bench", "bench press", "strength"),
+    ("bench press", "bench press", "strength"),
+    ("bpress", "bench press", "strength"),
+    ("squat", "squat", "strength"),
+    ("back squat", "squat", "strength"),
+    ("front squat", "front squat", "strength"),
+    ("deadlift", "deadlift", "strength"),
+    ("dl", "deadlift", "strength"),
+    ("overhead press", "overhead press", "strength"),
+    ("ohp", "overhead press", "strength"),
+    ("shoulder press", "overhead press", "strength"),
+    ("pull up", "pull-up", "strength"),
+    ("pullup", "pull-up", "strength"),
+    ("chin up", "chin-up", "strength"),
+    ("chinup", "chin-up", "strength"),
+    ("push up", "push-up", "bodyweight"),
+    ("pushup", "push-up", "bodyweight"),
+    ("lunge", "lunge", "strength"),
+    ("leg press", "leg press", "strength"),
+    ("leg extension", "leg extension", "strength"),
+    ("leg curl", "leg curl", "strength"),
+    (" calf raise", "calf raise", "strength"),
+    ("bicep curl", "bicep curl", "strength"),
+    ("curl", "bicep curl", "strength"),
+    ("tricep extension", "tricep extension", "strength"),
+    ("skull crusher", "tricep extension", "strength"),
+    ("rowing", "rowing", "cardio"),
+    ("run", "running", "cardio"),
+    ("running", "running", "cardio"),
+    ("jog", "jogging", "cardio"),
+    ("jogging", "jogging", "cardio"),
+    ("cycle", "cycling", "cardio"),
+    ("cycling", "cycling", "cardio"),
+    ("bike", "cycling", "cardio"),
+    ("swim", "swimming", "cardio"),
+    ("swimming", "swimming", "cardio"),
+    ("yoga", "yoga", "mobility"),
+    ("stretch", "stretching", "mobility"),
+    ("stretching", "stretching", "mobility"),
+    ("mobility", "mobility work", "mobility"),
+    ("plank", "plank", "core"),
+    ("core", "core workout", "core"),
+    ("abs", "core workout", "core"),
+];
+
+#[wasm_bindgen]
+impl VoiceParser {
+    /// Parse voice/text input into structured fitness and nutrition data
+    #[wasm_bindgen(js_name = "parseVoiceEntry")]
+    pub fn parse_voice_entry(text: &str, context_hint: Option<&str>) -> String {
+        let text_lower = text.to_lowercase();
+        let mut result = VoiceParseResult {
+            has_food: false,
+            has_workout: false,
+            has_body_metric: false,
+            food_entries: Vec::new(),
+            workout_entries: Vec::new(),
+            body_metrics: Vec::new(),
+            detected_meal_type: None,
+            detected_workout_type: None,
+            overall_confidence: 0.0,
+            needs_clarification: false,
+            clarification_questions: Vec::new(),
+        };
+
+        // Detect meal context from time references
+        result.detected_meal_type = Self::detect_meal_type(&text_lower, context_hint);
+
+        // Parse food entries
+        result.food_entries = Self::parse_food_entries(&text_lower);
+        result.has_food = !result.food_entries.is_empty();
+
+        // Parse workout entries
+        result.workout_entries = Self::parse_workout_entries(&text_lower);
+        result.has_workout = !result.workout_entries.is_empty();
+
+        // Parse body metrics
+        result.body_metrics = Self::parse_body_metrics(&text_lower);
+        result.has_body_metric = !result.body_metrics.is_empty();
+
+        // Detect overall workout type if multiple exercises
+        if result.workout_entries.len() >= 2 {
+            result.detected_workout_type = Self::infer_workout_type(&result.workout_entries);
+        } else if let Some(ref entry) = result.workout_entries.first() {
+            result.detected_workout_type = entry.workout_type.clone();
+        }
+
+        // Calculate overall confidence
+        result.overall_confidence = Self::calculate_overall_confidence(&result);
+
+        // Check if clarification is needed
+        (result.needs_clarification, result.clarification_questions) = Self::assess_clarification_needs(&result);
+
+        serde_json::to_string(&result).unwrap_or_default()
+    }
+
+    /// Extract food items from text with nutritional estimates
+    fn parse_food_entries(text: &str) -> Vec<ParsedFoodEntry> {
+        let mut entries = Vec::new();
+        let mut has_multiple = false;
+        let mut multiple_foods = Vec::new();
+
+        // Meal type keywords
+        let meal_types = [
+            ("breakfast", ["breakfast", "morning", "when i woke", "upon waking"]),
+            ("lunch", ["lunch", "midday", "noon", "for lunch"]),
+            ("dinner", ["dinner", "evening", "tonight", "for dinner"]),
+            ("snack", ["snack", "between", "munch", "quick bite"]),
+        ];
+
+        // Detect meal type from context
+        let detected_meal = meal_types.iter()
+            .find(|(_, keywords)| keywords.iter().any(|kw| text.contains(kw)))
+            .map(|(mt, _)| mt.to_string());
+
+        // Check for "had a bowl of pho" pattern
+        let portion_patterns = [
+            (r"(?:had|ate|consumed|enjoyed|tried)\s+(?:a\s+)?(?:bowl|cup|plate|serving|piece|slice)\s+of\s+(\w+)", "1"),
+            (r"(?:had|ate)\s+(\d+)\s+(\w+)", "numeric"),
+            (r"(?:had|ate)\s+(\w+)(?:\s+with\s+(\w+))?", "simple"),
+            (r"(\w+)\s+for\s+(breakfast|lunch|dinner|snack)", "meal_stated"),
+        ];
+
+        // Collect all potential food mentions
+        let food_keywords = ["ate", "had", "consumed", "enjoyed", "tried", "bowl", "cup", "plate"];
+        let has_food_action = food_keywords.iter().any(|kw| text.contains(kw));
+
+        if has_food_action {
+            // Simple extraction: look for common food names in FOOD_DB
+            for (food_name, calories, protein, carbs, fat) in FOOD_DB {
+                if text.contains(food_name) {
+                    let confidence = if text.contains(&format!("bowl of {}", food_name)) ||
+                                       text.contains(&format!("plate of {}", food_name)) {
+                        0.9
+                    } else if text.contains(food_name) {
+                        0.7
+                    } else {
+                        0.5
+                    };
+
+                    // Parse portion if mentioned
+                    let (portion, portion_mult) = Self::parse_portion(text, food_name);
+
+                    let entry = ParsedFoodEntry {
+                        meal_type: detected_meal.clone(),
+                        food_name: food_name.to_string(),
+                        estimated_calories: Some(calories * portion_mult / 100.0 * 200.0), // Default 200g serving
+                        protein_g: Some(protein * portion_mult / 100.0 * 200.0),
+                        carbs_g: Some(carbs * portion_mult / 100.0 * 200.0),
+                        fat_g: Some(fat * portion_mult / 100.0 * 200.0),
+                        fiber_g: None,
+                        confidence,
+                        portion_size: portion,
+                    };
+                    entries.push(entry);
+                }
+            }
+        }
+
+        // Handle comma-separated lists: "ate chicken and rice"
+        if entries.is_empty() && has_food_action {
+            // Look for conjunction patterns
+            let conjunction_words = [" and ", " with ", " plus ", " & "];
+            let has_conjunction = conjunction_words.iter().any(|c| text.contains(c));
+
+            if has_conjunction {
+                for (food_name, calories, protein, carbs, fat) in FOOD_DB {
+                    if text.contains(food_name) {
+                        let entry = ParsedFoodEntry {
+                            meal_type: detected_meal.clone(),
+                            food_name: food_name.to_string(),
+                            estimated_calories: Some(calories * 1.5), // Shared meal portion
+                            protein_g: Some(protein * 1.5),
+                            carbs_g: Some(carbs * 1.5),
+                            fat_g: Some(fat * 1.5),
+                            fiber_g: None,
+                            confidence: 0.6,
+                            portion_size: Some("shared meal".to_string()),
+                        };
+                        entries.push(entry);
+                    }
+                }
+            }
+        }
+
+        entries
+    }
+
+    /// Parse portion size from text
+    fn parse_portion(text: &str, food_name: &str) -> (Option<String>, f64) {
+        let patterns = [
+            (r"(\d+)\s*(?:g|grams?|gram)", 1.0), // "200g"
+            (r"(\d+)\s*(?:oz|ounce|ounces)", 28.35), // "8oz"
+            (r"bowl\s+of", 250.0), // "bowl of pho" ~250g
+            (r"cup\s+of", 240.0), // "cup of rice" ~240g
+            (r"plate\s+of", 350.0), // "plate of" ~350g
+            (r"small", 150.0),
+            (r"medium", 250.0),
+            (r"large", 400.0),
+            (r"one", 200.0),
+            (r"two", 400.0),
+            (r"three", 600.0),
+        ];
+
+        for (pattern, multiplier) in patterns.iter() {
+            let regex = regex::Regex::new(&format!(r"(?i){}", pattern)).unwrap();
+            if let Some(caps) = regex.captures(text) {
+                if let Some(m) = caps.get(1) {
+                    if let Ok(num) = m.as_str().parse::<f64>() {
+                        return (Some(format!("{}{}", m.as_str(), if *multiplier == 1.0 { "g" } else { "" })), num * multiplier);
+                    }
+                } else {
+                    return (Some(pattern.to_string()), *multiplier);
+                }
+            }
+        }
+
+        (None, 1.0) // Default 1x serving
+    }
+
+    /// Parse workout entries from text
+    fn parse_workout_entries(text: &str) -> Vec<ParsedWorkoutEntry> {
+        let mut entries = Vec::new();
+
+        // Workout context detection
+        let workout_indicators = ["worked out", " exercised", "did", "training", "gym", "lifted", "session"];
+        let is_workout_context = workout_indicators.iter().any(|kw| text.contains(kw));
+
+        if !is_workout_context {
+            return entries;
+        }
+
+        // Look for exercise patterns: "3 sets of 10 reps bench press 100kg"
+        let exercise_patterns = [
+            // "3 sets of 10 reps bench press"
+            r"(\d+)\s*sets?\s+of\s+(\d+)\s*reps?\s+(.+?)(?:\s+(\d+)\s*(?:kg|lbs|lb)?)?",
+            // "bench press 3x10 100kg"
+            r"(.+?)\s+(\d+)[x×]\s*(\d+)(?:\s+(\d+)\s*(?:kg|lbs|lb)?)?",
+            // "did bench press 100kg for 3 sets of 10"
+            r"did\s+(.+?)\s+(\d+)\s*(?:kg|lbs|lb)?(?:\s+for\s+(\d+)\s*sets?\s+of\s+(\d+))?",
+            // "squat: 4x8 @ 140kg"
+            r"(.+?):\s*(\d+)[x×]\s*(\d+)(?:\s*@\s*(\d+))?",
+        ];
+
+        // Split by common delimiters to find individual exercises
+        let exercise_segments = text.split(&[',', ';', ' and ', ' with '][..]);
+
+        for segment in exercise_segments {
+            let seg_lower = segment.to_lowercase();
+            if seg_lower.trim().is_empty() {
+                continue;
+            }
+
+            // Try to match exercise pattern
+            let mut found_exercise = false;
+
+            // Check each alias
+            for (alias, std_name, ex_type) in EXERCISE_ALIASES.iter() {
+                if seg_lower.contains(alias) {
+                    let (sets, reps, weight) = Self::extract_sets_reps_weight(segment);
+
+                    // Estimate workout type from exercise if not provided
+                    let workout_type = if seg_lower.contains("run") || seg_lower.contains("cardio") {
+                        "cardio"
+                    } else if seg_lower.contains("yoga") || seg_lower.contains("stretch") {
+                        "mobility"
+                    } else {
+                        ex_type
+                    }.to_string();
+
+                    let entry = ParsedWorkoutEntry {
+                        workout_type: Some(workout_type),
+                        exercise_name: std_name.to_string(),
+                        sets,
+                        reps,
+                        weight,
+                        weight_unit: seg_lower.contains("kg").then(|| "kg".to_string())
+                            .or_else(|| seg_lower.contains("lb").then(|| "lb".to_string())),
+                        duration_minutes: None,
+                        rpe: Self::extract_rpe(segment),
+                        confidence: 0.85,
+                    };
+                    entries.push(entry);
+                    found_exercise = true;
+                    break;
+                }
+            }
+
+            // Check for weight/reps without explicit exercise name (assume from context)
+            if !found_exercise && Self::has_reps_weights(segment) {
+                // Try to extract exercise name before the numbers
+                let words: Vec<&str> = seg_lower.split_whitespace().collect();
+                for (alias, std_name, ex_type) in EXERCISE_ALIASES.iter() {
+                    if words.iter().any(|w: &str| w.contains(alias)) {
+                        let (sets, reps, weight) = Self::extract_sets_reps_weight(segment);
+                        let entry = ParsedWorkoutEntry {
+                            workout_type: Some(ex_type.to_string()),
+                            exercise_name: std_name.to_string(),
+                            sets,
+                            reps,
+                            weight,
+                            weight_unit: None,
+                            duration_minutes: None,
+                            rpe: Self::extract_rpe(segment),
+                            confidence: 0.7,
+                        };
+                        entries.push(entry);
+                        found_exercise = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        entries
+    }
+
+    /// Extract sets, reps, and weight from exercise text
+    fn extract_sets_reps_weight(text: &str) -> (Option<i32>, Option<i32>, Option<f64>) {
+        let text_lower = text.to_lowercase();
+
+        // Pattern: "3 sets of 10 reps 100kg"
+        let re1 = regex::Regex::new(r"(\d+)\s*sets?\s+of\s+(\d+)\s*reps?").unwrap();
+        if let Some(caps) = re1.captures(&text_lower) {
+            let sets = caps.get(1).and_then(|m| m.as_str().parse().ok());
+            let reps = caps.get(2).and_then(|m| m.as_str().parse().ok());
+
+            // Look for weight after the sets/reps
+            let weight_re = regex::Regex::new(r"(\d+(?:\.\d+)?)\s*(?:kg|lbs|lb)").unwrap();
+            let weight = weight_re.find(&text_lower)
+                .and_then(|m| m.as_str().split_whitespace().next().and_then(|w| w.parse().ok()));
+
+            return (sets, reps, weight);
+        }
+
+        // Pattern: "3x10 @ 100kg" or "3x10 100kg"
+        let re2 = regex::Regex::new(r"(\d+)[x×]\s*(\d+)").unwrap();
+        if let Some(caps) = re2.captures(&text_lower) {
+            let sets = caps.get(1).and_then(|m| m.as_str().parse().ok());
+            let reps = caps.get(2).and_then(|m| m.as_str().parse().ok());
+
+            let weight_re = regex::Regex::new(r"(\d+(?:\.\d+)?)\s*(?:kg|lbs|lb)").unwrap();
+            let weight = weight_re.find(&text_lower)
+                .and_then(|m| m.as_str().split_whitespace().next().and_then(|w| w.parse().ok()));
+
+            return (sets, reps, weight);
+        }
+
+        // Just weight mentioned: "bench press 100kg"
+        if !text_lower.contains("sets") && !text_lower.contains("reps") {
+            let weight_re = regex::Regex::new(r"(\d+(?:\.\d+)?)\s*(?:kg|lbs|lb)").unwrap();
+            if let Some(m) = weight_re.find(&text_lower) {
+                if let Some(weight) = m.as_str().split_whitespace().next().and_then(|w| w.parse().ok()) {
+                    return (Some(3), Some(10), Some(weight)); // Default 3x10
+                }
+            }
+        }
+
+        (None, None, None)
+    }
+
+    /// Check if text contains reps/weights pattern
+    fn has_reps_weights(text: &str) -> bool {
+        let text_lower = text.to_lowercase();
+        text_lower.contains("set") || text_lower.contains("rep") ||
+        regex::Regex::new(r"\d+\s*(?:kg|lbs|lb)").unwrap().is_match(&text_lower)
+    }
+
+    /// Extract RPE (Rate of Perceived Exertion) from text
+    fn extract_rpe(text: &str) -> Option<f64> {
+        let re = regex::Regex::new(r"rpe\s*(?:of\s*)?(\d+)").unwrap();
+        re.find(text)
+            .and_then(|m| m.as_str().split_whitespace().last().and_then(|w| w.parse().ok()))
+            .or_else(|| {
+                // Check for "at an 8" style
+                let re2 = regex::Regex::new(r"at\s+an?\s+(\d+)").unwrap();
+                re2.find(text)
+                    .and_then(|m| m.as_str().split_whitespace().last().and_then(|w| w.parse().ok()))
+            })
+            .filter(|&n| (1.0..=10.0).contains(&n))
+    }
+
+    /// Parse body metrics from text
+    fn parse_body_metrics(text: &str) -> Vec<ParsedBodyMetric> {
+        let mut metrics = Vec::new();
+
+        // Weight: "weigh 70kg", "weight is 70 kg", "70 kilograms"
+        let weight_patterns = [
+            r"(?:weigh(?:s|ed)?\s+(?:about\s+)?)(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilos?|lb|lbs|pounds?)",
+            r"(?:weight(?: is| was)?\s+)(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilos?|lb|lbs|pounds?)",
+            r"(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilos?|lb|lbs|pounds?)\s+(?:weigh|weight)",
+        ];
+
+        for pattern in weight_patterns.iter() {
+            let re = regex::Regex::new(pattern).unwrap();
+            if let Some(caps) = re.captures(text) {
+                if let Some(value) = caps.get(1).and_then(|m| m.as_str().parse::<f64>().ok()) {
+                    let unit = if text.contains("kg") || text.contains("kilo") { "kg" } else { "lb" };
+                    let weight_kg = if unit == "lb" { value * 0.453592 } else { value };
+                    metrics.push(ParsedBodyMetric {
+                        metric_type: "weight".to_string(),
+                        value: weight_kg,
+                        unit: "kg".to_string(),
+                        confidence: 0.85,
+                    });
+                    break;
+                }
+            }
+        }
+
+        // Body fat: "body fat 15%", "bf 15 percent"
+        let bf_patterns = [
+            r"(?:body\s+fat|bf|bodyfat)\s+(?:is\s+)?(\d+(?:\.\d+)?)\s*(?:%|percent)?",
+            r"(\d+(?:\.\d+)?)\s*%\s+(?:body\s+fat|bf)",
+        ];
+
+        for pattern in bf_patterns.iter() {
+            let re = regex::Regex::new(pattern).unwrap();
+            if let Some(caps) = re.captures(text) {
+                if let Some(value) = caps.get(1).and_then(|m| m.as_str().parse::<f64>().ok()) {
+                    metrics.push(ParsedBodyMetric {
+                        metric_type: "body_fat".to_string(),
+                        value,
+                        unit: "%".to_string(),
+                        confidence: 0.80,
+                    });
+                    break;
+                }
+            }
+        }
+
+        // Other metrics could be added: waist, muscle mass, etc.
+
+        metrics
+    }
+
+    /// Detect meal type from context
+    fn detect_meal_type(text: &str, context_hint: Option<&str>) -> Option<String> {
+        if let Some(hint) = context_hint {
+            return Some(hint.to_string());
+        }
+
+        let morning_keywords = ["breakfast", "morning", "woke up", "upon waking", "am", "a.m."];
+        let afternoon_keywords = ["lunch", "noon", "midday", "afternoon", "pm"];
+        let evening_keywords = ["dinner", "evening", "tonight", "night", "supper"];
+
+        let text_lower = text.to_lowercase();
+
+        if morning_keywords.iter().any(|kw| text_lower.contains(kw)) {
+            return Some("breakfast".to_string());
+        }
+        if afternoon_keywords.iter().any(|kw| text_lower.contains(kw)) {
+            return Some("lunch".to_string());
+        }
+        if evening_keywords.iter().any(|kw| text_lower.contains(kw)) {
+            return Some("dinner".to_string());
+        }
+
+        None
+    }
+
+    /// Infer overall workout type from exercises
+    fn infer_workout_type(entries: &[ParsedWorkoutEntry]) -> Option<String> {
+        let mut type_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+
+        for entry in entries {
+            if let Some(ref wtype) = entry.workout_type {
+                *type_counts.entry(wtype.clone()).or_insert(0) += 1;
+            }
+        }
+
+        type_counts.into_iter()
+            .max_by_key(|(_, count)| *count)
+            .map(|(wtype, _)| wtype)
+    }
+
+    /// Calculate overall confidence in the parse
+    fn calculate_overall_confidence(result: &VoiceParseResult) -> f64 {
+        let mut scores = Vec::new();
+
+        for entry in &result.food_entries {
+            scores.push(entry.confidence);
+        }
+        for entry in &result.workout_entries {
+            scores.push(entry.confidence);
+        }
+        for metric in &result.body_metrics {
+            scores.push(metric.confidence);
+        }
+
+        if scores.is_empty() {
+            0.0
+        } else {
+            scores.iter().sum::<f64>() / scores.len() as f64
+        }
+    }
+
+    /// Assess if clarification is needed from the user
+    fn assess_clarification_needs(result: &VoiceParseResult) -> (bool, Vec<String>) {
+        let mut questions = Vec::new();
+        let mut needs = false;
+
+        // Low confidence triggers
+        if result.overall_confidence < 0.6 {
+            needs = true;
+            questions.push("I'm not confident about what you meant. Can you rephrase or provide more details?".to_string());
+        }
+
+        // Multiple foods with no clear separation
+        if result.food_entries.len() > 2 && result.overall_confidence < 0.7 {
+            needs = true;
+            questions.push("I found multiple food items. Can you confirm which foods you logged?".to_string());
+        }
+
+        // Workout with no weight specified for strength exercises
+        for entry in &result.workout_entries {
+            if entry.workout_type.as_deref() == Some("strength") && entry.weight.is_none() {
+                questions.push(format!("What weight did you use for {}?", entry.exercise_name));
+                needs = true;
+            }
+            if entry.sets.is_none() || entry.reps.is_none() {
+                questions.push(format!("How many sets and reps for {}?", entry.exercise_name));
+                needs = true;
+            }
+        }
+
+        // No discernible entries at all
+        if result.food_entries.is_empty() &&
+           result.workout_entries.is_empty() &&
+           result.body_metrics.is_empty() {
+            needs = true;
+            questions.push("I couldn't understand what you wanted to log. Try saying 'ate chicken and rice' or 'did 3 sets of bench press'.".to_string());
+        }
+
+        (needs, questions)
+    }
+
+    /// Quick validation: does this text contain any recognizable fitness/nutrition data?
+    #[wasm_bindgen(js_name = "canParse")]
+    pub fn can_parse(text: &str) -> bool {
+        let text_lower = text.to_lowercase();
+
+        // Food indicators
+        let food_indicators = ["ate", "had", "bowl", "cup", "plate", "food", "meal", "breakfast", "lunch", "dinner"];
+        let has_food = food_indicators.iter().any(|kw| text_lower.contains(kw));
+
+        // Workout indicators
+        let workout_indicators = ["set", "rep", "kg", "lbs", "bench", "squat", "deadlift", "workout", "gym", "exercised"];
+        let has_workout = workout_indicators.iter().any(|kw| text_lower.contains(kw));
+
+        // Body metric indicators
+        let metric_indicators = ["weigh", "weight", "body fat", "bf%", "measure", "cm", "kg"];
+        let has_metric = metric_indicators.iter().any(|kw| text_lower.contains(kw));
+
+        has_food || has_workout || has_metric
+    }
+}
+
+// ============================================
+// END OF VOICE-TO-ACTION PARSER MODULE
+// ==========================================
+
 #[cfg(test)]
 mod tests {
 

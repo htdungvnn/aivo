@@ -99,7 +99,7 @@ export const InfographicRouter = () => {
 
     try {
       // 3. Aggregate user statistics from database
-      const stats = await aggregateUserStats(db, userId, period);
+      const stats = await aggregateUserStats(db as any, userId, period);
 
       // 4. Generate AI narrative
       const story = await generateInfographicStory(userId, stats, {
@@ -149,7 +149,7 @@ export const InfographicRouter = () => {
       const renderResult = await renderAndUploadInfographic(infographicData, {
         scale: 2.0, // Retina quality
         uploadToR2: true,
-        r2Bucket: c.env.R2,
+        r2Bucket: c.env.R2 as any,
       });
 
       if (!renderResult.pngUrl) {
@@ -160,7 +160,7 @@ export const InfographicRouter = () => {
       }
 
       // 7. Save record to database
-      await db.insert(db.socialProofCards).values({
+      await db.insert(socialProofCards).values({
         id: infographicId,
         userId,
         type: "infographic",

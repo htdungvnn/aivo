@@ -6,6 +6,8 @@ import type { Context } from "hono";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
+const MODULE_START_TIME = Date.now();
+
 // Env type for health router (matches AppEnv in index.ts)
 interface Env {
   AUTH_SECRET: string;
@@ -49,15 +51,16 @@ export interface HealthResponse {
 }
 
 const createHealthCheck = () => {
+  const startTime = Date.now();
   return async (c: Context<{ Bindings: Env }>) => {
-    const startTime = Date.now();
+    const requestTime = Date.now();
     const services: ServiceStatus[] = [];
 
     // 1. Check API itself
     services.push({
       name: "api",
       status: "healthy",
-      latency: Date.now() - startTime,
+      latency: Date.now() - requestTime,
     });
 
     // 2. Check Database
@@ -68,8 +71,9 @@ const createHealthCheck = () => {
       const dbLatency = Date.now() - dbStart;
 
       // Get table list
-      const tables = await c.env.DB.exec("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = tables.map((row: { name: string }) => row.name).filter((name: string) => !name.startsWith("sqlite_"));
+      const execResults = await c.env.DB.exec("SELECT name FROM sqlite_master WHERE type='table'");
+      const tableList = execResults.flatMap(result => result.results.map(row => (row as any).name))
+        .filter((name: string) => !name.startsWith("sqlite_"));
 
       services.push({
         name: "database",
@@ -225,11 +229,11 @@ interface StorageDetails {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       version: "1.0.0",
-      uptime: process.uptime(),
+      uptime: (Date.now() - MODULE_START_TIME) / 1000,
       services,
-      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as DatabaseDetails,
-      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as CacheDetails,
-      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as StorageDetails,
+      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as any as DatabaseDetails,
+      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as any as CacheDetails,
+      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as any as StorageDetails,
       compute: {
         wasmLoaded: services.some((s) => s.name === "wasm-compute" && s.status === "healthy"),
         optimizerLoaded: services.some((s) => s.name === "ai-optimizer" && s.status === "healthy"),

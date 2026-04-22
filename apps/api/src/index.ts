@@ -99,7 +99,7 @@ app.get("/docs", async (c) => {
  */
 app.get("/openapi.json", async (c) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return c.json(app.getOpenAPIDocument(undefined) as any);
+  return c.json((app as any).getOpenAPIDocument({}) as any);
 });
 
 export { app as default };
