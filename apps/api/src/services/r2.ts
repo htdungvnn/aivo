@@ -71,7 +71,7 @@ export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): P
     },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return {
     key,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,7 +99,7 @@ export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2Obj
       return null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return {
       key,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

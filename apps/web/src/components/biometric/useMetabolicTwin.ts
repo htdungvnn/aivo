@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { createApiClient } from "@aivo/api-client";
 
 export interface MetabolicHistoricalPoint {
   timestamp: number;
@@ -77,12 +76,10 @@ export function useMetabolicTwin() {
   const [error, setError] = useState<string | null>(null);
   const [historicalData, setHistoricalData] = useState<MetabolicHistoricalPoint[]>([]);
 
-  const fetchHistoricalData = useCallback(async (userId: string, token: string): Promise<MetabolicHistoricalPoint[]> => {
-    // Fetch body metrics
+  const fetchHistoricalData = useCallback(async (): Promise<MetabolicHistoricalPoint[]> => {
+    // Fetch body metrics (using cookie-based auth)
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"}/api/body/metrics?limit=100`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -100,8 +97,6 @@ export function useMetabolicTwin() {
   }, []);
 
   const generateSimulation = useCallback(async (
-    userId: string,
-    token: string,
     timeHorizonDays: number = 30
   ): Promise<DigitalTwinResult | null> => {
     setLoading(true);
@@ -109,7 +104,7 @@ export function useMetabolicTwin() {
 
     try {
       // Get historical data
-      const data = await fetchHistoricalData(userId, token);
+      const data = await fetchHistoricalData();
       setHistoricalData(data);
 
       if (data.length < 2) {
@@ -119,8 +114,8 @@ export function useMetabolicTwin() {
       // Call WASM simulation API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"}/api/metabolic/simulate`, {
         method: "POST",
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

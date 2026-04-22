@@ -11,12 +11,11 @@ import type { HealthScoreResult, BodyMetric, BodyHeatmapData } from "@aivo/share
 // BodyHeatmapData, BodyMetric, VisionAnalysis, HealthScoreResult are all imported
 
 interface BodyInsightCardProps {
-  userId: string;
   apiUrl: string;
   compact?: boolean; // Show only heatmap, no charts
 }
 
-export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsightCardProps) {
+export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<BodyMetric[]>([]);
   const [latestMetric, setLatestMetric] = useState<BodyMetric | null>(null);
@@ -29,15 +28,9 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem("aivo_token");
-      if (!token) {
-        setError("Not authenticated");
-        return;
-      }
-
-      // Fetch body metrics
-      const metricsRes = await fetch(`${apiUrl}/api/body/metrics?userId=${userId}&limit=30`, {
-        headers: { Authorization: `Bearer ${token}` },
+      // Fetch body metrics (using cookie-based auth)
+      const metricsRes = await fetch(`${apiUrl}/api/body/metrics?limit=30`, {
+        credentials: "include",
       });
       if (metricsRes.ok) {
         const metricsData = await metricsRes.json();
@@ -48,8 +41,8 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
       }
 
       // Fetch heatmap data
-      const heatmapRes = await fetch(`${apiUrl}/api/body/heatmaps?userId=${userId}&limit=1`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const heatmapRes = await fetch(`${apiUrl}/api/body/heatmaps?limit=1`, {
+        credentials: "include",
       });
       if (heatmapRes.ok) {
         const heatmapData = await heatmapRes.json();
@@ -60,10 +53,7 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
 
       // Fetch health score
       const scoreRes = await fetch(`${apiUrl}/api/body/health-score`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "X-User-Id": userId,
-        },
+        credentials: "include",
       });
       if (scoreRes.ok) {
         const scoreData = await scoreRes.json();
@@ -79,10 +69,10 @@ export function BodyInsightCard({ userId, apiUrl, compact = false }: BodyInsight
   };
 
   useEffect(() => {
-    if (userId && apiUrl) {
+    if (apiUrl) {
       fetchData();
     }
-  }, [userId, apiUrl]);
+  }, [apiUrl]);
 
   // Transform data for charts
   const weightData: MetricDataPoint[] = metrics

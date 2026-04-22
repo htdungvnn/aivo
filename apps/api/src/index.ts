@@ -22,10 +22,10 @@ import { runCronJob } from "./routes/cron";
 // Temporarily disabled - WIP with type errors
 // import { NutritionRouter } from "./routes/nutrition";
 import { InfographicRouter } from "./routes/infographic";
-import { LiveWorkoutRouter } from "./routes/live-workout";
 // Temporarily disabled - WIP with type errors
-
-// Define Cloudflare Workers environment type
+// import { LiveWorkoutRouter } from "./routes/live-workout";
+import { MetabolicRouter } from "./routes/metabolic";
+// import { formRouter } from "./routes/form-analyze";
 export interface AppEnv {
   AUTH_SECRET: string;
   DB: D1Database;
@@ -108,7 +108,7 @@ app.use(async (c, next) => {
 
 async function applyRateLimit(c: any, maxRequests: number, windowMs: number): Promise<void> {
   const env = c.env as AppEnv;
-  if (!env.RATE_LIMIT_KV) return;
+  if (!env.RATE_LIMIT_KV) {return;}
 
   const userId = c.req.header("X-User-Id") || c.req.ip || "anonymous";
   const window = Math.floor(Date.now() / windowMs);
@@ -160,8 +160,9 @@ app.route("/api", MonthlyReportRouter());
 app.route("/health", HealthRouter());
 app.route("/api/gamification", GamificationRouter());
 app.route("/api/infographic", InfographicRouter());
-app.route("/api/live-workout", LiveWorkoutRouter());
 // Temporarily disabled - WIP with type errors
+// app.route("/api/live-workout", LiveWorkoutRouter());
+app.route("/api/metabolic", MetabolicRouter());
 
 // ============================================
 // PROTECTED SWAGGER UI (Production)

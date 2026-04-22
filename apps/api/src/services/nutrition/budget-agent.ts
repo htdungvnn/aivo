@@ -238,7 +238,7 @@ function formatAnalysisAsText(
     text += "### Cost Breakdown\n\n";
     for (const item of analysis.costAnalysis.costBreakdown) {
       text += `- ${item.ingredient}: $${item.cost.toFixed(2)} (${item.percentage}%)\n`;
-      if (item.notes) text += `  *${item.notes}*\n`;
+      if (item.notes) {text += `  *${item.notes}*\n`;}
     }
     text += "\n";
   }
@@ -247,7 +247,7 @@ function formatAnalysisAsText(
     text += "## 💰 Savings Opportunities\n\n";
     for (const opp of analysis.savingsOpportunities) {
       text += `- **${opp.strategy}**: Save $${opp.potentialSavings.toFixed(2)}\n`;
-      if (opp.notes) text += `  *${opp.notes}*\n`;
+      if (opp.notes) {text += `  *${opp.notes}*\n`;}
     }
     text += "\n";
   }
@@ -256,9 +256,9 @@ function formatAnalysisAsText(
     text += "## 🛒 Grocery List\n\n";
     for (const item of analysis.groceryList) {
       text += `- ${item.quantity} ${item.item}`;
-      if (item.estimatedCost) text += ` ($${item.estimatedCost.toFixed(2)})`;
-      if (item.buyInBulk) text += " **BULK**";
-      if (item.cheaperAlternative) text += `\n  *Alternative: ${item.cheaperAlternative}*`;
+      if (item.estimatedCost) {text += ` ($${item.estimatedCost.toFixed(2)})`;}
+      if (item.buyInBulk) {text += " **BULK**";}
+      if (item.cheaperAlternative) {text += `\n  *Alternative: ${item.cheaperAlternative}*`;}
       text += "\n";
     }
     text += "\n";
@@ -268,7 +268,7 @@ function formatAnalysisAsText(
     text += "## 🔄 Budget Swaps\n\n";
     for (const alt of analysis.budgetFriendlyAlternatives) {
       text += `- ${alt.strategy}\n`;
-      if (alt.notes) text += `  ${alt.notes}\n`;
+      if (alt.notes) {text += `  ${alt.notes}\n`;}
     }
     text += "\n";
   }

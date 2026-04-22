@@ -204,7 +204,7 @@ router.post("/checkin", async (c) => {
       checkedInAt: now,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     // eslint-disable-next-line no-console
     console.error("Checkin error:", error);
     return c.json({ success: false, message: "Failed to record check-in" }, 500);

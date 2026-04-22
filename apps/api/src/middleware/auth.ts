@@ -1,6 +1,6 @@
 /**
  * Authentication Middleware for AIVO API
- * Verifies JWT token from Authorization header and sets user context
+ * Verifies JWT token from Authorization header OR httpOnly cookie and sets user context
  */
 
 import type { Context } from "hono";
@@ -19,16 +19,31 @@ const CONTEXT_KEY = "auth-user";
 
 /**
  * Authenticate middleware - verifies JWT token and sets user in context
- * Uses Authorization: Bearer <token>
+ * Accepts token from:
+ * 1. Authorization: Bearer <token> header
+ * 2. auth_token httpOnly cookie
  */
 export async function authenticate(c: Context) {
-  const authHeader = c.req.header("Authorization");
+  let token: string | null = null;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return c.json({ success: false, error: "Unauthorized" }, 401);
+  // Try Authorization header first
+  const authHeader = c.req.header("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
   }
 
-  const token = authHeader.slice(7);
+  // Fall back to cookie
+  if (!token) {
+    const cookieHeader = c.req.header("Cookie");
+    if (cookieHeader) {
+      const cookies = parseCookies(cookieHeader);
+      token = cookies.auth_token || null;
+    }
+  }
+
+  if (!token) {
+    return c.json({ success: false, error: "Unauthorized" }, 401);
+  }
 
   try {
     const drizzle = createDrizzleInstance(c.env.DB);
@@ -70,6 +85,21 @@ export async function authenticate(c: Context) {
 }
 
 /**
+ * Parse Cookie header into key-value pairs
+ */
+function parseCookies(cookieHeader: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  const pairs = cookieHeader.split(";");
+  for (const pair of pairs) {
+    const [key, ...rest] = pair.trim().split("=");
+    if (key) {
+      cookies[key] = rest.join("=");
+    }
+  }
+  return cookies;
+}
+
+/**
  * Get user from context
  */
 export function getUserFromContext(c: Context): AuthUser | undefined {
@@ -80,13 +110,26 @@ export function getUserFromContext(c: Context): AuthUser | undefined {
  * Optional authentication - doesn't fail if no token, returns null
  */
 export async function optionalAuth(c: Context): Promise<AuthUser | null> {
-  const authHeader = c.req.header("Authorization");
+  let token: string | null = null;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
+  // Try Authorization header first
+  const authHeader = c.req.header("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
   }
 
-  const token = authHeader.slice(7);
+  // Fall back to cookie
+  if (!token) {
+    const cookieHeader = c.req.header("Cookie");
+    if (cookieHeader) {
+      const cookies = parseCookies(cookieHeader);
+      token = cookies.auth_token || null;
+    }
+  }
+
+  if (!token) {
+    return null;
+  }
 
   try {
     const drizzle = createDrizzleInstance(c.env.DB);

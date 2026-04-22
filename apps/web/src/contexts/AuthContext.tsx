@@ -63,21 +63,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession();
   }, [verifySession]);
 
-  const login = async (data: AuthResponse) => {
-    // Store user data in state (not localStorage for security)
+  const login = useCallback(async (data: AuthResponse) => {
+    // Update user state immediately
     setUser(data.user);
 
     // Set httpOnly cookie via server endpoint
     await fetch(`${API_URL}/api/auth/set-session`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: data.token }),
+      headers: {
+        "Authorization": `Bearer ${data.token}`,
+      },
       credentials: "include",
     }).catch((err) => {
       // eslint-disable-next-line no-console
       console.error("Failed to set session cookie:", err);
     });
-  };
+  }, [API_URL]);
 
   const logout = async () => {
     try {

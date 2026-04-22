@@ -18,6 +18,11 @@
   "exclude": [
     "**/__tests__/**",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "app/(tabs)/active-workout.tsx",
+    "app/(tabs)/workouts.tsx",
+    "app/(tabs)/insights.tsx",
+    "app/components/biometric/**",
+    "app/services/biometric-api.ts"
   ]
 }

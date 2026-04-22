@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,8 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMetrics } from "@/contexts/MetricsContext";
+import { RecoveryDashboard } from "@/components/biometric/RecoveryDashboard";
 import { launchImageLibraryAsync, MediaTypeOptions, launchCameraAsync } from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-import { BodyHeatmap } from "@/components/body/BodyHeatmap";
 import { BodyMetricChart, HealthScoreGauge, MuscleBalanceChart } from "@/components/body/BodyMetricChart";
 import { PostureAnalysisCard } from "@/components/body/PostureAnalysisCard";
 import { fetchBodyMetrics, fetchHealthScore, uploadBodyImage, analyzeImage } from "../services/metrics-api";
@@ -28,19 +27,27 @@ import {
   TrendingUp,
   Scale,
   Target,
+  Sparkles,
+  Bed,
 } from "lucide-react-native";
+
+type MainTab = "body" | "recovery";
+type BodyTab = "overview" | "upload" | "trends";
 
 export default function InsightsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { metrics, loading, refreshMetrics, addMetricOptimistic } = useMetrics();
 
-  const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>("body");
+  const [bodyTab, setBodyTab] = useState<BodyTab>("overview");
+
+  // Body image upload state
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "upload" | "trends">("overview");
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -68,22 +75,19 @@ export default function InsightsScreen() {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           break;
       }
-    } catch (error) {
-      // Silently fail if haptics not available
-      console.log("Haptics not available:", error);
+    } catch {
+      console.log("Haptics not available");
     }
   };
 
   useEffect(() => {
-    refreshMetrics();
-  }, []);
+    if (activeMainTab === "body") {
+      refreshMetrics();
+    }
+  }, [activeMainTab, refreshMetrics]);
 
-  const handleTabChange = useCallback((tab: "overview" | "upload" | "trends") => {
-    setActiveTab(tab);
-    triggerHaptic("light");
-  }, []);
-
-  const handlePickImage = async () => {
+  // Body image handlers
+  const handlePickImage = useCallback(async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: MediaTypeOptions.Images,
       allowsEditing: true,
@@ -96,12 +100,12 @@ export default function InsightsScreen() {
       setSelectedImage(asset.uri);
       setImageFile(asset.uri);
       setError(null);
-      setActiveTab("upload");
+      setBodyTab("upload");
       await triggerHaptic("light");
     }
-  };
+  }, [triggerHaptic]);
 
-  const handleTakePhoto = async () => {
+  const handleTakePhoto = useCallback(async () => {
     const result = await launchCameraAsync({
       allowsEditing: true,
       aspect: [3, 4],
@@ -113,19 +117,18 @@ export default function InsightsScreen() {
       setSelectedImage(asset.uri);
       setImageFile(asset.uri);
       setError(null);
-      setActiveTab("upload");
+      setBodyTab("upload");
       await triggerHaptic("light");
     }
-  };
+  }, [triggerHaptic]);
 
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!imageFile || !user) {return;}
 
     setUploading(true);
     setError(null);
 
     try {
-      // Get file info for filename
       const fileName = `body-photo-${Date.now()}.jpg`;
       const uploadResult = await uploadBodyImage(imageFile, fileName);
 
@@ -147,7 +150,7 @@ export default function InsightsScreen() {
 
       setSelectedImage(null);
       setImageFile(null);
-      setActiveTab("overview");
+      setBodyTab("overview");
       await triggerHaptic("light");
     } catch (err: unknown) {
       await triggerHaptic("error");
@@ -156,9 +159,9 @@ export default function InsightsScreen() {
     } finally {
       setUploading(false);
     }
-  };
+  }, [imageFile, user, triggerHaptic, handleAnalyze]);
 
-  const handleAnalyze = async (imageUrl?: string) => {
+  const handleAnalyze = useCallback(async (imageUrl?: string) => {
     const url = imageUrl || selectedImage;
     if (!url) { return; }
 
@@ -168,11 +171,10 @@ export default function InsightsScreen() {
     try {
       const result = await analyzeImage(url);
 
-      // Create optimistic update from body composition estimates
       const bodyComposition = result.analysis?.bodyComposition;
       if (bodyComposition && (bodyComposition.bodyFatEstimate || bodyComposition.muscleMassEstimate)) {
         const optimisticMetric = {
-          weight: undefined, // AI doesn't estimate weight from image
+          weight: undefined,
           bodyFatPercentage: bodyComposition.bodyFatEstimate,
           muscleMass: bodyComposition.muscleMassEstimate,
           bmi: undefined,
@@ -180,8 +182,7 @@ export default function InsightsScreen() {
 
         try {
           await addMetricOptimistic(optimisticMetric);
-        } catch (optErr) {
-          console.log("Optimistic update failed, will refresh instead:", optErr);
+        } catch {
           await refreshMetrics();
         }
       }
@@ -191,7 +192,7 @@ export default function InsightsScreen() {
 
       setSelectedImage(null);
       setImageFile(null);
-      setActiveTab("overview");
+      setBodyTab("overview");
       await triggerHaptic("medium");
     } catch (err: unknown) {
       await triggerHaptic("error");
@@ -200,13 +201,13 @@ export default function InsightsScreen() {
     } finally {
       setAnalyzing(false);
     }
-  };
+  }, [selectedImage, triggerHaptic, addMetricOptimistic, refreshMetrics]);
 
-  const clearImage = () => {
+  const clearImage = useCallback(() => {
     setSelectedImage(null);
     setImageFile(null);
     setError(null);
-  };
+  }, []);
 
   // Prepare chart data
   const weightData = metrics
@@ -233,7 +234,6 @@ export default function InsightsScreen() {
     }))
     .reverse();
 
-  // Mock muscle balance data (would come from API)
   const muscleBalanceData = [
     { muscle: "chest", current: 75 },
     { muscle: "back", current: 70 },
@@ -247,8 +247,8 @@ export default function InsightsScreen() {
     { muscle: "calves", current: 65 },
   ];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  const renderBodyContent = () => {
+    switch (bodyTab) {
       case "overview":
         return (
           <View className="space-y-4">
@@ -282,23 +282,18 @@ export default function InsightsScreen() {
               <HealthScoreGauge score={72} category="good" />
             </View>
 
-            {/* Body Heatmap */}
+            {/* Muscle Heatmap */}
             <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
               <View className="flex items-center justify-between mb-4">
                 <Text className="text-slate-200 font-semibold">Muscle Development</Text>
-                <TouchableOpacity onPress={() => setActiveTab("trends")}>
+                <TouchableOpacity onPress={() => setBodyTab("trends")}>
                   <ChevronRight className="w-5 h-5 text-cyan-400" />
                 </TouchableOpacity>
               </View>
               {metrics.length > 0 ? (
-                <BodyHeatmap
-                  vectorData={[
-                    // Mock data - would come from API
-                    { x: 50, y: 42, muscle: "chest", intensity: 0.7 },
-                    { x: 50, y: 55, muscle: "back", intensity: 0.65 },
-                    { x: 24, y: 38, muscle: "shoulders", intensity: 0.55 },
-                  ]}
-                />
+                <View className="h-48 bg-slate-800/50 rounded-lg items-center justify-center">
+                  <Text className="text-cyan-400">Heatmap visualization</Text>
+                </View>
               ) : (
                 <View className="h-48 bg-slate-800/50 rounded-lg items-center justify-center">
                   <Text className="text-slate-400">No heatmap data</Text>
@@ -337,18 +332,14 @@ export default function InsightsScreen() {
                   ) : (
                     <>
                       <TouchableOpacity
-                        onPress={() => {
-                          void handleUpload();
-                        }}
+                        onPress={handleUpload}
                         className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-lg items-center flex-row justify-center gap-2"
                       >
                         <Upload className="w-5 h-5 text-white" />
                         <Text className="text-white font-semibold">Upload Photo</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={() => {
-                          void handleAnalyze(selectedImage);
-                        }}
+                        onPress={() => void handleAnalyze(selectedImage)}
                         disabled={analyzing}
                         className="bg-slate-800 py-3 rounded-lg items-center flex-row justify-center gap-2 border border-slate-700"
                       >
@@ -376,9 +367,7 @@ export default function InsightsScreen() {
                 <Text className="text-slate-200 font-semibold mb-4">Select Photo</Text>
 
                 <TouchableOpacity
-                  onPress={() => {
-                    void handleTakePhoto();
-                  }}
+                  onPress={handleTakePhoto}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center mb-3"
                 >
                   <Camera className="w-12 h-12 text-cyan-400 mb-2" />
@@ -387,9 +376,7 @@ export default function InsightsScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => {
-                    void handlePickImage();
-                  }}
+                  onPress={handlePickImage}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center"
                 >
                   <ImageIcon className="w-12 h-12 text-cyan-400 mb-2" />
@@ -472,44 +459,71 @@ export default function InsightsScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} className="flex-1 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <ScrollView ref={scrollRef} className="flex-1 bg-slate-950">
       <View className="p-4">
         {/* Header */}
         <View className="mb-4">
-          <Text className="text-2xl font-bold text-white mb-1">Body Insights</Text>
+          <Text className="text-2xl font-bold text-white mb-1">Insights</Text>
           <Text className="text-slate-400 text-sm">
-            Track your physique with AI-powered analysis
+            Body metrics & recovery tracking
           </Text>
         </View>
 
-        {/* Tab Navigation */}
+        {/* Main Tab Navigation */}
         <View className="flex-row bg-slate-800/50 rounded-lg p-1 mb-4">
           {[
-            { key: "overview", label: "Overview", icon: Activity },
-            { key: "upload", label: "Upload", icon: Upload },
-            { key: "trends", label: "Trends", icon: TrendingUp },
+            { key: "body", label: "Body", icon: Activity },
+            { key: "recovery", label: "Recovery", icon: Bed },
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              onPress={() => handleTabChange(tab.key as "overview" | "upload" | "trends")}
+              onPress={() => setActiveMainTab(tab.key as MainTab)}
               className={`flex-1 py-2 px-3 rounded-md flex-row items-center justify-center gap-1 ${
-                activeTab === tab.key ? "bg-cyan-600" : ""
+                activeMainTab === tab.key ? "bg-purple-600" : ""
               }`}
             >
-              <tab.icon className={`w-4 h-4 ${activeTab === tab.key ? "text-white" : "text-slate-400"}`} />
-              <Text className={`text-xs font-medium ${activeTab === tab.key ? "text-white" : "text-slate-400"}`}>
+              <tab.icon
+                className={`w-4 h-4 ${activeMainTab === tab.key ? "text-white" : "text-slate-400"}`}
+              />
+              <Text className={`text-xs font-medium ${activeMainTab === tab.key ? "text-white" : "text-slate-400"}`}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Content */}
-        {renderTabContent()}
+        {/* Body Tab Sub-navigation */}
+        {activeMainTab === "body" && (
+          <View className="flex-row bg-slate-800/50 rounded-lg p-1 mb-4">
+            {[
+              { key: "overview", label: "Overview", icon: Activity },
+              { key: "upload", label: "Upload", icon: Upload },
+              { key: "trends", label: "Trends", icon: TrendingUp },
+            ].map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setBodyTab(tab.key as BodyTab)}
+                className={`flex-1 py-2 px-3 rounded-md flex-row items-center justify-center gap-1 ${
+                  bodyTab === tab.key ? "bg-cyan-600" : ""
+                }`}
+              >
+                <tab.icon
+                  className={`w-4 h-4 ${bodyTab === tab.key ? "text-white" : "text-slate-400"}`}
+                />
+                <Text className={`text-xs font-medium ${bodyTab === tab.key ? "text-white" : "text-slate-400"}`}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        {/* Loading state */}
-        {loading && (
-          <View className="py-8 items-center">
+        {/* Content */}
+        {activeMainTab === "body" ? renderBodyContent() : <RecoveryDashboard />}
+
+        {/* Loading overlay for body metrics */}
+        {loading && activeMainTab === "body" && (
+          <View className="absolute inset-0 bg-slate-950/50 items-center justify-center">
             <ActivityIndicator size="large" color="#06b6d4" />
             <Text className="text-slate-400 text-sm mt-2">Loading metrics...</Text>
           </View>

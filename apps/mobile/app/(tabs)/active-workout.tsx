@@ -178,8 +178,17 @@ export default function ActiveWorkoutScreen() {
     });
 
     if (result.success) {
-      // Animate adjustment notification
-      await fetchAdjustmentWithAnimation();
+      // Add to recent RPE records for adjustment calculation
+      setRecentRPERecords((prev) => [
+        {
+          rpe: rpeNum,
+          weight: weightNum,
+          repsCompleted: repsNum,
+          restTimeSeconds: restTimeSeconds,
+          setNumber: currentSet,
+        },
+        ...prev,
+      ].slice(0, 5)); // Keep only last 5
 
       // Move to next set
       setCurrentSet((prev) => prev + 1);
@@ -194,27 +203,6 @@ export default function ActiveWorkoutScreen() {
       Alert.alert("Error", result.error || "Failed to log RPE");
     }
     setIsLoading(false);
-  };
-
-  const fetchAdjustmentWithAnimation = async () => {
-    // In a real implementation, we'd send recent RPE records to the server
-    // For now, show a mock adjustment based on fatigue
-
-    // Fade in
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    // Auto-fade out after 5 seconds
-    setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }, 5000);
   };
 
   const startRest = () => {

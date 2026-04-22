@@ -365,7 +365,6 @@ export default function BodyInsightPage() {
           {/* Right Column - Full Insights */}
           <div className="lg:col-span-2">
             <BodyInsightCard
-              userId={user.id}
               apiUrl={apiUrl}
               compact={false}
             />

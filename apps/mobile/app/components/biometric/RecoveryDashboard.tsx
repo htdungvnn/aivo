@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,15 +9,16 @@ import {
   RefreshControl,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { RecoveryScoreGauge } from "@/components/biometric/RecoveryScoreGauge";
 import {
   getSleepSummary,
   getCorrelationFindings,
   getBiometricSnapshot,
+  generateBiometricSnapshot,
   type BiometricSnapshot,
   type CorrelationFinding,
 } from "@/services/biometric-api";
 import {
-  RefreshCw,
   Bed,
   Dumbbell,
   Utensils,
@@ -96,15 +97,7 @@ export default function RecoveryDashboard() {
   }, [user]);
 
   const handleDismissCorrelation = useCallback(async (id: string) => {
-    await dismissCorrelationFinding(id);
     setCorrelations((prev) => prev.filter((c) => c.id !== id));
-  }, []);
-
-  const getRecoveryGrade = useCallback((score: number) => {
-    if (score >= 80) return { label: "Excellent", color: "#22c55e" };
-    if (score >= 60) return { label: "Good", color: "#3b82f6" };
-    if (score >= 40) return { label: "Fair", color: "#f97316" };
-    return { label: "Poor", color: "#ef4444" };
   }, []);
 
   const renderOverview = () => (
@@ -176,13 +169,10 @@ export default function RecoveryDashboard() {
               <TrendingUp className="w-4 h-4 text-purple-400" />
               <Text className="text-slate-200 font-semibold text-sm">Top Insight</Text>
             </View>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
           </View>
           <Text className="text-white text-sm mb-1">{correlations[0].actionableInsight}</Text>
           <View className="flex-row items-center gap-2">
-            <View
-              className="h-1 flex-1 rounded-full bg-slate-800 overflow-hidden"
-            >
+            <View className="h-1 flex-1 rounded-full bg-slate-800 overflow-hidden">
               <View
                 className="h-full bg-purple-500"
                 style={{ width: `${correlations[0].confidence * 100}%` }}
@@ -406,25 +396,4 @@ export default function RecoveryDashboard() {
       </View>
     </ScrollView>
   );
-}
-
-// Helper function (would be in api file)
-async function dismissCorrelationFinding(id: string): Promise<void> {
-  // API call would go here
-  console.log("Dismiss correlation:", id);
-}
-
-// Helper function for snapshot
-async function getBiometricSnapshot(period: "7d" | "30d"): Promise<BiometricSnapshot | null> {
-  try {
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/biometric/snapshot/${period}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("aivo_token")}`,
-      },
-    });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
 }

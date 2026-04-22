@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import type { D1Database } from "@cloudflare/workers-types";
+import { MetabolicTwin } from "@aivo/compute";
 
 interface EnvWithBindings {
   DB: D1Database;
@@ -71,65 +72,10 @@ export const MetabolicRouter = () => {
         calorieIntake: m.calorieIntake,
       }));
 
-      // Call WASM function
-      // Note: In production, the WASM module will be imported from @aivo/compute
-      // For now, we'll create a mock response structure
-      const result = {
-        userId,
-        generatedAt: Date.now(),
-        timeHorizonDays: validated.timeHorizonDays,
-        currentMetrics: {
-          weightKg: historicalData[historicalData.length - 1].weightKg,
-          bodyFatPct: historicalData[historicalData.length - 1].bodyFatPct,
-          muscleMassKg: historicalData[historicalData.length - 1].muscleMassKg,
-          leanBodyMassKg: 0, // TODO: calculate from weight and body fat
-          bmi: 0, // TODO: calculate from user profile height
-          activityScore: 5,
-        },
-        trendAnalysis: {
-          weightTrend: { slope: 0, intercept: 0, rSquared: 0, stdError: 0 },
-          bodyFatTrend: { slope: 0, intercept: 0, rSquared: 0, stdError: 0 },
-          muscleTrend: { slope: 0, intercept: 0, rSquared: 0, stdError: 0 },
-          consistencyScore: 0,
-          volatility: 0,
-          trendStrength: 0,
-        },
-        scenarios: {
-          consistentPerformance: {
-            scenarioType: "consistent_performance",
-            weightProjections: [],
-            bodyFatProjections: [],
-            muscleProjections: [],
-            overallConfidence: 0,
-            expectedBehaviorChange: "",
-          },
-          potentialRegression: {
-            scenarioType: "potential_regression",
-            weightProjections: [],
-            bodyFatProjections: [],
-            muscleProjections: [],
-            overallConfidence: 0,
-            expectedBehaviorChange: "",
-          },
-          bestCase: {
-            scenarioType: "best_case",
-            weightProjections: [],
-            bodyFatProjections: [],
-            muscleProjections: [],
-            overallConfidence: 0,
-            expectedBehaviorChange: "",
-          },
-          worstCase: {
-            scenarioType: "worst_case",
-            weightProjections: [],
-            bodyFatProjections: [],
-            muscleProjections: [],
-            overallConfidence: 0,
-            expectedBehaviorChange: "",
-          },
-        },
-        recommendations: ["Metabolic twin simulation pending WASM integration"],
-      };
+      // Call WASM simulation
+      const historicalDataJson = JSON.stringify(historicalData);
+      const resultJson = MetabolicTwin.generateSimulation(historicalDataJson, userId, validated.timeHorizonDays);
+      const result = JSON.parse(resultJson);
 
       return c.json({ success: true, data: result });
     } catch (error) {

@@ -492,12 +492,8 @@ export const BodyRouter = () => {
 
   // Get health score
   router.get("/health-score", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 

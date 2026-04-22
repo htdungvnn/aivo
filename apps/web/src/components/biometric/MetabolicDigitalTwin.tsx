@@ -10,22 +10,22 @@ import {
   AlertCircle,
   CheckCircle,
   Zap,
+  Target,
 } from "lucide-react";
 import { useMetabolicTwin, type ScenarioResults } from "./useMetabolicTwin";
 import type { Projection } from "@aivo/shared-types";
 
 interface MetabolicDigitalTwinProps {
-  userId: string;
-  token: string;
+  // No longer requires userId and token - uses cookie-based auth
 }
 
-export function MetabolicDigitalTwin({ userId, token }: MetabolicDigitalTwinProps) {
+export function MetabolicDigitalTwin(_props: MetabolicDigitalTwinProps) {
   const { simulation, loading, error, generateSimulation, getScenarioDescriptions } = useMetabolicTwin();
 
   const scenarioDescriptions = useMemo(() => getScenarioDescriptions(), [getScenarioDescriptions]);
 
   const handleGenerate = async () => {
-    await generateSimulation(userId, token, 30);
+    await generateSimulation(30);
   };
 
   if (loading) {

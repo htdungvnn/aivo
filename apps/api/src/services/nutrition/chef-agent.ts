@@ -180,7 +180,7 @@ function calculateConfidence(
   availableIngredients: Array<{ name: string; quantity: number; unit: string }>,
   recipe: Recipe
 ): number {
-  if (availableIngredients.length === 0) return 0.5; // No ingredient list provided
+  if (availableIngredients.length === 0) {return 0.5;} // No ingredient list provided
 
   const recipeIngredientNames = recipe.ingredients.map(ing => ing.name.toLowerCase());
   let matched = 0;

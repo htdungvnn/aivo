@@ -367,10 +367,7 @@ export default function DashboardPage() {
           className="mb-8"
         >
           {user && (
-            <MetabolicDigitalTwin
-              userId={user.id}
-              token={localStorage.getItem("aivo_token") || ""}
-            />
+            <MetabolicDigitalTwin />
           )}
         </motion.div>
 
@@ -524,7 +521,7 @@ export default function DashboardPage() {
               animate="visible"
               variants={fadeInUp}
             >
-              {user && <BodyInsightCard userId={user.id} apiUrl={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"} />}
+              {user && <BodyInsightCard apiUrl={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"} />}
             </motion.div>
 
             {/* Biometric Recovery Dashboard */}

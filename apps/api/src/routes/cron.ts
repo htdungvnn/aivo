@@ -143,8 +143,8 @@ async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: st
     let processedStreaks = 0;
     let streaksReset = 0;
     let leaderboardUpdates = 0;
-    let processedVideos = 0;
-    let failedVideos = 0;
+    const processedVideos = 0;
+    const failedVideos = 0;
 
     for (const profile of activeProfiles) {
       const checkins = await drizzle.query.dailyCheckins.findMany({

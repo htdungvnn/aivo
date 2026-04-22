@@ -20,6 +20,16 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
+  const setSessionCookie = async (token: string): Promise<void> => {
+    await fetch(`${API_URL}/api/auth/set-session`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+      credentials: "include",
+    });
+  };
+
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     if (!credentialResponse.credential) {
       setError("No credential received from Google");
@@ -42,8 +52,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error(data.error || "Google login failed");
       }
 
-      localStorage.setItem("aivo_token", data.data!.token);
-      localStorage.setItem("aivo_user", JSON.stringify(data.data!.user));
+      // Set httpOnly cookie for session
+      await setSessionCookie(data.data!.token);
 
       onLogin?.(data.data!);
       router.push("/dashboard");
@@ -100,8 +110,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error(data.error || "Facebook login failed");
       }
 
-      localStorage.setItem("aivo_token", data.data!.token);
-      localStorage.setItem("aivo_user", JSON.stringify(data.data!.user));
+      // Set httpOnly cookie for session
+      await setSessionCookie(data.data!.token);
 
       onLogin?.(data.data!);
       router.push("/dashboard");
