@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
-import { createApiClient, type BodyMetric, type HealthScoreResult, type ApiResponse } from "@aivo/api-client";
+import { createApiClient, type BodyMetric, type HealthScoreResult } from "@aivo/api-client";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
 
@@ -69,8 +69,8 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
           healthScore: JSON.parse(cachedScore),
         }));
       }
-    } catch (error) {
-      console.error("Failed to load cached metrics:", error);
+    } catch {
+      // Silently ignore cache load errors
     }
   }, []);
 

@@ -49,7 +49,7 @@ export function SleepLogForm({ onSuccess, prefilledDate }: SleepLogFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiClient) return;
+    if (!apiClient) {return;}
 
     setLoading(true);
     setMessage(null);
@@ -72,8 +72,12 @@ export function SleepLogForm({ onSuccess, prefilledDate }: SleepLogFormProps) {
       } else {
         setMessage({ type: "error", text: result.error || "Failed to save sleep log" });
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Failed to save sleep log" });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setMessage({ type: "error", text: err.message });
+      } else {
+        setMessage({ type: "error", text: "Failed to save sleep log" });
+      }
     } finally {
       setLoading(false);
     }

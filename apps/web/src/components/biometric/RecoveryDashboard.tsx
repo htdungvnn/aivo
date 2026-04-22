@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { BiometricSnapshot as SharedBiometricSnapshot, SleepLog, CorrelationFinding } from "@aivo/shared-types";
 
 interface RecoveryScoreDisplayProps {
   score: number;
@@ -45,10 +46,10 @@ const gradeLabels = {
 };
 
 function getGrade(score: number): keyof typeof gradeLabels {
-  if (score >= 80) return "excellent";
-  if (score >= 65) return "good";
-  if (score >= 50) return "fair";
-  if (score >= 35) return "poor";
+  if (score >= 80) {return "excellent";}
+  if (score >= 65) {return "good";}
+  if (score >= 50) {return "fair";}
+  if (score >= 35) {return "poor";}
   return "critical";
 }
 
@@ -192,9 +193,9 @@ export function RecoveryDashboard() {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [snapshot, setSnapshot] = useState<any>(null);
-  const [correlations, setCorrelations] = useState<any[]>([]);
-  const [sleepHistory, setSleepHistory] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<SharedBiometricSnapshot | null>(null);
+  const [correlations, setCorrelations] = useState<CorrelationFinding[]>([]);
+  const [sleepHistory, setSleepHistory] = useState<SleepLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "correlations" | "sleep">("overview");
 
@@ -205,9 +206,9 @@ export function RecoveryDashboard() {
   }) : null;
 
   const loadData = useCallback(async (showRefresh = false) => {
-    if (!apiClient) return;
+    if (!apiClient) {return;}
 
-    if (!showRefresh) setLoading(true);
+    if (!showRefresh) {setLoading(true);}
     setError(null);
 
     try {
@@ -228,8 +229,12 @@ export function RecoveryDashboard() {
       if (sleepResult.success && sleepResult.data) {
         setSleepHistory(sleepResult.data);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load recovery data");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to load recovery data");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -243,14 +248,14 @@ export function RecoveryDashboard() {
   }, [isAuthenticated, apiClient, loadData]);
 
   const handleGenerateSnapshot = async () => {
-    if (!apiClient) return;
+    if (!apiClient) {return;}
     setRefreshing(true);
     try {
       const result = await apiClient.generateBiometricSnapshot({ period: "30d" });
       if (result.success) {
         await loadData(true);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to generate snapshot");
     } finally {
       setRefreshing(false);
@@ -325,7 +330,7 @@ export function RecoveryDashboard() {
                 <div className="lg:col-span-1">
                   <RecoveryScoreDisplay
                     score={snapshot.recoveryScore}
-                    trend={snapshot.summary?.primaryConcern ? "declining" : "stable"}
+                    trend={snapshot.warnings && snapshot.warnings.length > 0 ? "declining" : "stable"}
                   />
                 </div>
 
@@ -336,7 +341,7 @@ export function RecoveryDashboard() {
                         <Moon className="w-5 h-5 text-cyan-400" />
                         <span className="text-sm text-gray-400">Sleep</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{snapshot.sleep?.avgDuration?.toFixed(1) || 0}h</p>
+                      <p className="text-2xl font-bold text-white">{snapshot.sleep?.avgDurationHours?.toFixed(1) || 0}h</p>
                       <p className="text-xs text-gray-500 mt-1">Avg duration</p>
                     </CardContent>
                   </Card>
@@ -347,8 +352,8 @@ export function RecoveryDashboard() {
                         <Target className="w-5 h-5 text-purple-400" />
                         <span className="text-sm text-gray-400">Exercise</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{snapshot.exerciseLoad?.total_workouts || 0}</p>
-                      <p className="text-xs text-gray-500 mt-1">Workouts ({snapshot.exerciseLoad?.avg_duration?.toFixed(0) || 0}min avg)</p>
+                      <p className="text-2xl font-bold text-white">{snapshot.exerciseLoad?.totalWorkouts || 0}</p>
+                      <p className="text-xs text-gray-500 mt-1">Workouts ({snapshot.exerciseLoad?.avgDurationMinutes?.toFixed(0) || 0}min avg)</p>
                     </CardContent>
                   </Card>
 
@@ -358,7 +363,7 @@ export function RecoveryDashboard() {
                         <BarChart3 className="w-5 h-5 text-emerald-400" />
                         <span className="text-sm text-gray-400">Nutrition</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{snapshot.nutrition?.consistency_score || 0}%</p>
+                      <p className="text-2xl font-bold text-white">{snapshot.nutrition?.consistencyScore || 0}%</p>
                       <p className="text-xs text-gray-500 mt-1">Consistency</p>
                     </CardContent>
                   </Card>
@@ -392,7 +397,7 @@ export function RecoveryDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {sleepHistory.slice(0, 5).map((entry: any) => (
+                    {sleepHistory.slice(0, 5).map((entry: SleepLog) => (
                       <SleepLogEntry
                         key={entry.id}
                         date={entry.date}

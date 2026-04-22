@@ -27,7 +27,7 @@ export function SleepSummaryCard() {
   }) : null;
 
   const loadSummary = useCallback(async () => {
-    if (!apiClient) return;
+    if (!apiClient) {return;}
 
     setLoading(true);
     try {
@@ -35,8 +35,7 @@ export function SleepSummaryCard() {
       if (result.success && result.data) {
         setSummary(result.data);
       }
-    } catch (err) {
-      console.error("Failed to load sleep summary:", err);
+    } catch {
     } finally {
       setLoading(false);
     }

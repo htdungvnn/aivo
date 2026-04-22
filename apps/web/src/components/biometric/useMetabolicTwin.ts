@@ -70,6 +70,20 @@ export interface DigitalTwinResult {
   recommendations: string[];
 }
 
+// API response types
+interface ApiBodyMetric {
+  id: string;
+  userId: string;
+  timestamp: number;
+  weight?: number | null;
+  bodyFatPercentage?: number | null;
+  muscleMass?: number | null;
+}
+
+interface ApiBodyMetricsResponse {
+  bodyMetrics: ApiBodyMetric[];
+}
+
 export function useMetabolicTwin() {
   const [simulation, setSimulation] = useState<DigitalTwinResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -86,14 +100,14 @@ export function useMetabolicTwin() {
       throw new Error("Failed to fetch historical data");
     }
 
-    const data = await response.json();
+    const data = await response.json() as ApiBodyMetricsResponse;
     // Transform to expected format
-    return data.bodyMetrics?.map((m: any) => ({
-      timestamp: new Date(m.createdAt).getTime(),
-      weightKg: m.weight || 0,
-      bodyFatPct: m.bodyFatPercentage || 0,
-      muscleMassKg: m.muscleMass || 0,
-    })) || [];
+    return (data.bodyMetrics ?? []).map((m) => ({
+      timestamp: m.timestamp,
+      weightKg: m.weight ?? 0,
+      bodyFatPct: m.bodyFatPercentage ?? 0,
+      muscleMassKg: m.muscleMass ?? 0,
+    }));
   }, []);
 
   const generateSimulation = useCallback(async (
@@ -132,8 +146,9 @@ export function useMetabolicTwin() {
       const result = await response.json();
       setSimulation(result.data);
       return result.data;
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
       return null;
     } finally {
       setLoading(false);

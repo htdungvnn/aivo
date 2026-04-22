@@ -93,8 +93,12 @@ export default function BodyInsightPage() {
       // Optionally trigger AI analysis
       // await triggerAnalysis(uploadData.data.imageUrl);
 
-    } catch (err: any) {
-      setError(err.message || "Failed to upload image");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to upload image");
+      }
     } finally {
       setUploading(false);
     }
@@ -135,8 +139,12 @@ export default function BodyInsightPage() {
       alert("Analysis complete! Your body metrics have been updated.");
       router.back();
 
-    } catch (err: any) {
-      setError(err.message || "Failed to analyze image");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to analyze image");
+      }
     } finally {
       setAnalyzing(false);
     }

@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
+use js_sys::Array;
 use image::GenericImageView;
 use serde::{Deserialize, Serialize};
 
@@ -1409,7 +1410,7 @@ struct WorkoutCompletionData {
     routine_exercise_id: Option<String>,
     completed: bool,
     #[serde(rename = "completionRate")]
-    completion_rate: f64,
+    _completion_rate: f64,
     #[serde(rename = "actualSets")]
     _actual_sets: Option<i32>,
     #[serde(rename = "actualReps")]
@@ -1451,6 +1452,7 @@ struct RoutineExerciseData {
 
 /// Body insight data for recovery analysis
 #[derive(serde::Deserialize, Clone)]
+#[allow(dead_code)]
 struct BodyInsightData {
     _id: String,
     #[serde(rename = "userId")]
@@ -1458,19 +1460,19 @@ struct BodyInsightData {
     timestamp: i64,
     _source: String,
     #[serde(rename = "recoveryScore")]
-    recovery_score: f64,
+    _recovery_score: f64,
     #[serde(rename = "fatigueLevel")]
-    fatigue_level: i32,
+    _fatigue_level: i32,
     #[serde(rename = "muscleSoreness")]
     muscle_soreness: serde_json::Value,
     #[serde(rename = "sleepQuality")]
-    sleep_quality: i32,
+    _sleep_quality: i32,
     #[serde(rename = "sleepHours")]
-    sleep_hours: f64,
+    _sleep_hours: f64,
     #[serde(rename = "stressLevel")]
-    stress_level: i32,
+    _stress_level: i32,
     #[serde(rename = "hydrationLevel")]
-    hydration_level: i32,
+    _hydration_level: i32,
     notes: Option<String>,
     #[serde(rename = "rawData")]
     raw_data: Option<String>,
@@ -1824,8 +1826,28 @@ pub struct CorrelationResult {
     pub confidence: f64, // Combined confidence score
 }
 
+/// Correlation coefficient pair for WASM (tuples not supported)
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct CorrelationCoefficient {
+    r: f64,
+    p_value: f64,
+}
+
+#[wasm_bindgen]
+impl CorrelationCoefficient {
+    #[wasm_bindgen(getter)]
+    pub fn r(&self) -> f64 {
+        self.r
+    }
+    #[wasm_bindgen(getter)]
+    pub fn p_value(&self) -> f64 {
+        self.p_value
+    }
+}
+
 /// Anomaly detection result
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct AnomalyPoint {
     pub date: String,
     pub factor: String,
@@ -1945,10 +1967,10 @@ impl CorrelationAnalyzer {
     }
 
     /// Calculate Pearson correlation coefficient between two variables
-    /// Returns (r, p_value) where p_value is approximate significance
-    pub fn pearson_correlation(x: &[f64], y: &[f64]) -> (f64, f64) {
+    /// Returns CorrelationCoefficient with r and p_value
+    pub fn pearson_correlation(x: &[f64], y: &[f64]) -> CorrelationCoefficient {
         if x.len() != y.len() || x.len() < 3 {
-            return (0.0, 1.0);
+            return CorrelationCoefficient { r: 0.0, p_value: 1.0 };
         }
 
         let n = x.len() as f64;
@@ -1968,7 +1990,7 @@ impl CorrelationAnalyzer {
         }
 
         if sum_x2 == 0.0 || sum_y2 == 0.0 {
-            return (0.0, 1.0);
+            return CorrelationCoefficient { r: 0.0, p_value: 1.0 };
         }
 
         let r = sum_xy / (sum_x2.sqrt() * sum_y2.sqrt());
@@ -2001,21 +2023,21 @@ impl CorrelationAnalyzer {
             2.0 * (1.0 - cdf)
         };
 
-        (r.max(-1.0).min(1.0), p_value.min(1.0))
+        CorrelationCoefficient { r: r.max(-1.0).min(1.0), p_value: p_value.min(1.0) }
     }
 
     /// Detect anomalies using Z-score method
-    /// Returns points where |z-score| > threshold (default 2.0)
-    pub fn detect_anomalies(data: &[f64], dates: &[String], factor_name: &str, threshold: f64) -> Vec<AnomalyPoint> {
+    /// Returns JSON array of points where |z-score| > threshold, or empty array
+    pub fn detect_anomalies(data: &[f64], dates: &[String], factor_name: &str, threshold: f64) -> JsValue {
         if data.len() < 5 {
-            return Vec::new();
+            return Array::new().into();
         }
 
         let mean = Self::mean(data);
         let std = Self::std_dev(data);
 
         if std == 0.0 {
-            return Vec::new(); // No variation, no anomalies
+            return Array::new().into();
         }
 
         let mut anomalies = Vec::new();
@@ -2034,7 +2056,10 @@ impl CorrelationAnalyzer {
             }
         }
 
-        anomalies
+        match serde_wasm_bindgen::to_value(&anomalies) {
+            Ok(val) => val,
+            Err(_) => Array::new().into(),
+        }
     }
 
     /// Calculate recovery score from component factors (0-100)
@@ -2126,41 +2151,6 @@ impl CorrelationAnalyzer {
         (duration_score * 0.4 + avg_quality * 0.6).round()
     }
 
-    /// Calculate exercise load composite score (0-100)
-    fn calculate_exercise_load(
-        intensities: &[f64],
-        durations: &[f64],
-        variety_count: usize,
-        rest_days: usize,
-        total_days: usize
-    ) -> f64 {
-        if intensities.is_empty() || total_days == 0 {
-            return 0.0;
-        }
-
-        // Intensity component (40%)
-        let avg_intensity = Self::mean(intensities);
-        let intensity_score = avg_intensity * 1.5; // Scale 0-10 to 0-100
-
-        // Duration component (30%)
-        let total_minutes: f64 = durations.iter().sum();
-        let daily_avg = total_minutes / total_days as f64;
-        let duration_score = (daily_avg / 60.0).min(1.0) * 100.0; // Target 60 min/day
-
-        // Variety component (20%)
-        let variety_score = (variety_count as f64 / 10.0).min(1.0) * 100.0;
-
-        // Rest day component (10%) - more rest days = better (up to a point)
-        let rest_ratio = rest_days as f64 / total_days as f64;
-        let rest_score = if rest_ratio >= 0.2 {
-            100.0
-        } else {
-            rest_ratio * 500.0 // 0.2 -> 100, 0.0 -> 0
-        };
-
-        (intensity_score * 0.4 + duration_score * 0.3 + variety_score * 0.2 + rest_score * 0.1).round()
-    }
-
     /// Determine if correlation is statistically significant
     /// Using simplified threshold based on sample size and r-value
     pub fn is_significant(r: f64, n: usize) -> bool {
@@ -2178,12 +2168,13 @@ impl CorrelationAnalyzer {
     }
 
     /// Main analysis function: compute all correlations and aggregates
-    #[wasm_bindgen(js_name = "analyzeCorrelations")]
+    /// Analyze biometric correlations and detect patterns
+    /// Returns JsValue with complete analysis
     pub fn analyze_correlations(
         data_json: &str, // JSON array of DailyBiometricData
         _period_days: usize,
         anomaly_z_threshold: Option<f64>
-    ) -> Result<String, JsValue> {
+    ) -> Result<JsValue, JsValue> {
         let z_threshold = anomaly_z_threshold.unwrap_or(2.5);
 
         // Deserialize input data
@@ -2270,65 +2261,79 @@ impl CorrelationAnalyzer {
         let mut significant_correlations = Vec::new();
 
         // Sleep quality vs Recovery
-        let (r_sleep_rec, p_sleep_rec) = Self::pearson_correlation(&sleep_quality, &recovery);
-        if Self::is_significant(r_sleep_rec, n) {
+        let sleep_rec_coeff = Self::pearson_correlation(&sleep_quality, &recovery);
+        if Self::is_significant(sleep_rec_coeff.r(), n) {
             significant_correlations.push(CorrelationResult {
                 factor_a: "sleep_quality".to_string(),
                 factor_b: "recovery_score".to_string(),
-                pearson_r: r_sleep_rec,
-                r_squared: r_sleep_rec * r_sleep_rec,
-                p_value: p_sleep_rec,
+                pearson_r: sleep_rec_coeff.r(),
+                r_squared: sleep_rec_coeff.r() * sleep_rec_coeff.r(),
+                p_value: sleep_rec_coeff.p_value(),
                 is_significant: true,
-                confidence: Self::calculate_confidence(r_sleep_rec, n),
+                confidence: Self::calculate_confidence(sleep_rec_coeff.r(), n),
             });
         }
 
         // Late nutrition vs Recovery
-        let (r_late_rec, p_late_rec) = Self::pearson_correlation(&late_nutrition, &recovery);
-        if Self::is_significant(r_late_rec, n) {
+        let late_rec_coeff = Self::pearson_correlation(&late_nutrition, &recovery);
+        if Self::is_significant(late_rec_coeff.r(), n) {
             significant_correlations.push(CorrelationResult {
                 factor_a: "late_nutrition".to_string(),
                 factor_b: "recovery_score".to_string(),
-                pearson_r: r_late_rec,
-                r_squared: r_late_rec * r_late_rec,
-                p_value: p_late_rec,
+                pearson_r: late_rec_coeff.r(),
+                r_squared: late_rec_coeff.r() * late_rec_coeff.r(),
+                p_value: late_rec_coeff.p_value(),
                 is_significant: true,
-                confidence: Self::calculate_confidence(r_late_rec, n),
+                confidence: Self::calculate_confidence(late_rec_coeff.r(), n),
             });
         }
 
         // Exercise intensity vs Recovery (expected negative)
-        let (r_ex_rec, p_ex_rec) = Self::pearson_correlation(&workout_intensity, &recovery);
-        if Self::is_significant(r_ex_rec, n) {
+        let ex_rec_coeff = Self::pearson_correlation(&workout_intensity, &recovery);
+        if Self::is_significant(ex_rec_coeff.r(), n) {
             significant_correlations.push(CorrelationResult {
                 factor_a: "workout_intensity".to_string(),
                 factor_b: "recovery_score".to_string(),
-                pearson_r: r_ex_rec,
-                r_squared: r_ex_rec * r_ex_rec,
-                p_value: p_ex_rec,
+                pearson_r: ex_rec_coeff.r(),
+                r_squared: ex_rec_coeff.r() * ex_rec_coeff.r(),
+                p_value: ex_rec_coeff.p_value(),
                 is_significant: true,
-                confidence: Self::calculate_confidence(r_ex_rec, n),
+                confidence: Self::calculate_confidence(ex_rec_coeff.r(), n),
             });
         }
 
         // Sleep duration vs Recovery
-        let (r_sleep_dur_rec, p_sleep_dur_rec) = Self::pearson_correlation(&sleep_duration, &recovery);
-        if Self::is_significant(r_sleep_dur_rec, n) {
+        let sleep_dur_rec_coeff = Self::pearson_correlation(&sleep_duration, &recovery);
+        if Self::is_significant(sleep_dur_rec_coeff.r(), n) {
             significant_correlations.push(CorrelationResult {
                 factor_a: "sleep_duration".to_string(),
                 factor_b: "recovery_score".to_string(),
-                pearson_r: r_sleep_dur_rec,
-                r_squared: r_sleep_dur_rec * r_sleep_dur_rec,
-                p_value: p_sleep_dur_rec,
+                pearson_r: sleep_dur_rec_coeff.r(),
+                r_squared: sleep_dur_rec_coeff.r() * sleep_dur_rec_coeff.r(),
+                p_value: sleep_dur_rec_coeff.p_value(),
                 is_significant: true,
-                confidence: Self::calculate_confidence(r_sleep_dur_rec, n),
+                confidence: Self::calculate_confidence(sleep_dur_rec_coeff.r(), n),
             });
         }
 
-        // Detect anomalies
+        // Detect anomalies - convert JsValue to Vec<AnomalyPoint>
         let mut anomaly_points = Vec::new();
-        anomaly_points.append(&mut Self::detect_anomalies(&recovery, &dates, "recovery_score", z_threshold));
-        anomaly_points.append(&mut Self::detect_anomalies(&sleep_quality, &dates, "sleep_quality", z_threshold));
+        let recovery_anomalies = Self::detect_anomalies(&recovery, &dates, "recovery_score", z_threshold);
+        if let Ok(array) = recovery_anomalies.dyn_into::<Array>() {
+            for item in array.iter() {
+                if let Ok(anomaly) = serde_wasm_bindgen::from_value::<AnomalyPoint>(item) {
+                    anomaly_points.push(anomaly);
+                }
+            }
+        }
+        let sleep_anomalies = Self::detect_anomalies(&sleep_quality, &dates, "sleep_quality", z_threshold);
+        if let Ok(array) = sleep_anomalies.dyn_into::<Array>() {
+            for item in array.iter() {
+                if let Ok(anomaly) = serde_wasm_bindgen::from_value::<AnomalyPoint>(item) {
+                    anomaly_points.push(anomaly);
+                }
+            }
+        }
 
         // Build aggregates
         let aggregates = PeriodAggregates {
@@ -2341,9 +2346,9 @@ impl CorrelationAnalyzer {
                 avg_score: Self::mean(&recovery),
                 score_std_dev: Self::std_dev(&recovery),
                 trend: "stable".to_string(), // TODO: Calculate from slope
-                correlation_with_sleep: r_sleep_rec,
-                correlation_with_exercise: r_ex_rec,
-                correlation_with_nutrition: r_late_rec,
+                correlation_with_sleep: sleep_rec_coeff.r(),
+                correlation_with_exercise: ex_rec_coeff.r(),
+                correlation_with_nutrition: late_rec_coeff.r(),
             },
         };
 
@@ -2361,7 +2366,10 @@ impl CorrelationAnalyzer {
             warnings,
         };
 
-        Ok(serde_json::to_string(&analysis).unwrap_or_default())
+        match serde_wasm_bindgen::to_value(&analysis) {
+            Ok(val) => Ok(val),
+            Err(e) => Err(JsValue::from_str(&format!("Serialization error: {}", e))),
+        }
     }
 
     /// Generate human-readable summary from analysis results
@@ -2434,7 +2442,6 @@ impl CorrelationAnalyzer {
     }
 
     /// Calculate recovery score from raw biometric data (convenience method)
-    #[wasm_bindgen(js_name = "calculateRecoveryScore")]
     pub fn calculate_recovery_score(
         sleep_quality: f64,
         sleep_duration: f64,
@@ -2782,6 +2789,7 @@ impl VoiceParser {
     }
 
     /// Parse workout entries from text
+    #[allow(unused_assignments)]
     fn parse_workout_entries(text: &str) -> Vec<ParsedWorkoutEntry> {
         let mut entries = Vec::new();
 
@@ -2867,7 +2875,6 @@ impl VoiceParser {
                             confidence: 0.7,
                         };
                         entries.push(entry);
-                        found_exercise = true;
                         break;
                     }
                 }

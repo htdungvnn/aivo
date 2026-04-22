@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updatedAt: new Date(),
         });
       }
-    } catch (error) {
-      console.error("Auth check error:", error);
+    } catch {
+      // Silently fail - user will be redirected to login
     } finally {
       setLoading(false);
     }
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { Authorization: `Bearer ${token}` },
         }).catch(() => {});
       }
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Silently ignore logout errors
     } finally {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_KEY);

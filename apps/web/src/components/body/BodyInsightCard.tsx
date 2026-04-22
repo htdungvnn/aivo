@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
 import type { MetricDataPoint } from "./BodyMetricsChart";
@@ -23,7 +23,7 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
   const [healthScore, setHealthScore] = useState<HealthScoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,18 +61,25 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
           setHealthScore(scoreData.data);
         }
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load body insights");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to load body insights");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl]);
 
   useEffect(() => {
-    if (apiUrl) {
-      fetchData();
+    if (!apiUrl) {
+      setLoading(false);
+      return;
     }
-  }, [apiUrl]);
+
+    fetchData();
+  }, [apiUrl, fetchData]);
 
   // Transform data for charts
   const weightData: MetricDataPoint[] = metrics
@@ -99,8 +106,8 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
     }))
     .reverse();
 
-  const handleHeatmapPointClick = (point: any) => {
-    console.log("Clicked muscle point:", point);
+  const handleHeatmapPointClick = (_point: unknown) => {
+    // TODO: Handle heatmap point click - show detailed body part analysis
   };
 
   if (compact) {

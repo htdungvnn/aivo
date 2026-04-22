@@ -19,7 +19,8 @@
     "types": ["@cloudflare/workers-types"],
     "baseUrl": "./",
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/__tests__/**", "**/*.test.ts", "**/*.test.tsx",

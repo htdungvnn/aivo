@@ -34,9 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return true;
         }
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Session verification failed:", error);
+    } catch {
+      // Network or server error
     }
 
     return false;
@@ -74,11 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Authorization": `Bearer ${data.token}`,
       },
       credentials: "include",
-    }).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error("Failed to set session cookie:", err);
+    }).catch(() => {
+      // Silently ignore session cookie errors
     });
-  }, [API_URL]);
+  }, []); // API_URL is constant and safe to omit from deps
 
   const logout = async () => {
     try {
@@ -86,9 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         credentials: "include",
       });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Logout error:", err);
+    } catch {
+      // Ignore logout errors
     }
 
     setUser(null);

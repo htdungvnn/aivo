@@ -1,4 +1,3 @@
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";

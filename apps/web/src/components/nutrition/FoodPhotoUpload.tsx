@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNutrition } from "./useNutrition";
+import type { FoodVisionAnalysis, DetectedFoodItem } from "@aivo/shared-types";
 
 interface FoodPhotoUploadProps {
-  onAnalysisComplete?: (analysis: any) => void;
-  onLogCreated?: (log: any) => void;
+  onAnalysisComplete?: (analysis: FoodVisionAnalysis) => void;
+  onLogCreated?: (log: unknown) => void;
   mealType?: "breakfast" | "lunch" | "dinner" | "snack" | "pre_workout" | "post_workout" | "custom";
   className?: string;
 }
@@ -24,7 +25,7 @@ export function FoodPhotoUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<FoodVisionAnalysis | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const handleFileSelect = useCallback(async (file: File) => {
@@ -49,8 +50,8 @@ export function FoodPhotoUpload({
       const analysisResult = await analyzeFoodImage(uploadResult.imageUrl, mealType);
       setAnalysis(analysisResult);
       onAnalysisComplete?.(analysisResult);
-    } catch (err) {
-      console.error("Analysis failed:", err);
+    } catch {
+      // Error handled by error state from useNutrition
     } finally {
       setAnalyzing(false);
     }
@@ -60,16 +61,16 @@ export function FoodPhotoUpload({
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    if (file) {handleFileSelect(file);}
   }, [handleFileSelect]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    if (file) {handleFileSelect(file);}
   }, [handleFileSelect]);
 
   const handleCreateLog = useCallback(async () => {
-    if (!analysis) return;
+    if (!analysis) {return;}
 
     try {
       const log = await createFoodLogFromAnalysis({
@@ -80,8 +81,8 @@ export function FoodPhotoUpload({
       // Reset state
       setPreview(null);
       setAnalysis(null);
-    } catch (err) {
-      console.error("Failed to create log:", err);
+    } catch {
+      // Error handled by useNutrition error state
     }
   }, [analysis, mealType, createFoodLogFromAnalysis, onLogCreated]);
 
@@ -176,7 +177,7 @@ export function FoodPhotoUpload({
             </div>
 
             <div className="space-y-2">
-              {analysis.detectedItems.map((item: any, idx: number) => (
+              {analysis.detectedItems.map((item: DetectedFoodItem, idx: number) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">{item.name}</p>

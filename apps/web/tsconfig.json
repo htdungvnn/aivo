@@ -24,7 +24,7 @@
         "./src/*"
       ],
       "@aivo/shared-types": [
-        "../../packages/shared-types/src"
+        "../../packages/shared-types/dist/src"
       ],
       "@aivo/compute": [
         "../../packages/aivo-compute/pkg"

@@ -14,7 +14,8 @@
       "types": "./src/schema.ts",
       "import": "./src/schema.ts"
     },
-    "./migrations/*": "./drizzle/migrations/*"
+    "./migrations/*": "./drizzle/migrations/*",
+    "./src/__tests__/mock-data.ts": "./src/__tests__/mock-data.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",

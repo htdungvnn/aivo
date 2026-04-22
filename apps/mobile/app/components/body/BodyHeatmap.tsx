@@ -5,8 +5,8 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import Svg, { Ellipse, G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
-import { MUSCLE_POSITIONS, BODY_OUTLINE_FRONT } from "@aivo/shared-types";
+import Svg, { G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
+import { BODY_OUTLINE_FRONT } from "@aivo/shared-types";
 import { HeatmapRenderer, type HeatmapVectorPoint } from "@aivo/body-compute";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -43,9 +43,11 @@ function AnimatedHeatmapCircle({ point, onPress, isSelected }: AnimatedHeatmapCi
     <AnimatedCircle
       cx={point.cx}
       cy={point.cy}
-      r={radius as any}
+      // @ts-expect-error - AnimatedCircle accepts shared values for these props
+      r={radius}
       fill={HeatmapRenderer.color(point.intensity, "heat")}
-      opacity={isSelected ? 1 : (opacity as any)}
+      // @ts-expect-error - AnimatedCircle accepts shared values for opacity
+      opacity={isSelected ? 1 : opacity}
       stroke={isSelected ? "#ffffff" : "transparent"}
       strokeWidth={isSelected ? 2 : 0}
       onPress={handlePress}
@@ -55,7 +57,6 @@ function AnimatedHeatmapCircle({ point, onPress, isSelected }: AnimatedHeatmapCi
 
 export function BodyHeatmap({ vectorData, onPointPress }: BodyHeatmapProps) {
   const viewBox = "0 0 200 400";
-  const scale = HEATMAP_SIZE / 200;
 
   // Use shared business logic for data preparation
   const preparedPoints = useMemo(() => {

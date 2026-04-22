@@ -20,8 +20,16 @@
     "test:browser": "wasm-pack test --chrome --firefox --safari",
     "clean": "rm -rf pkg target"
   },
-  "files": ["pkg"],
-  "keywords": ["wasm", "fitness", "health", "calculations", "rust"],
+  "files": [
+    "pkg"
+  ],
+  "keywords": [
+    "wasm",
+    "fitness",
+    "health",
+    "calculations",
+    "rust"
+  ],
   "author": "AIVO Team",
   "license": "MIT",
   "devDependencies": {

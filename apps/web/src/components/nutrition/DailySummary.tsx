@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { Calendar, Target, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNutrition } from "./useNutrition";
-import type { DailyNutritionSummary } from "@aivo/shared-types";
+import type { DailyNutritionSummary, MacroTargets } from "@aivo/shared-types";
 
 interface NutritionDashboardProps {
   date?: Date;
@@ -15,7 +15,7 @@ interface NutritionDashboardProps {
 export function NutritionDashboard({ date = new Date(), className }: NutritionDashboardProps) {
   const { getDailySummary, getMacroTargets } = useNutrition();
   const [summary, setSummary] = useState<DailyNutritionSummary | null>(null);
-  const [targets, setTargets] = useState<any>(null);
+  const [targets, setTargets] = useState<MacroTargets | null>(null);
   const [loading, setLoading] = useState(true);
 
   const dateStr = format(date, "yyyy-MM-dd");
@@ -30,8 +30,8 @@ export function NutritionDashboard({ date = new Date(), className }: NutritionDa
         ]);
         setSummary(summaryData);
         setTargets(targetsData);
-      } catch (err) {
-        console.error("Failed to load nutrition data:", err);
+      } catch {
+        // Silently handle errors - UI will show empty state
       } finally {
         setLoading(false);
       }
@@ -40,7 +40,7 @@ export function NutritionDashboard({ date = new Date(), className }: NutritionDa
   }, [dateStr, getDailySummary, getMacroTargets]);
 
   const getProgressPercentage = (current: number, target: number) => {
-    if (!target) return 0;
+    if (!target) {return 0;}
     return Math.min(100, Math.round((current / target) * 100));
   };
 

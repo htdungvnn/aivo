@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { createApiClient } from "@aivo/api-client";
-import type { FoodLog, DailyNutritionSummary, MacroTargets, FoodVisionAnalysis, UploadImageResponse } from "@aivo/shared-types";
+import type { FoodLog, DailyNutritionSummary, MacroTargets, FoodVisionAnalysis, UploadImageResponse, FoodItem, CreateFromAnalysisRequest, FoodLogCreate, FoodLogUpdate, MealType } from "@aivo/shared-types";
 
 const getToken = async (): Promise<string> => {
   return localStorage.getItem("aivo_token") || "";
@@ -42,65 +42,48 @@ export function useNutrition() {
   }, []);
 
   // Analyze food image with AI
-  const analyzeFoodImage = useCallback(async (imageUrl: string, mealType?: string): Promise<FoodVisionAnalysis> => {
+  const analyzeFoodImage = useCallback(async (imageUrl: string, mealType?: MealType): Promise<FoodVisionAnalysis> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.analyzeFoodImage(imageUrl, mealType as any);
+      const response = await apiClient.analyzeFoodImage(imageUrl, mealType);
       return response.data!;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Analysis failed";
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
   // Create food log from analysis
-  const createFoodLogFromAnalysis = useCallback(async (data: {
-    analysisId?: string;
-    detectedItems: Array<{
-      name: string;
-      confidence: number;
-      estimatedPortionG: number;
-      portionUnit: string;
-      calories: number;
-      protein_g: number;
-      carbs_g: number;
-      fat_g: number;
-      fiber_g?: number;
-      sugar_g?: number;
-      matchedFoodItemId?: string;
-    }>;
-    mealType: string;
-    timestamp?: number;
-  }): Promise<FoodLog> => {
+  const createFoodLogFromAnalysis = useCallback(async (data: CreateFromAnalysisRequest): Promise<FoodLog> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.createFoodLogFromAnalysis(data as any);
+      const response = await apiClient.createFoodLogFromAnalysis(data);
       return response.data!;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create food log";
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
   // Create manual food log
-  const createFoodLog = useCallback(async (data: {
-    mealType: string;
-    foodItemId?: string;
-    customName?: string;
-    estimatedPortionG?: number;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g?: number;
-    sugar_g?: number;
-    loggedAt?: number;
-  }): Promise<FoodLog> => {
+  const createFoodLog = useCallback(async (data: FoodLogCreate): Promise<FoodLog> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.createFoodLog(data as any);
+      const response = await apiClient.createFoodLog(data);
       return response.data!;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create food log";
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -131,24 +114,16 @@ export function useNutrition() {
   }, []);
 
   // Update food log
-  const updateFoodLog = useCallback(async (id: string, data: {
-    mealType?: string;
-    foodItemId?: string;
-    customName?: string;
-    estimatedPortionG?: number;
-    calories?: number;
-    protein_g?: number;
-    carbs_g?: number;
-    fat_g?: number;
-    fiber_g?: number;
-    sugar_g?: number;
-    loggedAt?: number;
-  }): Promise<FoodLog> => {
+  const updateFoodLog = useCallback(async (id: string, data: FoodLogUpdate): Promise<FoodLog> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.updateFoodLog(id, data as any);
+      const response = await apiClient.updateFoodLog(id, data);
       return response.data!;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update food log";
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -208,7 +183,7 @@ export function useNutrition() {
   }, []);
 
   // Search food items
-  const searchFoodItems = useCallback(async (query: string, limit: number = 10): Promise<any[]> => {
+  const searchFoodItems = useCallback(async (query: string, limit: number = 10): Promise<FoodItem[]> => {
     setLoading(true);
     setError(null);
     try {

@@ -6,11 +6,11 @@ import { BodyHeatmap } from '../BodyHeatmap';
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    ellipse: ({ children, ...props }: any) => <ellipse {...props}>{children}</ellipse>,
-    g: ({ children, ...props }: any) => <g {...props}>{children}</g>,
-    text: ({ children, ...props }: any) => <text {...props}>{children}</text>,
+    ellipse: ({ children, ...props }: unknown) => <ellipse {...props}>{children}</ellipse>,
+    g: ({ children, ...props }: unknown) => <g {...props}>{children}</g>,
+    text: ({ children, ...props }: unknown) => <text {...props}>{children}</text>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: unknown) => <>{children}</>,
 }));
 
 describe('BodyHeatmap Component', () => {

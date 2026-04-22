@@ -15,11 +15,7 @@ import {
 import { useMetabolicTwin, type ScenarioResults } from "./useMetabolicTwin";
 import type { Projection } from "@aivo/shared-types";
 
-interface MetabolicDigitalTwinProps {
-  // No longer requires userId and token - uses cookie-based auth
-}
-
-export function MetabolicDigitalTwin(_props: MetabolicDigitalTwinProps) {
+export function MetabolicDigitalTwin(_props: object) {
   const { simulation, loading, error, generateSimulation, getScenarioDescriptions } = useMetabolicTwin();
 
   const scenarioDescriptions = useMemo(() => getScenarioDescriptions(), [getScenarioDescriptions]);
@@ -252,7 +248,7 @@ function getScenario(scenarios: ScenarioResults, key: keyof ScenarioResults) {
 }
 
 function calculateChange(initial: number, final: number | undefined) {
-  if (final === undefined) return 0;
+  if (final === undefined) {return 0;}
   return (final - initial).toFixed(1);
 }
 
@@ -264,7 +260,7 @@ function ProjectionChart({
   color: string;
 }) {
   const points = useMemo(() => {
-    if (!projections.length) return null;
+    if (!projections.length) {return null;}
     const minVal = Math.min(...projections.map((p) => p.lowerBound));
     const maxVal = Math.max(...projections.map((p) => p.upperBound));
     const range = maxVal - minVal || 1;
@@ -291,7 +287,7 @@ function ProjectionChart({
     return { upperPath, mainPath, lowerPath, getY, getX };
   }, [projections]);
 
-  if (!points) return null;
+  if (!points) {return null;}
 
   const lastIndex = projections.length - 1;
 

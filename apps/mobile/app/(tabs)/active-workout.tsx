@@ -11,8 +11,23 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Dumbbell, Timer, ChevronRight, AlertTriangle, CheckCircle, XCircle, Zap } from "lucide-react-native";
+import { Timer, ChevronRight, CheckCircle, XCircle, Zap } from "lucide-react-native";
 import { liveWorkoutAPI, type LiveWorkoutSession, type LiveAdjustmentResponse } from "../services/live-workout-api";
+
+const COLORS = {
+  background: "#030712",
+  surface: "#111827",
+  border: "#374151",
+  textMuted: "#9ca3af",
+  textPrimary: "#ffffff",
+  primary: "#3b82f6",
+  danger: "#991b1b",
+  gray: "#6b7280",
+  lightGray: "#d1d5db",
+  textDark: "#1f2937",
+  overlayLight: "rgba(0,0,0,0.1)",
+  overlayMedium: "rgba(0,0,0,0.2)",
+} as const;
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -41,8 +56,8 @@ export default function ActiveWorkoutScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [restTimerActive, setRestTimerActive] = useState(false);
   const [remainingRest, setRemainingRest] = useState(0);
-  const [fatigueLevel, setFatigueLevel] = useState(0);
-  const [fatigueCategory, setFatigueCategory] = useState<"fresh" | "moderate" | "fatigued" | "exhausted">("fresh");
+  const [fatigueLevel] = useState(0);
+  const [fatigueCategory] = useState<"fresh" | "moderate" | "fatigued" | "exhausted">("fresh");
   const [recentRPERecords, setRecentRPERecords] = useState<Array<{
     rpe: number;
     weight?: number;
@@ -51,38 +66,65 @@ export default function ActiveWorkoutScreen() {
     setNumber: number;
   }>>([]);
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Start workout session on mount
-  useEffect(() => {
-    startSession();
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      if (restTimerRef.current) clearInterval(restTimerRef.current);
-    };
-  }, []);
+  // Fetch AI adjustment and session state
+  const fetchAdjustment = useCallback(async () => {
+    if (!session) {return;}
 
-  // Rest timer logic
-  useEffect(() => {
-    if (restTimerActive && remainingRest > 0) {
-      restTimerRef.current = setInterval(() => {
-        setRemainingRest((prev) => {
-          if (prev <= 1) {
-            setRestTimerActive(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    // Fetch the latest session state
+    const sessionResult = await liveWorkoutAPI.getSession(session.id);
+    if (sessionResult.success && sessionResult.session) {
+      setSession(sessionResult.session);
     }
-    return () => {
-      if (restTimerRef.current) clearInterval(restTimerRef.current);
-    };
-  }, [restTimerActive, remainingRest]);
 
-  const startSession = async () => {
+    // Request AI adjustment based on recent RPE records
+    if (recentRPERecords.length > 0) {
+      const adjustmentResult = await liveWorkoutAPI.getAdjustment({
+        sessionId: session.id,
+        currentWeight: parseFloat(weight) || 100,
+        targetReps: 10,
+        remainingSets: 5,
+        exerciseType: "squat",
+        isWarmup: false,
+        hasSpotter: hasSpotter,
+        recentRPERecords: recentRPERecords.slice(0, 5),
+      });
+
+      if (adjustmentResult.success && adjustmentResult.adjustment) {
+        setAdjustment(adjustmentResult.adjustment);
+
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+
+        setTimeout(() => {
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        }, 5000);
+      }
+    }
+  }, [session, recentRPERecords, weight, hasSpotter, fadeAnim]);
+
+  // Start polling for adjustments
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+    pollingRef.current = setInterval(() => {
+      void fetchAdjustment();
+    }, 3000);
+  }, [fetchAdjustment]);
+
+  // Start workout session
+  const startSession = useCallback(async () => {
     setIsLoading(true);
     const result = await liveWorkoutAPI.startSession({
       name: workoutName,
@@ -99,62 +141,37 @@ export default function ActiveWorkoutScreen() {
       router.back();
     }
     setIsLoading(false);
-  };
+  }, [workoutName, targetRPE, idealRestSeconds, hasSpotter, startPolling, router]);
 
-  const startPolling = useCallback(() => {
-    // Poll for adjustments every 3 seconds
-    pollingRef.current = setInterval(fetchAdjustment, 3000);
-  }, []);
-
-  const fetchAdjustment = async () => {
-    if (!session) return;
-
-    // Fetch the latest session state
-    const sessionResult = await liveWorkoutAPI.getSession(session.id);
-    if (sessionResult.success && sessionResult.session) {
-      setSession(sessionResult.session);
-      setFatigueLevel(sessionResult.session.fatigueLevel);
-      setFatigueCategory(sessionResult.session.fatigueCategory);
+  // Rest timer logic
+  useEffect(() => {
+    if (restTimerActive && remainingRest > 0) {
+      restTimerRef.current = setInterval(() => {
+        setRemainingRest((prev) => {
+          if (prev <= 1) {
+            setRestTimerActive(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
+    return () => {
+      if (restTimerRef.current) {clearInterval(restTimerRef.current);}
+    };
+  }, [restTimerActive, remainingRest]);
 
-    // Request AI adjustment based on recent RPE records
-    // For demo, we use mock data - in production, this would be based on actual recent sets
-    if (recentRPERecords.length > 0) {
-      const adjustmentResult = await liveWorkoutAPI.getAdjustment({
-        sessionId: session.id,
-        currentWeight: parseFloat(weight) || 100, // fallback
-        targetReps: 10, // from workout template
-        remainingSets: 5, // calculate from total sets
-        exerciseType: "squat", // from current exercise
-        isWarmup: false,
-        hasSpotter: hasSpotter,
-        recentRPERecords: recentRPERecords.slice(0, 5), // last 5 sets
-      });
-
-      if (adjustmentResult.success && adjustmentResult.adjustment) {
-        setAdjustment(adjustmentResult);
-
-        // Animate the adjustment notification
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-
-        // Auto-fade out after 5 seconds
-        setTimeout(() => {
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start();
-        }, 5000);
-      }
-    }
-  };
+  // Start workout session on mount
+  useEffect(() => {
+    startSession();
+    return () => {
+      if (pollingRef.current) {clearInterval(pollingRef.current);}
+      if (restTimerRef.current) {clearInterval(restTimerRef.current);}
+    };
+  }, [startSession]);
 
   const logRPE = async () => {
-    if (!session) return;
+    if (!session) {return;}
 
     const weightNum = parseFloat(weight);
     const repsNum = parseInt(repsCompleted);
@@ -206,7 +223,7 @@ export default function ActiveWorkoutScreen() {
   };
 
   const startRest = () => {
-    if (!session) return;
+    if (!session) {return;}
     setRemainingRest(session.idealRestSeconds);
     setRestTimerActive(true);
   };
@@ -216,8 +233,8 @@ export default function ActiveWorkoutScreen() {
     setRestTimerActive(false);
   };
 
-  const endWorkout = async () => {
-    if (!session) return;
+  const endWorkout = () => {
+    if (!session) {return;}
 
     Alert.alert(
       "End Workout",
@@ -227,13 +244,15 @@ export default function ActiveWorkoutScreen() {
         {
           text: "End",
           style: "destructive",
-          onPress: async () => {
-            const result = await liveWorkoutAPI.endSession(session.id);
-            if (result.success) {
-              router.back();
-            } else {
-              Alert.alert("Error", result.error || "Failed to end workout");
-            }
+          onPress: () => {
+            void (async () => {
+              const result = await liveWorkoutAPI.endSession(session.id);
+              if (result.success) {
+                router.back();
+              } else {
+                Alert.alert("Error", result.error || "Failed to end workout");
+              }
+            })();
           },
         },
       ]
@@ -244,8 +263,8 @@ export default function ActiveWorkoutScreen() {
     switch (type) {
       case "reduce_weight": return "#ef4444";
       case "reduce_reps": return "#f59e0b";
-      case "add_rest": return "#3b82f6";
-      case "stop": return "#991b1b";
+      case "add_rest": return COLORS.primary;
+      case "stop": return COLORS.danger;
       default: return "#10b981";
     }
   };
@@ -253,10 +272,10 @@ export default function ActiveWorkoutScreen() {
   const getFatigueColor = (category: string) => {
     switch (category) {
       case "fresh": return "#10b981";
-      case "moderate": return "#3b82f6";
+      case "moderate": return COLORS.primary;
       case "fatigued": return "#f59e0b";
       case "exhausted": return "#ef4444";
-      default: return "#9ca3af";
+      default: return COLORS.textMuted;
     }
   };
 
@@ -358,7 +377,7 @@ export default function ActiveWorkoutScreen() {
         {/* Rest Timer */}
         {restTimerActive && (
           <View style={styles.restTimerCard}>
-            <Timer size={24} color="#3b82f6" />
+            <Timer size={24} color={COLORS.primary} />
             <Text style={styles.restTimerText}>
               {Math.floor(remainingRest / 60)}:{String(remainingRest % 60).padStart(2, "0")}
             </Text>
@@ -382,7 +401,7 @@ export default function ActiveWorkoutScreen() {
                 onChangeText={setWeight}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={COLORS.gray}
               />
             </View>
             <View style={styles.inputGroup}>
@@ -393,7 +412,7 @@ export default function ActiveWorkoutScreen() {
                 onChangeText={setRepsCompleted}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={COLORS.gray}
               />
             </View>
           </View>
@@ -430,14 +449,14 @@ export default function ActiveWorkoutScreen() {
                 onChangeText={(text) => setRestTimeSeconds(parseInt(text) || 0)}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={COLORS.gray}
               />
             </View>
           </View>
 
           <TouchableOpacity
             style={[styles.logButton, (!weight || !repsCompleted || !rpe) && styles.logButtonDisabled]}
-            onPress={logRPE}
+            onPress={() => void logRPE()}
             disabled={!weight || !repsCompleted || !rpe || isLoading}
           >
             <Text style={styles.logButtonText}>
@@ -449,7 +468,7 @@ export default function ActiveWorkoutScreen() {
             style={styles.restButton}
             onPress={startRest}
           >
-            <Timer size={16} color="#3b82f6" />
+            <Timer size={16} color={COLORS.primary} />
             <Text style={styles.restButtonText}>Start Rest Timer</Text>
           </TouchableOpacity>
         </View>
@@ -482,16 +501,16 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#030712",
+    backgroundColor: COLORS.background,
   },
   loadingText: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 16,
   },
   header: {
@@ -502,28 +521,28 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1f2937",
+    borderBottomColor: COLORS.textDark,
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
-    color: "#3b82f6",
+    color: COLORS.primary,
     fontSize: 16,
   },
   headerTitle: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "600",
   },
   endButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#991b1b",
+    backgroundColor: COLORS.danger,
     borderRadius: 8,
   },
   endButtonText: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -532,14 +551,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   fatigueCard: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
   },
   cardTitle: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 12,
@@ -552,12 +571,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   metricValue: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 24,
     fontWeight: "bold",
   },
   metricLabel: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
@@ -578,24 +597,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   adjustmentReasoning: {
-    color: "#d1d5db",
+    color: COLORS.lightGray,
     fontSize: 13,
     marginBottom: 8,
     lineHeight: 18,
   },
   adjustmentDetail: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginBottom: 4,
   },
   adjustmentConfidence: {
-    color: "#6b7280",
+    color: COLORS.gray,
     fontSize: 11,
     marginTop: 8,
     fontStyle: "italic",
   },
   restTimerCard: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 20,
     marginBottom: 12,
@@ -604,13 +623,13 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   restTimerText: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 32,
     fontWeight: "bold",
     fontVariant: ["tabular-nums"],
   },
   restTimerLabel: {
-    color: "#3b82f6",
+    color: COLORS.primary,
     fontSize: 14,
     fontWeight: "600",
     marginLeft: "auto",
@@ -618,15 +637,15 @@ const styles = StyleSheet.create({
   skipRestButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#374151",
+    backgroundColor: COLORS.border,
     borderRadius: 8,
   },
   skipRestText: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
   },
   setLoggerCard: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -640,18 +659,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputLabel: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.textDark,
     borderRadius: 8,
     padding: 12,
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: COLORS.border,
   },
   rpeSelector: {
     marginBottom: 16,
@@ -664,37 +683,37 @@ const styles = StyleSheet.create({
   rpeButton: {
     width: (SCREEN_WIDTH - 32 - 48) / 10,
     aspectRatio: 1,
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.textDark,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: COLORS.border,
   },
   rpeButtonActive: {
-    backgroundColor: "#3b82f6",
-    borderColor: "#3b82f6",
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   rpeButtonText: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
     fontWeight: "600",
   },
   rpeButtonTextActive: {
-    color: "#fff",
+    color: COLORS.textPrimary,
   },
   logButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
     marginBottom: 12,
   },
   logButtonDisabled: {
-    backgroundColor: "#374151",
+    backgroundColor: COLORS.border,
   },
   logButtonText: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -703,19 +722,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.textDark,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: COLORS.border,
   },
   restButtonText: {
-    color: "#3b82f6",
+    color: COLORS.primary,
     fontSize: 14,
     fontWeight: "600",
   },
   statsCard: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -729,12 +748,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: "bold",
   },
   statLabel: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 11,
     marginTop: 4,
   },

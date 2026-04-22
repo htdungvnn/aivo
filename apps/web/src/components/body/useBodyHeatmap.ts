@@ -28,7 +28,7 @@ function regionsToVectorData(regions: HeatmapRegion[], totalPoints: number = 100
 
   for (const region of regions) {
     const zone = BODY_ZONES.find(z => z.id === region.zoneId);
-    if (!zone?.bounds) continue;
+    if (!zone?.bounds) {continue;}
 
     const bounds = zone.bounds;
     const x = bounds.x ?? 0;
@@ -129,7 +129,7 @@ export interface UseBodyHeatmapReturn {
 
   // Actions
   uploadPhoto: (file: File) => Promise<{ photo: BodyPhotoRecord } | null>;
-  analyzePhoto: (photoId: string) => Promise<{ heatmap: StoredHeatmap; analysis: any } | null>;
+  analyzePhoto: (photoId: string) => Promise<{ heatmap: StoredHeatmap; analysis: unknown } | null>;
   deletePhoto: (id: string) => Promise<boolean>;
 }
 
@@ -143,12 +143,12 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
 
   // Transform current heatmap regions to component-ready formats
   const vectorData = useMemo(() => {
-    if (!currentHeatmap?.regions) return [];
+    if (!currentHeatmap?.regions) {return [];}
     return regionsToVectorData(currentHeatmap.regions);
   }, [currentHeatmap]);
 
   const zoneOverlays = useMemo(() => {
-    if (!currentHeatmap?.regions) return [];
+    if (!currentHeatmap?.regions) {return [];}
     return regionsToZoneOverlays(currentHeatmap.regions);
   }, [currentHeatmap]);
 
@@ -164,8 +164,12 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
         setCurrentHeatmap(null);
         setCurrentPhoto(null);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch current heatmap");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch current heatmap");
+      }
     } finally {
       setLoading(false);
     }
@@ -186,8 +190,12 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
         }
         setHasMore(data.length === limit);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch history");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch history");
+      }
     } finally {
       setLoading(false);
     }
@@ -197,8 +205,7 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
     try {
       const response = await apiClient.getHeatmap(id);
       return response.data || null;
-    } catch (err: any) {
-      console.error("Failed to fetch heatmap:", err);
+    } catch {
       return null;
     }
   }, []);
@@ -207,8 +214,7 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
     try {
       const response = await apiClient.compareHeatmaps(id1, id2);
       return response.data || null;
-    } catch (err: any) {
-      console.error("Failed to compare heatmaps:", err);
+    } catch {
       return null;
     }
   }, []);
@@ -217,8 +223,7 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
     try {
       const response = await apiClient.uploadBodyPhoto(file);
       return response.data || null;
-    } catch (err: any) {
-      console.error("Failed to upload photo:", err);
+    } catch {
       return null;
     }
   }, []);
@@ -227,8 +232,7 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
     try {
       const response = await apiClient.analyzeBodyPhoto(photoId);
       return response.data || null;
-    } catch (err: any) {
-      console.error("Failed to analyze photo:", err);
+    } catch {
       return null;
     }
   }, []);
@@ -237,8 +241,7 @@ export function useBodyHeatmap(): UseBodyHeatmapReturn {
     try {
       const response = await apiClient.deleteBodyPhoto(id);
       return response.data?.success ?? false;
-    } catch (err: any) {
-      console.error("Failed to delete photo:", err);
+    } catch {
       return false;
     }
   }, []);

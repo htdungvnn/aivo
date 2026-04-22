@@ -106,7 +106,7 @@ export default function FormAnalysisScreen() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Start Recording",
-          onPress: async () => {
+          onPress: () => {
             // TODO: Implement actual camera recording with expo-camera
             // For now, simulate with a file picker or mock upload
             Alert.alert("Coming Soon", "Video recording will be available in the next update.");
@@ -131,7 +131,7 @@ export default function FormAnalysisScreen() {
 
       // Fetch full results
       const result = await getFormVideoResult(video.id);
-      router.push({ pathname: "form-result" as any, params: { videoId: video.id } });
+      router.push({ pathname: "/form-result" as const, params: { videoId: video.id } });
     } catch (error) {
       Alert.alert("Error", "Failed to load video details");
     }
@@ -169,7 +169,7 @@ export default function FormAnalysisScreen() {
   const renderVideoCard = (video: VideoWithStatus) => (
     <TouchableOpacity
       key={video.id}
-      onPress={() => handleVideoPress(video)}
+      onPress={() => void handleVideoPress(video)}
       className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-3"
     >
       <View className="flex-row items-start gap-3">
@@ -238,7 +238,7 @@ export default function FormAnalysisScreen() {
 
         {/* Upload Card */}
         <TouchableOpacity
-          onPress={handleUpload}
+          onPress={() => void handleUpload()}
           className="bg-gradient-to-br from-cyan-950/30 to-blue-950/30 border border-cyan-500/30 rounded-xl p-6 mb-6"
         >
           <View className="flex-row items-center gap-4">

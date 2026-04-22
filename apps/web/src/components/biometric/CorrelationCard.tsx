@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   TrendingUp,
 } from "lucide-react";
-import { CorrelationFinding } from "@aivo/shared-types";
+import type { CorrelationFinding } from "@aivo/shared-types";
 
 interface CorrelationCardProps {
   finding: CorrelationFinding;
@@ -21,8 +21,8 @@ export function CorrelationCard({ finding, onDismiss }: CorrelationCardProps) {
   const isSignificant = pValue < 0.05;
 
   const getStrengthLabel = () => {
-    if (absCorrelation >= 0.7) return { label: "Strong", color: "bg-red-500/20 text-red-300 border-red-500/30" };
-    if (absCorrelation >= 0.4) return { label: "Moderate", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };
+    if (absCorrelation >= 0.7) {return { label: "Strong", color: "bg-red-500/20 text-red-300 border-red-500/30" };}
+    if (absCorrelation >= 0.4) {return { label: "Moderate", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };}
     return { label: "Weak", color: "bg-gray-500/20 text-gray-300 border-gray-500/30" };
   };
 

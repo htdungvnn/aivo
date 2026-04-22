@@ -49,7 +49,7 @@ export default function DashboardPage() {
   }, [loading, isAuthenticated, router]);
 
   const handleExport = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     setIsExporting(true);
     setExportError(null);
@@ -69,8 +69,8 @@ export default function DashboardPage() {
       const options: Parameters<typeof client.exportData>[0] = {
         format: exportFormat,
       };
-      if (exportStartDate) options.startDate = exportStartDate;
-      if (exportEndDate) options.endDate = exportEndDate;
+      if (exportStartDate) {options.startDate = exportStartDate;}
+      if (exportEndDate) {options.endDate = exportEndDate;}
 
       const result = await client.exportData(options);
 
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
+                      if (!file) {return;}
                       // TODO: Implement upload
                     }}
                   />

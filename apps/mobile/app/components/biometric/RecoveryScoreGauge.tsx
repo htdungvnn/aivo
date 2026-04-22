@@ -47,9 +47,9 @@ const styles = StyleSheet.create({
 
 export function RecoveryScoreGauge({ score, size = "md" }: RecoveryScoreGaugeProps) {
   const getCategory = (score: number) => {
-    if (score >= 80) return { label: "Excellent", color: "#22c55e" };
-    if (score >= 60) return { label: "Good", color: "#3b82f6" };
-    if (score >= 40) return { label: "Fair", color: "#f97316" };
+    if (score >= 80) {return { label: "Excellent", color: "#22c55e" };}
+    if (score >= 60) {return { label: "Good", color: "#3b82f6" };}
+    if (score >= 40) {return { label: "Fair", color: "#f97316" };}
     return { label: "Poor", color: "#ef4444" };
   };
 

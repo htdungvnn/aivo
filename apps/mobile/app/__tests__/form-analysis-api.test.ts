@@ -21,7 +21,7 @@ describe('FormAnalysisAPI', () => {
     jest.clearAllMocks();
     mockGetItem.mockResolvedValue(mockToken);
     mockGetItem.mockImplementation((key: string) => {
-      if (key === 'aivo_user_id') return Promise.resolve(mockUserId);
+      if (key === 'aivo_user_id') {return Promise.resolve(mockUserId);}
       return Promise.resolve(null);
     });
   });

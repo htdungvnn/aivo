@@ -93,9 +93,34 @@ export function BodyHeatmapSection() {
     }));
   }, [history]);
 
+  const handleAnalyze = useCallback(async (photoId?: string) => {
+    const id = photoId || currentPhoto?.id;
+    if (!id) {return;}
+
+    setAnalyzing(true);
+    try {
+      const result = await analyzePhoto(id);
+      if (result) {
+        setUploadMessage("Analysis complete! Heatmap generated.");
+        setTimeout(() => setUploadMessage(null), 3000);
+        await refetch();
+      } else {
+        setUploadMessage("Analysis failed. Please try again.");
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setUploadMessage(err.message);
+      } else {
+        setUploadMessage("Analysis failed");
+      }
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [currentPhoto, analyzePhoto, refetch]);
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {return;}
 
     setUploading(true);
     setUploadMessage(null);
@@ -109,35 +134,18 @@ export function BodyHeatmapSection() {
       } else {
         setUploadMessage("Upload failed. Please try again.");
       }
-    } catch (err: any) {
-      setUploadMessage(err.message || "Upload failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setUploadMessage(err.message);
+      } else {
+        setUploadMessage("Upload failed");
+      }
     } finally {
       setUploading(false);
       // Reset file input
-      if (e.target) e.target.value = "";
+      if (e.target) {e.target.value = "";}
     }
-  }, [uploadPhoto, analyzePhoto]);
-
-  const handleAnalyze = useCallback(async (photoId?: string) => {
-    const id = photoId || currentPhoto?.id;
-    if (!id) return;
-
-    setAnalyzing(true);
-    try {
-      const result = await analyzePhoto(id);
-      if (result) {
-        setUploadMessage("Analysis complete! Heatmap generated.");
-        setTimeout(() => setUploadMessage(null), 3000);
-        await refetch();
-      } else {
-        setUploadMessage("Analysis failed. Please try again.");
-      }
-    } catch (err: any) {
-      setUploadMessage(err.message || "Analysis failed");
-    } finally {
-      setAnalyzing(false);
-    }
-  }, [currentPhoto, analyzePhoto, refetch]);
+  }, [uploadPhoto, handleAnalyze]);
 
   const loadMoreHistory = useCallback(async () => {
     await loadHistory(10, history.length);

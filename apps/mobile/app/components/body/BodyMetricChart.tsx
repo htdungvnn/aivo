@@ -1,4 +1,3 @@
-// @ts-nocheck - Victory Native type definitions are complex
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { CartesianChart, Line, Bar, Area, CartesianAxis } from "victory-native";
@@ -29,6 +28,20 @@ const METRIC_UNITS: Record<string, string> = {
   bmi: "",
 };
 
+// Theme colors - centralized palette
+const COLORS = {
+  background: "rgba(15, 23, 42, 0.5)",
+  border: "#334155",
+  borderTransparent: "transparent",
+  textPrimary: "#ffffff",
+  textSecondary: "#94a3b8",
+  grid: "#1e293b",
+  axis: "#334155",
+  chartBackground: "transparent",
+} as const;
+
+type VictoryDataPoint = { x: number; y: number };
+
 export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetricChartProps) {
   const chartColor = color || METRIC_COLORS[metric];
   const unit = METRIC_UNITS[metric];
@@ -41,7 +54,8 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
     );
   }
 
-  const sortedData = [...data].map((d, i) => ({ x: i, y: d.value, date: d.date }));
+  const sortedData: VictoryDataPoint[] = [...data].map((d, i) => ({ x: i, y: d.value }));
+  const xTickValues = sortedData.map((_, i) => i);
 
   return (
     <View style={[styles.container, { height }]}>
@@ -49,15 +63,14 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
         domain={{ y: [0, Math.max(...data.map((d) => d.value)) * 1.1] }}
         padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
         style={{
-          parent: { backgroundColor: "transparent" },
+          parent: { backgroundColor: COLORS.chartBackground },
         }}
         data={sortedData}
         xKey="x"
         yKey="y"
       >
-        {(chartProps: any) => {
-          const { xScale, yScale, points, chartBounds } = chartProps;
-          const xTickValues = sortedData.map((_, i) => i);
+        {(chartProps: { xScale: (val: number) => number; yScale: (val: number) => number; points: { y: VictoryDataPoint[] } }) => {
+          const { xScale, yScale, points } = chartProps;
 
           return (
             <>
@@ -66,30 +79,30 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
                 yScale={yScale}
                 tickCount={5}
                 tickValues={{ x: xTickValues }}
-                formatXLabel={(_: number, i: number) => sortedData[i]?.date || ""}
+                formatXLabel={(_: number, i: number) => sortedData[i] ? data[i]?.date || "" : ""}
                 formatYLabel={(t: number) => `${t.toFixed(1)}${unit}`}
                 axisSide={{ x: "bottom", y: "left" }}
                 style={{
-                  axis: { stroke: "#334155" },
-                  tickLabels: { fill: "#94a3b8", fontSize: 10 },
-                  ticks: { stroke: "#334155" },
-                  grid: { stroke: "#1e293b", strokeDasharray: "3,3" },
+                  axis: { stroke: COLORS.axis },
+                  tickLabels: { fill: COLORS.textSecondary, fontSize: 10 },
+                  ticks: { stroke: COLORS.axis },
+                  grid: { stroke: COLORS.grid, strokeDasharray: "3,3" },
                 }}
-                lineColor={{ grid: "#1e293b", frame: "#334155" }}
+                lineColor={{ grid: COLORS.grid, frame: COLORS.axis }}
                 lineWidth={1}
-                labelColor="#94a3b8"
+                labelColor={COLORS.textSecondary}
               />
               <Area
                 points={points.y}
                 color={chartColor}
                 y0={0}
-                curveType="monotoneX"
+                curveType="linear"
               />
               <Line
                 points={points.y}
                 color={chartColor}
                 strokeWidth={2}
-                curveType="monotoneX"
+                curveType="linear"
               />
             </>
           );
@@ -120,7 +133,7 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
     );
   }
 
-  const barData = data.map((d, i) => ({ x: i, y: d.current, muscle: d.muscle }));
+  const barData: VictoryDataPoint[] = data.map((d, i) => ({ x: i, y: d.current }));
   const xTickValues = data.map((_, i) => i);
 
   return (
@@ -128,13 +141,13 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
       <CartesianChart
         domain={{ x: [0, 100], y: [0, 100] }}
         padding={{ top: 20, bottom: 50, left: 60, right: 20 }}
-        style={{ parent: { backgroundColor: "transparent" } }}
+        style={{ parent: { backgroundColor: COLORS.chartBackground } }}
         data={barData}
         xKey="x"
         yKey="y"
       >
-        {(chartProps: any) => {
-          const { xScale, yScale, points, chartBounds } = chartProps;
+        {(chartProps: { xScale: (val: number) => number; yScale: (val: number) => number; points: { y: VictoryDataPoint[] } }) => {
+          const { xScale, yScale, points } = chartProps;
 
           return (
             <>
@@ -147,16 +160,15 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
                 formatYLabel={(t: number) => `${t}%`}
                 axisSide={{ x: "bottom", y: "left" }}
                 style={{
-                  tickLabels: { fill: "#94a3b8", fontSize: 9 },
+                  tickLabels: { fill: COLORS.textSecondary, fontSize: 9 },
                 }}
-                lineColor={{ grid: "#1e293b", frame: "#334155" }}
+                lineColor={{ grid: COLORS.grid, frame: COLORS.axis }}
                 lineWidth={1}
-                labelColor="#94a3b8"
+                labelColor={COLORS.textSecondary}
               />
               <Bar
                 points={points.y}
                 color="#22c55e"
-                chartBounds={chartBounds}
                 cornerRadius={4}
               />
             </>
@@ -174,7 +186,7 @@ interface HealthScoreGaugeProps {
 }
 
 export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
-  const getCategoryColor = () => {
+  const categoryColor = (() => {
     switch (category) {
       case "excellent":
         return "#22c55e";
@@ -187,28 +199,27 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
       default:
         return "#64748b";
     }
-  };
+  })();
 
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const strokeWidth = 12;
   const normalizedScore = score / 100;
-  const strokeDashoffset = circumference * (1 - normalizedScore);
 
   return (
     <View style={styles.gaugeContainer}>
       <View style={styles.gaugeSvgContainer}>
         {/* Background circle */}
-        <View style={[styles.gaugeCircle, { borderWidth: strokeWidth / 2, borderColor: "#334155" }]} />
+        <View style={[styles.gaugeCircle, { borderWidth: strokeWidth / 2, borderColor: COLORS.border }]} />
         {/* Score arc */}
         <View
           style={[
             styles.gaugeCircle,
             {
               borderWidth: strokeWidth / 2,
-              borderColor: getCategoryColor(),
-              borderTopColor: "transparent",
-              borderRightColor: "transparent",
+              borderColor: categoryColor,
+              borderTopColor: COLORS.borderTransparent,
+              borderRightColor: COLORS.borderTransparent,
               transform: [{ rotate: "-45deg" }],
             },
           ]}
@@ -216,7 +227,7 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
       </View>
       <View style={styles.gaugeCenter}>
         <Text style={styles.gaugeScore}>{Math.round(score)}</Text>
-        <Text style={[styles.gaugeCategory, { color: getCategoryColor() }]}>
+        <Text style={[styles.gaugeCategory, { color: categoryColor }]}>
           {category.toUpperCase()}
         </Text>
       </View>
@@ -226,7 +237,7 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     padding: 16,
   },
@@ -242,9 +253,9 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 6,
-    borderColor: "#334155",
-    borderTopColor: "transparent",
-    borderRightColor: "transparent",
+    borderColor: COLORS.border,
+    borderTopColor: COLORS.borderTransparent,
+    borderRightColor: COLORS.borderTransparent,
     transform: [{ rotate: "-45deg" }],
   },
   gaugeCircle: {
@@ -260,7 +271,7 @@ const styles = StyleSheet.create({
   gaugeScore: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: COLORS.textPrimary,
   },
   gaugeCategory: {
     fontSize: 10,

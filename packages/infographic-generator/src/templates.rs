@@ -1,7 +1,6 @@
 //! SVG Template definitions and rendering
 
 use crate::types::{ColorPalette, SvgTemplate, SvgTemplateElement};
-use svg::node::element::{Text, Group, Rectangle, Circle, Path, Image};
 
 /// Get a template by ID
 pub fn get_template_by_id(

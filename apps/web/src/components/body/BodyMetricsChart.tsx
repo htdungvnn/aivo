@@ -86,7 +86,13 @@ export function BodyMetricChart({
     displayValue: point.value.toFixed(1),
   }));
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{ value: number; name: string; dataKey: string }>;
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
@@ -206,7 +212,13 @@ export function MuscleBalanceChart({
   data: MuscleBalanceData[];
   height?: number;
 }) {
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{ value: number; name: string; dataKey: string }>;
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">

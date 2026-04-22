@@ -41,7 +41,7 @@ export function BodyHeatmap({
 
   // Render zone overlays (preferred approach for vision-based heatmaps)
   const zoneElements = useMemo(() => {
-    if (!zoneOverlays || zoneOverlays.length === 0) return null;
+    if (!zoneOverlays || zoneOverlays.length === 0) {return null;}
 
     return zoneOverlays.map((overlay, index) => {
       const isSelected = selectedMuscles.includes(overlay.zoneId);
@@ -79,7 +79,7 @@ export function BodyHeatmap({
 
   // Fallback to vector data rendering if zoneOverlays not provided
   const vectorElements = useMemo(() => {
-    if (!vectorData || vectorData.length === 0) return null;
+    if (!vectorData || vectorData.length === 0) {return null;}
 
     return vectorData.map((point, index) => {
       const isSelected = selectedMuscles.some(
@@ -147,7 +147,7 @@ export function BodyHeatmap({
   const labels = useMemo(() => {
     return selectedMuscles.map((muscle, index) => {
       const zone = BODY_ZONES.find(z => z.id === muscle);
-      if (!zone?.bounds) return null;
+      if (!zone?.bounds) {return null;}
       const { x, y, width, height } = zone.bounds;
       return (
         <motion.text

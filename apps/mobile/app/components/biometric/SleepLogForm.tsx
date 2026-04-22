@@ -26,28 +26,29 @@ export default function SleepLogForm({ onSuccess }: SleepLogFormProps) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_event: unknown, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
     }
   };
 
-  const handleBedtimeChange = (event: any, selectedTime?: Date) => {
-    if (selectedTime) {
-      const hours = selectedTime.getHours().toString().padStart(2, "0");
-      const minutes = selectedTime.getMinutes().toString().padStart(2, "0");
-      setBedtime(`${hours}:${minutes}`);
-    }
-  };
+  // Handlers for bedtime/waketime are not currently used as DateTimePicker components are not in the form
+  // const handleBedtimeChange = (_event: unknown, selectedTime?: Date) => {
+  //   if (selectedTime) {
+  //     const hours = selectedTime.getHours().toString().padStart(2, "0");
+  //     const minutes = selectedTime.getMinutes().toString().padStart(2, "0");
+  //     setBedtime(`${hours}:${minutes}`);
+  //   }
+  // };
 
-  const handleWaketimeChange = (event: any, selectedTime?: Date) => {
-    if (selectedTime) {
-      const hours = selectedTime.getHours().toString().padStart(2, "0");
-      const minutes = selectedTime.getMinutes().toString().padStart(2, "0");
-      setWaketime(`${hours}:${minutes}`);
-    }
-  };
+  // const handleWaketimeChange = (_event: unknown, selectedTime?: Date) => {
+  //   if (selectedTime) {
+  //     const hours = selectedTime.getHours().toString().padStart(2, "0");
+  //     const minutes = selectedTime.getMinutes().toString().padStart(2, "0");
+  //     setWaketime(`${hours}:${minutes}`);
+  //   }
+  // };
 
   const handleSubmit = useCallback(async () => {
     if (!durationHours || parseFloat(durationHours) <= 0) {
@@ -78,7 +79,7 @@ export default function SleepLogForm({ onSuccess }: SleepLogFormProps) {
       setBedtime("");
       setWaketime("");
       setNotes("");
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to save sleep log. Please try again.");
     } finally {
       setLoading(false);
@@ -199,7 +200,7 @@ export default function SleepLogForm({ onSuccess }: SleepLogFormProps) {
 
         {/* Submit Button */}
         <TouchableOpacity
-          onPress={handleSubmit}
+          onPress={() => void handleSubmit()}
           disabled={loading || !durationHours}
           className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl p-4 items-center flex-row justify-center gap-2 disabled:opacity-50"
         >

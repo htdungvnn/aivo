@@ -5,6 +5,23 @@ import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/AuthContext";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
 
+const COLORS = {
+  background: "#030712",
+  surface: "#111827",
+  surfaceDark: "#1f2937",
+  border: "#374151",
+  textMuted: "#9ca3af",
+  textPrimary: "#ffffff",
+  primary: "#3b82f6",
+  danger: COLORS.danger,
+  success: COLORS.success,
+  successDark: "#064e3b",
+  successLight: COLORS.successLight,
+  gray: "#6b7280",
+  overlay: COLORS.overlay,
+  transparent: COLORS.transparent,
+} as const;
+
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
@@ -61,7 +78,7 @@ export default function ProfileScreen() {
     { icon: Shield, label: "Privacy", action: "Manage" },
     { icon: HelpCircle, label: "Help & Support", action: "Get Help" },
     { icon: Settings, label: "Settings", action: "Open" },
-    { icon: LogOut, label: "Sign Out", action: "", isDestructive: true, onPress: logout },
+    { icon: LogOut, label: "Sign Out", action: "", isDestructive: true, onPress: () => void logout() },
   ];
 
   const exportFormats = [
@@ -74,7 +91,7 @@ export default function ProfileScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <User size={48} color="#9ca3af" />
+          <User size={48} color={COLORS.textMuted} />
         </View>
         <Text style={styles.userName}>{user?.name || "Alex Johnson"}</Text>
         <Text style={styles.userEmail}>{user?.email || "alex@aivo.fit"}</Text>
@@ -98,9 +115,9 @@ export default function ProfileScreen() {
 
       <View style={styles.menuContainer}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress}>
+          <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress ? () => void item.onPress?.() : undefined}>
             <View style={[styles.menuIconContainer, item.isPrimary && styles.primaryIconContainer]}>
-              <item.icon size={20} color={item.isDestructive ? "#ef4444" : item.isPrimary ? "#10b981" : "#3b82f6"} />
+              <item.icon size={20} color={item.isDestructive ? COLORS.danger : item.isPrimary ? COLORS.success : "#3b82f6"} />
             </View>
             <Text style={[styles.menuLabel, item.isDestructive && styles.destructiveText]}>
               {item.label}
@@ -125,7 +142,7 @@ export default function ProfileScreen() {
                 style={[styles.formatOption, exportFormat === format.value && styles.selectedFormatOption]}
                 onPress={() => setExportFormat(format.value)}
               >
-                <format.icon size={24} color={exportFormat === format.value ? "#10b981" : "#9ca3af"} />
+                <format.icon size={24} color={exportFormat === format.value ? COLORS.success : COLORS.textMuted} />
                 <Text style={styles.formatLabel}>{format.label}</Text>
                 {exportFormat === format.value && (
                   <View style={styles.checkmark}>
@@ -144,7 +161,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton, isExporting && styles.disabledButton]}
-                onPress={handleExport}
+                onPress={() => void handleExport()}
                 disabled={isExporting}
               >
                 <Text style={styles.confirmButtonText}>
@@ -164,31 +181,31 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: COLORS.background,
   },
   header: {
     alignItems: "center",
     paddingTop: 60,
     paddingBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#374151",
+    borderBottomColor: COLORS.border,
   },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.surfaceDark,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   userName: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 24,
     fontWeight: "bold",
   },
   userEmail: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 14,
     marginTop: 4,
   },
@@ -202,18 +219,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "bold",
   },
   statLabel: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: "#374151",
+    backgroundColor: COLORS.border,
   },
   menuContainer: {
     marginTop: 24,
@@ -222,36 +239,36 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: COLORS.border,
   },
   menuIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.surfaceDark,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   primaryIconContainer: {
-    backgroundColor: "#065f46",
+    backgroundColor: COLORS.successLight,
   },
   menuLabel: {
     flex: 1,
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
   },
   menuAction: {
-    color: "#3b82f6",
+    color: COLORS.primary,
     fontSize: 14,
   },
   destructiveText: {
-    color: "#ef4444",
+    color: COLORS.danger,
   },
   // Export Modal Styles
   modalOverlay: {
@@ -260,30 +277,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backgroundColor: COLORS.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
     zIndex: 1000,
   },
   modalContent: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 24,
     width: "100%",
     maxWidth: 360,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: COLORS.border,
   },
   modalTitle: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 4,
   },
   modalSubtitle: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 14,
     textAlign: "center",
     marginBottom: 20,
@@ -291,21 +308,21 @@ const styles = StyleSheet.create({
   formatOption: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1f2937",
+    backgroundColor: COLORS.surfaceDark,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: COLORS.transparent,
     gap: 12,
   },
   selectedFormatOption: {
-    borderColor: "#10b981",
+    borderColor: COLORS.success,
     backgroundColor: "#064e3b",
   },
   formatLabel: {
     flex: 1,
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "500",
   },
@@ -313,12 +330,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#10b981",
+    backgroundColor: COLORS.success,
     justifyContent: "center",
     alignItems: "center",
   },
   checkmarkText: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -334,18 +351,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#374151",
+    backgroundColor: COLORS.border,
   },
   cancelButtonText: {
-    color: "#9ca3af",
+    color: COLORS.textMuted,
     fontSize: 16,
     fontWeight: "600",
   },
   confirmButton: {
-    backgroundColor: "#10b981",
+    backgroundColor: COLORS.success,
   },
   confirmButtonText: {
-    color: "#fff",
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },

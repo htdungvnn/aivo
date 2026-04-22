@@ -1,10 +1,19 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MetricsProvider } from "@/contexts/MetricsContext";
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#030712",
+  },
+});
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -18,8 +27,8 @@ export default function RootLayout() {
     try {
       const token = await AsyncStorage.getItem("aivo_token");
       setIsAuthenticated(!!token);
-    } catch (error) {
-      console.error("Auth check error:", error);
+    } catch {
+      // Silently handle auth check errors
     } finally {
       setIsLoading(false);
     }
@@ -27,7 +36,7 @@ export default function RootLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#030712" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );

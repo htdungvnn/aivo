@@ -25,6 +25,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Zap,
+  Activity,
 } from "lucide-react-native";
 
 type TabKey = "overview" | "sleep" | "correlations";
@@ -64,8 +65,8 @@ export default function RecoveryDashboard() {
       if (latestSnapshot) {
         setSnapshot(latestSnapshot);
       }
-    } catch (error) {
-      console.error("Failed to load biometric data:", error);
+    } catch {
+      // Silently ignore errors
     } finally {
       setLoading(false);
     }
@@ -75,21 +76,20 @@ export default function RecoveryDashboard() {
     loadData();
   }, [loadData]);
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    void loadData().finally(() => setRefreshing(false));
   }, [loadData]);
 
   const handleGenerateSnapshot = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     setGenerating(true);
     try {
       const newSnapshot = await generateBiometricSnapshot();
       setSnapshot(newSnapshot);
       Alert.alert("Analysis Complete", "Your recovery metrics have been updated!");
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to generate analysis. Please try again.");
     } finally {
       setGenerating(false);
@@ -187,7 +187,7 @@ export default function RecoveryDashboard() {
 
       {/* Run Analysis Button */}
       <TouchableOpacity
-        onPress={handleGenerateSnapshot}
+        onPress={() => void handleGenerateSnapshot()}
         disabled={generating}
         className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-4 items-center flex-row justify-center gap-2 disabled:opacity-50"
       >
@@ -293,7 +293,7 @@ export default function RecoveryDashboard() {
               <Text className="text-slate-200 font-semibold text-sm">
                 {correlation.factorA.replace(/_/g, " ")} → {correlation.factorB.replace(/_/g, " ")}
               </Text>
-              <TouchableOpacity onPress={() => handleDismissCorrelation(correlation.id)}>
+              <TouchableOpacity onPress={() => void handleDismissCorrelation(correlation.id)}>
                 <Text className="text-slate-500 text-xs">Dismiss</Text>
               </TouchableOpacity>
             </View>
@@ -357,7 +357,7 @@ export default function RecoveryDashboard() {
     <ScrollView
       className="flex-1 bg-slate-950"
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tint="#8b5cf6" />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
       <View className="p-4">

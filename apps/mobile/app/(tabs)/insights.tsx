@@ -332,7 +332,7 @@ export default function InsightsScreen() {
                   ) : (
                     <>
                       <TouchableOpacity
-                        onPress={handleUpload}
+                        onPress={() => void handleUpload()}
                         className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-lg items-center flex-row justify-center gap-2"
                       >
                         <Upload className="w-5 h-5 text-white" />
@@ -367,7 +367,7 @@ export default function InsightsScreen() {
                 <Text className="text-slate-200 font-semibold mb-4">Select Photo</Text>
 
                 <TouchableOpacity
-                  onPress={handleTakePhoto}
+                  onPress={() => void handleTakePhoto()}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center mb-3"
                 >
                   <Camera className="w-12 h-12 text-cyan-400 mb-2" />
@@ -376,7 +376,7 @@ export default function InsightsScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={handlePickImage}
+                  onPress={() => void handlePickImage()}
                   className="bg-slate-800 border-2 border-dashed border-slate-700 rounded-xl p-6 items-center"
                 >
                   <ImageIcon className="w-12 h-12 text-cyan-400 mb-2" />

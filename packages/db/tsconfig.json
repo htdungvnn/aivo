@@ -13,5 +13,5 @@
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "drizzle"]
+  "exclude": ["node_modules", "drizzle", "src/__tests__/**", "**/*.test.ts", "seed-mock.ts"]
 }

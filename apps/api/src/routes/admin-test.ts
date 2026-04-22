@@ -225,7 +225,7 @@ app.get("/api/admin/memories", async (c) => {
 app.get("/api/admin/body-metrics", async (c) => {
   if (!isDevOrAdmin(c)) {
     return c.json({ error: "Unauthorized" }, 401);
-  });
+  }
 
   return c.json({
     success: true,

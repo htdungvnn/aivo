@@ -57,8 +57,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
       onLogin?.(data.data!);
       router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google login failed");
+    } catch (_err) {
+      setError(_err instanceof Error ? _err.message : "Google login failed");
     } finally {
       setLoading(null);
     }
@@ -115,8 +115,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
       onLogin?.(data.data!);
       router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Facebook login failed");
+    } catch (_err) {
+      setError(_err instanceof Error ? _err.message : "Facebook login failed");
     } finally {
       setLoading(null);
     }
