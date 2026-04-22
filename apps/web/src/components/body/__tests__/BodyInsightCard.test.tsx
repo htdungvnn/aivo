@@ -103,7 +103,7 @@ describe('BodyInsightCard Component', () => {
     it('shows error when no token', async () => {
       localStorage.getItem = jest.fn().mockReturnValue(null);
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('Not authenticated')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('BodyInsightCard Component', () => {
         json: async () => ({ data: [] }),
       });
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe('BodyInsightCard Component', () => {
         return Promise.reject(new Error('Unknown URL'));
       });
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledTimes(3);
@@ -161,7 +161,7 @@ describe('BodyInsightCard Component', () => {
     it('handles fetch errors gracefully', async () => {
       (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load body insights')).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe('BodyInsightCard Component', () => {
         return Promise.reject(new Error('Unknown URL'));
       });
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('No heatmap data yet.')).toBeInTheDocument();
@@ -203,7 +203,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('renders compact view when compact prop is true', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
 
       await waitFor(() => {
         expect(screen.getByText('Body Heatmap')).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('hides charts in compact mode', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
 
       await waitFor(() => {
         expect(screen.queryByText('Weight Progress')).not.toBeInTheDocument();
@@ -221,7 +221,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('shows refresh button in compact mode', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
 
       await waitFor(() => {
         expect(screen.getByText('Refresh')).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('renders full dashboard with all sections', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={false} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={false} />);
 
       await waitFor(() => {
         expect(screen.getByText('Health Score')).toBeInTheDocument();
@@ -265,7 +265,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('displays latest metric values in BodyMetricCards', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={false} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={false} />);
 
       await waitFor(() => {
         expect(screen.getByText('71.2')).toBeInTheDocument(); // Latest weight
@@ -275,7 +275,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('calculates change from previous metric', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={false} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={false} />);
 
       await waitFor(() => {
         // Weight change: 71.2 - 70.5 = 0.7
@@ -284,7 +284,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('renders trend charts when data available', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={false} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={false} />);
 
       await waitFor(() => {
         expect(screen.getByText('Weight Progress')).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('calls fetchData when refresh button clicked', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalled();
@@ -339,7 +339,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('displays health score with correct value', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('82')).toBeInTheDocument();
@@ -347,7 +347,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('displays health score category', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('GOOD')).toBeInTheDocument();
@@ -355,7 +355,7 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('displays recommendations from health score', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('Continue current training')).toBeInTheDocument();
@@ -395,7 +395,7 @@ describe('BodyInsightCard Component', () => {
         return Promise.resolve({ ok: true, json: async () => ({ data: [] }) });
       });
 
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       await waitFor(() => {
         expect(screen.getByText('Posture Analysis')).toBeInTheDocument();
@@ -416,10 +416,10 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('shows loading state while fetching', () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       // Should show loading skeletons
-      const { container } = render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      const { container } = render(<BodyInsightCard apiUrl={mockApiUrl} />);
       // Loading state has animate-pulse class
       // Wait for state to be loading
     });
@@ -440,20 +440,20 @@ describe('BodyInsightCard Component', () => {
     });
 
     it('renders heatmap with vector data', async () => {
-      render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
 
       await waitFor(() => {
         expect(screen.getByText('Body Heatmap')).toBeInTheDocument();
       });
 
       // Heatmap component should render SVG
-      const { container } = render(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />);
+      const { container } = render(<BodyInsightCard apiUrl={mockApiUrl} compact={true} />);
       // The actual SVG is inside the heatmap component - we verify it loads
     });
 
     it('handles click on heatmap point', async () => {
       const { container } = render(
-        <BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} compact={true} />
+        <BodyInsightCard apiUrl={mockApiUrl} compact={true} />
       );
 
       await waitFor(() => {
@@ -484,9 +484,9 @@ describe('BodyInsightCard Component', () => {
       });
     });
 
-    it('does not refetch when userId and apiUrl unchanged', async () => {
+    it('does not refetch when apiUrl unchanged', async () => {
       const { rerender } = render(
-        <BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />
+        <BodyInsightCard apiUrl={mockApiUrl} />
       );
 
       await waitFor(() => {
@@ -495,22 +495,29 @@ describe('BodyInsightCard Component', () => {
 
       const callCount = (fetch as jest.Mock).mock.calls.length;
 
-      rerender(<BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />);
+      rerender(<BodyInsightCard apiUrl={mockApiUrl} />);
 
       // Should not call fetch again with same props (useEffect dependency check)
       expect(fetch).toHaveBeenCalledTimes(callCount);
     });
 
-    it('refetches when userId changes', async () => {
-      const { rerender } = render(
-        <BodyInsightCard userId={mockUserId} apiUrl={mockApiUrl} />
+    it('refetches when remounted', async () => {
+      const { rerender, unmount } = render(
+        <BodyInsightCard apiUrl={mockApiUrl} />
       );
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
-      rerender(<BodyInsightCard userId="different-user" apiUrl={mockApiUrl} />);
+      unmount();
+      const callCount = (fetch as jest.Mock).mock.calls.length;
+
+      rerender(<BodyInsightCard apiUrl={mockApiUrl} />);
+
+      // Should call fetch again after remount
+      expect(fetch).toHaveBeenCalledTimes(callCount + 1);
+    });
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledTimes(6); // Called again for new user

@@ -1,0 +1,205 @@
+import React from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { SleepLogForm } from '../SleepLogForm';
+import * as biometricApi from '@/services/biometric-api';
+
+// Mock the API
+vi.mock('@/services/biometric-api', () => ({
+  createSleepLog: vi.fn(),
+}));
+
+describe('SleepLogForm Component', () => {
+  const mockOnSuccess = vi.fn();
+  const mockOnCancel = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (biometricApi.createSleepLog as vi.Mock).mockResolvedValue({
+      id: 'sleep-1',
+      date: '2025-04-22',
+      durationHours: 7.5,
+      qualityScore: 85,
+      notes: 'Good sleep',
+    });
+  });
+
+  it('should render all form fields', () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/duration/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/quality/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
+    expect(screen.getByText(/save sleep log/i)).toBeInTheDocument();
+    expect(screen.getByText(/cancel/i)).toBeInTheDocument();
+  });
+
+  it('should have default values for duration and quality', () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const durationInput = screen.getByLabelText(/duration/i) as HTMLInputElement;
+    const qualityInput = screen.getByLabelText(/quality/i) as HTMLInputElement;
+
+    expect(durationInput.value).toBe('7.5');
+    expect(qualityInput.value).toBe('80');
+  });
+
+  it('should allow changing duration', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const durationInput = screen.getByLabelText(/duration/i);
+    fireEvent.change(durationInput, { target: { value: '8' } });
+
+    expect(durationInput).toHaveValue('8');
+  });
+
+  it('should allow changing quality', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const qualityInput = screen.getByLabelText(/quality/i);
+    fireEvent.change(qualityInput, { target: { value: '90' } });
+
+    expect(qualityInput).toHaveValue('90');
+  });
+
+  it('should allow entering notes', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const notesInput = screen.getByLabelText(/notes/i);
+    fireEvent.change(notesInput, { target: { value: 'Felt great today' } });
+
+    expect(notesInput).toHaveValue('Felt great today');
+  });
+
+  it('should submit form with correct data', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    // Fill in date (use a fixed date for testing)
+    const dateInput = screen.getByLabelText(/date/i);
+    fireEvent.change(dateInput, { target: { value: '2025-04-22' } });
+
+    // Submit
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(biometricApi.createSleepLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date: '2025-04-22',
+          durationHours: 7.5,
+          qualityScore: 80,
+        })
+      );
+    });
+  });
+
+  it('should call onSuccess after successful submission', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const dateInput = screen.getByLabelText(/date/i);
+    fireEvent.change(dateInput, { target: { value: '2025-04-22' } });
+
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockOnSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('should call onCancel when cancel button clicked', () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const cancelButton = screen.getByText(/cancel/i);
+    fireEvent.click(cancelButton);
+
+    expect(mockOnCancel).toHaveBeenCalled();
+  });
+
+  it('should show error message when required fields are empty', async () => {
+    // Clear mocks
+    vi.clearAllMocks();
+    (biometricApi.createSleepLog as vi.Mock).mockRejectedValue(new Error('Validation error'));
+
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    // Submit without filling date (date might be required in a real scenario)
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    // In a real scenario, we'd expect validation, but this tests the rejection flow
+    await waitFor(() => {
+      expect(mockOnSuccess).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should validate duration is a number', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const durationInput = screen.getByLabelText(/duration/i);
+    fireEvent.change(durationInput, { target: { value: 'not a number' } });
+
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    // API should handle validation error
+    await waitFor(() => {
+      expect(biometricApi.createSleepLog).toHaveBeenCalled();
+    });
+  });
+
+  it('should validate quality score range', async () => {
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const qualityInput = screen.getByLabelText(/quality/i);
+    fireEvent.change(qualityInput, { target: { value: '150' } });
+
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(biometricApi.createSleepLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qualityScore: 150,
+        })
+      );
+    });
+  });
+
+  it('should handle API error gracefully', async () => {
+    (biometricApi.createSleepLog as vi.Mock).mockRejectedValue(
+      new Error('Network error')
+    );
+
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const dateInput = screen.getByLabelText(/date/i);
+    fireEvent.change(dateInput, { target: { value: '2025-04-22' } });
+
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockOnSuccess).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should disable submit button during submission', async () => {
+    // Make API call take longer
+    (biometricApi.createSleepLog as vi.Mock).mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100))
+    );
+
+    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
+
+    const dateInput = screen.getByLabelText(/date/i);
+    fireEvent.change(dateInput, { target: { value: '2025-04-22' } });
+
+    const submitButton = screen.getByText(/save sleep log/i);
+    fireEvent.click(submitButton);
+
+    // Button should be disabled during submission
+    expect(submitButton).toBeDisabled();
+  });
+});

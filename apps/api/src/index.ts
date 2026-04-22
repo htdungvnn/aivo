@@ -25,6 +25,7 @@ import { InfographicRouter } from "./routes/infographic";
 // Temporarily disabled - WIP with type errors
 // import { LiveWorkoutRouter } from "./routes/live-workout";
 import { MetabolicRouter } from "./routes/metabolic";
+import { postureRouter } from "./routes/posture";
 // import { formRouter } from "./routes/form-analyze";
 export interface AppEnv {
   AUTH_SECRET: string;
@@ -163,6 +164,7 @@ app.route("/api/infographic", InfographicRouter());
 // Temporarily disabled - WIP with type errors
 // app.route("/api/live-workout", LiveWorkoutRouter());
 app.route("/api/metabolic", MetabolicRouter());
+app.route("/api/posture", postureRouter());
 
 // ============================================
 // PROTECTED SWAGGER UI (Production)

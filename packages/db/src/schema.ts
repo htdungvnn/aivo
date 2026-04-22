@@ -643,6 +643,8 @@ export const formAnalyses = sqliteTable("form_analyses", {
   corrections: text("corrections").notNull(), // JSON array of FormCorrection
   summaryJson: text("summary_json").notNull(), // JSON: { strengths, primaryConcern, priority }
   frameAnalysisJson: text("frame_analysis_json"), // JSON: { keyFrames: [...] }
+  aiFeedbackJson: text("ai_feedback_json"), // JSON: AIFeedbackResponse from GPT-4o
+  aiProcessingTimeMs: integer("ai_processing_time_ms"), // Time for AI analysis
   createdAt: integer("created_at").notNull(),
   completedAt: integer("completed_at"),
   processingTimeMs: integer("processing_time_ms"),

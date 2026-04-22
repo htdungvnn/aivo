@@ -2027,6 +2027,33 @@ export interface FormAnalysisReport {
     primaryConcern: string;
     priority: "low" | "medium" | "high";
   };
+  aiFeedback?: {
+    overallAssessment: string;
+    primaryIssues: Array<{
+      issue: string;
+      severity: "low" | "medium" | "high" | "critical";
+      explanation: string;
+      priority: number;
+    }>;
+    personalizedCues: Array<{
+      triggerPoint: string;
+      verbalCue: string;
+      visualCue?: string;
+      tactileCue?: string;
+    }>;
+    drillRecommendations: Array<{
+      name: string;
+      purpose: string;
+      frequency: string;
+      duration: string;
+      steps: string[];
+      regressions: string[];
+      progressions: string[];
+    }>;
+    confidence: number;
+    warnings: string[];
+  };
+  aiProcessingTimeMs?: number;
   frameAnalysis?: {
     keyFrames: Array<{
       timestampMs: number;
@@ -2880,6 +2907,96 @@ export interface LiveAdjustmentNotification {
   actionLabel: string; // e.g., "Apply Adjustment", "Continue as Planned"
   timestamp: number;
 }
+
+// ============================================
+// SECTION 20: POSTURE ANALYSIS - REAL-TIME FORM CORRECTION
+// ============================================
+
+/**
+ * Joint position with confidence score (2D or 3D)
+ */
+export interface SkeletonJoint {
+  x: number;
+  y: number;
+  z?: number; // Optional depth for 3D poses
+  confidence: number; // 0-1 detection confidence
+}
+
+/**
+ * Single frame of skeleton data
+ */
+export interface SkeletonFrame {
+  frameNumber: number;
+  timestampMs: number;
+  joints: Record<string, SkeletonJoint>; // e.g., "left_hip", "right_knee"
+}
+
+/**
+ * Complete skeleton sequence for an exercise
+ */
+export interface SkeletonData {
+  exerciseType: "squat" | "deadlift" | "bench_press" | "overhead_press" | "lunge";
+  frames: SkeletonFrame[];
+  metadata: {
+    fps: number;
+    resolutionWidth: number;
+    resolutionHeight: number;
+    totalFrames: number;
+  };
+}
+
+/**
+ * Detected form deviation from posture analysis
+ */
+export interface FormDeviation {
+  joint: string;
+  issueType: string; // e.g., "knee_valgus", "rounded_back"
+  severity: "minor" | "moderate" | "major";
+  confidence: number; // 0-1
+  timestampMs: number;
+  actualValue: number; // measured angle or deviation amount
+  expectedRange: string; // human-readable expected range
+  description: string;
+  cue: string; // coaching cue to correct the issue
+}
+
+/**
+ * Complete posture analysis result
+ */
+export interface PostureAnalysisResult {
+  overallScore: number; // 0-100
+  grade: "A" | "B" | "C" | "D" | "F";
+  totalFramesAnalyzed: number;
+  deviations: FormDeviation[];
+  criticalWarnings: string[]; // Safety-critical alerts
+  exerciseSpecificNotes: string[];
+  processingTimeMs: number;
+}
+
+/**
+ * Keyframe extraction result
+ */
+export interface KeyframeExtraction {
+  totalFrames: number;
+  keyframeCount: number;
+  keyframeIndices: number[];
+  fps: number;
+  strategy: "every_n" | "phase_based" | "motion_based";
+}
+
+/**
+ * Real-time feedback for a single frame
+ */
+export interface RealtimePostureFeedback {
+  isCritical: boolean;
+  deviations: FormDeviation[];
+  feedback: string[]; // User-facing coaching messages
+  timestamp: number;
+}
+
+// ============================================
+// END OF POSTURE ANALYSIS TYPES
+// ============================================
 
 // ============================================
 // END OF LIVE WORKOUT ADJUSTMENT TYPES

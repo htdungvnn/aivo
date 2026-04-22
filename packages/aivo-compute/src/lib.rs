@@ -3577,6 +3577,359 @@ fn generate_recommendations(
     recommendations
 }
 
+/// Live workout adjustment module for real-time AI-powered intensity adjustments
+#[wasm_bindgen]
+pub struct LiveWorkoutAdjuster;
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct RPERecord {
+  rpe: f64,
+  weight: Option<f64>,
+  reps_completed: Option<u32>,
+  rest_time_seconds: Option<u32>,
+  set_number: u32,
+  timestamp: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FatigueAssessment {
+  pub fatigue_level: u32,
+  pub category: FatigueCategory,
+  pub rpe_trend: RPETrend,
+  pub avg_rpe: f64,
+  pub rest_compliance: f64,
+  pub recommendation: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum FatigueCategory {
+  Fresh, Moderate, Fatigued, Exhausted,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum RPETrend {
+  Increasing, Stable, Decreasing, NoData,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveAdjustment {
+  pub adjustment_type: AdjustmentStrategy,
+  pub weight_percent: Option<f64>,
+  pub rep_adjustment: Option<i32>,
+  pub additional_rest_seconds: Option<u32>,
+  pub confidence: f64,
+  pub reasoning: String,
+  pub urgency: AdjustmentUrgency,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum AdjustmentStrategy {
+  ReduceWeight, ReduceReps, AddRest, Keep, Stop,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum AdjustmentUrgency {
+  Low, Medium, High, Critical,
+}
+
+#[wasm_bindgen]
+impl LiveWorkoutAdjuster {
+  #[wasm_bindgen(js_name = "assessCurrentFatigue")]
+  pub fn assess_current_fatigue(
+    recent_rpe_records: Vec<JsValue>,
+    target_rpe: f64,
+    ideal_rest_seconds: u32,
+  ) -> JsValue {
+    let mut rpe_values: Vec<f64> = Vec::new();
+    let mut rest_compliance_values: Vec<f64> = Vec::new();
+
+    for js_val in recent_rpe_records {
+      if let Ok(record) = serde_wasm_bindgen::from_value::<RPERecord>(js_val) {
+        rpe_values.push(record.rpe);
+        if let Some(rest) = record.rest_time_seconds {
+          if ideal_rest_seconds > 0 {
+            let compliance = rest as f64 / ideal_rest_seconds as f64;
+            rest_compliance_values.push(compliance.min(2.0));
+          }
+        }
+      }
+    }
+
+    let avg_rpe = if rpe_values.is_empty() { target_rpe } else {
+      rpe_values.iter().sum::<f64>() / rpe_values.len() as f64
+    };
+
+    let rpe_trend = if rpe_values.len() >= 2 {
+      let recent: Vec<f64> = rpe_values.iter().take(3).copied().collect();
+      if recent.len() >= 2 {
+        let first = recent[0];
+        let last = recent[recent.len() - 1];
+        if last > first + 0.5 { RPETrend::Increasing }
+        else if last < first - 0.5 { RPETrend::Decreasing }
+        else { RPETrend::Stable }
+      } else { RPETrend::NoData }
+    } else { RPETrend::NoData };
+
+    let mut fatigue_score = 0.0;
+
+    if avg_rpe > target_rpe {
+      let rpe_excess = (avg_rpe - target_rpe).max(0.0);
+      fatigue_score += (rpe_excess / 2.0) * 40.0;
+    }
+
+    match rpe_trend {
+      RPETrend::Increasing => fatigue_score += 20.0,
+      RPETrend::Stable => fatigue_score += 10.0,
+      RPETrend::Decreasing => fatigue_score += 5.0,
+      RPETrend::NoData => {}
+    }
+
+    if !rest_compliance_values.is_empty() {
+      let avg_compliance = rest_compliance_values.iter().sum::<f64>() / rest_compliance_values.len() as f64;
+      if avg_compliance < 0.8 {
+        fatigue_score += (0.8 - avg_compliance) * 100.0;
+      }
+    }
+
+    let set_count = rpe_values.len() as f64;
+    if set_count > 0.0 {
+      let set_fatigue = (set_count.min(10.0) / 10.0) * 20.0;
+      fatigue_score += set_fatigue;
+    }
+
+    let fatigue_level = fatigue_score.round().clamp(0.0, 100.0) as u32;
+
+    let category = if fatigue_level < 25 { FatigueCategory::Fresh }
+    else if fatigue_level < 50 { FatigueCategory::Moderate }
+    else if fatigue_level < 75 { FatigueCategory::Fatigued }
+    else { FatigueCategory::Exhausted };
+
+    let recommendation = Self::generate_fatigue_recommendation(
+      fatigue_level, &category, &rpe_trend, avg_rpe, target_rpe,
+    );
+
+    let assessment = FatigueAssessment {
+      fatigue_level,
+      category: category.clone(),
+      rpe_trend: rpe_trend.clone(),
+      avg_rpe,
+      rest_compliance: rest_compliance_values.iter().sum::<f64>() / rest_compliance_values.len().max(1) as f64,
+      recommendation,
+    };
+
+    serde_wasm_bindgen::to_value(&assessment).unwrap_or_else(|_| JsValue::NULL)
+  }
+
+  fn generate_fatigue_recommendation(
+    fatigue_level: u32, category: &FatigueCategory, trend: &RPETrend,
+    avg_rpe: f64, target_rpe: f64,
+  ) -> String {
+    match category {
+      FatigueCategory::Fresh => "Feeling fresh. Push towards target RPE.".to_string(),
+      FatigueCategory::Moderate => match trend {
+        RPETrend::Increasing => "RPE trending up. Focus on form.".to_string(),
+        RPETrend::Stable => "Steady effort. Maintain current weight.".to_string(),
+        RPETrend::Decreasing => "RPE trending down. You're adapting well.".to_string(),
+        RPETrend::NoData => "Gather more RPE data.".to_string(),
+      },
+      FatigueCategory::Fatigued => {
+        if avg_rpe > target_rpe + 1.0 {
+          format!("High fatigue ({}%). Reduce weight by 10-20%.", fatigue_level)
+        } else {
+          format!("Significant fatigue ({}%). Add 15-30s rest.", fatigue_level)
+        }
+      }
+      FatigueCategory::Exhausted => format!("Critical fatigue ({}%). End workout.", fatigue_level),
+    }.to_string()
+  }
+
+  #[wasm_bindgen(js_name = "recommendLiveAdjustment")]
+  pub fn recommend_live_adjustment(
+    _current_weight: f64, _target_reps: u32, _remaining_sets: u32,
+    fatigue_level: u32, fatigue_category: &str,
+    exercise_type: &str, is_warmup: bool, has_spotter: bool,
+  ) -> JsValue {
+    let _ = Self::parse_fatigue_category(fatigue_category);
+
+    let mut adjustment = LiveAdjustment {
+      adjustment_type: AdjustmentStrategy::Keep,
+      weight_percent: None,
+      rep_adjustment: None,
+      additional_rest_seconds: None,
+      confidence: 0.7,
+      reasoning: String::new(),
+      urgency: AdjustmentUrgency::Low,
+    };
+
+    let fatigue_norm = fatigue_level as f64 / 100.0;
+
+    if is_warmup {
+      adjustment.reasoning = "Warmup sets should remain light.".to_string();
+    } else if fatigue_norm >= 0.75 {
+      adjustment.adjustment_type = AdjustmentStrategy::Stop;
+      adjustment.reasoning = "Critical fatigue. Continuing risks injury.".to_string();
+      adjustment.urgency = AdjustmentUrgency::Critical;
+      adjustment.confidence = 0.9;
+    } else if fatigue_norm >= 0.6 {
+      let weight_reduction = Self::calculate_weight_reduction(fatigue_norm, exercise_type);
+      if weight_reduction >= 15.0 {
+        adjustment.adjustment_type = AdjustmentStrategy::ReduceWeight;
+        adjustment.weight_percent = Some(-weight_reduction);
+        adjustment.reasoning = format!("High fatigue ({}%). Reduce weight by {}%.", fatigue_level, weight_reduction);
+      } else {
+        adjustment.adjustment_type = AdjustmentStrategy::ReduceReps;
+        adjustment.rep_adjustment = Some(-1);
+        adjustment.reasoning = format!("Moderate fatigue ({}%). Reduce reps by 1.", fatigue_level);
+      }
+      adjustment.urgency = AdjustmentUrgency::High;
+      adjustment.confidence = 0.85;
+    } else if fatigue_norm >= 0.4 {
+      if !has_spotter && Self::is_compound_exercise(exercise_type) {
+        adjustment.adjustment_type = AdjustmentStrategy::AddRest;
+        adjustment.additional_rest_seconds = Some(30);
+        adjustment.reasoning = format!("Moderate fatigue ({}%). Extra rest.", fatigue_level);
+      } else {
+        adjustment.adjustment_type = AdjustmentStrategy::ReduceWeight;
+        adjustment.weight_percent = Some(-5.0);
+        adjustment.reasoning = format!("Building fatigue ({}%). Small weight reduction.", fatigue_level);
+      }
+      adjustment.urgency = AdjustmentUrgency::Medium;
+      adjustment.confidence = 0.75;
+    } else {
+      adjustment.reasoning = "Good fatigue level. Maintain current weight.".to_string();
+    }
+
+    if adjustment.adjustment_type == AdjustmentStrategy::ReduceWeight && has_spotter {
+      adjustment.reasoning.push_str(" Spotter present.");
+    }
+
+    serde_wasm_bindgen::to_value(&adjustment).unwrap_or_else(|_| JsValue::NULL)
+  }
+
+  fn parse_fatigue_category(s: &str) -> FatigueCategory {
+    match s.to_lowercase().as_str() {
+      "fresh" => FatigueCategory::Fresh,
+      "moderate" => FatigueCategory::Moderate,
+      "fatigued" => FatigueCategory::Fatigued,
+      "exhausted" => FatigueCategory::Exhausted,
+      _ => FatigueCategory::Fresh,
+    }
+  }
+
+  fn calculate_weight_reduction(fatigue_norm: f64, exercise_type: &str) -> f64 {
+    let base_reduction = fatigue_norm * 100.0;
+    let multiplier = if Self::is_compound_exercise(exercise_type) { 1.2 } else { 1.0 };
+    (base_reduction * multiplier).round().clamp(5.0, 30.0)
+  }
+
+  fn is_compound_exercise(exercise_type: &str) -> bool {
+    matches!(
+      exercise_type.to_lowercase().as_str(),
+      "squat" | "deadlift" | "bench_press" | "overhead_press" | "barbell_row" | "power_clean"
+    )
+  }
+
+  #[wasm_bindgen(js_name = "calculateRecommendedRest")]
+  pub fn calculate_recommended_rest(
+    base_rest_seconds: u32, fatigue_level: u32, exercise_type: &str, last_rpe: Option<f64>,
+  ) -> u32 {
+    let fatigue_norm = fatigue_level as f64 / 100.0;
+    let mut additional_rest = (fatigue_norm * 30.0).round() as u32;
+
+    if Self::is_compound_exercise(exercise_type) {
+      additional_rest += 15;
+    }
+
+    if let Some(rpe) = last_rpe {
+      if rpe >= 9.0 { additional_rest += 20; }
+      else if rpe >= 8.0 { additional_rest += 10; }
+    }
+
+    base_rest_seconds + additional_rest.min(60)
+  }
+
+  #[wasm_bindgen(js_name = "shouldEndWorkout")]
+  pub fn should_end_workout(
+    fatigue_level: u32, total_sets_completed: u32,
+    total_volume_completed: f64, total_volume_planned: f64,
+    form_breakdown_count: u32,
+  ) -> JsValue {
+    let mut reasons: Vec<String> = Vec::new();
+
+    if fatigue_level >= 85 {
+      reasons.push("Critical fatigue level (≥85%)".to_string());
+    }
+
+    if total_sets_completed >= 5 && form_breakdown_count as f64 / total_sets_completed as f64 > 0.5 {
+      reasons.push(format!("Form breakdown in {} sets", form_breakdown_count));
+    }
+
+    if total_volume_planned > 0.0 {
+      let volume_completion = total_volume_completed / total_volume_planned;
+      if volume_completion >= 0.9 && fatigue_level >= 70 {
+        reasons.push("Volume goal nearly complete with high fatigue".to_string());
+      }
+    }
+
+    if total_sets_completed >= 15 && fatigue_level >= 60 {
+      reasons.push(format!("High set count ({}) with fatigue", total_sets_completed));
+    }
+
+    let result = serde_json::json!({
+      "should_end": !reasons.is_empty(),
+      "reason": if reasons.is_empty() { None } else { Some(reasons.join("; ")) },
+      "suggestion": None::<String>,
+    });
+
+    serde_wasm_bindgen::to_value(&result).unwrap_or_else(|_| JsValue::NULL)
+  }
+
+  #[wasm_bindgen(js_name = "calculateAdjustedReps")]
+  pub fn calculate_adjusted_reps(
+    original_reps: u32, fatigue_level: u32, sets_completed: u32, total_sets: u32,
+  ) -> u32 {
+    if original_reps == 0 { return 0; }
+
+    let fatigue_norm = fatigue_level as f64 / 100.0;
+    let mut reduction = (original_reps as f64 * fatigue_norm * 0.3).round() as i32;
+
+    if total_sets > 0 {
+      let set_progress = sets_completed as f64 / total_sets as f64;
+      if set_progress > 0.7 {
+        reduction += ((set_progress - 0.7) * 10.0).round() as i32;
+      }
+    }
+
+    (original_reps as i32 - reduction).max(1) as u32
+  }
+
+  #[wasm_bindgen(js_name = "calculateAdjustedWeight")]
+  pub fn calculate_adjusted_weight(
+    original_weight: f64, fatigue_level: u32, is_compound: bool,
+  ) -> f64 {
+    let fatigue_norm = fatigue_level as f64 / 100.0;
+    let reduction_percent = if is_compound { fatigue_norm * 15.0 } else { fatigue_norm * 10.0 };
+    let new_weight = original_weight * (1.0 - reduction_percent / 100.0);
+    (new_weight * 10.0).round() / 10.0
+  }
+}
+
+
+
+// ============================================
+// POSTURE ANALYSIS MODULE
+// ============================================
+
+mod posture;
+pub use posture::PostureAnalyzer;
+
 #[cfg(test)]
 mod tests {
 
