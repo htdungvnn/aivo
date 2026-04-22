@@ -15,8 +15,8 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
     let background_rect = Rectangle::new()
         .set("x", "0")
         .set("y", "0")
-        .set("width", template.width.to_string().as_str())
-        .set("height", template.height.to_string().as_str())
+        .set("width", template.width.to_string())
+        .set("height", template.height.to_string())
         .set("fill", template.background.as_str());
     doc = doc.add(background_rect);
 
@@ -27,8 +27,8 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
                 let substituted = substitute_placeholders(content, data)?;
                 let mut text = Text::new()
                     .add(SvgText::new(substituted))
-                    .set("x", *x)
-                    .set("y", *y);
+                    .set("x", x.to_string())
+                    .set("y", y.to_string());
                 if let Some(attrs) = attributes {
                     for (key, value) in attrs {
                         text = text.set(key, value.as_str());
@@ -39,10 +39,10 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
 
             SvgTemplateElement::Rect { x, y, width, height, attributes } => {
                 let mut rect = Rectangle::new()
-                    .set("x", *x)
-                    .set("y", *y)
-                    .set("width", width.to_string().as_str())
-                    .set("height", height.to_string().as_str());
+                    .set("x", x.to_string())
+                    .set("y", y.to_string())
+                    .set("width", width.to_string())
+                    .set("height", height.to_string());
                 if let Some(attrs) = attributes {
                     for (key, value) in attrs {
                         rect = rect.set(key, value.as_str());
@@ -53,9 +53,9 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
 
             SvgTemplateElement::Circle { cx, cy, r, attributes } => {
                 let mut circle = Circle::new()
-                    .set("cx", *cx)
-                    .set("cy", *cy)
-                    .set("r", *r);
+                    .set("cx", cx.to_string())
+                    .set("cy", cy.to_string())
+                    .set("r", r.to_string());
                 if let Some(attrs) = attributes {
                     for (key, value) in attrs {
                         circle = circle.set(key, value.as_str());
@@ -77,10 +77,10 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
 
             SvgTemplateElement::Image { x, y, width, height, href } => {
                 let image = Image::new()
-                    .set("x", *x)
-                    .set("y", *y)
-                    .set("width", width.to_string().as_str())
-                    .set("height", height.to_string().as_str())
+                    .set("x", x.to_string())
+                    .set("y", y.to_string())
+                    .set("width", width.to_string())
+                    .set("height", height.to_string())
                     .set("href", href.as_str())
                     .set("preserveAspectRatio", "xMidYMid meet");
                 doc = doc.add(image);
@@ -97,8 +97,8 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
                             let substituted = substitute_placeholders(content, data)?;
                             let mut child_text = Text::new()
                                 .add(SvgText::new(substituted))
-                                .set("x", *x)
-                                .set("y", *y);
+                                .set("x", x.to_string())
+                                .set("y", y.to_string());
                             if let Some(attrs) = attributes {
                                 for (key, value) in attrs {
                                     child_text = child_text.set(key, value.as_str());
@@ -108,10 +108,10 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
                         }
                         SvgTemplateElement::Rect { x, y, width, height, attributes } => {
                             let mut child_rect = Rectangle::new()
-                                .set("x", *x)
-                                .set("y", *y)
-                                .set("width", width.to_string().as_str())
-                                .set("height", height.to_string().as_str());
+                                .set("x", x.to_string())
+                                .set("y", y.to_string())
+                                .set("width", width.to_string())
+                                .set("height", height.to_string());
                             if let Some(attrs) = attributes {
                                 for (key, value) in attrs {
                                     child_rect = child_rect.set(key, value.as_str());
@@ -121,9 +121,9 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
                         }
                         SvgTemplateElement::Circle { cx, cy, r, attributes } => {
                             let mut child_circle = Circle::new()
-                                .set("cx", *cx)
-                                .set("cy", *cy)
-                                .set("r", *r);
+                                .set("cx", cx.to_string())
+                                .set("cy", cy.to_string())
+                                .set("r", r.to_string());
                             if let Some(attrs) = attributes {
                                 for (key, value) in attrs {
                                     child_circle = child_circle.set(key, value.as_str());
@@ -143,10 +143,10 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
                         }
                         SvgTemplateElement::Image { x, y, width, height, href } => {
                             let child_image = Image::new()
-                                .set("x", *x)
-                                .set("y", *y)
-                                .set("width", width.to_string().as_str())
-                                .set("height", height.to_string().as_str())
+                                .set("x", x.to_string())
+                                .set("y", y.to_string())
+                                .set("width", width.to_string())
+                                .set("height", height.to_string())
                                 .set("href", href.as_str())
                                 .set("preserveAspectRatio", "xMidYMid meet");
                             group = group.add(child_image);
@@ -226,7 +226,6 @@ pub enum RenderError {
 mod tests {
     use super::*;
     use crate::types::{InfographicStory, StatData, WorkoutStats, GamificationStats, StrengthStats, BodyStats, Comparisons, UserStats, Period};
-    use crate::colors::default_palette;
 
     fn create_test_data() -> InfographicData {
         let story = InfographicStory {

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { createDrizzleInstance, users } from "@aivo/db";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 
 export interface Env {
   DB: D1Database;

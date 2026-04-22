@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { FitnessCalculator } from "@aivo/compute";
 import { createDrizzleInstance } from "@aivo/db";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { Context } from "hono";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
@@ -69,7 +69,7 @@ const createHealthCheck = () => {
 
       // Get table list
       const tables = await c.env.DB.exec("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = tables.map((row: { name: string }) => row.name).filter((name: string) => !name.startsWith("sqlite_");
+      const tableList = tables.map((row: { name: string }) => row.name).filter((name: string) => !name.startsWith("sqlite_"));
 
       services.push({
         name: "database",
@@ -218,13 +218,6 @@ interface CacheDetails {
 
 interface StorageDetails {
   connected: boolean;
-  bucket?: string;
-}
-
-interface ServiceDetails {
-  connected: boolean;
-  latency?: number;
-  tables?: string[];
   bucket?: string;
 }
 

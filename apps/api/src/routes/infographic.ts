@@ -23,7 +23,7 @@ import type {
   InfographicData,
 } from "@aivo/shared-types";
 import { socialProofCards } from "@aivo/db";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 
 interface Env {

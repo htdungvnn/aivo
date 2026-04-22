@@ -3,9 +3,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::colors::default_palette;
 
 /// Infographic template types
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum InfographicTemplate {
     WeeklySummary,
@@ -261,18 +262,6 @@ pub struct ValidationResult {
     pub errors: Vec<String>,
 }
 
-// Default palette helper
-pub fn default_palette() -> ColorPalette {
-    ColorPalette {
-        primary: "#6366f1".to_string(),
-        secondary: "#818cf8".to_string(),
-        accent: "#f97316".to_string(),
-        background: "#ffffff".to_string(),
-        text: "#1f2937".to_string(),
-        text_muted: "#6b7280".to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -305,6 +294,8 @@ mod tests {
                 },
                 include_stats: Vec::new(),
                 include_comparison: true,
+                width: 800,
+                height: 800,
             },
             story: InfographicStory {
                 headline: "Test".to_string(),

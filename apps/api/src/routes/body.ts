@@ -17,7 +17,7 @@ import {
   validateImage,
 } from "../services/body-insights";
 import { schema } from "@aivo/db/schema";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
 
 interface EnvWithR2 {
@@ -101,6 +101,7 @@ export const BodyRouter = () => {
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Upload error:", error);
       return c.json({ success: false, error: "Upload failed" }, 500);
     }
@@ -200,7 +201,7 @@ export const BodyRouter = () => {
         });
       }
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
 
       return c.json({
         success: true,
@@ -215,6 +216,7 @@ export const BodyRouter = () => {
         },
       });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Vision analysis error:", error);
       const message = error instanceof Error ? error.message : "Analysis failed";
       return c.json({ success: false, error: message }, 500);
@@ -245,7 +247,7 @@ export const BodyRouter = () => {
       const cacheKey = getCacheKey(userId, "metrics", paramStr);
 
       const { data: cachedData, hit: cacheHit } = await getCachedData<BodyMetricResponse[]>(
-        c.env.BODY_INSIGHTS_CACHE,
+        c.env.BODY_INSIGHTS_CACHE as any,
         cacheKey
       );
 
@@ -268,7 +270,7 @@ export const BodyRouter = () => {
       });
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
+        c.env.BODY_INSIGHTS_CACHE as any,
         cacheKey,
         metrics,
         CACHE_TTL.METRICS
@@ -277,6 +279,7 @@ export const BodyRouter = () => {
       c.header("X-Cache", "MISS");
       return c.json({ success: true, data: metrics });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Get metrics error:", error);
       return c.json({ success: false, error: "Failed to fetch metrics" }, 500);
     }
@@ -355,10 +358,11 @@ export const BodyRouter = () => {
         })
         .returning();
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
 
       return c.json({ success: true, data: metric }, 201);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Create metric error:", error);
       return c.json({ success: false, error: "Failed to create metric" }, 500);
     }
@@ -388,7 +392,7 @@ export const BodyRouter = () => {
           vectorData: unknown[] | null;
           metadata: unknown | null;
         }>
-      >(c.env.BODY_INSIGHTS_CACHE, cacheKey);
+      >(c.env.BODY_INSIGHTS_CACHE as any, cacheKey);
 
       if (cacheHit && cachedData) {
         c.header("X-Cache", "HIT");
@@ -407,7 +411,7 @@ export const BodyRouter = () => {
       }));
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
+        c.env.BODY_INSIGHTS_CACHE as any,
         cacheKey,
         parsed,
         CACHE_TTL.HEATMAPS
@@ -416,6 +420,7 @@ export const BodyRouter = () => {
       c.header("X-Cache", "MISS");
       return c.json({ success: true, data: parsed });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Get heatmaps error:", error);
       return c.json({ success: false, error: "Failed to fetch heatmaps" }, 500);
     }
@@ -485,7 +490,7 @@ export const BodyRouter = () => {
         })
         .returning();
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
 
       return c.json({
         success: true,
@@ -497,6 +502,7 @@ export const BodyRouter = () => {
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Generate heatmap error:", error);
       return c.json({ success: false, error: "Failed to generate heatmap" }, 500);
     }
@@ -517,7 +523,7 @@ export const BodyRouter = () => {
       const cacheKey = getCacheKey(userId, "health-score");
 
       const { data: cachedData, hit: cacheHit } = await getCachedData<HealthScoreResponse>(
-        c.env.BODY_INSIGHTS_CACHE,
+        c.env.BODY_INSIGHTS_CACHE as any,
         cacheKey
       );
 
@@ -642,7 +648,7 @@ export const BodyRouter = () => {
       };
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
+        c.env.BODY_INSIGHTS_CACHE as any,
         cacheKey,
         result.data,
         CACHE_TTL.HEALTH_SCORE
@@ -651,6 +657,7 @@ export const BodyRouter = () => {
       c.header("X-Cache", "MISS");
       return c.json(result);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Health score error:", error);
       return c.json({ success: false, error: "Failed to calculate health score" }, 500);
     }

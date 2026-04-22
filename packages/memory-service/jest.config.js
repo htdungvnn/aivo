@@ -7,11 +7,12 @@ export default {
   collectCoverageFrom: ["src/**/*.ts", "!src/**/__tests__/**"],
   coverageDirectory: "coverage",
   verbose: true,
+  extensionsToTreatAsEsm: [".ts"],
   transform: {
     "^.+\\.tsx?$": [
       "ts-jest",
       {
-        tsconfig: "tsconfig.json",
+        tsconfig: "tsconfig.test.json",
         useESM: true,
         diagnostics: false,
       },

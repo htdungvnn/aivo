@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
 import { createDrizzleInstance } from "@aivo/db";
 import { bodyPhotos, bodyHeatmaps } from "@aivo/db";
@@ -143,6 +143,7 @@ export const BodyPhotosRouter = () => {
         analysis,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Analysis failed:', error);
       // Mark as failed
       await drizzle.update(bodyPhotos)
@@ -165,14 +166,14 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      })
+      } as any)
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(eq(bodyHeatmaps.userId, userId))
       .orderBy(desc(bodyHeatmaps.createdAt))
       .limit(1);
 
-    const row = results[0];
+    const row = results[0] as any;
     if (!row) {
       return c.json({ heatmap: null, photo: null });
     }
@@ -204,7 +205,7 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      })
+      } as any)
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(eq(bodyHeatmaps.userId, userId))
@@ -212,18 +213,21 @@ export const BodyPhotosRouter = () => {
       .limit(limit);
 
     return c.json({
-      history: results.map((row) => ({
-        heatmap: {
-          ...row.bodyHeatmaps,
-          regions: JSON.parse(row.bodyHeatmaps.regions),
-          metrics: JSON.parse(row.bodyHeatmaps.metrics || '{}'),
-        },
-        photo: {
-          id: row.bodyPhotos.id,
-          r2Url: row.bodyPhotos.r2Url,
-          uploadDate: row.bodyPhotos.uploadDate,
-        },
-      })),
+      history: results.map((row) => {
+        const r = row as any;
+        return {
+          heatmap: {
+            ...r.bodyHeatmaps,
+            regions: JSON.parse(r.bodyHeatmaps.regions),
+            metrics: JSON.parse(r.bodyHeatmaps.metrics || '{}'),
+          },
+          photo: {
+            id: r.bodyPhotos.id,
+            r2Url: r.bodyPhotos.r2Url,
+            uploadDate: r.bodyPhotos.uploadDate,
+          },
+        };
+      }),
     });
   });
 
@@ -240,13 +244,13 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      })
+      } as any)
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(and(eq(bodyHeatmaps.id, id), eq(bodyHeatmaps.userId, userId)))
       .limit(1);
 
-    const row = results[0];
+    const row = results[0] as any;
     if (!row) {
       return c.json({ error: 'Heatmap not found' }, 404);
     }
@@ -273,11 +277,11 @@ export const BodyPhotosRouter = () => {
 
     const [heatmap1, heatmap2] = await Promise.all([
       drizzle.query.bodyHeatmaps.findFirst({
-        where: and(eq(bodyHeatmaps.id, heatmapId1), eq(bodyHeatmaps.userId, userId)),
+        where: and(eq(bodyHeatmaps.id, heatmapId1!), eq(bodyHeatmaps.userId, userId!)),
       }),
       heatmapId2
         ? drizzle.query.bodyHeatmaps.findFirst({
-            where: and(eq(bodyHeatmaps.id, heatmapId2), eq(bodyHeatmaps.userId, userId)),
+            where: and(eq(bodyHeatmaps.id, heatmapId2!), eq(bodyHeatmaps.userId, userId!)),
           })
         : null,
     ]);
@@ -332,7 +336,7 @@ export const BodyPhotosRouter = () => {
 
     // Find photo and verify ownership
     const photo = await drizzle.query.bodyPhotos.findFirst({
-      where: and(eq(bodyPhotos.id, id), eq(bodyPhotos.userId, userId)),
+      where: and(eq(bodyPhotos.id, id!), eq(bodyPhotos.userId, userId!)),
     });
 
     if (!photo) {
@@ -340,7 +344,7 @@ export const BodyPhotosRouter = () => {
     }
 
     // Delete from database (cascade will delete associated heatmap)
-    await drizzle.delete(bodyPhotos).where(eq(bodyPhotos.id, id));
+    await drizzle.delete(bodyPhotos).where(eq(bodyPhotos.id, id!));
 
     return c.json({ success: true });
   });

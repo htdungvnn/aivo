@@ -3,7 +3,7 @@ import { createDrizzleInstance } from "@aivo/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { FormAnalysisVideo, FormExerciseType } from "@aivo/shared-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import { validateVideo } from "../services/r2";

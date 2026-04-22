@@ -3,7 +3,8 @@
  * This module provides a cached Drizzle instance for convenience
  */
 
-import { drizzle as createDrizzle, type D1Database } from "drizzle-orm/d1";
+import { drizzle as createDrizzle } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import { schema } from "@aivo/db/schema";
 
 let cachedDb: ReturnType<typeof createDrizzle> | null = null;

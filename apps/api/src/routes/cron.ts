@@ -8,7 +8,8 @@ import {
   formAnalysisVideos,
 } from "@aivo/db";
 import { eq, and, sql, desc, asc, gte, gt, isNull } from "drizzle-orm";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
+import type { KVNamespace } from "@cloudflare/workers-types";
 import { processFormAnalysisJob } from "../services/form-analyzer";
 
 type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
@@ -16,6 +17,7 @@ type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
 export interface CronEnv {
   DB: D1Database;
   LEADERBOARD_CACHE: KVNamespace;
+  OPENAI_API_KEY?: string;
 }
 
 const cron = new Hono<{ Bindings: CronEnv }>();
@@ -231,7 +233,7 @@ async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: st
 
     for (const video of pendingVideos) {
       try {
-        const result = await processFormAnalysisJob(drizzle, video.id, c.env.OPENAI_API_KEY);
+        const result = await processFormAnalysisJob(drizzle, video.id, env.OPENAI_API_KEY ?? "");
         if (result.success) {
           processedVideos++;
           // eslint-disable-next-line no-console
@@ -259,12 +261,19 @@ async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: st
       },
       orderBy: desc(gamificationProfiles.totalPoints),
       limit: 500,
-    });
+    }) as Array<{
+      userId: string;
+      totalPoints: number | null;
+      streakCurrent: number | null;
+      level: number | null;
+      user: { id: string; name: string | null; picture: string | null } | null;
+    }>;
 
     const leaderboard = topProfiles.map((profile, index) => ({
-      userId: profile.userId,
       rank: index + 1,
+      userId: profile.userId,
       name: profile.user?.name ?? "Unknown",
+      picture: profile.user?.picture,
       points: profile.totalPoints ?? 0,
       streak: profile.streakCurrent ?? 0,
       level: profile.level ?? 1,

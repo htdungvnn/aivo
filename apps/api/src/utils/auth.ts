@@ -19,6 +19,7 @@ export function decodeToken(token: string): { sub: string } | null {
     }
     return payload as { sub: string };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Token decode failed:", error);
     return null;
   }
@@ -59,6 +60,7 @@ export async function verifyToken(
       name: session.providerUserId,
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Session verification failed:", error);
     return null;
   }

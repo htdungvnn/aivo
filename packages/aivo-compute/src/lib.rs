@@ -1799,7 +1799,698 @@ impl AdaptivePlanner {
 }
 
 // ============================================
-// END OF ADAPTIVE PLANNER MODULE
+// BIOMETRIC CORRELATION ANALYSIS MODULE
+// ============================================
+
+/// Statistical correlation analyzer for biometric data
+/// Identifies hidden patterns between exercise, sleep, nutrition, and recovery
+#[wasm_bindgen]
+pub struct CorrelationAnalyzer;
+
+/// Daily biometric data point for correlation analysis
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct DailyBiometricData {
+    pub date: String,
+    pub exercise_load: f64, // Composite score 0-100
+    pub sleep_quality: f64, // 0-100
+    pub sleep_duration: f64, // hours
+    pub calories_consumed: f64,
+    pub protein_intake: f64, // grams
+    pub carb_intake: f64, // grams
+    pub fat_intake: f64, // grams
+    pub late_nutrition: f64, // Binary: 1 if meal after 21:00, 0 otherwise
+    pub hydration: f64, // ml
+    pub recovery_score: f64, // 0-100
+    pub body_weight: f64, // kg
+    pub body_fat: f64, // percentage
+    pub workout_intensity: f64, // RPE-based 0-10 scaled to 0-100
+    pub consecutive_days: u32, // Streak count
+}
+
+/// Correlation result between two factors
+#[derive(serde::Serialize, Clone)]
+pub struct CorrelationResult {
+    pub factor_a: String,
+    pub factor_b: String,
+    pub pearson_r: f64, // Correlation coefficient (-1 to 1)
+    pub r_squared: f64, // Coefficient of determination (0 to 1)
+    pub p_value: f64, // Statistical significance
+    pub is_significant: bool,
+    pub confidence: f64, // Combined confidence score
+}
+
+/// Anomaly detection result
+#[derive(serde::Serialize, Clone)]
+pub struct AnomalyPoint {
+    pub date: String,
+    pub factor: String,
+    pub observed_value: f64,
+    pub expected_value: f64,
+    pub z_score: f64, // Standard deviations from mean
+    pub deviation_direction: String, // "above" or "below"
+}
+
+/// Snapshot aggregates for a time period
+#[derive(serde::Serialize, Clone)]
+pub struct PeriodAggregates {
+    pub period_days: usize,
+    pub exercise: ExerciseAggregate,
+    pub sleep: SleepAggregate,
+    pub nutrition: NutritionAggregate,
+    pub body_metrics: BodyMetricsAggregate,
+    pub recovery: RecoveryAggregate,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct ExerciseAggregate {
+    pub total_workouts: usize,
+    pub total_minutes: f64,
+    pub avg_duration: f64,
+    pub avg_intensity: f64,
+    pub intensity_std_dev: f64,
+    pub variety_score: f64, // Number of different workout types
+    pub rest_days: usize,
+    pub consecutive_days_max: u32,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct SleepAggregate {
+    pub avg_duration: f64,
+    pub duration_std_dev: f64,
+    pub avg_quality: f64,
+    pub quality_std_dev: f64,
+    pub consistency_score: f64, // Lower variance = higher score
+    pub bedtime_consistency: f64,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct NutritionAggregate {
+    pub avg_calories: f64,
+    pub calories_std_dev: f64,
+    pub avg_protein: f64,
+    pub protein_goal_pct: f64,
+    pub avg_carbs: f64,
+    pub avg_fat: f64,
+    pub macro_balance_score: f64, // How balanced are macros
+    pub hydration_avg: f64,
+    pub late_night_incidents: usize,
+    pub consistency_score: f64,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct BodyMetricsAggregate {
+    pub weight_change: f64,
+    pub weight_std_dev: f64,
+    pub body_fat_change: f64,
+    pub body_fat_std_dev: f64,
+    pub measurements_completeness: f64, // % of days with data
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct RecoveryAggregate {
+    pub avg_score: f64,
+    pub score_std_dev: f64,
+    pub trend: String, // "improving", "declining", "stable"
+    pub correlation_with_sleep: f64,
+    pub correlation_with_exercise: f64,
+    pub correlation_with_nutrition: f64,
+}
+
+/// Biometric correlation analysis result
+#[derive(serde::Serialize, Clone)]
+pub struct CorrelationAnalysis {
+    pub snapshot_id: String,
+    pub period_days: usize,
+    pub data_coverage: f64, // 0-1
+    pub aggregates: PeriodAggregates,
+    pub significant_correlations: Vec<CorrelationResult>,
+    pub anomaly_points: Vec<AnomalyPoint>,
+    pub summary: AnalysisSummary,
+    pub warnings: Vec<String>,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct AnalysisSummary {
+    pub total_factors_analyzed: usize,
+    pub significant_correlations_count: usize,
+    pub primary_concern: Option<String>,
+    pub recommended_action: Option<String>,
+    pub risk_level: String, // "low", "medium", "high", "critical"
+}
+
+#[wasm_bindgen]
+impl CorrelationAnalyzer {
+    /// Calculate arithmetic mean of a slice
+    fn mean(data: &[f64]) -> f64 {
+        if data.is_empty() {
+            return 0.0;
+        }
+        data.iter().sum::<f64>() / data.len() as f64
+    }
+
+    /// Calculate standard deviation
+    fn std_dev(data: &[f64]) -> f64 {
+        if data.len() < 2 {
+            return 0.0;
+        }
+        let mean = Self::mean(data);
+        let variance = data.iter()
+            .map(|x| (x - mean).powi(2))
+            .sum::<f64>() / (data.len() - 1) as f64;
+        variance.sqrt()
+    }
+
+    /// Calculate Pearson correlation coefficient between two variables
+    /// Returns (r, p_value) where p_value is approximate significance
+    fn pearson_correlation(x: &[f64], y: &[f64]) -> (f64, f64) {
+        if x.len() != y.len() || x.len() < 3 {
+            return (0.0, 1.0);
+        }
+
+        let n = x.len() as f64;
+        let mean_x = Self::mean(x);
+        let mean_y = Self::mean(y);
+
+        let mut sum_xy = 0.0;
+        let mut sum_x2 = 0.0;
+        let mut sum_y2 = 0.0;
+
+        for i in 0..x.len() {
+            let dx = x[i] - mean_x;
+            let dy = y[i] - mean_y;
+            sum_xy += dx * dy;
+            sum_x2 += dx * dx;
+            sum_y2 += dy * dy;
+        }
+
+        if sum_x2 == 0.0 || sum_y2 == 0.0 {
+            return (0.0, 1.0);
+        }
+
+        let r = sum_xy / (sum_x2.sqrt() * sum_y2.sqrt());
+
+        // Approximate p-value using t-statistic and normal distribution
+        // t = r * sqrt((n-2) / (1-r^2))
+        let df = n - 2.0;
+        let t = r * (df / (1.0 - r * r).max(1e-10)).sqrt();
+
+        // Use normal CDF approximation for p-value (without unstable erf)
+        // For two-tailed test: p = 2 * (1 - Φ(|t|))
+        // Using Abramowitz & Stegun 26.2.17 polynomial approximation
+        let p_value = if t.abs() > 8.0 {
+            0.0  // Very small p-value
+        } else {
+            let abs_t = t.abs();
+            // Polynomial approximation constants
+            let p = 0.2316419;
+            let a1 = 0.319381530;
+            let a2 = -0.356563782;
+            let a3 = 1.781477937;
+            let a4 = -1.821255978;
+            let a5 = 1.330274429;
+
+            let t_poly = 1.0 / (1.0 + p * abs_t);
+            let poly = t_poly * (a1 + t_poly * (a2 + t_poly * (a3 + t_poly * (a4 + t_poly * a5))));
+            let exp_term = (-abs_t * abs_t / 2.0).exp();
+            let cdf = 1.0 - 0.3989422804014327 * exp_term * poly;
+            let cdf = cdf.max(0.0).min(1.0);
+            2.0 * (1.0 - cdf)
+        };
+
+        (r.max(-1.0).min(1.0), p_value.min(1.0))
+    }
+
+    /// Detect anomalies using Z-score method
+    /// Returns points where |z-score| > threshold (default 2.0)
+    fn detect_anomalies(data: &[f64], dates: &[String], factor_name: &str, threshold: f64) -> Vec<AnomalyPoint> {
+        if data.len() < 5 {
+            return Vec::new();
+        }
+
+        let mean = Self::mean(data);
+        let std = Self::std_dev(data);
+
+        if std == 0.0 {
+            return Vec::new(); // No variation, no anomalies
+        }
+
+        let mut anomalies = Vec::new();
+
+        for i in 0..data.len() {
+            let z = (data[i] - mean) / std;
+            if z.abs() > threshold {
+                anomalies.push(AnomalyPoint {
+                    date: dates[i].clone(),
+                    factor: factor_name.to_string(),
+                    observed_value: data[i],
+                    expected_value: mean,
+                    z_score: z,
+                    deviation_direction: if z > 0.0 { "above" } else { "below" }.to_string(),
+                });
+            }
+        }
+
+        anomalies
+    }
+
+    /// Calculate recovery score from component factors (0-100)
+    /// Internal implementation used by both WASM and Rust code
+    fn compute_recovery_score_internal(
+        sleep_score: f64,
+        exercise_balance: f64,
+        nutrition_adequacy: f64,
+        body_trend: f64,
+        _hydration_score: f64
+    ) -> f64 {
+        // Weighted combination
+        let weights = [0.35, 0.25, 0.25, 0.10, 0.05]; // sleep, exercise, nutrition, body, hydration
+        let scores = [
+            sleep_score.max(0.0).min(100.0),
+            exercise_balance.max(0.0).min(100.0),
+            nutrition_adequacy.max(0.0).min(100.0),
+            body_trend.max(0.0).min(100.0),
+            _hydration_score.max(0.0).min(100.0),
+        ];
+
+        let weighted_sum: f64 = scores.iter()
+            .zip(weights.iter())
+            .map(|(s, w)| s * w)
+            .sum();
+
+        weighted_sum.round()
+    }
+
+    /// Calculate nutrition consistency score (0-100)
+    /// Based on variance from targets and meal timing consistency
+    fn calculate_nutrition_consistency(
+        daily_calories: &[f64],
+        targets: &[f64],
+        _late_night_count: usize,
+        total_days: usize
+    ) -> f64 {
+        if daily_calories.is_empty() || total_days == 0 {
+            return 50.0; // Neutral default
+        }
+
+        // Calculate adherence to calorie targets
+        let mut adherence_scores = Vec::new();
+        for i in 0..daily_calories.len().min(targets.len()) {
+            if targets[i] > 0.0 {
+                let deviation = (daily_calories[i] - targets[i]).abs() / targets[i];
+                let score = (1.0 - deviation.min(1.0)) * 100.0;
+                adherence_scores.push(score);
+            }
+        }
+
+        let avg_adherence = if adherence_scores.is_empty() {
+            50.0
+        } else {
+            Self::mean(&adherence_scores)
+        };
+
+        // Penalty for late night eating
+        let late_night_ratio = _late_night_count as f64 / total_days as f64;
+        let late_night_penalty = late_night_ratio * 20.0; // Up to 20 point penalty
+
+        (avg_adherence - late_night_penalty).max(0.0).min(100.0)
+    }
+
+    /// Calculate sleep consistency score (0-100)
+    fn calculate_sleep_consistency(durations: &[f64], qualities: &[f64]) -> f64 {
+        if durations.len() < 3 {
+            return 50.0;
+        }
+
+        // Duration variance component (40% weight)
+        let duration_std = Self::std_dev(durations);
+        let duration_score = if duration_std <= 0.5 {
+            100.0
+        } else if duration_std >= 2.0 {
+            0.0
+        } else {
+            (1.0 - (duration_std - 0.5) / 1.5) * 100.0
+        };
+
+        // Quality component (60% weight)
+        let avg_quality = if qualities.is_empty() {
+            50.0
+        } else {
+            Self::mean(qualities)
+        };
+
+        // Combined score
+        (duration_score * 0.4 + avg_quality * 0.6).round()
+    }
+
+    /// Calculate exercise load composite score (0-100)
+    fn calculate_exercise_load(
+        intensities: &[f64],
+        durations: &[f64],
+        variety_count: usize,
+        rest_days: usize,
+        total_days: usize
+    ) -> f64 {
+        if intensities.is_empty() || total_days == 0 {
+            return 0.0;
+        }
+
+        // Intensity component (40%)
+        let avg_intensity = Self::mean(intensities);
+        let intensity_score = avg_intensity * 1.5; // Scale 0-10 to 0-100
+
+        // Duration component (30%)
+        let total_minutes: f64 = durations.iter().sum();
+        let daily_avg = total_minutes / total_days as f64;
+        let duration_score = (daily_avg / 60.0).min(1.0) * 100.0; // Target 60 min/day
+
+        // Variety component (20%)
+        let variety_score = (variety_count as f64 / 10.0).min(1.0) * 100.0;
+
+        // Rest day component (10%) - more rest days = better (up to a point)
+        let rest_ratio = rest_days as f64 / total_days as f64;
+        let rest_score = if rest_ratio >= 0.2 {
+            100.0
+        } else {
+            rest_ratio * 500.0 // 0.2 -> 100, 0.0 -> 0
+        };
+
+        (intensity_score * 0.4 + duration_score * 0.3 + variety_score * 0.2 + rest_score * 0.1).round()
+    }
+
+    /// Determine if correlation is statistically significant
+    /// Using simplified threshold based on sample size and r-value
+    fn is_significant(r: f64, n: usize) -> bool {
+        if n < 10 {
+            return r.abs() > 0.7; // Higher threshold for small samples
+        }
+        r.abs() > 0.5 // Moderate correlation threshold
+    }
+
+    /// Calculate confidence score based on sample size and correlation strength
+    fn calculate_confidence(r: f64, n: usize) -> f64 {
+        let sample_confidence = (n as f64 / 30.0).min(1.0) * 0.5; // 50% weight for sample size
+        let correlation_confidence = r.abs() * 0.5; // 50% weight for correlation strength
+        (sample_confidence + correlation_confidence).min(1.0)
+    }
+
+    /// Main analysis function: compute all correlations and aggregates
+    #[wasm_bindgen(js_name = "analyzeCorrelations")]
+    pub fn analyze_correlations(
+        data_json: &str, // JSON array of DailyBiometricData
+        period_days: usize,
+        anomaly_z_threshold: Option<f64>
+    ) -> Result<String, JsValue> {
+        let z_threshold = anomaly_z_threshold.unwrap_or(2.5);
+
+        // Deserialize input data
+        let daily_data: Vec<DailyBiometricData> = match serde_json::from_str(data_json) {
+            Ok(d) => d,
+            Err(e) => return Err(JsValue::from_str(&format!("Invalid data: {}", e))),
+        };
+
+        if daily_data.len() < 7 {
+            return Err(JsValue::from_str("Insufficient data: need at least 7 days"));
+        }
+
+        // Sort by date
+        let mut sorted_data = daily_data.clone();
+        sorted_data.sort_by(|a, b| a.date.cmp(&b.date));
+
+        let n = sorted_data.len();
+
+        // Extract time series for each factor
+        let dates: Vec<String> = sorted_data.iter().map(|d| d.date.clone()).collect();
+        let exercise_load: Vec<f64> = sorted_data.iter().map(|d| d.exercise_load).collect();
+        let sleep_quality: Vec<f64> = sorted_data.iter().map(|d| d.sleep_quality).collect();
+        let sleep_duration: Vec<f64> = sorted_data.iter().map(|d| d.sleep_duration).collect();
+        let calories: Vec<f64> = sorted_data.iter().map(|d| d.calories_consumed).collect();
+        let protein: Vec<f64> = sorted_data.iter().map(|d| d.protein_intake).collect();
+        let late_nutrition: Vec<f64> = sorted_data.iter().map(|d| d.late_nutrition).collect();
+        let hydration: Vec<f64> = sorted_data.iter().map(|d| d.hydration).collect();
+        let recovery: Vec<f64> = sorted_data.iter().map(|d| d.recovery_score).collect();
+        let workout_intensity: Vec<f64> = sorted_data.iter().map(|d| d.workout_intensity).collect();
+
+        // Calculate aggregates
+        let exercise_agg = ExerciseAggregate {
+            total_workouts: exercise_load.iter().filter(|&&x| x > 0.0).count(),
+            total_minutes: sorted_data.iter().map(|d| d.workout_intensity * 0.5).sum(), // Approximate
+            avg_duration: Self::mean(&sorted_data.iter().map(|d| d.exercise_load).collect::<Vec<_>>()),
+            avg_intensity: Self::mean(&workout_intensity),
+            intensity_std_dev: Self::std_dev(&workout_intensity),
+            variety_score: exercise_load.iter().filter(|&&x| x > 20.0).count() as f64,
+            rest_days: exercise_load.iter().filter(|&&x| x == 0.0).count(),
+            consecutive_days_max: sorted_data.iter().map(|d| d.consecutive_days).max().unwrap_or(0),
+        };
+
+        let sleep_agg = SleepAggregate {
+            avg_duration: Self::mean(&sleep_duration),
+            duration_std_dev: Self::std_dev(&sleep_duration),
+            avg_quality: Self::mean(&sleep_quality),
+            quality_std_dev: Self::std_dev(&sleep_quality),
+            consistency_score: Self::calculate_sleep_consistency(&sleep_duration, &sleep_quality),
+            bedtime_consistency: 75.0, // TODO: Calculate from bedtime data
+        };
+
+        // Late night nutrition incidents
+        let late_night_count = late_nutrition.iter().filter(|&&x| x > 0.0).count();
+
+        let nutrition_agg = NutritionAggregate {
+            avg_calories: Self::mean(&calories),
+            calories_std_dev: Self::std_dev(&calories),
+            avg_protein: Self::mean(&protein),
+            protein_goal_pct: 80.0, // TODO: Compare to targets
+            avg_carbs: 0.0, // Not tracked in current model
+            avg_fat: 0.0,
+            macro_balance_score: 70.0, // TODO: Calculate actual balance
+            hydration_avg: Self::mean(&hydration),
+            late_night_incidents: late_night_count,
+            consistency_score: Self::calculate_nutrition_consistency(
+                &calories,
+                &vec![2000.0; n], // Placeholder targets
+                late_night_count,
+                n
+            ),
+        };
+
+        let body_metrics_agg = BodyMetricsAggregate {
+            weight_change: sorted_data.last().map(|d| d.body_weight).unwrap_or(0.0) -
+                          sorted_data.first().map(|d| d.body_weight).unwrap_or(0.0),
+            weight_std_dev: Self::std_dev(&sorted_data.iter().map(|d| d.body_weight).collect::<Vec<_>>()),
+            body_fat_change: sorted_data.last().map(|d| d.body_fat).unwrap_or(0.0) -
+                            sorted_data.first().map(|d| d.body_fat).unwrap_or(0.0),
+            body_fat_std_dev: Self::std_dev(&sorted_data.iter().map(|d| d.body_fat).collect::<Vec<_>>()),
+            measurements_completeness: 1.0, // All fields present in model
+        };
+
+        // Calculate correlations of interest
+        let mut significant_correlations = Vec::new();
+
+        // Sleep quality vs Recovery
+        let (r_sleep_rec, p_sleep_rec) = Self::pearson_correlation(&sleep_quality, &recovery);
+        if Self::is_significant(r_sleep_rec, n) {
+            significant_correlations.push(CorrelationResult {
+                factor_a: "sleep_quality".to_string(),
+                factor_b: "recovery_score".to_string(),
+                pearson_r: r_sleep_rec,
+                r_squared: r_sleep_rec * r_sleep_rec,
+                p_value: p_sleep_rec,
+                is_significant: true,
+                confidence: Self::calculate_confidence(r_sleep_rec, n),
+            });
+        }
+
+        // Late nutrition vs Recovery
+        let (r_late_rec, p_late_rec) = Self::pearson_correlation(&late_nutrition, &recovery);
+        if Self::is_significant(r_late_rec, n) {
+            significant_correlations.push(CorrelationResult {
+                factor_a: "late_nutrition".to_string(),
+                factor_b: "recovery_score".to_string(),
+                pearson_r: r_late_rec,
+                r_squared: r_late_rec * r_late_rec,
+                p_value: p_late_rec,
+                is_significant: true,
+                confidence: Self::calculate_confidence(r_late_rec, n),
+            });
+        }
+
+        // Exercise intensity vs Recovery (expected negative)
+        let (r_ex_rec, p_ex_rec) = Self::pearson_correlation(&workout_intensity, &recovery);
+        if Self::is_significant(r_ex_rec, n) {
+            significant_correlations.push(CorrelationResult {
+                factor_a: "workout_intensity".to_string(),
+                factor_b: "recovery_score".to_string(),
+                pearson_r: r_ex_rec,
+                r_squared: r_ex_rec * r_ex_rec,
+                p_value: p_ex_rec,
+                is_significant: true,
+                confidence: Self::calculate_confidence(r_ex_rec, n),
+            });
+        }
+
+        // Sleep duration vs Recovery
+        let (r_sleep_dur_rec, p_sleep_dur_rec) = Self::pearson_correlation(&sleep_duration, &recovery);
+        if Self::is_significant(r_sleep_dur_rec, n) {
+            significant_correlations.push(CorrelationResult {
+                factor_a: "sleep_duration".to_string(),
+                factor_b: "recovery_score".to_string(),
+                pearson_r: r_sleep_dur_rec,
+                r_squared: r_sleep_dur_rec * r_sleep_dur_rec,
+                p_value: p_sleep_dur_rec,
+                is_significant: true,
+                confidence: Self::calculate_confidence(r_sleep_dur_rec, n),
+            });
+        }
+
+        // Detect anomalies
+        let mut anomaly_points = Vec::new();
+        anomaly_points.append(&mut Self::detect_anomalies(&recovery, &dates, "recovery_score", z_threshold));
+        anomaly_points.append(&mut Self::detect_anomalies(&sleep_quality, &dates, "sleep_quality", z_threshold));
+
+        // Build aggregates
+        let aggregates = PeriodAggregates {
+            period_days: n,
+            exercise: exercise_agg,
+            sleep: sleep_agg,
+            nutrition: nutrition_agg,
+            body_metrics: body_metrics_agg,
+            recovery: RecoveryAggregate {
+                avg_score: Self::mean(&recovery),
+                score_std_dev: Self::std_dev(&recovery),
+                trend: "stable".to_string(), // TODO: Calculate from slope
+                correlation_with_sleep: r_sleep_rec,
+                correlation_with_exercise: r_ex_rec,
+                correlation_with_nutrition: r_late_rec,
+            },
+        };
+
+        // Generate summary and warnings
+        let (summary, warnings) = Self::generate_summary(&aggregates, &significant_correlations, &anomaly_points);
+
+        let analysis = CorrelationAnalysis {
+            snapshot_id: "temp".to_string(), // Will be set by caller
+            period_days: n,
+            data_coverage: 1.0, // All days present in this simplified model
+            aggregates,
+            significant_correlations,
+            anomaly_points,
+            summary,
+            warnings,
+        };
+
+        Ok(serde_json::to_string(&analysis).unwrap_or_default())
+    }
+
+    /// Generate human-readable summary from analysis results
+    fn generate_summary(
+        aggregates: &PeriodAggregates,
+        correlations: &[CorrelationResult],
+        anomalies: &[AnomalyPoint]
+    ) -> (AnalysisSummary, Vec<String>) {
+        let mut warnings = Vec::new();
+        let mut risk_level = "low".to_string();
+
+        // Check recovery score
+        if aggregates.recovery.avg_score < 50.0 {
+            warnings.push("low_recovery_score".to_string());
+            risk_level = "medium".to_string();
+        }
+        if aggregates.recovery.avg_score < 30.0 {
+            warnings.push("critical_recovery_score".to_string());
+            risk_level = "high".to_string();
+        }
+
+        // Check sleep consistency
+        if aggregates.sleep.consistency_score < 50.0 {
+            warnings.push("poor_sleep_consistency".to_string());
+        }
+
+        // Check late night eating
+        if aggregates.nutrition.late_night_incidents > 3 {
+            warnings.push("frequent_late_nutrition".to_string());
+            risk_level = "high".to_string(); // Override if frequent
+        }
+
+        // Check exercise balance
+        if aggregates.exercise.rest_days == 0 {
+            warnings.push("no_rest_days".to_string());
+            risk_level = "high".to_string();
+        }
+
+        // Find primary concern based on strongest negative correlation
+        let primary_concern = correlations.iter()
+            .filter(|c| c.factor_a == "late_nutrition" || c.factor_a == "workout_intensity")
+            .filter(|c| c.pearson_r < -0.6)
+            .max_by(|a, b| a.pearson_r.abs().partial_cmp(&b.pearson_r.abs()).unwrap())
+            .map(|c| format!("{} negatively impacts recovery (r={:.2})", c.factor_a, c.pearson_r));
+
+        // Generate recommended action
+        let recommended_action = if let Some(ref concern) = primary_concern {
+            if concern.contains("late_nutrition") {
+                Some("Avoid eating within 3 hours of bedtime to improve recovery".to_string())
+            } else if concern.contains("workout_intensity") {
+                Some("Consider reducing workout intensity or adding more rest days".to_string())
+            } else {
+                Some("Focus on improving sleep quality and consistency".to_string())
+            }
+        } else if !warnings.is_empty() {
+            Some("Address recovery warnings to optimize performance".to_string())
+        } else {
+            None
+        };
+
+        let summary = AnalysisSummary {
+            total_factors_analyzed: 8, // exercise, sleep, nutrition, recovery, etc.
+            significant_correlations_count: correlations.len(),
+            primary_concern,
+            recommended_action,
+            risk_level,
+        };
+
+        (summary, warnings)
+    }
+
+    /// Calculate recovery score from raw biometric data (convenience method)
+    #[wasm_bindgen(js_name = "calculateRecoveryScore")]
+    pub fn calculate_recovery_score(
+        sleep_quality: f64,
+        sleep_duration: f64,
+        exercise_intensity: f64,
+        calories_adequate: f64, // 0-1 ratio of target met
+        hydration_adequate: f64 // 0-1 ratio of target met
+    ) -> f64 {
+        // Normalize inputs to 0-100
+        let sleep_score = sleep_quality.max(0.0).min(100.0) * 0.6 + // Quality is primary
+                         (sleep_duration.min(9.0).max(7.0) / 9.0) * 100.0 * 0.4; // 7-9 hours ideal
+
+        // Exercise load - optimal range, penalize both under and over
+        let exercise_score = if exercise_intensity < 30.0 {
+            // Under-training penalty
+            50.0 + exercise_intensity
+        } else if exercise_intensity <= 70.0 {
+            // Optimal zone
+            80.0 + (70.0 - exercise_intensity).abs() * 0.5
+        } else {
+            // Overtraining penalty
+            (100.0 - exercise_intensity).max(20.0)
+        };
+
+        // Nutrition and hydration
+        let nutrition_score = (calories_adequate * 0.5 + hydration_adequate * 0.5) * 100.0;
+        let hydration_score = hydration_adequate * 100.0;
+
+        // Combine with weights
+        Self::compute_recovery_score_internal(
+            sleep_score,
+            exercise_score,
+            nutrition_score,
+            75.0, // Body metrics trend placeholder
+            hydration_score
+        )
+    }
+}
+
+// ============================================
+// END OF BIOMETRIC CORRELATION MODULE
 // ==========================================
 
 #[cfg(test)]

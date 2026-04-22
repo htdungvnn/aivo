@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { SwaggerUI } from "@hono/swagger-ui";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
@@ -99,7 +99,7 @@ app.get("/docs", async (c) => {
  */
 app.get("/openapi.json", async (c) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return c.json(app.getOpenAPIDocument({}) as any);
+  return c.json(app.getOpenAPIDocument(undefined) as any);
 });
 
 export { app as default };

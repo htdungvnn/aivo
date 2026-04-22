@@ -1,7 +1,7 @@
-import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison } from "@aivo/shared-types";
+import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult } from "@aivo/shared-types";
 
 // Re-export types for convenient consumption by mobile/web apps
-export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison };
+export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult };
 
 /**
  * Export format types
@@ -507,6 +507,104 @@ export class ApiClient {
       },
       timestamp: new Date(),
     };
+  }
+
+  // ==================== Biometric APIs ====================
+
+  /**
+   * Create or update a sleep log
+   */
+  async createSleepLog(sleepLog: Partial<SleepLog>): Promise<ApiResponse<{ date: string; userId: string }>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/biometric/sleep`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(sleepLog),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to create sleep log", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ date: string; userId: string }>>;
+  }
+
+  /**
+   * Get sleep logs history
+   */
+  async getSleepHistory(params?: { limit?: number }): Promise<ApiResponse<SleepLog[]>> {
+    const url = new URL("/biometric/sleep/history", this.baseUrl);
+    if (params?.limit) url.searchParams.append("limit", params.limit.toString());
+    return this.request(url.toString());
+  }
+
+  /**
+   * Get sleep summary for a period
+   */
+  async getSleepSummary(period: "7d" | "30d" | "90d" = "30d"): Promise<ApiResponse<{ period: string; averageDuration: number; averageQuality: number; consistency: number; totalDays: number }>> {
+    const url = new URL(`/biometric/sleep/summary?period=${period}`, this.baseUrl);
+    return this.request(url.toString());
+  }
+
+  /**
+   * Generate a biometric snapshot (correlation analysis)
+   */
+  async generateBiometricSnapshot(params?: { period?: "7d" | "30d" }): Promise<ApiResponse<{ snapshotId: string; period: string; recovery_score: number; findings?: CorrelationFinding[] }>> {
+    const body = params?.period ? { period: params.period } : {};
+    const response = await fetch(`${this.baseUrl}/biometric/snapshot/generate`, {
+      method: "POST",
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to generate snapshot", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ snapshotId: string; period: string; recovery_score: number; findings?: CorrelationFinding[] }>>;
+  }
+
+  /**
+   * Get the latest biometric snapshot for a period
+   */
+  async getBiometricSnapshot(period: "7d" | "30d"): Promise<ApiResponse<BiometricSnapshot>> {
+    return this.request(`/biometric/snapshot/${period}`);
+  }
+
+  /**
+   * Get correlation findings
+   */
+  async getCorrelations(): Promise<ApiResponse<CorrelationFinding[]>> {
+    return this.request("/biometric/correlations");
+  }
+
+  /**
+   * Dismiss a correlation finding
+   */
+  async dismissCorrelation(findingId: string): Promise<ApiResponse<{ success: boolean }>> {
+    const response = await fetch(`${this.baseUrl}/biometric/correlations/${encodeURIComponent(findingId)}/dismiss`, {
+      method: "PATCH",
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to dismiss correlation", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ success: boolean }>>;
+  }
+
+  /**
+   * Get current recovery score
+   */
+  async getRecoveryScore(period?: "7d" | "30d"): Promise<ApiResponse<RecoveryScoreResult>> {
+    const url = new URL("/biometric/recovery-score", this.baseUrl);
+    if (period) url.searchParams.append("period", period);
+    return this.request(url.toString());
   }
 }
 

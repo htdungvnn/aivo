@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance, conversations, workoutRoutines, dailySchedules, planDeviations } from "@aivo/db";
 import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import { optimize_content_wasm } from "@aivo/optimizer";
 import { AdaptivePlanner } from "@aivo/compute";
 import { MemoryService } from "@aivo/memory-service";
@@ -255,10 +255,12 @@ export const AIRouter = () => {
             aiMessage,
             insertedConversation.id
           ).catch((err: Error) => {
+            // eslint-disable-next-line no-console
             console.error("Memory processing failed:", err.message);
             // Don't fail the request if memory processing fails
           });
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.warn("Memory service initialization failed:", error);
         }
       }
@@ -272,6 +274,7 @@ export const AIRouter = () => {
         },
       });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("AI chat error:", error);
       const message = error instanceof Error ? error.message : "Chat failed";
       return c.json({ success: false, error: message }, 500);
@@ -557,6 +560,7 @@ Output JSON format:
         const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : aiResponse;
         aiResult = JSON.parse(jsonStr);
       } catch {
+        // eslint-disable-next-line no-console
         console.error("Failed to parse AI response:", aiResponse);
         return c.json({ success: false, error: "Failed to generate adjusted schedule" }, 500);
       }
@@ -627,6 +631,7 @@ Output JSON format:
         },
       });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("AI replan error:", error);
       const message = error instanceof Error ? error.message : "Replanning failed";
       return c.json({ success: false, error: message }, 500);

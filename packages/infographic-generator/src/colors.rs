@@ -1,17 +1,6 @@
 //! Color palette generation for infographic themes
 
-use serde::{Deserialize, Serialize};
-
-/// Color palette structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ColorPalette {
-    pub primary: String,
-    pub secondary: String,
-    pub accent: String,
-    pub background: String,
-    pub text: String,
-    pub text_muted: String,
-}
+use crate::types::ColorPalette;
 
 /// Generate color palette for a given theme
 pub fn generate_palette(theme: &str, _level: i32) -> ColorPalette {
@@ -67,10 +56,15 @@ pub fn generate_palette(theme: &str, _level: i32) -> ColorPalette {
     }
 }
 
+/// Get default palette (vibrant theme)
+pub fn default_palette() -> ColorPalette {
+    generate_palette("vibrant", 0)
+}
+
 /// Get color for intensity (for heatmap)
 pub fn get_heatmap_color(intensity: f64) -> (u8, u8, u8, u8) {
     let i = intensity.max(0.0).min(1.0);
-    let alpha = (0.4 + i * 0.5 * 255.0) as u8;
+    let alpha = ((0.4 + i * 0.6) * 255.0) as u8;
 
     match i {
         i if i < 0.2 => (59, 130, 246, alpha),      // blue
@@ -100,10 +94,10 @@ mod tests {
 
     #[test]
     fn test_get_heatmap_color() {
-        let (r, g, b, a) = get_heatmap_color(0.0);
+        let (_r, _g, _b, a) = get_heatmap_color(0.0);
         assert_eq!(a, 102); // 0.4 * 255
 
-        let (r, g, b, a) = get_heatmap_color(1.0);
+        let (_r, _g, _b, a) = get_heatmap_color(1.0);
         assert_eq!(a, 255); // 0.9 * 255
     }
 }

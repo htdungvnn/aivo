@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance, workouts } from "@aivo/db";
 import { eq, desc } from "drizzle-orm";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 
 export interface Env {
   DB: D1Database;

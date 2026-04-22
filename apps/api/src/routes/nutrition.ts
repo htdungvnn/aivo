@@ -4,8 +4,23 @@ import { createDrizzleInstance } from "@aivo/db";
 import { schema } from "@aivo/db/schema";
 import { eq, gte, lte, and } from "drizzle-orm";
 import { uploadImage, validateImage } from "../services/r2";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
+import { FitnessCalculator } from "@aivo/compute";
+
+// Types for daily nutrition summary
+interface DailySummaryData {
+  userId: string;
+  date: string;
+  totalCalories: number;
+  totalProtein_g: number;
+  totalCarbs_g: number;
+  totalFat_g: number;
+  totalFiber_g: number | null;
+  totalSugar_g: number | null;
+  foodLogCount: number;
+  updatedAt: number;
+}
 
 // WASM Image Processor (optional - for image optimization)
 interface ImageProcessorWASM {
@@ -171,6 +186,7 @@ export const NutritionRouter = () => {
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Food image upload error:", error);
       return c.json({ success: false, error: "Upload failed" }, 500);
     }
@@ -192,7 +208,7 @@ export const NutritionRouter = () => {
 
     try {
       const body = await c.req.json();
-      const { imageUrl, mealType } = VisionAnalysisRequestSchema.parse(body);
+      const { imageUrl } = VisionAnalysisRequestSchema.parse(body);
 
       // Call OpenAI GPT-4o for food analysis
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -334,6 +350,7 @@ Guidelines:
         },
       });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Food vision analysis error:", error);
       const message = error instanceof Error ? error.message : "Analysis failed";
       return c.json({ success: false, error: message }, 500);
@@ -353,7 +370,7 @@ Guidelines:
 
     try {
       const body = await c.req.json();
-      const { detectedItems, mealType, timestamp, analysisId } =
+      const { detectedItems, timestamp } =
         CreateFromAnalysisSchema.parse(body);
 
       const loggedAt = timestamp || Date.now();
@@ -402,6 +419,7 @@ Guidelines:
         },
       });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Create food logs error:", error);
       const message = error instanceof Error ? error.message : "Failed to create logs";
       return c.json({ success: false, error: message }, 500);
@@ -454,6 +472,7 @@ Guidelines:
 
       return c.json({ success: true, data: savedLog }, 201);
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Create food log error:", error);
       const message = error instanceof Error ? error.message : "Failed to create log";
       return c.json({ success: false, error: message }, 500);
@@ -483,7 +502,7 @@ Guidelines:
 
       const logs = await drizzle.query.foodLogs.findMany({
         where: (() => {
-          const conditions: any[] = [
+          const conditions: Array<ReturnType<typeof eq> | ReturnType<typeof gte> | ReturnType<typeof lte>> = [
             eq(schema.foodLogs.userId, userId),
           ];
           if (startDate !== undefined) {
@@ -503,6 +522,7 @@ Guidelines:
 
       return c.json({ success: true, data: logs });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Get food logs error:", error);
       return c.json({ success: false, error: "Failed to fetch logs" }, 500);
     }
@@ -589,6 +609,7 @@ Guidelines:
 
       return c.json({ success: true, data: updated });
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Update food log error:", error);
       const message = error instanceof Error ? error.message : "Failed to update log";
       return c.json({ success: false, error: message }, 500);
@@ -652,7 +673,7 @@ Guidelines:
         ),
       });
 
-      let summaryData: any;
+      let summaryData: DailySummaryData;
       if (!summary) {
         // Compute from food logs for this date
         const startOfDay = new Date(date + "T00:00:00.000Z").getTime();
@@ -679,14 +700,7 @@ Guidelines:
           { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, count: 0 }
         );
 
-        // Get user's macro targets (from fitness profile)
-        const user = await drizzle.query.users.findFirst({
-          where: (u, { eq }) => eq(u.id, userId),
-        });
-
-        const { calories: targetCalories, protein_g: targetProtein, carbs_g: targetCarbs, fat_g: targetFat } =
-          calculateMacroTargets(user);
-
+        // Get user's macro targets (from fitness profile) - will be added to response later
         summaryData = {
           userId,
           date,
@@ -760,6 +774,7 @@ Guidelines:
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Get nutrition summary error:", error);
       return c.json({ success: false, error: "Failed to fetch summary" }, 500);
     }
@@ -787,6 +802,7 @@ Guidelines:
 
       return c.json({ success: true, data: results });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Search food database error:", error);
       return c.json({ success: false, error: "Search failed" }, 500);
     }
@@ -836,6 +852,7 @@ Guidelines:
 
       return c.json({ success: true, data: saved }, 201);
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error("Add food item error:", error);
       const message = error instanceof Error ? error.message : "Failed to add item";
       return c.json({ success: false, error: message }, 500);
@@ -850,7 +867,7 @@ Guidelines:
  * Uses existing FitnessCalculator from Rust WASM
  */
 function calculateMacroTargets(
-  user: any
+  user: { weight?: number; height?: number; age?: number; gender?: string; goals?: unknown }
 ): { calories: number; protein_g: number; carbs_g: number; fat_g: number } {
   // Handle null/undefined user or missing required fields
   const weight = user?.weight;
@@ -870,11 +887,8 @@ function calculateMacroTargets(
   }
 
   // Calculate BMR using Mifflin-St Jeor
-  // Note: Using require() for WASM - in production this should be a proper ES module import
-   
-  const { calculateBMR, calculateTDEE } = require("@aivo/compute");
-  const bmr = calculateBMR(weight, height, age, gender === "male");
-  const tdee = calculateTDEE(bmr, "moderate"); // Default to moderate activity
+  const bmr = FitnessCalculator.calculateBMR(weight, height, age, gender === "male");
+  const tdee = FitnessCalculator.calculateTDEE(bmr, "moderate"); // Default to moderate activity
 
   let targetCalories = tdee;
   if (goals) {
@@ -922,7 +936,7 @@ function calculateMacroTargets(
  * Update daily nutrition summary aggregate
  */
 async function updateDailySummary(
-  drizzle: any,
+  drizzle: ReturnType<typeof createDrizzleInstance>,
   userId: string,
   loggedAt: number
 ): Promise<void> {
@@ -939,7 +953,7 @@ async function updateDailySummary(
   });
 
   const totals = logs.reduce(
-    (acc: { calories: number; protein: number; carbs: number; fat: number; fiber: number; count: number }, log: any) => ({
+    (acc: { calories: number; protein: number; carbs: number; fat: number; fiber: number; count: number }, log: { calories: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g?: number | null }) => ({
       calories: acc.calories + log.calories,
       protein: acc.protein + log.protein_g,
       carbs: acc.carbs + log.carbs_g,

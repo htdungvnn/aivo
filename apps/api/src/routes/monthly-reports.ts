@@ -4,7 +4,7 @@ import { createDrizzleInstance } from "@aivo/db";
 import { sendMonthlyReport, defaultEmailConfig } from "@aivo/email-reporter";
 import { users } from "@aivo/db";
 import { eq } from "drizzle-orm";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -165,6 +165,7 @@ export const MonthlyReportRouter = () => {
 
       return c.json({ success: true, message: "Preferences updated" });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Update email preferences error:", error);
       return c.json({ success: false, error: "Failed to update preferences" }, 500);
     }

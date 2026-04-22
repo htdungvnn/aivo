@@ -431,7 +431,7 @@ function getDefaultDrillDescription(type: string): string {
   return `Practice drill to correct ${type.replace(/_/g, " ")}.`;
 }
 
-function getDefaultDrillSteps(type: string): string[] {
+function getDefaultDrillSteps(_type: string): string[] {
   // Generic steps - in production, these would be exercise-specific
   return [
     "Warm up with bodyweight only",
@@ -451,6 +451,6 @@ function getDefaultDrillCues(type: string): string[] {
   return cues[type] || ["Focus on form", "Control the movement"];
 }
 
-function getDefaultDrillEquipment(type: string): string[] {
+function getDefaultDrillEquipment(_type: string): string[] {
   return ["bodyweight"];
 }

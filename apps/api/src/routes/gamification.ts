@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { gamificationProfiles, pointTransactions, streakFreezes, dailyCheckins, users, bodyMetrics } from "@aivo/db";
 import { eq, and, desc, asc, count, gte, gt, isNull } from "drizzle-orm";
-import type { D1Database } from "drizzle-orm/d1";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { Context } from "hono";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
@@ -198,6 +198,8 @@ router.post("/checkin", async (c) => {
       checkedInAt: now,
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console
     console.error("Checkin error:", error);
     return c.json({ success: false, message: "Failed to record check-in" }, 500);
   }
@@ -277,6 +279,7 @@ router.get("/streak/:userId", async (c) => {
       },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Streak fetch error:", error);
     return c.json({ success: false, message: "Failed to fetch streak data" }, 500);
   }
@@ -360,6 +363,7 @@ router.post("/freeze/purchase", async (c) => {
       },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Freeze purchase error:", error);
     return c.json({ success: false, message: "Failed to purchase freeze" }, 500);
   }
@@ -410,6 +414,7 @@ router.post("/freeze/apply", async (c) => {
       data: { date: targetDate, freezeId: freeze.id },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Freeze apply error:", error);
     return c.json({ success: false, message: "Failed to apply freeze" }, 500);
   }
@@ -447,7 +452,13 @@ router.get("/leaderboard", async (c) => {
       },
       orderBy: desc(gamificationProfiles.totalPoints),
       limit: Math.min(limit, 500),
-    });
+    }) as Array<{
+      userId: string;
+      totalPoints: number | null;
+      streakCurrent: number | null;
+      level: number | null;
+      user: { id: string; name: string | null; picture: string | null } | null;
+    }>;
 
     const leaderboard = topProfiles.map((profile, index) => ({
       rank: index + 1,
@@ -463,6 +474,7 @@ router.get("/leaderboard", async (c) => {
 
     return c.json({ success: true, data: leaderboard, cached: false });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Leaderboard error:", error);
     return c.json({ success: false, message: "Failed to fetch leaderboard" }, 500);
   }
@@ -499,6 +511,7 @@ router.get("/leaderboard/rank/:userId", async (c) => {
       },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Rank fetch error:", error);
     return c.json({ success: false, message: "Failed to fetch rank" }, 500);
   }
@@ -548,6 +561,7 @@ router.get("/points/:userId", async (c) => {
       },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Points fetch error:", error);
     return c.json({ success: false, message: "Failed to fetch points data" }, 500);
   }
@@ -597,6 +611,7 @@ router.post("/share/generate", async (c) => {
       },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Share generate error:", error);
     return c.json({ success: false, message: "Failed to generate share card" }, 500);
   }
@@ -615,6 +630,7 @@ router.post("/share/record", async (c) => {
       pointsAwarded: SHARE_BONUS_POINTS,
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Share record error:", error);
     return c.json({ success: false, message: "Failed to record share" }, 500);
   }

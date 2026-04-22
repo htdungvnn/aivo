@@ -1,9 +1,6 @@
 //! SVG Template definitions and rendering
 
-use crate::{
-    colors::ColorPalette,
-    types::{InfographicConfig, InfographicData, InfographicTemplate, SvgTemplate, SvgTemplateElement},
-};
+use crate::types::{ColorPalette, InfographicConfig, InfographicData, InfographicTemplate, SvgTemplate, SvgTemplateElement};
 use svg::{node::element::*, Document, Node};
 
 /// Get a template by ID
@@ -26,7 +23,7 @@ pub fn get_template_by_id(
 }
 
 /// Build weekly summary template
-fn build_weekly_summary_template(width: u32, height: u32, palette: ColorPalette) -> SvgTemplate {
+pub fn build_weekly_summary_template(width: u32, height: u32, palette: ColorPalette) -> SvgTemplate {
     let mut elements = Vec::new();
 
     // Background

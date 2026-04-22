@@ -648,6 +648,79 @@ export const notifications = sqliteTable("notifications", {
   index('idx_notifications_created_at').on(table.createdAt),
 ]);
 
+// ============================================
+// BIOMETRIC CORRELATION - SLEEP & SNAPSHOTS
+// ============================================
+
+// Sleep logs - structured sleep tracking with objective metrics
+export const sleepLogs = sqliteTable("sleep_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // ISO date YYYY-MM-DD
+  durationHours: real("duration_hours"), // Total sleep duration in hours
+  qualityScore: integer("quality_score"), // 0-100 self-reported
+  deepSleepMinutes: integer("deep_sleep_minutes"), // Optional: from wearable
+  remSleepMinutes: integer("rem_sleep_minutes"), // Optional: from wearable
+  awakeMinutes: integer("awake_minutes"), // Optional: from wearable
+  bedtime: text("bedtime"), // HH:MM format (e.g., "22:30")
+  waketime: text("waketime"), // HH:MM format (e.g., "06:30")
+  consistencyScore: integer("consistency_score"), // 0-100 (calculated, bedtime variance)
+  notes: text("notes"),
+  source: text("source").default("manual"), // "manual", "device", "import"
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_sleep_user_date').on(table.userId, table.date),
+  unique('unique_sleep_user_date').on(table.userId, table.date),
+]);
+
+// Biometric snapshots - pre-aggregated 7d/30d statistics for performance
+export const biometricSnapshots = sqliteTable("biometric_snapshots", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  period: text("period").notNull(), // "7d" or "30d"
+  generatedAt: integer("generated_at").notNull(),
+  validUntil: integer("valid_until"), // Snapshot expires after 24h (7d) or 168h (30d)
+  // Exercise load aggregates (JSON)
+  exerciseLoad: text("exercise_load"),
+  // Sleep aggregates (JSON)
+  sleep: text("sleep"),
+  // Nutrition aggregates (JSON) - from dailyNutritionSummaries
+  nutrition: text("nutrition"),
+  // Body metrics trends (JSON) - from bodyMetrics
+  bodyMetrics: text("body_metrics"),
+  // Recovery composite score (0-100)
+  recoveryScore: real("recovery_score"),
+  // Warnings about data quality or concerning patterns
+  warnings: text("warnings"), // JSON array of strings
+}, (table) => [
+  index('idx_snapshot_user_period').on(table.userId, table.period),
+  index('idx_snapshot_generated').on(table.generatedAt),
+]);
+
+// Correlation findings - discovered patterns between biometric factors
+export const correlationFindings = sqliteTable("correlation_findings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  snapshotId: text("snapshot_id").notNull().references(() => biometricSnapshots.id, { onDelete: "cascade" }),
+  factorA: text("factor_a").notNull(), // e.g., "exercise_load", "sleep_quality", "nutrition_consistency"
+  factorB: text("factor_b").notNull(), // usually "recovery_score" or another factor
+  correlationCoefficient: real("correlation_coefficient"), // -1 to 1
+  pValue: real("p_value"), // statistical significance (approx)
+  confidence: real("confidence"), // 0-1 based on data completeness
+  anomalyThreshold: real("anomaly_threshold"), // z-score threshold used for outlier detection
+  anomalyCount: integer("anomaly_count"), // number of outlier days detected
+  outlierDates: text("outlier_dates"), // JSON array of dates (ISO)
+  explanation: text("explanation"), // Plain English explanation (pre-computed)
+  actionableInsight: text("actionable_insight"), // What user should do
+  detectedAt: integer("detected_at").notNull(),
+  validUntil: integer("valid_until"), // 30 days validity
+  isDismissed: integer("is_dismissed").default(0),
+}, (table) => [
+  index('idx_findings_user_snapshot').on(table.userId, table.snapshotId),
+  index('idx_findings_detected').on(table.detectedAt),
+]);
+
 // Migrations table
 export const migrations = sqliteTable("migrations", {
   id: text("id").primaryKey(),

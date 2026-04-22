@@ -2,10 +2,9 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { ExcelGenerator, generateJSON } from "@aivo/excel-export";
-import type { D1Database } from "drizzle-orm/d1";
-import type { Body } from "hono";
-// Import Drizzle tables for runtime (needed for queries and typeof)
-import type {
+import type { D1Database } from "@cloudflare/workers-types";
+// Import Drizzle tables for runtime
+import {
   users,
   workouts,
   workoutExercises,
@@ -18,12 +17,11 @@ import type {
   badges,
   achievements,
   socialProofCards,
-  activityEvents} from "@aivo/db";
-import {
-  gamificationProfiles
+  activityEvents,
+  gamificationProfiles,
 } from "@aivo/db";
 
-// Type imports for row data interfaces (optional, but helpful)
+// Type imports for row data interfaces
 import type {
   User,
   Workout,
@@ -43,21 +41,6 @@ import type {
   UserGoal,
 } from "@aivo/shared-types";
 
-// Type aliases for Drizzle row types
-type UserRow = typeof users.$TypedSelect;
-type WorkoutRow = typeof workouts.$TypedSelect;
-type WorkoutExerciseRow = typeof workoutExercises.$TypedSelect;
-type DailyScheduleRow = typeof dailySchedules.$TypedSelect;
-type BodyMetricRow = typeof bodyMetrics.$TypedSelect;
-type BodyHeatmapRow = typeof bodyHeatmaps.$TypedSelect;
-type VisionAnalysisRow = typeof visionAnalyses.$TypedSelect;
-type ConversationRow = typeof conversations.$TypedSelect;
-type AIRecommendationRow = typeof aiRecommendations.$TypedSelect;
-type BadgeRow = typeof badges.$TypedSelect;
-type AchievementRow = typeof achievements.$TypedSelect;
-type SocialProofCardRow = typeof socialProofCards.$TypedSelect;
-type ActivityEventRow = typeof activityEvents.$TypedSelect;
-
 interface EnvWithR2 {
   DB: D1Database;
 }
@@ -69,9 +52,6 @@ const ExportQuerySchema = z.object({
   endDate: z.string().datetime().optional(),
   format: z.enum(["xlsx", "csv", "json"]).default("xlsx"),
 });
-
-// Helper: Convert Unix timestamp (seconds) to Date
-const toDate = (timestamp: number | null | undefined): Date | undefined => {
   if (timestamp === null || timestamp === undefined) { return undefined; }
   return new Date(timestamp * 1000);
 };

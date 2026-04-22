@@ -136,7 +136,7 @@ pub fn default_config() -> Result<String, JsError> {
         template: InfographicTemplate::WeeklySummary,
         theme: "vibrant".to_string(),
         layout: "square".to_string(),
-        color_scheme: default_palette(),
+        color_scheme: crate::colors::default_palette(),
         typography: TypographyConfig {
             headline_font: "Arial, sans-serif".to_string(),
             body_font: "Arial, sans-serif".to_string(),
@@ -178,7 +178,7 @@ struct SvgResponse {
 }
 
 /// Validation result
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct ValidationResult {
     valid: bool,
     errors: Vec<String>,
@@ -232,7 +232,7 @@ mod tests {
             id: "test".to_string(),
             user_id: "user123".to_string(),
             template: InfographicTemplate::WeeklySummary,
-            config: default_config().and_then(|s| serde_json::from_str(&s)).unwrap(),
+            config: serde_json::from_str(&default_config().unwrap()).unwrap(),
             story: InfographicStory {
                 headline: "Test".to_string(),
                 subheadline: None,
@@ -312,7 +312,7 @@ mod tests {
             id: "test".to_string(),
             user_id: "user123".to_string(),
             template: InfographicTemplate::WeeklySummary,
-            config: default_config().and_then(|s| serde_json::from_str(&s)).unwrap(),
+            config: serde_json::from_str(&default_config().unwrap()).unwrap(),
             story: InfographicStory {
                 headline: "Test".to_string(),
                 subheadline: None,
