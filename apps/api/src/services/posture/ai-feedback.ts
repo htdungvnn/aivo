@@ -4,8 +4,8 @@
  * This is Step 3 of the posture correction pipeline
  */
 
-import { openai } from "../utils/openai";
-import type { SkeletonData, FormDeviation, PostureAnalysisResult } from "./posture-analyzer";
+import { openai } from "../../utils/openai";
+import type { SkeletonData, FormDeviation, PostureAnalysisResult, SkeletonFrame, SkeletonJoint } from "./posture-analyzer";
 
 export interface AIFeedbackRequest {
   skeletonData: SkeletonData;
@@ -106,6 +106,7 @@ Please provide your AI analysis as JSON matching the specified schema.`,
       warnings: parsed.warnings || [],
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("[AIFeedback] Analysis failed:", error);
     throw new Error(`AI feedback generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -120,9 +121,7 @@ function buildFeedbackPrompt(
   userProfile?: AIFeedbackRequest["userProfile"]
 ): string {
   const exercise = skeletonData.exerciseType;
-  const frames = skeletonData.frames;
 
-  // Extract key joint positions for analysis
   // Summarize the movement pattern
   const summary = summarizeMovement(skeletonData, geometricAnalysis);
 
@@ -236,7 +235,7 @@ function getSeverityDistribution(deviations: FormDeviation[]): string {
  * Sample frames with deviations for AI analysis
  */
 function sampleFrames(frames: SkeletonFrame[], deviations: FormDeviation[]): string {
-  if (frames.length === 0) return "No frame data";
+  if (frames.length === 0) {return "No frame data";}
 
   // Sample up to 5 key frames
   const sampleCount = Math.min(5, frames.length);
@@ -244,12 +243,12 @@ function sampleFrames(frames: SkeletonFrame[], deviations: FormDeviation[]): str
 
   const lines: string[] = [];
   for (let i = 0; i < frames.length; i += step) {
-    if (lines.length >= sampleCount) break;
+    if (lines.length >= sampleCount) {break;}
     const frame = frames[i];
     const frameDeviations = deviations.filter((d) => d.timestampMs === frame.timestampMs);
 
     lines.push(`Frame ${frame.frameNumber}:`);
-    for (const [joint, pos] of Object.entries(frame.joints)) {
+    for (const [joint, pos] of Object.entries(frame.joints) as [string, SkeletonJoint][]) {
       if (pos.confidence > 0.5) {
         lines.push(`  ${joint}: (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) conf=${(pos.confidence * 100).toFixed(0)}%`);
       }

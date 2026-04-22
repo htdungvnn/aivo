@@ -86,6 +86,7 @@ export async function analyzePosture(skeletonData: SkeletonData): Promise<Postur
 
     return result;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("[PostureAnalyzer] Analysis failed:", error);
     throw new Error(`Posture analysis failed: ${error instanceof Error ? error.message : String(error)}`);
   }
