@@ -54,8 +54,8 @@ function getGrade(score: number): keyof typeof gradeLabels {
 
 function RecoveryScoreDisplay({ score, trend, change }: RecoveryScoreDisplayProps) {
   const grade = getGrade(score);
-  const trendIcon = trend === "improving" ? TrendingUp : trend === "declining" ? TrendingDown : TrendingUp;
   const trendColor = trend === "improving" ? "text-emerald-400" : trend === "declining" ? "text-red-400" : "text-gray-400";
+  const TrendIcon = trend === "improving" || trend === "stable" ? TrendingUp : TrendingDown;
 
   return (
     <Card className="bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-900/60 border-slate-700/50 overflow-hidden relative">
@@ -78,7 +78,7 @@ function RecoveryScoreDisplay({ score, trend, change }: RecoveryScoreDisplayProp
 
         {change !== undefined && (
           <div className={`flex items-center gap-2 ${trendColor}`}>
-            <trendIcon className="w-4 h-4" />
+            <TrendIcon className="w-4 h-4" />
             <span className="text-sm font-medium">
               {change > 0 ? "+" : ""}{change.toFixed(1)}% from last period
             </span>
@@ -100,7 +100,6 @@ interface CorrelationCardProps {
 }
 
 function CorrelationCard({ factorA, factorB, correlation, pValue, insight, anomalies, confidence }: CorrelationCardProps) {
-  const isPositive = correlation > 0;
   const strength = Math.abs(correlation);
   const strengthLabel = strength >= 0.7 ? "Strong" : strength >= 0.4 ? "Moderate" : "Weak";
   const isSignificant = pValue < 0.05;
@@ -242,11 +241,6 @@ export function RecoveryDashboard() {
       loadData();
     }
   }, [isAuthenticated, apiClient, loadData]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData(true);
-  };
 
   const handleGenerateSnapshot = async () => {
     if (!apiClient) return;

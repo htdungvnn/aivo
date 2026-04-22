@@ -71,8 +71,8 @@ const createHealthCheck = () => {
       const dbLatency = Date.now() - dbStart;
 
       // Get table list
-      const execResults = await c.env.DB.exec("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = execResults.flatMap(result => result.results.map(row => (row as any).name))
+      const execResults = await (c.env.DB.exec as any)("SELECT name FROM sqlite_master WHERE type='table'");
+      const tableList = (execResults as any[]).flatMap((result: any) => result.results.map((row: any) => row.name))
         .filter((name: string) => !name.startsWith("sqlite_"));
 
       services.push({

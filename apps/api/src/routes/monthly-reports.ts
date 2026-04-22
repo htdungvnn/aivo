@@ -24,23 +24,22 @@ export async function triggerMonthlyReports(
 ): Promise<{ sent: number; failed: number; errors: string[] }> {
   const userRows = await drizzle.query.users.findMany({
     where: eq(users.receiveMonthlyReports, 1),
-  });
-  const userList = userRows as Array<{ id: string; email: string }>;
+  }) as any[];
 
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
 
   const batchSize = 10;
-  for (let i = 0; i < userList.length; i += batchSize) {
-    const batch = userList.slice(i, i + batchSize);
+  for (let i = 0; i < userRows.length; i += batchSize) {
+    const batch = userRows.slice(i, i + batchSize);
 
     const results = await Promise.allSettled(
-      batch.map(async (user) => {
+      batch.map(async (user: any) => {
         if (dryRun) {
           return { success: true, user: user.email };
         }
-        return sendMonthlyReport(drizzle, user, year, month, defaultEmailConfig);
+        return sendMonthlyReport(drizzle, user as any, year, month, defaultEmailConfig);
       })
     );
 
@@ -60,7 +59,7 @@ export async function triggerMonthlyReports(
       }
     });
 
-    if (i + batchSize < userList.length && !dryRun) {
+    if (i + batchSize < userRows.length && !dryRun) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }

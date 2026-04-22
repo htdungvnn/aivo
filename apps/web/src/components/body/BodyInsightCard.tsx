@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
 import type { MetricDataPoint } from "./BodyMetricsChart";

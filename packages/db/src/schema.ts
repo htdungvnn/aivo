@@ -169,7 +169,7 @@ export const foodLogs = sqliteTable("food_logs", {
   index('idx_user_meal').on(table.userId, table.mealType),
 ]);
 
-// Daily nutrition summaries - materialized aggregates for fast queries
+// Daily nutrition summaries table - materialized aggregates for fast queries
 export const dailyNutritionSummaries = sqliteTable("daily_nutrition_summaries", {
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: text("date").notNull(), // ISO date YYYY-MM-DD
@@ -187,6 +187,29 @@ export const dailyNutritionSummaries = sqliteTable("daily_nutrition_summaries", 
 // Primary key is composite (userId, date)
 // SQLite doesn't support composite PK via drizzle primaryKey() directly
 // We'll add it via migration
+
+// Nutrition consultations table - stores AI agent consultations
+export const nutritionConsults = sqliteTable("nutrition_consults", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(), // For tracking related queries in same session
+  query: text("query").notNull(), // User's original question
+  context: text("context"), // JSON: { allergies, medications, dietType, etc. }
+  agentsConsulted: text("agents_consulted").notNull(), // JSON array: ["chef", "medical", "budget"]
+  responses: text("responses").notNull(), // JSON array of agent responses
+  synthesizedAdvice: text("synthesized_advice").notNull(),
+  warnings: text("warnings"), // JSON array of warning strings
+  processingTimeMs: integer("processing_time_ms").notNull(),
+  userRating: integer("user_rating"), // 1-5 scale
+  feedback: text("feedback"), // User's optional feedback
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_created_at').on(table.createdAt),
+  index('idx_session_id').on(table.sessionId),
+  index('idx_user_created').on(table.userId, table.createdAt),
+]);
 
 // Workouts table
 export const workouts = sqliteTable("workouts", {
@@ -742,6 +765,7 @@ export const schema = {
   foodItems,
   foodLogs,
   dailyNutritionSummaries,
+  nutritionConsults,
   workouts,
   workoutExercises,
   workoutRoutines,

@@ -133,6 +133,35 @@ const CreateFromAnalysisSchema = z.object({
   timestamp: z.number().int().positive().optional(),
 });
 
+// Nutrition consultation schemas
+const NutritionConsultRequestSchema = z.object({
+  query: z.string().min(1).max(2000),
+  context: z.object({
+    userId: z.string().optional(),
+    medicalConditions: z.array(z.string()).optional(),
+    medications: z.array(z.string()).optional(),
+    allergies: z.array(z.string()).optional(),
+    intolerances: z.array(z.string()).optional(),
+    dietType: z.enum(["omnivore", "vegetarian", "vegan", "pescatarian", "keto", "paleo", "mediterranean"]).optional(),
+    skillLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+    kitchenTools: z.array(z.string()).optional(),
+    budget: z.number().positive().optional(),
+    availableIngredients: z.array(
+      z.object({
+        name: z.string(),
+        quantity: z.number(),
+        unit: z.string().optional(),
+      })
+    ).optional(),
+    macroPreferences: z.array(z.string()).optional(),
+  }).optional(),
+  preferredAgents: z.array(
+    z.enum(["chef", "medical", "budget"])
+  ).optional(),
+  sessionId: z.string().optional(),
+  maxResponseTimeMs: z.number().int().positive().optional(),
+});
+
 export const NutritionRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
@@ -370,7 +399,7 @@ Guidelines:
 
     try {
       const body = await c.req.json();
-      const { detectedItems, timestamp } =
+      const { detectedItems, timestamp, mealType } =
         CreateFromAnalysisSchema.parse(body);
 
       const loggedAt = timestamp || Date.now();
@@ -855,6 +884,196 @@ Guidelines:
       // eslint-disable-next-line no-console
       console.error("Add food item error:", error);
       const message = error instanceof Error ? error.message : "Failed to add item";
+      return c.json({ success: false, error: message }, 500);
+    }
+  });
+
+  // AI Nutrition Consultation endpoint (Multi-Agent Orchestration)
+  router.post("/consult", async (c) => {
+    const userId = c.req.header("X-User-Id");
+    const authHeader = c.req.header("Authorization");
+
+    if (!userId || !authHeader?.startsWith("Bearer ")) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const openaiKey = c.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      return c.json({ success: false, error: "AI nutrition service not configured" }, 503);
+    }
+
+    try {
+      const body = await c.req.json();
+      const validated = NutritionConsultRequestSchema.parse(body);
+
+      // Prepare context with userId
+      const context = {
+        ...validated.context,
+        userId,
+      };
+
+      const request = {
+        query: validated.query,
+        context,
+        preferredAgents: validated.preferredAgents,
+        sessionId: validated.sessionId,
+        maxResponseTimeMs: validated.maxResponseTimeMs,
+      };
+
+      // Invoke orchestrator
+      const { orchestrateNutritionConsult } = await import("../services/nutrition/orchestrator");
+      const result = await orchestrateNutritionConsult(request);
+
+      // Optionally store consultation in database
+      try {
+        const drizzle = createDrizzleInstance(c.env.DB);
+        const { StoredNutritionConsult, saveConsult } = await import("../services/nutrition/storage");
+
+        const storedConsult: StoredNutritionConsult = {
+          id: crypto.randomUUID(),
+          userId,
+          sessionId: result.sessionId,
+          query: result.userQuery,
+          context: context as Record<string, unknown>,
+          agentsConsulted: result.agentsConsulted,
+          responses: result.responses,
+          synthesizedAdvice: result.synthesizedAdvice,
+          warnings: result.warnings,
+          processingTimeMs: result.processingTimeMs,
+          createdAt: Date.now(),
+          userRating: undefined,
+          feedback: undefined,
+        };
+
+        await saveConsult(drizzle, storedConsult);
+      } catch (storageError) {
+        // Log but don't fail the request if storage fails
+        // eslint-disable-next-line no-console
+        console.warn("Failed to store nutrition consult:", storageError);
+      }
+
+      return c.json(result);
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("Nutrition consult error:", error);
+      const message = error instanceof Error ? error.message : "Consultation failed";
+      return c.json(
+        {
+          success: false,
+          error: message,
+          sessionId: crypto.randomUUID(),
+          userQuery: "",
+          agentsConsulted: [],
+          responses: [],
+          synthesizedAdvice: "Unable to provide consultation. Please try again.",
+          primaryAgent: undefined,
+          warnings: [],
+          processingTimeMs: 0,
+        },
+        500
+      );
+    }
+  });
+
+  // Get user's nutrition consultation history
+  router.get("/consult/history", async (c) => {
+    const userId = c.req.header("X-User-Id");
+    const authHeader = c.req.header("Authorization");
+
+    if (!userId || !authHeader?.startsWith("Bearer ")) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const drizzle = createDrizzleInstance(c.env.DB);
+    const limit = Math.min(parseInt(c.req.query("limit") || "20"), 100);
+
+    try {
+      const consults = await drizzle.query.nutritionConsults.findMany({
+        where: eq(schema.nutritionConsults.userId, userId),
+        orderBy: (nc, { desc }) => desc(nc.createdAt),
+        limit,
+      });
+
+      return c.json({ success: true, data: consults });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Get consult history error:", error);
+      return c.json({ success: false, error: "Failed to fetch history" }, 500);
+    }
+  });
+
+  // Get consultation by ID
+  router.get("/consult/:id", async (c) => {
+    const userId = c.req.header("X-User-Id");
+    const authHeader = c.req.header("Authorization");
+
+    if (!userId || !authHeader?.startsWith("Bearer ")) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const drizzle = createDrizzleInstance(c.env.DB);
+    const consultId = c.req.param("id");
+
+    const consult = await drizzle.query.nutritionConsults.findFirst({
+      where: eq(schema.nutritionConsults.id, consultId),
+    });
+
+    if (!consult) {
+      return c.json({ success: false, error: "Consultation not found" }, 404);
+    }
+
+    // Ensure user owns this consult
+    if (consult.userId !== userId) {
+      return c.json({ success: false, error: "Unauthorized" }, 403);
+    }
+
+    return c.json({ success: true, data: consult });
+  });
+
+  // Rate consultation
+  router.patch("/consult/:id/rating", async (c) => {
+    const userId = c.req.header("X-User-Id");
+    const authHeader = c.req.header("Authorization");
+
+    if (!userId || !authHeader?.startsWith("Bearer ")) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const drizzle = createDrizzleInstance(c.env.DB);
+    const consultId = c.req.param("id");
+
+    try {
+      const body = await c.req.json();
+      const rating = body.rating;
+      const feedback = body.feedback;
+
+      if (typeof rating !== "number" || rating < 1 || rating > 5) {
+        return c.json({ success: false, error: "Rating must be a number between 1 and 5" }, 400);
+      }
+
+      // Verify ownership
+      const existing = await drizzle.query.nutritionConsults.findFirst({
+        where: eq(schema.nutritionConsults.id, consultId),
+      });
+
+      if (!existing || existing.userId !== userId) {
+        return c.json({ success: false, error: "Consultation not found" }, 404);
+      }
+
+      const updated = await drizzle
+        .update(schema.nutritionConsults)
+        .set({
+          userRating: rating,
+          feedback: typeof feedback === "string" ? feedback : null,
+          updatedAt: Date.now(),
+        })
+        .where(eq(schema.nutritionConsults.id, consultId));
+
+      return c.json({ success: true, data: updated });
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("Rate consult error:", error);
+      const message = error instanceof Error ? error.message : "Failed to save rating";
       return c.json({ success: false, error: message }, 500);
     }
   });

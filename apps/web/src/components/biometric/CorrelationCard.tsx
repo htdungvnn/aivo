@@ -5,9 +5,6 @@ import {
   BarChart3,
   AlertTriangle,
   TrendingUp,
-  TrendingDown,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 import { CorrelationFinding } from "@aivo/shared-types";
 

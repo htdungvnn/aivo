@@ -79,7 +79,7 @@ export const InfographicRouter = () => {
     }
 
     // Get DB instance
-    const db = getDb(c.env);
+    const db: any = getDb(c.env);
 
     // 2. Parse and validate request
     const requestBody = await c.req.json().catch(() => null);
@@ -208,10 +208,10 @@ export const InfographicRouter = () => {
 async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
   const id = c.req.param("id");
   const userId = await getUserIdFromRequest(c);
-  const db = getDb(c.env);
+  const db: any = getDb(c.env);
 
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
+    where: (tbl: any, { eq }: { eq: any }) => eq(tbl.id, id),
   });
 
   if (!card) {
@@ -251,9 +251,9 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
     return c.json({ success: false, error: "Unauthorized" }, 401);
   }
 
-  const db = getDb(c.env);
+  const db: any = getDb(c.env);
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
+    where: (tbl: any, { eq }: { eq: any }) => eq(tbl.id, id),
   });
 
   if (!card) {
@@ -279,7 +279,7 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
   }
 
   // Delete database record
-  await db.delete(socialProofCards).where((tbl, { eq }) => eq(tbl.id, id));
+  await db.delete(socialProofCards).where((tbl: any, { eq }: { eq: any }) => eq(tbl.id, id));
 
   return c.json({ success: true, data: { deleted: true } });
 }

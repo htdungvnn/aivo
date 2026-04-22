@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { PostureAssessment } from "@aivo/shared-types";
 import {
   POSTURE_ISSUE_LABELS,

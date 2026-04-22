@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -376,7 +376,7 @@ export function CompositeBodyChart({
   height?: number;
 }) {
   // Merge data by date
-  const mergedData = React.useMemo(() => {
+  const mergedData = useMemo(() => {
     const allDates = new Set<string>();
     [weightData, bodyFatData, muscleMassData].forEach((data) => {
       data?.forEach((point) => allDates.add(point.date));

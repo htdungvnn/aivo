@@ -22,13 +22,22 @@ binding = "LEADERBOARD_CACHE"
 id = "aivo-leaderboard"
 preview_id = "aivo-leaderboard-preview"
 
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "aivo-rate-limit"
+preview_id = "aivo-rate-limit-preview"
+
 [triggers]
 crons = ["0 0 * * *", "0 9 1 * *"]  # Daily at midnight + monthly on 1st
 
 [vars]
-AUTH_SECRET = "change-this-in-production"
-ANTHROPIC_API_KEY = "your-anthropic-api-key"
-R2_PUBLIC_URL = "https://your-account.r2.dev"  # Replace with actual R2 public URL in production
+# Secrets should be set via: wrangler secret put <NAME>
+# Required secrets:
+# - AUTH_SECRET: Generate with: openssl rand -base64 32
+# - OPENAI_API_KEY: Your OpenAI API key
+# - GOOGLE_CLIENT_ID: Google OAuth client ID
+# - FACEBOOK_APP_ID: Facebook app ID
+R2_PUBLIC_URL = ""  # Set to your R2 public URL in production
 
 [[routes]]
 pattern = "/api/*"

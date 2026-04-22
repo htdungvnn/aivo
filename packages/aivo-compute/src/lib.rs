@@ -2636,7 +2636,7 @@ const EXERCISE_ALIASES: &[(&str, &str, &str)] = &[
 impl VoiceParser {
     /// Parse voice/text input into structured fitness and nutrition data
     #[wasm_bindgen(js_name = "parseVoiceEntry")]
-    pub fn parse_voice_entry(text: &str, context_hint: Option<&str>) -> String {
+    pub fn parse_voice_entry(text: &str, context_hint: Option<String>) -> String {
         let text_lower = text.to_lowercase();
         let mut result = VoiceParseResult {
             has_food: false,
@@ -2832,7 +2832,7 @@ impl VoiceParser {
         ];
 
         // Split by common delimiters to find individual exercises
-        let exercise_segments = text.split(&[',', ';', ' and ', ' with '][..]);
+        let exercise_segments = text.split(&[',', ';', " and ", " with "][..]);
 
         for segment in exercise_segments {
             let seg_lower = segment.to_lowercase();
@@ -3148,6 +3148,424 @@ impl VoiceParser {
 // ============================================
 // END OF VOICE-TO-ACTION PARSER MODULE
 // ==========================================
+
+// ============================================
+// METABOLIC DIGITAL TWIN MODULE
+// Predictive simulation engine for body composition forecasting
+// ==========================================
+
+use serde::{Deserialize, Serialize};
+
+/// Main entry point for generating metabolic twin projections
+#[wasm_bindgen]
+pub struct MetabolicTwin;
+
+/// Historical data point for trend analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct HistoricalPoint {
+    timestamp: f64,
+    weight_kg: f64,
+    body_fat_pct: f64,
+    muscle_mass_kg: f64,
+    activity_level: Option<f64>,
+    calorie_intake: Option<f64>,
+}
+
+/// Linear regression result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TrendLine {
+    slope: f64,
+    intercept: f64,
+    r_squared: f64,
+    std_error: f64,
+}
+
+/// Single projection point with confidence interval
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Projection {
+    days_ahead: i32,
+    value: f64,
+    lower_bound: f64,
+    upper_bound: f64,
+    confidence: f64,
+}
+
+/// Scenario-based projection results
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ScenarioProjection {
+    scenario_type: String,
+    weight_projections: Vec<Projection>,
+    body_fat_projections: Vec<Projection>,
+    muscle_projections: Vec<Projection>,
+    overall_confidence: f64,
+    expected_behavior_change: String,
+}
+
+/// Current body composition metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CurrentMetrics {
+    weight_kg: f64,
+    body_fat_pct: f64,
+    muscle_mass_kg: f64,
+    lean_body_mass_kg: f64,
+    bmi: f64,
+    activity_score: f64,
+}
+
+/// Trend analysis results
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TrendAnalysis {
+    weight_trend: TrendLine,
+    body_fat_trend: TrendLine,
+    muscle_trend: TrendLine,
+    consistency_score: f64,      // 0-100 based on measurement regularity
+    volatility: f64,             // Standard deviation of daily changes
+    trend_strength: f64,         // Average R² of trends (0-1)
+}
+
+/// Complete digital twin simulation results
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DigitalTwinResult {
+    user_id: String,
+    generated_at: f64,
+    time_horizon_days: i32,
+    current_metrics: CurrentMetrics,
+    trend_analysis: TrendAnalysis,
+    scenarios: ScenarioResults,
+    recommendations: Vec<String>,
+}
+
+/// All scenario projections packaged together
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ScenarioResults {
+    consistent_performance: ScenarioProjection,
+    potential_regression: ScenarioProjection,
+    best_case: ScenarioProjection,
+    worst_case: ScenarioProjection,
+}
+
+#[wasm_bindgen]
+impl MetabolicTwin {
+    /// Generate a full metabolic twin simulation
+    /// historical_data_json: Array of {timestamp, weight_kg, body_fat_pct, muscle_mass_kg, activity_level?, calorie_intake?}
+    /// Returns JSON string of DigitalTwinResult
+    #[wasm_bindgen(js_name = "generateSimulation")]
+    pub fn generate_simulation(
+        historical_data_json: &str,
+        user_id: &str,
+        time_horizon_days: i32,
+    ) -> Result<String, JsValue> {
+        let historical_data: Vec<HistoricalPoint> = serde_json::from_str(historical_data_json)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse historical data: {}", e)))?;
+
+        if historical_data.len() < 2 {
+            return Err(JsValue::from_str("Need at least 2 data points for trend analysis"));
+        }
+
+        // Sort by timestamp
+        let mut sorted_data = historical_data.clone();
+        sorted_data.sort_by(|a, b| a.timestamp.partial_cmp(&b.timestamp).unwrap());
+
+        // Calculate current metrics (from most recent data point)
+        let latest = &sorted_data[sorted_data.len() - 1];
+        let current_metrics = CurrentMetrics {
+            weight_kg: latest.weight_kg,
+            body_fat_pct: latest.body_fat_pct,
+            muscle_mass_kg: latest.muscle_mass_kg,
+            lean_body_mass_kg: FitnessCalculator::calculate_lean_body_mass(latest.weight_kg, latest.body_fat_pct),
+            bmi: FitnessCalculator::calculate_bmi(latest.weight_kg, 170.0), // Default height, should come from user profile
+            activity_score: latest.activity_level.unwrap_or(5.0),
+        };
+
+        // Perform trend analysis on each metric
+        let trend_analysis = calculate_trend_analysis(&sorted_data);
+
+        // Generate scenario projections
+        let scenarios = generate_all_scenarios(&sorted_data, &trend_analysis, time_horizon_days);
+
+        // Generate personalized recommendations
+        let recommendations = generate_recommendations(&current_metrics, &trend_analysis, &scenarios);
+
+        let result = DigitalTwinResult {
+            user_id: user_id.to_string(),
+            generated_at: js_sys::Date::now(),
+            time_horizon_days,
+            current_metrics,
+            trend_analysis,
+            scenarios,
+            recommendations,
+        };
+
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))
+    }
+}
+
+/// Calculate linear regression trend line using least squares
+fn calculate_trend(data: &[(f64, f64)]) -> TrendLine {
+    let n = data.len() as f64;
+    let sum_x: f64 = data.iter().map(|(x, _)| x).sum();
+    let sum_y: f64 = data.iter().map(|(_, y)| y).sum();
+    let sum_xy: f64 = data.iter().map(|(x, y)| x * y).sum();
+    let sum_x2: f64 = data.iter().map(|(x, _)| x * x).sum();
+
+    let slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
+    let intercept = (sum_y - slope * sum_x) / n;
+
+    // Calculate R²
+    let mean_y = sum_y / n;
+    let mut ss_res = 0.0;
+    let mut ss_tot = 0.0;
+    for (x, y) in data {
+        let predicted = slope * x + intercept;
+        ss_res += (y - predicted).powi(2);
+        ss_tot += (y - mean_y).powi(2);
+    }
+    let r_squared = if ss_tot > 0.0 { 1.0 - (ss_res / ss_tot) } else { 0.0 };
+
+    // Calculate standard error
+    let mse = ss_res / (n - 2.0);
+    let std_error = mse.sqrt();
+
+    TrendLine {
+        slope,
+        intercept,
+        r_squared: r_squared.max(0.0).min(1.0),
+        std_error,
+    }
+}
+
+/// Calculate trend analysis for all metrics
+fn calculate_trend_analysis(data: &[HistoricalPoint]) -> TrendAnalysis {
+    // Convert to time-indexed series (days from first measurement)
+    let first_timestamp = data[0].timestamp;
+    let mut weight_series = Vec::new();
+    let mut bf_series = Vec::new();
+    let mut muscle_series = Vec::new();
+
+    for (i, point) in data.iter().enumerate() {
+        let days = (point.timestamp - first_timestamp) / 86400.0;
+        weight_series.push((days, point.weight_kg));
+        bf_series.push((days, point.body_fat_pct));
+        muscle_series.push((days, point.muscle_mass_kg));
+    }
+
+    let weight_trend = calculate_trend(&weight_series);
+    let body_fat_trend = calculate_trend(&bf_series);
+    let muscle_trend = calculate_trend(&muscle_series);
+
+    let consistency_score = calculate_consistency(data);
+    let volatility = calculate_volatility(data);
+    let trend_strength = (weight_trend.r_squared + body_fat_trend.r_squared + muscle_trend.r_squared) / 3.0;
+
+    TrendAnalysis {
+        weight_trend,
+        body_fat_trend,
+        muscle_trend,
+        consistency_score,
+        volatility,
+        trend_strength,
+    }
+}
+
+/// Calculate measurement consistency score (0-100)
+fn calculate_consistency(data: &[HistoricalPoint]) -> f64 {
+    if data.len() < 2 {
+        return 0.0;
+    }
+
+    let mut intervals = Vec::new();
+    for i in 1..data.len() {
+        let interval = (data[i].timestamp - data[i-1].timestamp) / 86400.0;
+        intervals.push(interval);
+    }
+
+    let mean_interval: f64 = intervals.iter().sum::<f64>() / intervals.len() as f64;
+    let variance: f64 = intervals.iter()
+        .map(|&x| (x - mean_interval).powi(2))
+        .sum::<f64>() / intervals.len() as f64;
+    let std_dev = variance.sqrt();
+
+    // Consistency decreases with higher standard deviation
+    // Target: ~7 day intervals (weekly measurements)
+    let ideal_interval = 7.0;
+    let consistency = if mean_interval > 0.0 {
+        (1.0 - (std_dev / mean_interval).min(1.0)) * 100.0
+    } else {
+        0.0
+    };
+
+    consistency.max(0.0).min(100.0)
+}
+
+/// Calculate volatility of daily changes
+fn calculate_volatility(data: &[HistoricalPoint]) -> f64 {
+    if data.len() < 2 {
+        return 0.0;
+    }
+
+    let mut changes = Vec::new();
+    for i in 1..data.len() {
+        let days = (data[i].timestamp - data[i-1].timestamp) / 86400.0;
+        if days > 0.0 {
+            let weight_change = (data[i].weight_kg - data[i-1].weight_kg) / days;
+            changes.push(weight_change);
+        }
+    }
+
+    if changes.is_empty() {
+        return 0.0;
+    }
+
+    let mean_change: f64 = changes.iter().sum::<f64>() / changes.len() as f64;
+    let variance: f64 = changes.iter()
+        .map(|&x| (x - mean_change).powi(2))
+        .sum::<f64>() / changes.len() as f64;
+
+    variance.sqrt() // Daily weight change standard deviation in kg
+}
+
+/// Generate projections for a single scenario
+fn generate_scenario(
+    trend: &TrendLine,
+    volatility: f64,
+    scenario_modifier: f64,  // Multiplier for slope (e.g., 0.8 = 20% worse)
+    time_horizon_days: i32,
+    initial_value: f64,
+) -> Vec<Projection> {
+    let mut projections = Vec::new();
+
+    // Confidence widens over time
+    for days in 1..=time_horizon_days {
+        let days_f = days as f64;
+
+        // Base projection from trend
+        let base_value = trend.intercept + trend.slope * days_f * scenario_modifier;
+
+        // Add random walk component based on volatility
+        let random_component = volatility * days_f.sqrt();
+
+        // Confidence interval: 95% (1.96 * std error, plus random component)
+        let confidence_half_width = 1.96 * (trend.std_error + random_component);
+
+        projections.push(Projection {
+            days_ahead: days,
+            value: base_value,
+            lower_bound: base_value - confidence_half_width,
+            upper_bound: base_value + confidence_half_width,
+            confidence: (1.0 - (days_f / time_horizon_days as f64) * 0.5).max(0.3),
+        });
+    }
+
+    projections
+}
+
+/// Generate all scenario projections
+fn generate_all_scenarios(
+    data: &[HistoricalPoint],
+    trend_analysis: &TrendAnalysis,
+    time_horizon_days: i32,
+) -> ScenarioResults {
+    let latest = &data[data.len() - 1];
+
+    // Scenario modifiers based on trend strength and consistency
+    let base_modifier = 1.0;
+    let regression_modifier = 0.5;  // Trend continues at 50% strength (typical regression)
+    let best_modifier = 1.5;        // 50% improvement
+    let worst_modifier = 0.0;       // Trend reverses/deteriorates
+
+    ScenarioResults {
+        consistent_performance: ScenarioProjection {
+            scenario_type: "consistent_performance".to_string(),
+            weight_projections: generate_scenario(&trend_analysis.weight_trend, trend_analysis.volatility, base_modifier, time_horizon_days, latest.weight_kg),
+            body_fat_projections: generate_scenario(&trend_analysis.body_fat_trend, trend_analysis.volatility * 0.5, base_modifier, time_horizon_days, latest.body_fat_pct),
+            muscle_projections: generate_scenario(&trend_analysis.muscle_trend, trend_analysis.volatility * 0.5, base_modifier, time_horizon_days, latest.muscle_mass_kg),
+            overall_confidence: trend_analysis.trend_strength * 0.8 + trend_analysis.consistency_score / 100.0 * 0.2,
+            expected_behavior_change: "Continue current habits and tracking".to_string(),
+        },
+        potential_regression: ScenarioProjection {
+            scenario_type: "potential_regression".to_string(),
+            weight_projections: generate_scenario(&trend_analysis.weight_trend, trend_analysis.volatility * 1.5, regression_modifier, time_horizon_days, latest.weight_kg),
+            body_fat_projections: generate_scenario(&trend_analysis.body_fat_trend, trend_analysis.volatility, regression_modifier, time_horizon_days, latest.body_fat_pct),
+            muscle_projections: generate_scenario(&trend_analysis.muscle_trend, trend_analysis.volatility, regression_modifier, time_horizon_days, latest.muscle_mass_kg),
+            overall_confidence: trend_analysis.trend_strength * 0.6,
+            expected_behavior_change: "Inconsistent tracking or reduced activity".to_string(),
+        },
+        best_case: ScenarioProjection {
+            scenario_type: "best_case".to_string(),
+            weight_projections: generate_scenario(&trend_analysis.weight_trend, trend_analysis.volatility * 0.7, best_modifier, time_horizon_days, latest.weight_kg),
+            body_fat_projections: generate_scenario(&trend_analysis.body_fat_trend, trend_analysis.volatility * 0.5, best_modifier, time_horizon_days, latest.body_fat_pct),
+            muscle_projections: generate_scenario(&trend_analysis.muscle_trend, trend_analysis.volatility * 0.5, best_modifier, time_horizon_days, latest.muscle_mass_kg),
+            overall_confidence: trend_analysis.trend_strength * 0.5,
+            expected_behavior_change: "Optimized nutrition, consistent training, and recovery".to_string(),
+        },
+        worst_case: ScenarioProjection {
+            scenario_type: "worst_case".to_string(),
+            weight_projections: generate_scenario(&trend_analysis.weight_trend, trend_analysis.volatility * 2.0, worst_modifier, time_horizon_days, latest.weight_kg),
+            body_fat_projections: generate_scenario(&trend_analysis.body_fat_trend, trend_analysis.volatility * 2.0, worst_modifier, time_horizon_days, latest.body_fat_pct),
+            muscle_projections: generate_scenario(&trend_analysis.muscle_trend, trend_analysis.volatility * 2.0, worst_modifier, time_horizon_days, latest.muscle_mass_kg),
+            overall_confidence: trend_analysis.trend_strength * 0.4,
+            expected_behavior_change: "Lapse in nutrition/training, potential muscle loss".to_string(),
+        },
+    }
+}
+
+/// Generate personalized recommendations based on projections
+fn generate_recommendations(
+    current: &CurrentMetrics,
+    trends: &TrendAnalysis,
+    scenarios: &ScenarioResults,
+) -> Vec<String> {
+    let mut recommendations = Vec::new();
+
+    // Check consistency
+    if trends.consistency_score < 50.0 {
+        recommendations.push("Improve measurement consistency: aim for weekly check-ins at the same time of day".to_string());
+    }
+
+    // Check trend strength
+    if trends.trend_strength < 0.5 {
+        recommendations.push("Your data shows high variability. Focus on consistent habits before expecting predictable results".to_string());
+    }
+
+    // Check weight trend
+    let weight_change_30d = scenarios.consistent_performance.weight_projections.get(29)
+        .map(|p| p.value - current.weight_kg).unwrap_or(0.0);
+
+    if current.body_fat_pct > 25.0 && weight_change_30d > 0.0 {
+        recommendations.push("Consider a modest calorie deficit (~300-500 kcal) to promote fat loss".to_string());
+    } else if current.body_fat_pct < 15.0 && weight_change_30d < 0.0 {
+        recommendations.push("You may be in a deficit. Consider increasing calories to preserve muscle mass".to_string());
+    }
+
+    // Check muscle trend
+    let muscle_change_30d = scenarios.consistent_performance.muscle_projections.get(29)
+        .map(|p| p.value - current.muscle_mass_kg).unwrap_or(0.0);
+
+    if muscle_change_30d < 0.5 {
+        recommendations.push("To optimize muscle gain: increase protein intake to 1.6-2.2g/kg body weight and ensure progressive overload".to_string());
+    }
+
+    // Check volatility
+    if trends.volatility > 0.5 {
+        recommendations.push("High day-to-day weight fluctuations detected. Ensure consistent measurement conditions (same time, same state)".to_string());
+    }
+
+    // Gap analysis between best and worst case
+    let best_weight = scenarios.best_case.weight_projections.last().map(|p| p.value).unwrap_or(current.weight_kg);
+    let worst_weight = scenarios.worst_case.weight_projections.last().map(|p| p.value).unwrap_or(current.weight_kg);
+    let gap = (best_weight - worst_weight).abs();
+
+    if gap > 2.0 {
+        recommendations.push(format!("Your projected outcomes vary by {:.1}kg. Consistency in nutrition and training is key to achieving the best-case scenario", gap));
+    }
+
+    if recommendations.is_empty() {
+        recommendations.push("Your trends look solid! Keep doing what you're doing.".to_string());
+    }
+
+    recommendations
+}
 
 #[cfg(test)]
 mod tests {

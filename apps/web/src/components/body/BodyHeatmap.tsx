@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BODY_OUTLINE_FRONT, BODY_ZONES } from "@aivo/shared-types";
 

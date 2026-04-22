@@ -7,43 +7,9 @@
  * - Dietary preferences and restrictions
  */
 
-import { AGENT_SYSTEM_PROMPTS } from "../nutrition";
+import { AGENT_SYSTEM_PROMPTS } from "./prompts";
 import type { ChefAgentRequest, ChefAgentResponse, Recipe, NutritionConsultContext } from "@aivo/shared-types";
 import type { AgentInvocationResult } from "./types";
-
-const CHEF_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPTS.chef + `
-
-IMPORTANT CONTEXT:
-- User's skill level: ${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}
-- Available kitchen tools: ${(ctx: NutritionConsultContext) => (ctx.kitchenTools || []).join(", ") || "basic"}
-- Dietary type: ${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}
-- Allergies to avoid: ${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}
-- Intolerances to avoid: ${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}
-
-CRITICAL RULES:
-1. NEVER include ingredients the user is allergic to
-2. For allergies with anaphylaxis risk, add a CRITICAL warning
-3. Suggest substitutions for ingredients the user doesn't have
-4. Keep instructions simple for beginners
-5. Include prep time and cook time estimates
-6. Add food safety tips when handling raw meat/eggs
-
-OUTPUT STRUCTURE (JSON):
-{
-  "name": "Recipe name",
-  "description": "Brief description",
-  "ingredients": [
-    { "name": "...", "quantity": 100, "unit": "g", "notes": "optional" }
-  ],
-  "instructions": [
-    { "step": 1, "text": "...", "durationMinutes": 5, "tips": [] }
-  ],
-  "tips": [...],
-  "warnings": ["Allergen alerts here"],
-  "storageInstructions": "...",
-  "reheatingInstructions": "...",
-  "allergenAlerts": ["Contains: dairy"]
-}`;
 
 /**
  * Invoke the Chef Agent to generate a recipe
@@ -95,18 +61,31 @@ export async function invokeChefAgent(request: ChefAgentRequest): Promise<AgentI
 function buildChefPrompt(request: ChefAgentRequest): string {
   const { query, context } = request;
 
-  let prompt = CHEF_SYSTEM_PROMPT.replace('${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}', context.skillLevel || "beginner");
-  prompt = prompt.replace('${(ctx: NutritionConsultContext) => (ctx.kitchenTools || []).join(", ") || "basic"}', (context.kitchenTools || []).join(", ") || "basic");
-  prompt = prompt.replace('${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}', context.dietType || "omnivore");
-  prompt = prompt.replace('${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}', (context.allergies || []).join(", ") || "none");
-  prompt = prompt.replace('${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}', (context.intolerances || []).join(", ") || "none");
+  const skillLevel = context.skillLevel || "beginner";
+  const kitchenTools = (context.kitchenTools || []).join(", ") || "basic";
+  const dietType = context.dietType || "omnivore";
+  const allergies = (context.allergies || []).join(", ") || "none";
+  const intolerances = (context.intolerances || []).join(", ") || "none";
+  const macroPrefs = (context.macroPreferences || []).join(", ") || "balanced";
+
+  const prompt = AGENT_SYSTEM_PROMPTS.chef
+    .replace('${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}', skillLevel)
+    .replace('${(ctx: NutritionConsultContext) => (ctx.kitchenTools || []).join(", ") || "basic"}', kitchenTools)
+    .replace('${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}', dietType)
+    .replace('${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}', allergies)
+    .replace('${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}', intolerances)
+    .replace('${(ctx: NutritionConsultContext) => ctx.macroPreferences?.join(", ") || "balanced"}', macroPrefs);
+
+  const ingredientsList = (context.availableIngredients || [])
+    .map(ing => `- ${ing.name}: ${ing.quantity}${ing.unit || ""}`)
+    .join("\n") || "No specific ingredients provided";
 
   return `${prompt}
 
 USER QUERY: ${query}
 
 AVAILABLE INGREDIENTS:
-${(context.availableIngredients || []).map(ing => `- ${ing.name}: ${ing.quantity}${ing.unit}`).join("\n") || "No specific ingredients provided"}
+${ingredientsList}
 
 Please generate a recipe. Respond ONLY with valid JSON.`;
 }
@@ -117,14 +96,11 @@ Please generate a recipe. Respond ONLY with valid JSON.`;
 async function callOpenAI(prompt: string, context: NutritionConsultContext): Promise<Recipe> {
   const { openai } = await import("../../utils/openai");
 
-  const systemPrompt = prompt;
-  const userMessage = "Generate a recipe based on the available ingredients and constraints provided.";
-
   const result = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage },
+      { role: "system", content: prompt },
+      { role: "user", content: "Generate a recipe based on the available ingredients and constraints provided." },
     ],
     temperature: 0.7,
     max_tokens: 1500,
@@ -152,23 +128,29 @@ function parseChefResponse(data: unknown): Recipe {
   return {
     name: String(recipe.name || "Untitled Recipe"),
     description: String(recipe.description || ""),
-    ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients.map((ing: Record<string, unknown>) => ({
-      name: String(ing.name),
-      quantity: Number(ing.quantity) || 0,
-      unit: String(ing.unit || ""),
-      notes: typeof ing.notes === "string" ? ing.notes : undefined,
-    })) : [],
-    instructions: Array.isArray(recipe.instructions) ? recipe.instructions.map((inst: Record<string, unknown>, idx: number) => ({
-      step: Number(inst.step) || idx + 1,
-      text: String(inst.text),
-      durationMinutes: typeof inst.durationMinutes === "number" ? inst.durationMinutes : undefined,
-      tips: Array.isArray(inst.tips) ? inst.tips.map(String) : undefined,
-    })) : [],
+    ingredients: Array.isArray(recipe.ingredients)
+      ? recipe.ingredients.map((ing: Record<string, unknown>) => ({
+          name: String(ing.name),
+          quantity: Number(ing.quantity) || 0,
+          unit: String(ing.unit || ""),
+          notes: typeof ing.notes === "string" ? ing.notes : undefined,
+        }))
+      : [],
+    instructions: Array.isArray(recipe.instructions)
+      ? recipe.instructions.map((inst: Record<string, unknown>, idx: number) => ({
+          step: Number(inst.step) || idx + 1,
+          text: String(inst.text),
+          durationMinutes: typeof inst.durationMinutes === "number" ? inst.durationMinutes : undefined,
+          tips: Array.isArray(inst.tips) ? inst.tips.map(String) : undefined,
+        }))
+      : [],
     tips: Array.isArray(recipe.tips) ? recipe.tips.map(String) : [],
     warnings: Array.isArray(recipe.warnings) ? recipe.warnings.map(String) : undefined,
     storageInstructions: typeof recipe.storageInstructions === "string" ? recipe.storageInstructions : undefined,
     reheatingInstructions: typeof recipe.reheatingInstructions === "string" ? recipe.reheatingInstructions : undefined,
     allergenAlerts: Array.isArray(recipe.allergenAlerts) ? recipe.allergenAlerts.map(String) : undefined,
+    estimatedPrepTimeMinutes: typeof recipe.estimatedPrepTimeMinutes === "number" ? recipe.estimatedPrepTimeMinutes : undefined,
+    estimatedCookTimeMinutes: typeof recipe.estimatedCookTimeMinutes === "number" ? recipe.estimatedCookTimeMinutes : undefined,
   };
 }
 
