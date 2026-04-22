@@ -14,6 +14,8 @@ export async function saveConsult(
   drizzle: ReturnType<typeof createDrizzleInstance>,
   consult: StoredNutritionConsult
 ): Promise<void> {
+  const now = Date.now();
+
   await drizzle.insert(schema.nutritionConsults).values({
     id: consult.id,
     userId: consult.userId,
@@ -27,8 +29,8 @@ export async function saveConsult(
     processingTimeMs: consult.processingTimeMs,
     userRating: consult.userRating ?? null,
     feedback: consult.feedback ?? null,
-    createdAt: consult.createdAt,
-    updatedAt: Date.now(),
+    createdAt: Math.floor(consult.createdAt.getTime() / 1000),
+    updatedAt: Math.floor(now / 1000),
   }).run();
 }
 
@@ -62,7 +64,7 @@ export async function getConsult(
     synthesizedAdvice: result.synthesizedAdvice,
     warnings: result.warnings,
     processingTimeMs: result.processingTimeMs,
-    createdAt: result.createdAt,
+    createdAt: new Date(result.createdAt * 1000),
     userRating: result.userRating ?? undefined,
     feedback: result.feedback ?? undefined,
   };
@@ -93,7 +95,7 @@ export async function getUserConsults(
     synthesizedAdvice: result.synthesizedAdvice,
     warnings: result.warnings,
     processingTimeMs: result.processingTimeMs,
-    createdAt: result.createdAt,
+    createdAt: new Date(result.createdAt * 1000),
     userRating: result.userRating ?? undefined,
     feedback: result.feedback ?? undefined,
   }));

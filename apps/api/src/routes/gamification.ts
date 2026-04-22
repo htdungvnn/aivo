@@ -6,6 +6,7 @@ import { eq, and, desc, asc, count, gte, gt, isNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { Context } from "hono";
 import type { KVNamespace } from "@cloudflare/workers-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
 
@@ -16,6 +17,9 @@ export interface Env {
 
 export const GamificationRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
+
+  // Apply authentication to all gamification routes
+  router.use("*", authenticate);
 
 // ============================================
 // SCHEMAS
@@ -158,8 +162,10 @@ async function awardPoints(
 
 router.post("/checkin", async (c) => {
   try {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const body = await c.req.json();
-    const { userId, source, workoutId } = CheckinSchema.parse(body);
+    const { source, workoutId } = CheckinSchema.parse(body);
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const now = Math.floor(Date.now() / 1000);
@@ -207,7 +213,14 @@ router.post("/checkin", async (c) => {
 
 router.get("/streak/:userId", async (c) => {
   try {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const requesterId = authUser.id;
     const { userId } = c.req.param();
+
+    // Users can only view their own streak
+    if (requesterId !== userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 403);
+    }
     const drizzle = createDrizzleInstance(c.env.DB);
 
     const profile = await drizzle.query.gamificationProfiles.findFirst({
@@ -291,7 +304,8 @@ router.get("/streak/:userId", async (c) => {
 
 router.post("/freeze/purchase", async (c) => {
   try {
-    const { userId } = PurchaseFreezeSchema.parse(await c.req.json());
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const drizzle = createDrizzleInstance(c.env.DB);
     const now = Math.floor(Date.now() / 1000);
 
@@ -371,14 +385,11 @@ router.post("/freeze/purchase", async (c) => {
 
 router.post("/freeze/apply", async (c) => {
   try {
-    const { userId, date } = z.object({
-      userId: z.string(),
-      date: z.string().datetime().optional(),
-    }).parse(await c.req.json());
-
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const drizzle = createDrizzleInstance(c.env.DB);
     const now = Math.floor(Date.now() / 1000);
-    const targetDate = date ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const targetDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     const freeze = await drizzle.query.streakFreezes.findFirst({
       where: and(
@@ -482,7 +493,14 @@ router.get("/leaderboard", async (c) => {
 
 router.get("/leaderboard/rank/:userId", async (c) => {
   try {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const requesterId = authUser.id;
     const { userId } = c.req.param();
+
+    // Users can only view their own rank
+    if (requesterId !== userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 403);
+    }
     const drizzle = createDrizzleInstance(c.env.DB);
 
     const profile = await drizzle.query.gamificationProfiles.findFirst({
@@ -523,7 +541,14 @@ router.get("/leaderboard/rank/:userId", async (c) => {
 
 router.get("/points/:userId", async (c) => {
   try {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const requesterId = authUser.id;
     const { userId } = c.req.param();
+
+    // Users can only view their own points
+    if (requesterId !== userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 403);
+    }
     const drizzle = createDrizzleInstance(c.env.DB);
 
     const profile = await drizzle.query.gamificationProfiles.findFirst({
@@ -573,8 +598,13 @@ router.get("/points/:userId", async (c) => {
 
 router.post("/share/generate", async (c) => {
   try {
-    const { userId, theme = "default", hideWeight = false } = ShareSchema.parse(await c.req.json());
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const drizzle = createDrizzleInstance(c.env.DB);
+
+    // Get optional query parameters
+    const hideWeight = c.req.query("hideWeight") === "true";
+    const theme = c.req.query("theme") || "default";
 
     const [profile, bodyMetricsList, user] = await Promise.all([
       drizzle.query.gamificationProfiles.findFirst({ where: eq(gamificationProfiles.userId, userId) }),
@@ -619,7 +649,8 @@ router.post("/share/generate", async (c) => {
 
 router.post("/share/record", async (c) => {
   try {
-    const { userId } = ShareSchema.parse(await c.req.json());
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const drizzle = createDrizzleInstance(c.env.DB);
 
     await awardPoints(c, drizzle, userId, SHARE_BONUS_POINTS, "earn", "Social share");

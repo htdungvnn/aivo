@@ -5,8 +5,9 @@ import {
   real,
   primaryKey,
   index,
-  unique
+  unique,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 // ============================================
 // AIVO DATABASE SCHEMA for Cloudflare D1 (SQLite)
@@ -753,6 +754,68 @@ export const migrations = sqliteTable("migrations", {
   version: integer("version"),
 });
 
+// Live workout sessions for AI-driven real-time adjustment
+export const liveWorkoutSessions = sqliteTable("live_workout_sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  workoutTemplateId: text("workout_template_id"),
+  name: text("name").notNull(),
+  startedAt: integer("started_at").notNull(),
+  lastActivityAt: integer("last_activity_at").notNull(),
+  status: text("status", { enum: ["active", "paused", "completed", "aborted"] }).notNull(),
+
+  // Fatigue tracking
+  fatigueLevel: integer("fatigue_level").notNull().default(0),
+  fatigueCategory: text("fatigue_category", {
+    enum: ["fresh", "moderate", "fatigued", "exhausted"],
+  }).notNull().default("fresh"),
+
+  // Volume tracking
+  totalPlannedVolume: real("total_planned_volume").notNull().default(0),
+  totalCompletedVolume: real("total_completed_volume").notNull().default(0),
+  setsCompleted: integer("sets_completed").notNull().default(0),
+  totalPlannedSets: integer("total_planned_sets").notNull().default(0),
+
+  // Session settings
+  targetRpe: real("target_rpe").notNull().default(8.0),
+  idealRestSeconds: integer("ideal_rest_seconds").notNull().default(90),
+  hasSpotter: integer("has_spotter").notNull().default(0),
+
+  // Completion data
+  endedAt: integer("ended_at"),
+  totalDurationMs: integer("total_duration_ms"),
+  earlyExitReason: text("early_exit_reason"),
+  earlyExitSuggestion: text("early_exit_suggestion"),
+
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index("idx_live_session_user_id").on(table.userId),
+  index("idx_live_session_status").on(table.status),
+  index("idx_live_session_started_at").on(sql`desc ${table.startedAt}`),
+]);
+
+// Set RPE logs for fatigue analysis
+export const setRpeLogs = sqliteTable("set_rpe_logs", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  userId: text("user_id").notNull(),
+  setNumber: integer("set_number").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  weight: real("weight"),
+  plannedReps: integer("planned_reps").notNull(),
+  completedReps: integer("completed_reps").notNull(),
+  rpe: real("rpe").notNull(), // 1-10 rating
+  restTimeSeconds: integer("rest_time_seconds").notNull(),
+  timestamp: integer("timestamp").notNull(),
+  notes: text("notes"),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index("idx_rpe_logs_session_id").on(table.sessionId),
+  index("idx_rpe_logs_user_id").on(table.userId),
+  index("idx_rpe_logs_timestamp").on(sql`desc ${table.timestamp}`),
+]);
+
 // Export schema object for Drizzle
 export const schema = {
   users,
@@ -798,4 +861,6 @@ export const schema = {
   pointTransactions,
   leaderboardSnapshots,
   socialRelationships,
+  liveWorkoutSessions,
+  setRpeLogs,
 };

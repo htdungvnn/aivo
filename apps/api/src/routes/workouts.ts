@@ -3,13 +3,13 @@ import { z } from "zod";
 import { createDrizzleInstance, workouts } from "@aivo/db";
 import { eq, desc } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 export interface Env {
   DB: D1Database;
 }
 
 const WorkoutCreateSchema = z.object({
-  userId: z.string(),
   type: z.enum(["strength", "cardio", "hiit", "yoga", "running", "cycling"]),
   duration: z.number().positive(),
   caloriesBurned: z.number().nonnegative().optional(),
@@ -19,66 +19,25 @@ const WorkoutCreateSchema = z.object({
 export const WorkoutsRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
 
-  // List workouts
-  /**
-   * @swagger
-   * /workouts:
-   *   get:
-   *     summary: List workouts
-   *     description: Retrieve workouts, optionally filtered by user ID
-   *     tags: [workouts]
-   *     parameters:
-   *       - in: query
-   *         name: userId
-   *         schema:
-   *           type: string
-   *         description: Filter workouts by user ID
-   *     responses:
-   *       200:
-   *         description: List of workouts
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: "#/components/schemas/Workout"
-   */
+  // Apply authentication to all workout routes
+  router.use("*", authenticate);
+
+  // List workouts for authenticated user only
   router.get("/", async (c) => {
-    const userId = c.req.query("userId");
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const drizzle = createDrizzleInstance(c.env.DB);
-    const queryOptions: Parameters<typeof drizzle.query.workouts.findMany>[0] = {
+    const workoutList = await drizzle.query.workouts.findMany({
+      where: eq(workouts.userId, userId),
       orderBy: desc(workouts.createdAt),
-    };
-    if (userId) {
-      queryOptions.where = eq(workouts.userId, userId);
-    }
-    const workoutList = await drizzle.query.workouts.findMany(queryOptions);
+    });
     return c.json(workoutList);
   });
 
-  // Create workout
-  /**
-   * @swagger
-   * /workouts:
-   *   post:
-   *     summary: Create workout
-   *     description: Log a new workout for a user
-   *     tags: [workouts]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: "#/components/schemas/WorkoutCreate"
-   *     responses:
-   *       201:
-   *         description: Workout created
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/Workout"
-   */
+  // Create workout - userId must match authenticated user
   router.post("/", async (c) => {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
     const body = await c.req.json();
     const validated = WorkoutCreateSchema.parse(body);
 
@@ -86,6 +45,7 @@ export const WorkoutsRouter = () => {
     const [workout] = await drizzle
       .insert(workouts)
       .values({
+        userId,
         ...validated,
         id: crypto.randomUUID(),
         createdAt: Date.now(),

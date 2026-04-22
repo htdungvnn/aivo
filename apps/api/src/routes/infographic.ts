@@ -25,6 +25,7 @@ import type {
 import { socialProofCards } from "@aivo/db";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 interface Env {
   DB: D1Database;
@@ -35,16 +36,8 @@ interface Env {
 export const InfographicRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
 
-  // Helper to get user ID from auth header
-  const getUserIdFromRequest = async (c: Context<{ Bindings: Env }>): Promise<string | null> => {
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return null;
-    }
-    // For now, extract user ID from a header
-    const userId = c.req.header("X-User-Id");
-    return userId || null;
-  };
+  // Apply authentication to all infographic routes
+  router.use("*", authenticate);
 
   // Zod schemas for validation
   const generateInfographicSchema = z.object({
@@ -72,11 +65,9 @@ export const InfographicRouter = () => {
    * POST /generate
    */
   async function handleGenerateInfographic(c: Context<{ Bindings: Env }>) {
-    // 1. Authenticate
-    const userId = await getUserIdFromRequest(c);
-    if (!userId) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    // Authentication already verified by middleware
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     // Get DB instance
     const db: any = getDb(c.env);
@@ -207,7 +198,8 @@ export const InfographicRouter = () => {
  */
 async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
   const id = c.req.param("id");
-  const userId = await getUserIdFromRequest(c);
+  const authUser = getUserFromContext(c) as AuthUser;
+  const userId = authUser.id;
   const db: any = getDb(c.env);
 
   const card = await db.query.socialProofCards.findFirst({
@@ -245,7 +237,8 @@ async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
  */
 async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
   const id = c.req.param("id") as string;
-  const userId = await getUserIdFromRequest(c);
+  const authUser = getUserFromContext(c) as AuthUser;
+  const userId = authUser.id;
 
   if (!userId) {
     return c.json({ success: false, error: "Unauthorized" }, 401);

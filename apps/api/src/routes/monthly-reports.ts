@@ -5,6 +5,7 @@ import { sendMonthlyReport, defaultEmailConfig } from "@aivo/email-reporter";
 import { users } from "@aivo/db";
 import { eq } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -70,6 +71,9 @@ export async function triggerMonthlyReports(
 export const MonthlyReportRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
+  // Apply authentication to admin routes (cron endpoint uses Cloudflare cron auth)
+  router.use("*", authenticate);
+
   router.get("/cron/monthly-reports", async (c) => {
     const cf = c.req.raw.cf;
     if (!cf || cf.cron !== "0 9 1 * *") {
@@ -111,11 +115,6 @@ export const MonthlyReportRouter = () => {
   });
 
   router.post("/admin/monthly-reports", async (c) => {
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
-
     try {
       const { year, month, dryRun = false } = MonthlyReportSchema.parse(await c.req.json());
       const drizzle = createDrizzleInstance(c.env.DB);
@@ -140,11 +139,12 @@ export const MonthlyReportRouter = () => {
   });
 
   router.put("/users/:userId/email-preferences", async (c) => {
-    const authHeader = c.req.header("Authorization");
-    const requesterId = c.req.header("X-User-Id");
+    const authUser = getUserFromContext(c) as AuthUser;
+    const requesterId = authUser.id;
+    const targetUserId = c.req.param("userId");
 
-    if (!authHeader?.startsWith("Bearer ") || requesterId !== c.req.param("userId")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
+    if (requesterId !== targetUserId) {
+      return c.json({ success: false, error: "Unauthorized" }, 403);
     }
 
     try {

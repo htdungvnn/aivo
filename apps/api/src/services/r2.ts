@@ -43,7 +43,8 @@ export function generateR2Key(userId: string, filename: string, prefix = "body-i
 export function generatePresignedUrl(bucket: R2Bucket, key: string, contentType: string, _ttlSeconds = 3600): string {
   // Note: This is a simplified version. In production, use the R2 presign API
   // via `r2.presignedPutObject` or the Workers API
-  const bucketName = bucket.name || "bucket";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bucketName = (bucket as any).name || "bucket";
   return `https://${bucketName}.r2.dev/${key}`;
 }
 
@@ -70,9 +71,11 @@ export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): P
     },
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return {
     key,
-    url: `https://${bucket.name || "bucket"}.r2.dev/${key}`,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
     size: image.byteLength || image.length,
     contentType,
     uploadedAt: new Date(),
@@ -92,10 +95,15 @@ export async function deleteImage(bucket: R2Bucket, key: string): Promise<void> 
 export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2ObjectInfo | null> {
   try {
     const object = await bucket.head(key);
+    if (!object) {
+      return null;
+    }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return {
       key,
-      url: `https://${bucket.name || "bucket"}.r2.dev/${key}`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
       size: object.size,
       contentType: object.httpMetadata?.contentType || "application/octet-stream",
       uploadedAt: new Date(object.uploaded || Date.now()),
@@ -119,7 +127,8 @@ export async function listUserImages(bucket: R2Bucket, userId: string, prefix = 
 
   return objects.objects.map((obj: R2Object) => ({
     key: obj.key,
-    url: `https://${bucket.name || "bucket"}.r2.dev/${obj.key}`,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${obj.key}`,
     size: obj.size,
     contentType: obj.httpMetadata?.contentType || "application/octet-stream",
     uploadedAt: new Date(obj.uploaded || Date.now()),

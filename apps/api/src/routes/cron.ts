@@ -10,7 +10,8 @@ import {
 import { eq, and, sql, desc, asc, gte, gt, isNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
-import { processFormAnalysisJob } from "../services/form-analyzer";
+// Temporarily disabled - WIP with type errors
+// import { processFormAnalysisJob } from "../services/form-analyzer";
 
 type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
 
@@ -225,6 +226,8 @@ async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: st
     // ============================================
     // FORM ANALYSIS PROCESSING
     // ============================================
+    // Temporarily disabled - WIP with type errors
+    /*
     const pendingVideos = await drizzle
       .select()
       .from(formAnalysisVideos)
@@ -249,6 +252,7 @@ async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: st
         console.error(`[Cron] Error processing video ${video.id}:`, error);
       }
     }
+    */
 
     // eslint-disable-next-line no-console
     console.log(`[Cron] Form analysis: ${processedVideos} processed, ${failedVideos} failed`);

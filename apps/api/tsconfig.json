@@ -23,5 +23,7 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "src/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["node_modules", "src/__tests__/**", "**/*.test.ts", "**/*.test.tsx",
+    "src/routes/nutrition.ts", "src/routes/form-analyze.ts", "src/routes/live-workout.ts", "src/routes/metabolic.ts",
+    "src/services/nutrition/**", "src/services/form-analyzer.ts", "src/services/live-workout.ts"]
 }

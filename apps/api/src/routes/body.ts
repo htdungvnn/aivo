@@ -19,6 +19,7 @@ import {
 import { schema } from "@aivo/db/schema";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -29,6 +30,9 @@ interface EnvWithR2 {
 
 export const BodyRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
+
+  // Apply authentication to all body routes
+  router.use("*", authenticate);
 
   // Upload body image to R2
   /**
@@ -57,10 +61,8 @@ export const BodyRouter = () => {
    *         description: Invalid image
    */
   router.post("/upload", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    if (!userId) {
-      return c.json({ success: false, error: "User ID required" }, 400);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     try {
       const formData = await c.req.formData();
@@ -139,12 +141,8 @@ export const BodyRouter = () => {
    */
   router.post("/vision/analyze", async (c) => {
     const drizzle = createDrizzleInstance(c.env.DB);
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const user = await drizzle.query.users.findFirst({
       where: (users, { eq }) => eq(users.id, userId),
@@ -225,12 +223,8 @@ export const BodyRouter = () => {
 
   // Get body metrics history
   router.get("/metrics", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -287,12 +281,8 @@ export const BodyRouter = () => {
 
   // Create manual body metric entry
   router.post("/metrics", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -370,12 +360,8 @@ export const BodyRouter = () => {
 
   // Get body heatmap data
   router.get("/heatmaps", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -428,12 +414,8 @@ export const BodyRouter = () => {
 
   // Generate heatmap from vision analysis
   router.post("/heatmaps/generate", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 

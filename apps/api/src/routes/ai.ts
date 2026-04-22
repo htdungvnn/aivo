@@ -4,9 +4,10 @@ import { createDrizzleInstance, conversations, workoutRoutines, dailySchedules, 
 import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import { optimize_content_wasm } from "@aivo/optimizer";
-import { AdaptivePlanner } from "@aivo/compute";
+import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
 import { MemoryService } from "@aivo/memory-service";
-import type { PlanDeviationScore, RecoveryCurve } from "@aivo/shared-types";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";
 
 export interface Env {
   DB: D1Database;
@@ -21,6 +22,9 @@ const ChatRequest = z.object({
 
 export const AIRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
+
+  // Apply authentication to all AI routes
+  router.use("*", authenticate);
 
   // Memory service cache (initialized on first use with OpenAI key)
   let cachedMemoryService: MemoryService | null = null;
@@ -108,22 +112,23 @@ export const AIRouter = () => {
    */
   router.post("/chat", async (c) => {
     const drizzle = createDrizzleInstance(c.env.DB);
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
-
-    const body = await c.req.json();
-    const validated = ChatRequest.parse(body);
-
-    const openaiKey = c.env.OPENAI_API_KEY;
-    if (!openaiKey) {
-      return c.json({ success: false, error: "AI service not configured" }, 503);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     try {
+      const body = await c.req.json();
+      const validated = ChatRequest.parse(body);
+
+      // Ensure the userId in the body matches the authenticated user
+      if (validated.userId !== userId) {
+        return c.json({ success: false, error: "Cannot chat as another user" }, 403);
+      }
+
+      const openaiKey = c.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return c.json({ success: false, error: "AI service not configured" }, 503);
+      }
+
       // Fetch recent conversation history for context
       const history = await drizzle.query.conversations.findMany({
         where: (conv, { eq }) => eq(conv.userId, userId),
@@ -170,8 +175,6 @@ export const AIRouter = () => {
 
       // Add conversation history with token thinning
       if (history.length > 0) {
-        // Transform conversations into OpenAI message format
-        // Each conversation row has user message and assistant response
         const allMessages: Array<{ role: string; content: string }> = [];
         history.reverse().forEach((conv) => {
           allMessages.push({ role: "user", content: conv.message });
@@ -181,7 +184,6 @@ export const AIRouter = () => {
         });
 
         const conversationJson = JSON.stringify({ messages: allMessages });
-
         const optimizedJson = optimize_content_wasm(conversationJson, "");
         const optimized = JSON.parse(optimizedJson);
 
@@ -192,12 +194,10 @@ export const AIRouter = () => {
               messages.push(...optimizedData.messages.slice(-10));
             }
           } catch {
-            // Fallback to recent messages
             const recent = allMessages.slice(-10);
             messages.push(...recent);
           }
         } else {
-          // If no optimization, take recent messages directly
           const recent = allMessages.slice(-10);
           messages.push(...recent);
         }
@@ -236,13 +236,13 @@ export const AIRouter = () => {
       // Insert conversation and get the inserted row
       const [insertedConversation] = await drizzle.insert(conversations).values({
         id: conversationId,
-        userId: validated.userId,
+        userId,
         message: validated.message,
         response: aiMessage,
         context: validated.context ? JSON.stringify(validated.context) : null,
         tokensUsed,
         model: "gpt-4o-mini",
-        createdAt: Date.now(),
+        createdAt: Math.floor(Date.now() / 1000),
       }).returning();
 
       // Process conversation for memory extraction (async, don't await to avoid blocking response)
@@ -281,6 +281,198 @@ export const AIRouter = () => {
     }
   });
 
+  // Voice-to-action parsing endpoint
+  /**
+   * @swagger
+   * /ai/voice-parse:
+   *   post:
+   *     summary: Parse Voice Entry
+   *     description: Parse natural language voice entry into structured fitness/nutrition data
+   *     tags: [ai]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               text:
+   *                 type: string
+   *                 description: Transcribed text from voice input
+   *               contextHint:
+   *                 type: string
+   *                 description: Optional context hint (e.g., "morning", "post-workout")
+   *             required:
+   *               - text
+   *     responses:
+   *       200:
+   *         description: Parsed structured data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     hasFood:
+   *                       type: boolean
+   *                     hasWorkout:
+   *                       type: boolean
+   *                     hasBodyMetric:
+   *                       type: boolean
+   *                     foodEntries:
+   *                       type: array
+   *                       items:
+   *                         $ref: "#/components/schemas/ParsedFoodEntry"
+   *                     workoutEntries:
+   *                       type: array
+   *                       items:
+   *                         $ref: "#/components/schemas/ParsedWorkoutEntry"
+   *                     bodyMetrics:
+   *                       type: array
+   *                       items:
+   *                         $ref: "#/components/schemas/ParsedBodyMetric"
+   *                     overallConfidence:
+   *                       type: number
+   *                     needsClarification:
+   *                       type: boolean
+   *                     clarificationQuestions:
+   *                       type: array
+   *                       items:
+   *                         type: string
+   */
+  router.post("/voice-parse", async (c) => {
+    try {
+      const body = await c.req.json();
+      const { text, context_hint } = body as VoiceLogRequest;
+
+      if (!text || typeof text !== "string") {
+        return c.json({ success: false, error: "Text is required" }, 400);
+      }
+
+      // Call WASM voice parser
+      const resultJson = VoiceParser.parseVoiceEntry(
+        text,
+        context_hint || null
+      );
+
+      const parsedResult = JSON.parse(resultJson) as VoiceParseResult;
+
+      return c.json({
+        success: true,
+        data: parsedResult,
+      });
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("Voice parse error:", error);
+      const message = error instanceof Error ? error.message : "Parsing failed";
+      return c.json({ success: false, error: message }, 500);
+    }
+  });
+
+  // Voice logging with Whisper transcription (accepts audio)
+  /**
+   * @swagger
+   * /ai/voice-log:
+   *   post:
+   *     summary: Voice Log with Transcription
+   *     description: Accepts audio (base64), transcribes via Whisper, parses into structured data
+   *     tags: [ai]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               audio:
+   *                 type: string
+   *                 description: Base64-encoded audio (mp3, wav, m4a, webm)
+   *               text:
+   *                 type: string
+   *                 description: Direct text (if already transcribed)
+   *               context_hint:
+   *                 type: string
+   *                 description: Optional context (e.g., "morning", "post-workout")
+   *     responses:
+   *       200:
+   *         description: Parsed structured data
+   */
+  router.post("/voice-log", async (c) => {
+    try {
+      const body = await c.req.json();
+      const { audio, text: providedText, context_hint } = body as {
+        audio?: string;
+        text?: string;
+        context_hint?: string;
+      };
+
+      let text = providedText;
+
+      // If audio is provided, transcribe with Whisper
+      if (audio) {
+        const openaiKey = c.env.OPENAI_API_KEY;
+        if (!openaiKey) {
+          return c.json({ success: false, error: "OpenAI API not configured" }, 503);
+        }
+
+        // Decode base64 to buffer
+        const audioBuffer = Buffer.from(audio, "base64");
+
+        // Create form data for Whisper API
+        const formData = new FormData();
+        const blob = new Blob([audioBuffer], { type: "audio/mp3" });
+        // @ts-ignore - FormData append with Blob works in Workers via @cloudflare/workers-types
+        formData.append("file", blob, "audio.mp3");
+        formData.append("model", "whisper-1");
+
+        const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          // @ts-ignore
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errBody = await response.json();
+          const errMsg = (errBody as any)?.error?.message || response.statusText;
+          throw new Error(`Whisper error: ${errMsg}`);
+        }
+
+        const transcription = await response.json() as { text: string };
+        text = transcription.text;
+      }
+
+      if (!text || typeof text !== "string") {
+        return c.json({ success: false, error: "No text provided or transcription failed" }, 400);
+      }
+
+      // Call WASM voice parser
+      const resultJson = VoiceParser.parseVoiceEntry(text, context_hint || null);
+      const parsedResult = JSON.parse(resultJson) as VoiceParseResult;
+
+      return c.json({
+        success: true,
+        data: parsedResult,
+        transcribed_text: text, // Include transcription for client reference
+      });
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("Voice log error:", error);
+      const message = error instanceof Error ? error.message : "Voice logging failed";
+      return c.json({ success: false, error: message }, 500);
+    }
+  });
+
   // Get conversation history
   /**
    * @swagger
@@ -307,17 +499,23 @@ export const AIRouter = () => {
    *         description: Conversation history
    */
   router.get("/history/:userId", async (c) => {
-    const userId = c.req.param("userId");
-    const limit = parseInt(c.req.query("limit") || "50");
+    const authUser = getUserFromContext(c) as AuthUser;
+    const requestedUserId = c.req.param("userId");
 
+    // Users can only access their own history
+    if (authUser.id !== requestedUserId) {
+      return c.json({ success: false, error: "Forbidden" }, 403);
+    }
+
+    const limit = parseInt(c.req.query("limit") || "50");
     const drizzle = createDrizzleInstance(c.env.DB);
-    const conversations = await drizzle.query.conversations.findMany({
-      where: (conv, { eq }) => eq(conv.userId, userId),
+    const conversationsList = await drizzle.query.conversations.findMany({
+      where: (conv, { eq }) => eq(conv.userId, requestedUserId),
       orderBy: (conv, { desc }) => desc(conv.createdAt),
       limit,
     });
 
-    return c.json(conversations);
+    return c.json(conversationsList);
   });
 
   // Adaptive routine replanning endpoint
@@ -346,12 +544,8 @@ export const AIRouter = () => {
    */
   router.post("/replan", async (c) => {
     const drizzle = createDrizzleInstance(c.env.DB);
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const openaiKey = c.env.OPENAI_API_KEY;
     if (!openaiKey) {
@@ -367,7 +561,7 @@ export const AIRouter = () => {
         return c.json({ success: false, error: "currentRoutineId is required" }, 400);
       }
 
-      // Fetch current routine and its exercises
+      // Fetch current routine and its exercises (only for this user)
       const routine = await drizzle.query.workoutRoutines.findFirst({
         where: (r, { and }) => and(
           eq(r.id, currentRoutineId),

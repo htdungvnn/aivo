@@ -22,8 +22,8 @@ import { runCronJob } from "./routes/cron";
 // Temporarily disabled - WIP with type errors
 // import { NutritionRouter } from "./routes/nutrition";
 import { InfographicRouter } from "./routes/infographic";
+import { LiveWorkoutRouter } from "./routes/live-workout";
 // Temporarily disabled - WIP with type errors
-// import { formRouter } from "./routes/form-analyze";
 
 // Define Cloudflare Workers environment type
 export interface AppEnv {
@@ -160,8 +160,8 @@ app.route("/api", MonthlyReportRouter());
 app.route("/health", HealthRouter());
 app.route("/api/gamification", GamificationRouter());
 app.route("/api/infographic", InfographicRouter());
+app.route("/api/live-workout", LiveWorkoutRouter());
 // Temporarily disabled - WIP with type errors
-// app.route("/api/form", formRouter());
 
 // ============================================
 // PROTECTED SWAGGER UI (Production)

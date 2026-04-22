@@ -44,13 +44,6 @@ export function NutritionDashboard({ date = new Date(), className }: NutritionDa
     return Math.min(100, Math.round((current / target) * 100));
   };
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "bg-green-500";
-    if (percentage >= 75) return "bg-blue-500";
-    if (percentage >= 50) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
   if (loading) {
     return (
       <Card className={className}>

@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { Dumbbell } from "lucide-react-native";
 
 export default function WorkoutsScreen() {
+  const router = useRouter();
   const workoutCategories = [
     { name: "HIIT", color: "#ef4444", count: 24 },
     { name: "Strength", color: "#3b82f6", count: 48 },
@@ -37,9 +39,18 @@ export default function WorkoutsScreen() {
             <Text style={styles.recommendedName}>Full Body Burn</Text>
             <Text style={styles.recommendedMeta}>45 min • Intermediate</Text>
           </View>
-          <View style={styles.startButton}>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={() =>
+              router.push("/active-workout", {
+                workoutName: "Full Body Burn",
+                targetRPE: 8,
+                idealRestSeconds: 90,
+              })
+            }
+          >
             <Text style={styles.startButtonText}>Start</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>

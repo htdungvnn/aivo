@@ -23,7 +23,6 @@ export function FoodPhotoUpload({
   const { uploadFoodImage, analyzeFoodImage, createFoodLogFromAnalysis, loading, error } = useNutrition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -42,9 +41,8 @@ export function FoodPhotoUpload({
     reader.readAsDataURL(file);
 
     try {
-      // Upload image
+      // Upload image and get result
       const uploadResult = await uploadFoodImage(file);
-      setUploadedImageUrl(uploadResult.imageUrl);
 
       // Analyze with AI
       setAnalyzing(true);
@@ -81,7 +79,6 @@ export function FoodPhotoUpload({
       onLogCreated?.(log);
       // Reset state
       setPreview(null);
-      setUploadedImageUrl(null);
       setAnalysis(null);
     } catch (err) {
       console.error("Failed to create log:", err);
@@ -90,7 +87,6 @@ export function FoodPhotoUpload({
 
   const handleClear = useCallback(() => {
     setPreview(null);
-    setUploadedImageUrl(null);
     setAnalysis(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { createApiClient } from "@aivo/api-client";
 import type { FoodLog, DailyNutritionSummary, MacroTargets, FoodVisionAnalysis, UploadImageResponse } from "@aivo/shared-types";
 

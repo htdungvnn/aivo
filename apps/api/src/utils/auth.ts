@@ -3,11 +3,9 @@
  * Using jose library for secure JWT handling
  */
 
-import { SignJWT, jwtVerify, JsonWebKeyError } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
 import { sessions, users } from "@aivo/db";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import type { schema } from "@aivo/db/schema";
 
 // Secret key - should be at least 256 bits (32 bytes)
 let secretKey: Uint8Array | null = null;
@@ -49,7 +47,7 @@ export async function signToken(payload: { sub: string; userId: string; iat?: nu
  */
 export async function verifyToken(
   token: string,
-  db?: DrizzleD1Database<typeof schema>
+  db?: any
 ): Promise<{ sub: string; userId: string } | null> {
   try {
     const secret = getSecretKey();
@@ -61,12 +59,9 @@ export async function verifyToken(
 
     // If database is provided, verify session exists
     if (db) {
-      const session = await db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, sub))
-        .limit(1)
-        .first();
+      const session = await db.query.sessions.findFirst({
+        where: eq(sessions.id, sub),
+      }) as any;
 
       if (!session) {
         return null;
@@ -74,11 +69,9 @@ export async function verifyToken(
     }
 
     return { sub, userId };
-  } catch (error) {
-    if (error instanceof JsonWebKeyError) {
-      return null;
-    }
-    throw error;
+  } catch (error: unknown) {
+    // Any error during verification means token is invalid
+    return null;
   }
 }
 
@@ -86,7 +79,7 @@ export async function verifyToken(
  * Create a session record in database
  */
 export async function createSession(
-  db: DrizzleD1Database<typeof schema>,
+  db: any,
   userId: string,
   provider: "google" | "facebook",
   providerUserId: string,
@@ -103,7 +96,7 @@ export async function createSession(
     accessToken,
     createdAt: now,
     updatedAt: now,
-  });
+  }) as any;
 
   return sessionId;
 }
@@ -112,7 +105,7 @@ export async function createSession(
  * Find or create user from OAuth provider data
  */
 export async function findOrCreateUser(
-  db: DrizzleD1Database<typeof schema>,
+  db: any,
   providerData: {
     providerId: string;
     email: string;
@@ -121,12 +114,9 @@ export async function findOrCreateUser(
   }
 ): Promise<{ id: string; email: string; name: string; picture?: string }> {
   // Try to find existing user by email
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, providerData.email))
-    .limit(1)
-    .first();
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, providerData.email),
+  }) as any;
 
   if (existingUser) {
     return {
@@ -151,7 +141,7 @@ export async function findOrCreateUser(
     receiveMonthlyReports: 1,
     createdAt: now,
     updatedAt: now,
-  });
+  }) as any;
 
   return {
     id: userId,

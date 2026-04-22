@@ -7,6 +7,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 import type { FormAnalysisVideo, FormExerciseType } from "@aivo/shared-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import { validateVideo } from "../services/r2";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 // Import tables from schema
 import {
@@ -30,9 +31,12 @@ interface EnvWithR2 {
 export const formRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
-// ============================================
-// VALIDATION SCHEMAS
-// ============================================
+  // Apply authentication to all form analysis routes
+  router.use("*", authenticate);
+
+  // ============================================
+  // VALIDATION SCHEMAS
+  // ============================================
 
 const UploadVideoSchema = z.object({
   exerciseType: z.enum(["squat", "deadlift", "bench_press", "overhead_press", "lunge"]),
@@ -67,11 +71,8 @@ function getPublicUrl(bucket: R2BucketWithName, key: string): string {
  */
 router.post("/upload", async (c: Context) => {
   try {
-    // Get user ID from auth header (simplified - use proper auth middleware)
-    const userId = c.req.header("X-User-Id");
-    if (!userId) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     // Parse multipart form data
     const formData = await c.req.formData();
@@ -169,7 +170,8 @@ router.get("/:videoId/status", async (c: Context) => {
     if (!videoId) {
       return c.json({ success: false, error: "Video ID required" }, 400);
     }
-    const userId = c.req.header("X-User-Id");
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -229,7 +231,8 @@ router.get("/:videoId/result", async (c: Context) => {
     if (!videoId) {
       return c.json({ success: false, error: "Video ID required" }, 400);
     }
-    const userId = c.req.header("X-User-Id");
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -302,10 +305,8 @@ router.get("/:videoId/result", async (c: Context) => {
  */
 router.get("/user/videos", async (c: Context) => {
   try {
-    const userId = c.req.header("X-User-Id");
-    if (!userId) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 

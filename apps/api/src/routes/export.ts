@@ -20,6 +20,7 @@ import {
   activityEvents,
   gamificationProfiles,
 } from "@aivo/db";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 // Type imports for row data interfaces
 import type {
@@ -285,13 +286,12 @@ const transformActivityEvent = (row: any): ActivityEvent => ({
 export const ExportRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
-  router.post("/", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
+  // Apply authentication to all export routes
+  router.use("*", authenticate);
 
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+  router.post("/", async (c) => {
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     try {
       const body = await c.req.json().catch(() => ({}));
@@ -509,12 +509,8 @@ export const ExportRouter = () => {
   });
 
   router.get("/template", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const format = c.req.query("format") as ExportFormat || "xlsx";
     const dateStr = new Date().toISOString().split("T")[0];

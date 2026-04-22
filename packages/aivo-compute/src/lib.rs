@@ -2653,7 +2653,7 @@ impl VoiceParser {
         };
 
         // Detect meal context from time references
-        result.detected_meal_type = Self::detect_meal_type(&text_lower, context_hint);
+        result.detected_meal_type = Self::detect_meal_type(&text_lower, context_hint.as_deref());
 
         // Parse food entries
         result.food_entries = Self::parse_food_entries(&text_lower);
@@ -2685,9 +2685,8 @@ impl VoiceParser {
 
     /// Extract food items from text with nutritional estimates
     fn parse_food_entries(text: &str) -> Vec<ParsedFoodEntry> {
-        let mut entries = Vec::new();
+        let mut entries: Vec<ParsedFoodEntry> = Vec::new();
         let mut has_multiple = false;
-        let mut multiple_foods = Vec::new();
 
         // Meal type keywords
         let meal_types = [
@@ -2832,10 +2831,21 @@ impl VoiceParser {
         ];
 
         // Split by common delimiters to find individual exercises
-        let exercise_segments = text.split(&[',', ';', " and ", " with "][..]);
+        // First split by commas and semicolons, then by multi-word separators
+        let mut exercise_segments: Vec<&str> = Vec::new();
+        for part in text.split(|c| c == ',' || c == ';') {
+            for sub in part.split(" and ") {
+                for sub2 in sub.split(" with ") {
+                    let trimmed = sub2.trim();
+                    if !trimmed.is_empty() {
+                        exercise_segments.push(trimmed);
+                    }
+                }
+            }
+        }
 
         for segment in exercise_segments {
-            let seg_lower = segment.to_lowercase();
+            let seg_lower: String = segment.to_lowercase();
             if seg_lower.trim().is_empty() {
                 continue;
             }
@@ -2880,7 +2890,7 @@ impl VoiceParser {
                 // Try to extract exercise name before the numbers
                 let words: Vec<&str> = seg_lower.split_whitespace().collect();
                 for (alias, std_name, ex_type) in EXERCISE_ALIASES.iter() {
-                    if words.iter().any(|w: &str| w.contains(alias)) {
+                    if words.iter().any(|w| w.contains(alias)) {
                         let (sets, reps, weight) = Self::extract_sets_reps_weight(segment);
                         let entry = ParsedWorkoutEntry {
                             workout_type: Some(ex_type.to_string()),

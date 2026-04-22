@@ -7,6 +7,7 @@ import { uploadImage, validateImage } from "../services/r2";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import { FitnessCalculator } from "@aivo/compute";
+import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 // Types for daily nutrition summary
 interface DailySummaryData {
@@ -135,25 +136,38 @@ const CreateFromAnalysisSchema = z.object({
 
 // Nutrition consultation schemas
 const NutritionConsultRequestSchema = z.object({
+  userId: z.string(),
   query: z.string().min(1).max(2000),
   context: z.object({
-    userId: z.string().optional(),
     medicalConditions: z.array(z.string()).optional(),
-    medications: z.array(z.string()).optional(),
+    medications: z.array(z.string()).optional(), // Accept simple strings, transform to objects
     allergies: z.array(z.string()).optional(),
     intolerances: z.array(z.string()).optional(),
     dietType: z.enum(["omnivore", "vegetarian", "vegan", "pescatarian", "keto", "paleo", "mediterranean"]).optional(),
     skillLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
     kitchenTools: z.array(z.string()).optional(),
-    budget: z.number().positive().optional(),
+    budget: z.object({
+      daily: z.number().positive().optional(),
+      weekly: z.number().positive().optional(),
+      monthly: z.number().positive().optional(),
+      currency: z.string().default("USD"),
+      priceSensitivity: z.enum(["low", "medium", "high"]).default("medium"),
+    }).optional(),
     availableIngredients: z.array(
       z.object({
         name: z.string(),
         quantity: z.number(),
         unit: z.string().optional(),
+        expirationDate: z.string().optional(),
+        isPerishable: z.boolean().optional().default(false),
       })
     ).optional(),
-    macroPreferences: z.array(z.string()).optional(),
+    macroPreferences: z.object({
+      proteinGrams: z.number().optional(),
+      carbsGrams: z.number().optional(),
+      fatGrams: z.number().optional(),
+      calorieTarget: z.number().optional(),
+    }).optional(),
   }).optional(),
   preferredAgents: z.array(
     z.enum(["chef", "medical", "budget"])
@@ -165,12 +179,13 @@ const NutritionConsultRequestSchema = z.object({
 export const NutritionRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
+  // Apply authentication to all nutrition routes
+  router.use("*", authenticate);
+
   // Upload food image to R2
   router.post("/upload", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    if (!userId) {
-      return c.json({ success: false, error: "User ID required" }, 400);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     try {
       const formData = await c.req.formData();
@@ -223,12 +238,8 @@ export const NutritionRouter = () => {
 
   // Analyze food image with AI vision
   router.post("/vision/analyze", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const openaiKey = c.env.OPENAI_API_KEY;
     if (!openaiKey) {
@@ -388,12 +399,8 @@ Guidelines:
 
   // Create food logs from analysis results
   router.post("/logs/from-analysis", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -457,12 +464,8 @@ Guidelines:
 
   // Create manual food log entry
   router.post("/logs", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -510,12 +513,8 @@ Guidelines:
 
   // Get user's food logs
   router.get("/logs", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -559,12 +558,8 @@ Guidelines:
 
   // Get food log by ID
   router.get("/logs/:id", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const logId = c.req.param("id");
@@ -587,12 +582,8 @@ Guidelines:
 
   // Update food log (for user corrections)
   router.patch("/logs/:id", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const logId = c.req.param("id");
@@ -647,12 +638,8 @@ Guidelines:
 
   // Delete food log
   router.delete("/logs/:id", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const logId = c.req.param("id");
@@ -680,12 +667,8 @@ Guidelines:
 
   // Get daily nutrition summary
   router.get("/summary", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
 
@@ -733,17 +716,28 @@ Guidelines:
         summaryData = {
           userId,
           date,
-          totalCalories: totals.calories,
-          totalProtein_g: totals.protein,
-          totalCarbs_g: totals.carbs,
-          totalFat_g: totals.fat,
-          totalFiber_g: totals.fiber ?? null,
-          totalSugar_g: totals.sugar ?? null,
+          totalCalories: totals.calories || 0,
+          totalProtein_g: totals.protein || 0,
+          totalCarbs_g: totals.carbs || 0,
+          totalFat_g: totals.fat || 0,
+          totalFiber_g: totals.fiber || null,
+          totalSugar_g: totals.sugar || null,
           foodLogCount: totals.count,
           updatedAt: Date.now(),
         };
       } else {
-        summaryData = summary;
+        summaryData = {
+          userId: summary.userId,
+          date: summary.date,
+          totalCalories: summary.totalCalories ?? 0,
+          totalProtein_g: summary.totalProtein_g ?? 0,
+          totalCarbs_g: summary.totalCarbs_g ?? 0,
+          totalFat_g: summary.totalFat_g ?? 0,
+          totalFiber_g: summary.totalFiber_g ?? null,
+          totalSugar_g: summary.totalSugar_g ?? null,
+          foodLogCount: summary.foodLogCount ?? 0,
+          updatedAt: summary.updatedAt,
+        };
       }
 
       // Get meal breakdown
@@ -782,7 +776,13 @@ Guidelines:
         where: eq(schema.users.id, userId),
       });
       const { calories: targetCalories, protein_g: targetProtein, carbs_g: targetCarbs, fat_g: targetFat } =
-        calculateMacroTargets(user);
+        calculateMacroTargets({
+          weight: user?.weight,
+          height: user?.height,
+          age: user?.age,
+          gender: user?.gender,
+          goals: user?.goals,
+        });
 
       return c.json({
         success: true,
@@ -839,12 +839,8 @@ Guidelines:
 
   // Add food item to database (for admin/user submitted)
   router.post("/database/items", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     // In production, add admin check here
 
@@ -890,12 +886,8 @@ Guidelines:
 
   // AI Nutrition Consultation endpoint (Multi-Agent Orchestration)
   router.post("/consult", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const openaiKey = c.env.OPENAI_API_KEY;
     if (!openaiKey) {
@@ -906,13 +898,17 @@ Guidelines:
       const body = await c.req.json();
       const validated = NutritionConsultRequestSchema.parse(body);
 
-      // Prepare context with userId
+      // Transform medications from string[] to proper format
+      const medications = validated.context?.medications?.map(name => ({ name })) || undefined;
+
+      // Prepare context - userId comes from header, not from body
       const context = {
-        ...validated.context,
-        userId,
+        ...(validated.context || {}),
+        medications,
       };
 
       const request = {
+        userId,
         query: validated.query,
         context,
         preferredAgents: validated.preferredAgents,
@@ -927,25 +923,23 @@ Guidelines:
       // Optionally store consultation in database
       try {
         const drizzle = createDrizzleInstance(c.env.DB);
-        const { StoredNutritionConsult, saveConsult } = await import("../services/nutrition/storage");
+        const { saveConsult } = await import("../services/nutrition/storage");
 
-        const storedConsult: StoredNutritionConsult = {
+        await saveConsult(drizzle, {
           id: crypto.randomUUID(),
           userId,
           sessionId: result.sessionId,
           query: result.userQuery,
-          context: context as Record<string, unknown>,
+          context,
           agentsConsulted: result.agentsConsulted,
-          responses: result.responses,
+          responses: result.responses as any[],
           synthesizedAdvice: result.synthesizedAdvice,
           warnings: result.warnings,
           processingTimeMs: result.processingTimeMs,
-          createdAt: Date.now(),
+          createdAt: new Date(),
           userRating: undefined,
           feedback: undefined,
-        };
-
-        await saveConsult(drizzle, storedConsult);
+        });
       } catch (storageError) {
         // Log but don't fail the request if storage fails
         // eslint-disable-next-line no-console
@@ -977,12 +971,8 @@ Guidelines:
 
   // Get user's nutrition consultation history
   router.get("/consult/history", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const limit = Math.min(parseInt(c.req.query("limit") || "20"), 100);
@@ -1004,12 +994,8 @@ Guidelines:
 
   // Get consultation by ID
   router.get("/consult/:id", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const consultId = c.req.param("id");
@@ -1032,12 +1018,8 @@ Guidelines:
 
   // Rate consultation
   router.patch("/consult/:id/rating", async (c) => {
-    const userId = c.req.header("X-User-Id");
-    const authHeader = c.req.header("Authorization");
-
-    if (!userId || !authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
-    }
+    const authUser = getUserFromContext(c) as AuthUser;
+    const userId = authUser.id;
 
     const drizzle = createDrizzleInstance(c.env.DB);
     const consultId = c.req.param("id");
@@ -1110,13 +1092,26 @@ function calculateMacroTargets(
   const tdee = FitnessCalculator.calculateTDEE(bmr, "moderate"); // Default to moderate activity
 
   let targetCalories = tdee;
+  const goalsArray: string[] = [];
+
   if (goals) {
-    let goalsArray: string[] = [];
-    try {
-      goalsArray = typeof goals === "string" ? JSON.parse(goals) : goals;
-    } catch {
-      goalsArray = [goals];
+    if (typeof goals === "string") {
+      try {
+        const parsed = JSON.parse(goals);
+        if (Array.isArray(parsed)) {
+          goalsArray.push(...parsed.map(String));
+        } else {
+          goalsArray.push(String(parsed));
+        }
+      } catch {
+        goalsArray.push(String(goals));
+      }
+    } else if (Array.isArray(goals)) {
+      goalsArray.push(...goals.map(String));
+    } else {
+      goalsArray.push(String(goals));
     }
+
     if (goalsArray.includes("lose_weight")) {
       targetCalories = tdee - 500;
     } else if (goalsArray.includes("gain_muscle")) {
@@ -1129,11 +1124,11 @@ function calculateMacroTargets(
   let carbsRatio = 0.40;
   let fatRatio = 0.30;
 
-  if (goals?.includes?.("gain_muscle")) {
+  if (goalsArray.includes("gain_muscle")) {
     proteinRatio = 0.35;
     carbsRatio = 0.45;
     fatRatio = 0.20;
-  } else if (goals?.includes?.("lose_weight")) {
+  } else if (goalsArray.includes("lose_weight")) {
     proteinRatio = 0.40;
     carbsRatio = 0.30;
     fatRatio = 0.30;

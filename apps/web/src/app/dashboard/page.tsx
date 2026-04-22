@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { BodyInsightCard } from "@/components/body/BodyInsightCard";
 import { BodyHeatmapSection } from "@/components/body/BodyHeatmapSection";
 import { RecoveryDashboard } from "@/components/biometric";
+import { MetabolicDigitalTwin } from "@/components/biometric/MetabolicDigitalTwin";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
 
 const fadeInUp = {
@@ -356,6 +357,21 @@ export default function DashboardPage() {
               <BodyHeatmapSection />
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Metabolic Digital Twin */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="mb-8"
+        >
+          {user && (
+            <MetabolicDigitalTwin
+              userId={user.id}
+              token={localStorage.getItem("aivo_token") || ""}
+            />
+          )}
         </motion.div>
 
         {/* Quick Stats Grid */}
