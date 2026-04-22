@@ -3,38 +3,41 @@
  * Integrates summarization, vector search, and context building
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console */
+
 import { OpenAI } from "openai";
 import {
   memoryNodes,
   memoryEdges,
-  compressedContexts,
   conversations,
   schema,
 } from "@aivo/db";
-import { sql, eq, and, or, desc, inArray } from "drizzle-orm";
+import { sql, eq, or, desc, inArray } from "drizzle-orm";
 import { drizzle as drizzleClient } from "drizzle-orm/d1";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 type DB = DrizzleD1Database<typeof schema>;
-import {
+import type {
   MemoryNode,
   MemoryEdge,
   MemoryQuery,
   MemoryMetadata,
+  TokenBudget,
+  ExtractedFact,
+  Message,
+} from "./types.ts";
+import {
+  DEFAULT_TOKEN_BUDGET,
+  createMemoryNode,
+  isHealthCritical,
   MemoryType,
   RelationshipType,
-  MemoryContext,
-  TokenBudget,
-  DEFAULT_TOKEN_BUDGET,
-  ExtractedFact,
-  createMemoryNode,
-  createMemoryEdge,
-  isHealthCritical,
-  Message,
 } from "./types.ts";
 import { ConversationSummarizer } from "./summarizer.ts";
 import { MemorySearcher } from "./vector-search.ts";
-import { ContextBuilder, estimateTokens } from "./compression.ts";
+import type { ContextBuilder} from "./compression.ts";
+import { estimateTokens } from "./compression.ts";
 
 /**
  * MemoryService configuration
@@ -277,12 +280,12 @@ export class MemoryService {
     // Other types
     for (const type of typeOrder) {
       const group = grouped.get(type);
-      if (!group) continue;
+      if (!group) {continue;}
 
       if (type === "fact") {
         // Skip non-critical facts if we already showed critical
         const nonCritical = group.filter(m => !isHealthCritical(m.content));
-        if (nonCritical.length === 0) continue;
+        if (nonCritical.length === 0) {continue;}
         const groupText = this.formatGroup(nonCritical.slice(0, 5), reservePerType);
         if (groupText) {
           parts.push(`## ${typeLabels.facts}\n${groupText}`);
@@ -318,7 +321,7 @@ export class MemoryService {
    * Format a group of memories into bullet points
    */
   private formatGroup(memories: MemoryNode[], tokenBudget: number): string {
-    if (memories.length === 0) return "";
+    if (memories.length === 0) {return "";}
 
     const lines: string[] = [];
     let currentTokens = 0;
@@ -558,7 +561,7 @@ export class MemoryService {
   private async insertMemoryNodes(
     nodes: Omit<MemoryNode, 'id'>[] = [],
   ): Promise<MemoryNode[]> {
-    if (nodes.length === 0) return [];
+    if (nodes.length === 0) {return [];}
 
     // Convert to database format
     const preparedNodes = nodes.map((node) => ({
@@ -702,7 +705,7 @@ export class MemoryService {
    */
   private async enforceMemoryLimit(userId: string): Promise<void> {
     const maxMemories = this.config.maxMemoriesPerUser;
-    if (maxMemories === 0) return; // Unlimited
+    if (maxMemories === 0) {return;} // Unlimited
 
     const drizzle = drizzleClient(this.db as any, { schema }) as any;
 
@@ -714,7 +717,7 @@ export class MemoryService {
 
     const count = countResult.length;
 
-    if (count <= maxMemories) return;
+    if (count <= maxMemories) {return;}
 
     // Find memories to delete (oldest, lowest confidence, not critical)
     // We need to find critical memories by keyword search since isHealthCritical works on content
@@ -789,7 +792,7 @@ export class MemoryService {
   /**
    * Update compressed context (for old memories)
    */
-  private async updateCompressedContext(userId: string): Promise<void> {
+  private async updateCompressedContext(_userId: string): Promise<void> {
     // This could create periodic summaries of old memories
     // For now, it's a placeholder
   }

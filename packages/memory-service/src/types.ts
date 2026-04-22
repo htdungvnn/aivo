@@ -329,33 +329,39 @@ export function isValidEmbedding(embedding: number[]): boolean {
 /**
  * Type guard for MemoryNode
  */
-export function isMemoryNode(obj: any): obj is MemoryNode {
+export function isMemoryNode(obj: unknown): obj is MemoryNode {
+  if (obj === null || typeof obj !== "object") {
+    return false;
+  }
+  const o = obj as Record<string, unknown>;
   return (
-    typeof obj === "object" &&
-    typeof obj.id === "string" &&
-    typeof obj.userId === "string" &&
-    typeof obj.type === "string" &&
-    typeof obj.content === "string" &&
-    Array.isArray(obj.embedding) &&
-    typeof obj.metadata === "object" &&
-    Array.isArray(obj.relatedNodes) &&
-    typeof obj.createdAt === "number" &&
-    typeof obj.updatedAt === "number"
+    typeof o.id === "string" &&
+    typeof o.userId === "string" &&
+    typeof o.type === "string" &&
+    typeof o.content === "string" &&
+    Array.isArray(o.embedding) &&
+    typeof o.metadata === "object" &&
+    Array.isArray(o.relatedNodes) &&
+    typeof o.createdAt === "number" &&
+    typeof o.updatedAt === "number"
   );
 }
 
 /**
  * Type guard for MemoryQuery
  */
-export function isMemoryQuery(obj: any): obj is MemoryQuery {
+export function isMemoryQuery(obj: unknown): obj is MemoryQuery {
+  if (obj === null || typeof obj !== "object") {
+    return false;
+  }
+  const o = obj as Record<string, unknown>;
   return (
-    typeof obj === "object" &&
-    typeof obj.userId === "string" &&
-    (obj.query === undefined || typeof obj.query === "string") &&
-    (obj.types === undefined || Array.isArray(obj.types)) &&
-    (obj.limit === undefined || typeof obj.limit === "number") &&
-    (obj.minConfidence === undefined || typeof obj.minConfidence === "number") &&
-    (obj.maxAgeDays === undefined || typeof obj.maxAgeDays === "number")
+    typeof o.userId === "string" &&
+    (o.query === undefined || typeof o.query === "string") &&
+    (o.types === undefined || Array.isArray(o.types)) &&
+    (o.limit === undefined || typeof o.limit === "number") &&
+    (o.minConfidence === undefined || typeof o.minConfidence === "number") &&
+    (o.maxAgeDays === undefined || typeof o.maxAgeDays === "number")
   );
 }
 

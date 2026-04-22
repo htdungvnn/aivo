@@ -2,14 +2,14 @@
  * Jest configuration for AIVO Next.js web application
  */
 
-const baseConfig = require('./base');
+import base from './base.js';
 
-module.exports = {
-  ...baseConfig,
+export default {
+  ...base,
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '@testing-library/jest-dom'],
   moduleNameMapper: {
-    ...baseConfig.moduleNameMapper,
+    ...base.moduleNameMapper,
     '^@/components/(.*)$': '<rootDir>/src/components/$1',
     '^@/contexts/(.*)$': '<rootDir>/src/contexts/$1',
     '^@/app/(.*)$': '<rootDir>/src/app/$1',

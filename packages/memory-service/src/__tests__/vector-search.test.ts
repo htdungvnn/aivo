@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { MemorySearcher, createSearcher } from "../vector-search.ts";
 
 // Mock OpenAI
@@ -23,16 +24,19 @@ describe("MemorySearcher", () => {
     // Identical vectors should have similarity 1
     const vec = [1, 0, 0, 0];
     const same = [1, 0, 0, 0];
+     
     const similarity = (searcher as any).cosineSimilarity(vec, same);
     expect(similarity).toBeCloseTo(1, 5);
 
     // Orthogonal vectors should have similarity 0
     const orthogonal = [0, 1, 0, 0];
+     
     const orthoSim = (searcher as any).cosineSimilarity(vec, orthogonal);
     expect(orthoSim).toBeCloseTo(0, 5);
 
     // Opposite vectors should have similarity -1
     const opposite = [-1, 0, 0, 0];
+     
     const oppSim = (searcher as any).cosineSimilarity(vec, opposite);
     expect(oppSim).toBeCloseTo(-1, 5);
   });
@@ -41,12 +45,14 @@ describe("MemorySearcher", () => {
     const searcher = createSearcher({ openaiApiKey: "test-key" });
     const vec1 = [1, 2, 3];
     const vec2 = [1, 2, 3, 4];
+     
     const similarity = (searcher as any).cosineSimilarity(vec1, vec2);
     expect(similarity).toBe(0);
   });
 
   it("should return 0 for empty vectors", async () => {
     const searcher = createSearcher({ openaiApiKey: "test-key" });
+     
     const similarity = (searcher as any).cosineSimilarity([], []);
     expect(similarity).toBe(0);
   });
@@ -70,7 +76,9 @@ describe("MemorySearcher", () => {
       metadata: { confidence: 0.9, extractedAt: now - 1000 * 60 * 60 * 168 }, // 1 week ago
     } as any;
 
+     
     const recentScore = (searcher as any).computeScore(recentMemory, new Array(1536).fill(0));
+     
     const oldScore = (searcher as any).computeScore(oldMemory, new Array(1536).fill(0));
 
     expect(recentScore).toBeGreaterThan(oldScore);
@@ -94,7 +102,9 @@ describe("MemorySearcher", () => {
       metadata: { confidence: 0.5, extractedAt: Date.now() },
     } as any;
 
+     
     const highScore = (searcher as any).computeScore(highConfMemory, new Array(1536).fill(0));
+     
     const lowScore = (searcher as any).computeScore(lowConfMemory, new Array(1536).fill(0));
 
     expect(highScore).toBeGreaterThan(lowScore);
@@ -117,7 +127,9 @@ describe("MemorySearcher", () => {
       metadata: { confidence: 1.0, extractedAt: Date.now() },
     } as any;
 
+     
     const constraintScore = (searcher as any).computeScore(constraintMemory, new Array(1536).fill(0));
+     
     const entityScore = (searcher as any).computeScore(entityMemory, new Array(1536).fill(0));
 
     expect(constraintScore).toBeGreaterThan(entityScore);
@@ -134,10 +146,12 @@ describe("MemorySearcher", () => {
     });
 
     // First call should hit API
+     
     const emb1 = await (searcher as any).getEmbedding("test text");
     expect(mockOpenAI.embeddings.create).toHaveBeenCalledTimes(1);
 
     // Second call with same text should use cache
+     
     const emb2 = await (searcher as any).getEmbedding("test text");
     expect(mockOpenAI.embeddings.create).toHaveBeenCalledTimes(1);
     expect(emb1).toEqual(emb2);
@@ -148,6 +162,7 @@ describe("MemorySearcher", () => {
 
     const searcher = createSearcher({ openaiApiKey: "test-key" });
 
+     
     const embedding = await (searcher as any).getEmbedding("test text");
 
     expect(embedding).toHaveLength(1536);
@@ -162,6 +177,7 @@ describe("MemorySearcher", () => {
     const searcher = createSearcher({ openaiApiKey: "test-key" });
 
     const longText = "a".repeat(10000);
+     
     await (searcher as any).getEmbedding(longText);
 
     expect(mockOpenAI.embeddings.create).toHaveBeenCalledWith(

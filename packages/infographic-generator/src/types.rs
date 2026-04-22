@@ -3,7 +3,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::colors::default_palette;
 
 /// Infographic template types
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -256,7 +255,7 @@ pub struct RenderResult {
 }
 
 /// Validation result
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationResult {
     pub valid: bool,
     pub errors: Vec<String>,
@@ -265,6 +264,7 @@ pub struct ValidationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::colors::default_palette;
 
     #[test]
     fn test_color_palette_serialization() {

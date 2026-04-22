@@ -7,8 +7,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": true,
     "paths": {
       "@aivo/shared-types": ["../shared-types/src"]
     }

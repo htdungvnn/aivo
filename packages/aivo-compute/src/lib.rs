@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
-use image::{GenericImageView, ImageOutputFormat};
+use image::GenericImageView;
+use serde::{Deserialize, Serialize};
 
 /// Fitness calculation module providing high-performance WASM functions
 #[wasm_bindgen]
@@ -673,13 +674,6 @@ impl StreakCalculator {
   /// Input: JSON object { "userId1": ["2024-01-01", "2024-01-02"], ... }
   #[wasm_bindgen(js_name = "batchCalculateStreaks")]
   pub fn batch_calculate_streaks(json_input: &str) -> String {
-    #[derive(serde::Deserialize)]
-    struct StreakInput {
-      #[serde(rename = "userId")]
-      user_id: String,
-      checkins: Vec<String>,
-    }
-
     let input_map: std::collections::HashMap<String, Vec<String>> = match serde_json::from_str(json_input) {
       Ok(map) => map,
       Err(_) => return String::from("{}"),
@@ -1359,12 +1353,6 @@ impl ImageProcessor {
 #[wasm_bindgen]
 pub struct AdaptivePlanner;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-struct MuscleGroupData {
-    muscle: String,
-    soreness: i32,
-}
-
 #[derive(serde::Serialize, serde::Deserialize)]
 struct PlanDeviationScoreData {
     #[serde(rename = "userId")]
@@ -1417,22 +1405,22 @@ struct RecoveryCurveData {
 /// Workout completion data for deviation calculation
 #[derive(serde::Deserialize)]
 struct WorkoutCompletionData {
-    workout_id: String,
+    _workout_id: String,
     routine_exercise_id: Option<String>,
     completed: bool,
     #[serde(rename = "completionRate")]
     completion_rate: f64,
     #[serde(rename = "actualSets")]
-    actual_sets: Option<i32>,
+    _actual_sets: Option<i32>,
     #[serde(rename = "actualReps")]
-    actual_reps: Option<i32>,
+    _actual_reps: Option<i32>,
     #[serde(rename = "actualWeight")]
-    actual_weight: Option<f64>,
+    _actual_weight: Option<f64>,
     #[serde(rename = "rpeReported")]
     rpe_reported: Option<f64>,
     #[serde(rename = "skippedReason")]
     skipped_reason: Option<String>,
-    notes: Option<String>,
+    _notes: Option<String>,
 }
 
 /// Planned routine exercise data
@@ -1440,35 +1428,35 @@ struct WorkoutCompletionData {
 struct RoutineExerciseData {
     id: String,
     #[serde(rename = "routineId")]
-    routine_id: String,
+    _routine_id: String,
     #[serde(rename = "dayOfWeek")]
-    day_of_week: i32,
+    _day_of_week: i32,
     #[serde(rename = "exerciseName")]
-    exercise_name: String,
+    _exercise_name: String,
     #[serde(rename = "exerciseType")]
-    exercise_type: String,
+    _exercise_type: String,
     #[serde(rename = "targetMuscleGroups")]
     target_muscle_groups: serde_json::Value,
-    sets: Option<i32>,
-    reps: Option<i32>,
-    weight: Option<f64>,
-    rpe: Option<f64>,
-    duration: Option<i32>,
+    _sets: Option<i32>,
+    _reps: Option<i32>,
+    _weight: Option<f64>,
+    _rpe: Option<f64>,
+    _duration: Option<i32>,
     #[serde(rename = "restTime")]
-    rest_time: Option<i32>,
+    _rest_time: Option<i32>,
     #[serde(rename = "orderIndex")]
-    order_index: i32,
-    notes: Option<String>,
+    _order_index: i32,
+    _notes: Option<String>,
 }
 
 /// Body insight data for recovery analysis
 #[derive(serde::Deserialize, Clone)]
 struct BodyInsightData {
-    id: String,
+    _id: String,
     #[serde(rename = "userId")]
-    user_id: String,
+    _user_id: String,
     timestamp: i64,
-    source: String,
+    _source: String,
     #[serde(rename = "recoveryScore")]
     recovery_score: f64,
     #[serde(rename = "fatigueLevel")]
@@ -1530,7 +1518,6 @@ impl AdaptivePlanner {
         }
 
         let mut completed_count = 0;
-        let mut total_completion_rate = 0.0;
         let mut total_rpe = 0.0;
         let mut rpe_count = 0;
         let mut missed_workouts = 0;
@@ -1551,8 +1538,6 @@ impl AdaptivePlanner {
                 // Accumulate fatigue from missed workouts
                 fatigue_accumulation += 0.1;
             }
-
-            total_completion_rate += completion.completion_rate;
 
             if let Some(rpe) = completion.rpe_reported {
                 total_rpe += rpe;
@@ -2197,7 +2182,7 @@ impl CorrelationAnalyzer {
     #[wasm_bindgen(js_name = "analyzeCorrelations")]
     pub fn analyze_correlations(
         data_json: &str, // JSON array of DailyBiometricData
-        period_days: usize,
+        _period_days: usize,
         anomaly_z_threshold: Option<f64>
     ) -> Result<String, JsValue> {
         let z_threshold = anomaly_z_threshold.unwrap_or(2.5);
@@ -2384,7 +2369,7 @@ impl CorrelationAnalyzer {
     fn generate_summary(
         aggregates: &PeriodAggregates,
         correlations: &[CorrelationResult],
-        anomalies: &[AnomalyPoint]
+        _anomalies: &[AnomalyPoint]
     ) -> (AnalysisSummary, Vec<String>) {
         let mut warnings = Vec::new();
         let mut risk_level = "low".to_string();
@@ -2686,7 +2671,6 @@ impl VoiceParser {
     /// Extract food items from text with nutritional estimates
     fn parse_food_entries(text: &str) -> Vec<ParsedFoodEntry> {
         let mut entries: Vec<ParsedFoodEntry> = Vec::new();
-        let mut has_multiple = false;
 
         // Meal type keywords
         let meal_types = [
@@ -2700,14 +2684,6 @@ impl VoiceParser {
         let detected_meal = meal_types.iter()
             .find(|(_, keywords)| keywords.iter().any(|kw| text.contains(kw)))
             .map(|(mt, _)| mt.to_string());
-
-        // Check for "had a bowl of pho" pattern
-        let portion_patterns = [
-            (r"(?:had|ate|consumed|enjoyed|tried)\s+(?:a\s+)?(?:bowl|cup|plate|serving|piece|slice)\s+of\s+(\w+)", "1"),
-            (r"(?:had|ate)\s+(\d+)\s+(\w+)", "numeric"),
-            (r"(?:had|ate)\s+(\w+)(?:\s+with\s+(\w+))?", "simple"),
-            (r"(\w+)\s+for\s+(breakfast|lunch|dinner|snack)", "meal_stated"),
-        ];
 
         // Collect all potential food mentions
         let food_keywords = ["ate", "had", "consumed", "enjoyed", "tried", "bowl", "cup", "plate"];
@@ -2775,7 +2751,7 @@ impl VoiceParser {
     }
 
     /// Parse portion size from text
-    fn parse_portion(text: &str, food_name: &str) -> (Option<String>, f64) {
+    fn parse_portion(text: &str, _food_name: &str) -> (Option<String>, f64) {
         let patterns = [
             (r"(\d+)\s*(?:g|grams?|gram)", 1.0), // "200g"
             (r"(\d+)\s*(?:oz|ounce|ounces)", 28.35), // "8oz"
@@ -2817,18 +2793,6 @@ impl VoiceParser {
         if !is_workout_context {
             return entries;
         }
-
-        // Look for exercise patterns: "3 sets of 10 reps bench press 100kg"
-        let exercise_patterns = [
-            // "3 sets of 10 reps bench press"
-            r"(\d+)\s*sets?\s+of\s+(\d+)\s*reps?\s+(.+?)(?:\s+(\d+)\s*(?:kg|lbs|lb)?)?",
-            // "bench press 3x10 100kg"
-            r"(.+?)\s+(\d+)[x×]\s*(\d+)(?:\s+(\d+)\s*(?:kg|lbs|lb)?)?",
-            // "did bench press 100kg for 3 sets of 10"
-            r"did\s+(.+?)\s+(\d+)\s*(?:kg|lbs|lb)?(?:\s+for\s+(\d+)\s*sets?\s+of\s+(\d+))?",
-            // "squat: 4x8 @ 140kg"
-            r"(.+?):\s*(\d+)[x×]\s*(\d+)(?:\s*@\s*(\d+))?",
-        ];
 
         // Split by common delimiters to find individual exercises
         // First split by commas and semicolons, then by multi-word separators
@@ -3164,7 +3128,6 @@ impl VoiceParser {
 // Predictive simulation engine for body composition forecasting
 // ==========================================
 
-use serde::{Deserialize, Serialize};
 
 /// Main entry point for generating metabolic twin projections
 #[wasm_bindgen]
@@ -3353,7 +3316,7 @@ fn calculate_trend_analysis(data: &[HistoricalPoint]) -> TrendAnalysis {
     let mut bf_series = Vec::new();
     let mut muscle_series = Vec::new();
 
-    for (i, point) in data.iter().enumerate() {
+    for (_, point) in data.iter().enumerate() {
         let days = (point.timestamp - first_timestamp) / 86400.0;
         weight_series.push((days, point.weight_kg));
         bf_series.push((days, point.body_fat_pct));
@@ -3397,8 +3360,6 @@ fn calculate_consistency(data: &[HistoricalPoint]) -> f64 {
     let std_dev = variance.sqrt();
 
     // Consistency decreases with higher standard deviation
-    // Target: ~7 day intervals (weekly measurements)
-    let ideal_interval = 7.0;
     let consistency = if mean_interval > 0.0 {
         (1.0 - (std_dev / mean_interval).min(1.0)) * 100.0
     } else {
@@ -3441,7 +3402,7 @@ fn generate_scenario(
     volatility: f64,
     scenario_modifier: f64,  // Multiplier for slope (e.g., 0.8 = 20% worse)
     time_horizon_days: i32,
-    initial_value: f64,
+    _initial_value: f64,
 ) -> Vec<Projection> {
     let mut projections = Vec::new();
 
@@ -3932,6 +3893,8 @@ pub use posture::PostureAnalyzer;
 
 #[cfg(test)]
 mod tests {
+  use wasm_bindgen_test::*;
+  use crate::FitnessCalculator;
 
   #[wasm_bindgen_test]
   fn test_calculate_bmi() {
@@ -4060,12 +4023,13 @@ mod tests {
   #[wasm_bindgen_test]
   fn test_calculate_health_score() {
     let score_json = FitnessCalculator::calculate_health_score(
-      Some(22.5),    // BMI
-      Some(15.0),    // body fat %
-      Some(35.0),    // muscle mass kg
-      Some("intermediate"),
-      Some(30.0),
-      true,
+      Some(22.5),      // bmi
+      Some(15.0),      // body_fat_percentage
+      None,            // weight_kg
+      Some(35.0),      // muscle_mass_kg
+      Some("intermediate".to_string()), // fitness_level
+      Some(30.0),      // age
+      true,            // is_male
     );
     assert!(score_json != wasm_bindgen::JsValue::NULL);
   }
@@ -4073,7 +4037,7 @@ mod tests {
   #[wasm_bindgen_test]
   fn test_calculate_health_score_all_params_none() {
     let score_json = FitnessCalculator::calculate_health_score(
-      None, None, None, None, None, true,
+      None, None, None, None, None, None, true,
     );
     assert!(score_json != wasm_bindgen::JsValue::NULL);
   }

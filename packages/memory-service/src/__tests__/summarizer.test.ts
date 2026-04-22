@@ -1,4 +1,4 @@
-import { extractFactsFromConversation, ConversationSummarizer } from "../summarizer.ts";
+import { ConversationSummarizer } from "../summarizer.ts";
 
 // Mock OpenAI
 const mockOpenAI = {

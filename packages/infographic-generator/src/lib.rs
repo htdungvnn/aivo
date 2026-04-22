@@ -177,12 +177,6 @@ struct SvgResponse {
     error: Option<String>,
 }
 
-/// Validation result
-#[derive(Serialize, Deserialize)]
-struct ValidationResult {
-    valid: bool,
-    errors: Vec<String>,
-}
 
 fn validate_infographic_data(data: &InfographicData) -> Vec<String> {
     let mut errors = Vec::new();
@@ -209,8 +203,9 @@ fn validate_infographic_data(data: &InfographicData) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wasm_bindgen_test::*;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_get_available_templates() {
         let templates = get_available_templates();
         let vec: Vec<String> = serde_wasm_bindgen::from_value(templates).unwrap();
@@ -218,7 +213,7 @@ mod tests {
         assert!(vec.contains(&"weekly_summary".to_string()));
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_default_config() {
         let config_json = default_config().unwrap();
         let config: InfographicConfig = serde_json::from_str(&config_json).unwrap();
@@ -226,7 +221,7 @@ mod tests {
         assert_eq!(config.layout, "square");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_validate_data_valid() {
         let data = InfographicData {
             id: "test".to_string(),
@@ -296,7 +291,7 @@ mod tests {
         assert!(validation.valid);
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_validate_data_missing_headline() {
         let mut data = create_test_data();
         data.story.headline = "".to_string();

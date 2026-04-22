@@ -15,7 +15,7 @@
   "scripts": {
     "build": "wasm-pack build --target bundler --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
-    "test": "wasm-pack test --node",
+    "test": "cargo test",
     "clean": "rm -rf pkg target"
   },
   "files": ["pkg"],

@@ -3,16 +3,16 @@
  * Uses OpenAI API with structured JSON response format
  */
 
+/* eslint-disable no-console */
+
 import { OpenAI } from "openai";
-import {
-  MemoryType,
+import type {
   ExtractedFact,
   FactExtractionResult,
   MemoryNode,
-  MemoryMetadata,
-  createMemoryNode,
-  isMemoryNode,
-  isHealthCritical,
+} from "./types.ts";
+import {
+  MemoryType,
 } from "./types.ts";
 
 /**
@@ -206,8 +206,8 @@ export class ConversationSummarizer {
       );
 
       return limitedFacts;
-    } catch (error: any) {
-      console.error("Fact extraction failed:", error.message);
+    } catch (error: unknown) {
+      console.error("Fact extraction failed:", error instanceof Error ? error.message : String(error));
       return [];
     }
   }
@@ -220,7 +220,7 @@ export class ConversationSummarizer {
     existingMemories: MemoryNode[]
   ): string {
     const conversationText = conversation
-      .map((msg, i) => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
+      .map((msg) => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
       .join("\n");
 
     // Get summary of existing memories to avoid duplication
@@ -314,7 +314,7 @@ Extract any new facts from this conversation that aren't already captured in the
       // Also check against other new facts
       if (!isDuplicate) {
         for (const otherFact of facts) {
-          if (otherFact === fact) continue;
+          if (otherFact === fact) {continue;}
           const otherEmbedding = factEmbeddings.get(otherFact);
           if (otherEmbedding) {
             const similarity = this.cosineSimilarity(factEmbedding, otherEmbedding);

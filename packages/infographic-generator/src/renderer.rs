@@ -1,7 +1,7 @@
 //! SVG rendering from templates and data
 
 use crate::types::*;
-use svg::{node::element::{Text, Group, Rectangle, Circle, Path, Image}, Document, node::{Node, Text as SvgText}};
+use svg::{node::element::{Text, Group, Rectangle, Circle, Path, Image}, Document, node::Text as SvgText};
 
 /// Render SVG from template and data
 pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<String, RenderError> {

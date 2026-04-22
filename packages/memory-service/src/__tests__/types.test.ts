@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   isHealthCritical,
   isValidEmbedding,
   isMemoryNode,
-  isMemoryQuery,
   formatMemoryContext,
   MemoryType,
   createMemoryNode,
@@ -52,8 +52,11 @@ describe("Types and Utilities", () => {
     });
 
     it("should reject non-array", () => {
+       
       expect(isValidEmbedding(null as any)).toBe(false);
+       
       expect(isValidEmbedding("string" as any)).toBe(false);
+       
       expect(isValidEmbedding({} as any)).toBe(false);
     });
 
@@ -82,8 +85,11 @@ describe("Types and Utilities", () => {
     });
 
     it("should reject incomplete objects", () => {
+       
       expect(isMemoryNode({} as any)).toBe(false);
+       
       expect(isMemoryNode({ id: "1" } as any)).toBe(false);
+       
       expect(isMemoryNode({ id: "1", userId: "u", type: "fact", content: "c" } as any)).toBe(false);
     });
 
@@ -106,7 +112,6 @@ describe("Types and Utilities", () => {
 
   describe("createMemoryNode", () => {
     it("should create node with defaults", () => {
-      const now = Date.now();
       const node = createMemoryNode(
         "user-123",
         MemoryType.FACT,

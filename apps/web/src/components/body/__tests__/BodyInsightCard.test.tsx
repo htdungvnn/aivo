@@ -518,10 +518,5 @@ describe('BodyInsightCard Component', () => {
       // Should call fetch again after remount
       expect(fetch).toHaveBeenCalledTimes(callCount + 1);
     });
-
-      await waitFor(() => {
-        expect(fetch).toHaveBeenCalledTimes(6); // Called again for new user
-      });
-    });
   });
 });

@@ -3,8 +3,11 @@
  * Supports hybrid scoring: semantic similarity + recency + confidence
  */
 
+/* eslint-disable no-console */
+
 import { OpenAI } from "openai";
-import { MemoryNode, MemoryQuery, MemoryType, isMemoryQuery, isHealthCritical } from "./types.ts";
+import type { MemoryNode, MemoryQuery } from "./types.ts";
+import { isMemoryQuery, isHealthCritical, MemoryType } from "./types.ts";
 
 /**
  * Configuration for the vector search service

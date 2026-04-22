@@ -3,7 +3,6 @@
 // ============================================
 
 use wasm_bindgen::prelude::*;
-use serde::Serialize;
 use std::collections::HashMap;
 use js_sys::Date;
 
@@ -97,30 +96,30 @@ struct IdealSquatRanges {
     hip_angle_min: f64, hip_angle_max: f64,
     knee_angle_min: f64, knee_angle_max: f64,
     back_angle_max: f64,
-    knee_valgus_tolerance: f64,
+    _knee_valgus_tolerance: f64,
 }
 
 #[derive(Clone, Copy)]
 struct IdealDeadliftRanges {
     hip_angle_min: f64, hip_angle_max: f64,
-    knee_angle_min: f64, knee_angle_max: f64,
+    _knee_angle_min: f64, _knee_angle_max: f64,
     back_angle_max: f64,
-    shoulder_angle_min: f64,
+    _shoulder_angle_min: f64,
 }
 
 #[derive(Clone, Copy)]
 struct IdealPressRanges {
-    shoulder_angle_min: f64, shoulder_angle_max: f64,
-    elbow_angle_min: f64, elbow_angle_max: f64,
-    back_arch_max: f64,
+    _shoulder_angle_min: f64, _shoulder_angle_max: f64,
+    _elbow_angle_min: f64, _elbow_angle_max: f64,
+    _back_arch_max: f64,
 }
 
 #[derive(Clone, Copy)]
 struct IdealLungeRanges {
-    front_knee_angle_min: f64, front_knee_angle_max: f64,
-    back_knee_angle_min: f64, back_knee_angle_max: f64,
+    _front_knee_angle_min: f64, _front_knee_angle_max: f64,
+    _back_knee_angle_min: f64, _back_knee_angle_max: f64,
     torso_angle_max: f64,
-    hip_alignment_tolerance: f64,
+    _hip_alignment_tolerance: f64,
 }
 
 /// Wrapper to hold all exercise ranges
@@ -128,32 +127,10 @@ struct IdealLungeRanges {
 struct IdealAngleRanges {
     squat: IdealSquatRanges,
     deadlift: IdealDeadliftRanges,
-    bench_press: IdealPressRanges,
-    overhead_press: IdealPressRanges,
+    _bench_press: IdealPressRanges,
+    _overhead_press: IdealPressRanges,
     lunge: IdealLungeRanges,
 }
-
-impl IdealAngleRanges {
-    fn get(&self, exercise_type: &str) -> &dyn ExerciseRanges {
-        match exercise_type {
-            "squat" => &self.squat,
-            "deadlift" => &self.deadlift,
-            "bench_press" => &self.bench_press,
-            "overhead_press" => &self.overhead_press,
-            "lunge" => &self.lunge,
-            _ => &self.squat,
-        }
-    }
-}
-
-trait ExerciseRanges {
-    // Common trait for accessing ranges - not used directly but provides type safety
-}
-
-impl ExerciseRanges for IdealSquatRanges {}
-impl ExerciseRanges for IdealDeadliftRanges {}
-impl ExerciseRanges for IdealPressRanges {}
-impl ExerciseRanges for IdealLungeRanges {}
 
 impl IdealAngleRanges {
     fn static_ranges() -> &'static IdealAngleRanges {
@@ -162,29 +139,29 @@ impl IdealAngleRanges {
                 hip_angle_min: 75.0, hip_angle_max: 95.0,
                 knee_angle_min: 80.0, knee_angle_max: 100.0,
                 back_angle_max: 25.0,
-                knee_valgus_tolerance: 10.0,
+                _knee_valgus_tolerance: 10.0,
             },
             deadlift: IdealDeadliftRanges {
                 hip_angle_min: 60.0, hip_angle_max: 80.0,
-                knee_angle_min: 100.0, knee_angle_max: 130.0,
+                _knee_angle_min: 100.0, _knee_angle_max: 130.0,
                 back_angle_max: 20.0,
-                shoulder_angle_min: 5.0,
+                _shoulder_angle_min: 5.0,
             },
-            bench_press: IdealPressRanges {
-                shoulder_angle_min: 30.0, shoulder_angle_max: 60.0,
-                elbow_angle_min: 70.0, elbow_angle_max: 85.0,
-                back_arch_max: 45.0,
+            _bench_press: IdealPressRanges {
+                _shoulder_angle_min: 30.0, _shoulder_angle_max: 60.0,
+                _elbow_angle_min: 70.0, _elbow_angle_max: 85.0,
+                _back_arch_max: 45.0,
             },
-            overhead_press: IdealPressRanges {
-                shoulder_angle_min: 150.0, shoulder_angle_max: 180.0,
-                elbow_angle_min: 160.0, elbow_angle_max: 180.0,
-                back_arch_max: 20.0,
+            _overhead_press: IdealPressRanges {
+                _shoulder_angle_min: 150.0, _shoulder_angle_max: 180.0,
+                _elbow_angle_min: 160.0, _elbow_angle_max: 180.0,
+                _back_arch_max: 20.0,
             },
             lunge: IdealLungeRanges {
-                front_knee_angle_min: 85.0, front_knee_angle_max: 100.0,
-                back_knee_angle_min: 70.0, back_knee_angle_max: 90.0,
+                _front_knee_angle_min: 85.0, _front_knee_angle_max: 100.0,
+                _back_knee_angle_min: 70.0, _back_knee_angle_max: 90.0,
                 torso_angle_max: 15.0,
-                hip_alignment_tolerance: 5.0,
+                _hip_alignment_tolerance: 5.0,
             },
         };
         &RANGES
@@ -198,7 +175,7 @@ impl PostureAnalyzer {
     /// Returns JSON string of PostureAnalysisResult
     #[wasm_bindgen(js_name = "analyzeSkeleton")]
     pub fn analyze_skeleton(skeleton_json: &str) -> Result<String, JsValue> {
-        let start_time = js_sys::Date::now();
+        let start_time = Date::now();
 
         let skeleton: SkeletonData = serde_json::from_str(skeleton_json)
             .map_err(|e| JsValue::from_str(&format!("Invalid skeleton data: {}", e)))?;
@@ -246,7 +223,7 @@ impl PostureAnalyzer {
         // Generate exercise-specific notes
         let notes = Self::generate_exercise_notes(&skeleton.exercise_type, &all_deviations);
 
-        let processing_time = js_sys::Date::now() - start_time;
+        let processing_time = Date::now() - start_time;
 
         let result = PostureAnalysisResult {
             overall_score,

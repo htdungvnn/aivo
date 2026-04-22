@@ -3,7 +3,8 @@
  * Handles token budgeting, priority ordering, and truncation
  */
 
-import { MemoryNode, MemoryContext, TokenBudget, DEFAULT_TOKEN_BUDGET, isHealthCritical } from "./types.ts";
+import type { MemoryNode, MemoryContext, TokenBudget } from "./types.ts";
+import { DEFAULT_TOKEN_BUDGET, isHealthCritical } from "./types.ts";
 
 /**
  * Configuration for context building
@@ -95,7 +96,7 @@ export class ContextBuilder {
     }
 
     // Sort each group by confidence (descending)
-    for (const [_, group] of groups) {
+    for (const group of groups.values()) {
       group.sort((a, b) => b.metadata.confidence - a.metadata.confidence);
     }
 
@@ -158,12 +159,12 @@ export class ContextBuilder {
 
     for (const type of typeOrder) {
       const group = grouped.get(type);
-      if (!group) continue;
+      if (!group) {continue;}
 
       // Skip fact type since we already handled critical ones
       if (type === "fact") {
         const nonCritical = group.filter((m) => !isHealthCritical(m.content));
-        if (nonCritical.length === 0) continue;
+        if (nonCritical.length === 0) {continue;}
         const reserveKey = getReserveKey(type);
         const groupText = this.formatGroup(typeLabels[type], nonCritical, budget.reserves[reserveKey]);
         if (groupText) {

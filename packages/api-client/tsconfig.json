@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "baseUrl": "./",
     "paths": {
       "@aivo/shared-types": ["../shared-types/src"]
     }

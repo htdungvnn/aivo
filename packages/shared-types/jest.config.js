@@ -1,4 +1,4 @@
-import base from '@aivo/jest-config/base.js';
+import base from '@aivo/jest-config';
 
 export default {
   ...base,

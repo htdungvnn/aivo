@@ -1,6 +1,7 @@
 import { estimateTokens, truncateToTokenBudget } from "../compression.ts";
 import { createContextBuilder } from "../compression.ts";
-import { MemoryNode, MemoryType } from "../types.ts";
+import type { MemoryNode } from "../types.ts";
+import { MemoryType } from "../types.ts";
 
 describe("Token Utilities", () => {
   describe("estimateTokens", () => {

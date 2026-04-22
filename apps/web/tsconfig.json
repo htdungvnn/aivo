@@ -19,7 +19,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
@@ -34,7 +33,7 @@
     "allowJs": true,
     "incremental": true,
     "esModuleInterop": true,
-    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
     "plugins": [
       {
         "name": "next"

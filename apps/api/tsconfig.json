@@ -7,7 +7,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
@@ -18,7 +17,7 @@
       "@aivo/optimizer": ["../../packages/optimizer/pkg"]
     },
     "types": ["@cloudflare/workers-types"],
-    "ignoreDeprecations": "6.0",
+    "baseUrl": "./",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },

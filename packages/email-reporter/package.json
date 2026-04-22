@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts --fix"
   },
   "dependencies": {
     "@aivo/shared-types": "workspace:*",
@@ -17,7 +17,9 @@
     "resend": "^4.1.0"
   },
   "devDependencies": {
+    "@aivo/eslint-config": "workspace:*",
     "@types/node": "^22.13.5",
+    "eslint": "^10.2.1",
     "typescript": "^6.0.3"
   }
 }
