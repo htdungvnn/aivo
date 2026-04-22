@@ -17,12 +17,14 @@ import {
   FileSpreadsheet,
   FileJson,
   FileText,
+  Camera,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BodyInsightCard } from "@/components/body/BodyInsightCard";
+import { BodyHeatmapSection } from "@/components/body/BodyHeatmapSection";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
 
 const fadeInUp = {
@@ -320,6 +322,53 @@ export default function DashboardPage() {
                 {exportFormat === "xlsx" && " Image links will be clickable in the spreadsheet."}
                 Leave date range empty to export all data.
               </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Body Heatmap Section */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="mb-8"
+        >
+          <Card className="bg-gradient-to-br from-purple-900/30 via-slate-900/60 to-pink-900/30 border-purple-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Activity className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Body Composition Heatmap</h2>
+                    <p className="text-sm text-gray-400">AI-powered analysis from your body photos</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="body-photo-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      // TODO: Implement upload
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-purple-500/20 border-purple-500/30 text-purple-300 hover:bg-purple-500/30"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Upload Photo
+                  </Button>
+                </div>
+              </div>
+
+              <BodyHeatmapSection />
             </CardContent>
           </Card>
         </motion.div>

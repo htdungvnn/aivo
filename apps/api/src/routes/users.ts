@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import { z } from "zod";
-import { createDrizzleInstance } from "@aivo/db";
+import { eq } from "drizzle-orm";
+import { createDrizzleInstance, users } from "@aivo/db";
+import type { D1Database } from "drizzle-orm/d1";
 
 export interface Env {
   DB: D1Database;
@@ -65,7 +66,7 @@ export const UsersRouter = () => {
     const id = c.req.param("id");
     const drizzle = createDrizzleInstance(c.env.DB);
     const user = await drizzle.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, id),
+      where: eq(users.id, id),
     });
     if (!user) {
       return c.json({ error: "User not found" }, 404);

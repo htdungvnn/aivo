@@ -12,7 +12,7 @@ export default function ProfileScreen() {
   const [showExportOptions, setShowExportOptions] = useState(false);
 
   const handleExport = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     setIsExporting(true);
     try {

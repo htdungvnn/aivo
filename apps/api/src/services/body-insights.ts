@@ -1,5 +1,5 @@
-// Import removed to avoid type conflicts - using any for R2Bucket
-import { FitnessCalculator } from "@aivo/compute";
+// Import removed to avoid type conflicts - using unknown for R2Bucket
+// import { FitnessCalculator } from "@aivo/compute";
 
 export interface BodyMetricResponse {
   id: string;
@@ -85,6 +85,7 @@ export async function getCachedData<T>(
       return { data: cached, hit: true };
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Cache get error:", error);
   }
   return { data: null, hit: false };
@@ -99,6 +100,7 @@ export async function setCachedData(
   try {
     await kv.put(key, JSON.stringify(data), { expirationTtl: ttl });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Cache set error:", error);
   }
 }
@@ -107,8 +109,10 @@ export async function invalidateBodyCache(kv: KVNamespace, userId: string): Prom
   try {
     // In production, use a more sophisticated cache invalidation strategy
     // For now, we'll rely on TTL
+    // eslint-disable-next-line no-console
     console.log(`Cache invalidation requested for user ${userId}`);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Cache invalidation error:", error);
   }
 }
@@ -134,7 +138,7 @@ export function validateImage(buffer: Buffer): { valid: boolean; error?: string 
 }
 
 export async function uploadImage(
-  bucket: any,
+  bucket: unknown,
   options: {
     userId: string;
     image: Buffer;
@@ -145,7 +149,10 @@ export async function uploadImage(
 ): Promise<{ url: string; key: string }> {
   const key = `body-images/${options.userId}/${Date.now()}-${options.filename}`;
 
-  await bucket.put(key, options.image, {
+  // Type assertion for R2 bucket
+  const r2Bucket = bucket as { put: (key: string, body: Buffer, options: { httpMetadata: { contentType: string; cacheControl: string }; customMetadata: Record<string, string> }) => Promise<void>; name?: string };
+
+  await r2Bucket.put(key, options.image, {
     httpMetadata: {
       contentType: options.contentType,
       cacheControl: "public, max-age=31536000", // 1 year
@@ -153,7 +160,7 @@ export async function uploadImage(
     customMetadata: options.metadata,
   });
 
-  const url = `https://${(bucket as any).name || "bucket"}.r2.cloudflarestorage.com/${key}`;
+  const url = `https://${r2Bucket.name || "bucket"}.r2.cloudflarestorage.com/${key}`;
 
   return { url, key };
 }
@@ -219,6 +226,7 @@ export async function analyzeImageWithAI(
       confidence: 0.85,
     };
   } catch {
+    // eslint-disable-next-line no-console
     console.error("Failed to parse AI response:", content);
     throw new Error("Invalid analysis response from AI");
   }

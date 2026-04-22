@@ -1,9 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { createDrizzleInstance, workouts } from "@aivo/db";
 import { eq, desc } from "drizzle-orm";
-import type { D1Database } from "@cloudflare/d1";
+import type { D1Database } from "drizzle-orm/d1";
 
 export interface Env {
   DB: D1Database;
@@ -14,18 +13,7 @@ const WorkoutCreateSchema = z.object({
   type: z.enum(["strength", "cardio", "hiit", "yoga", "running", "cycling"]),
   duration: z.number().positive(),
   caloriesBurned: z.number().nonnegative().optional(),
-  metrics: z.record(z.number()).optional(),
-});
-
-const WorkoutResponse = z.object({
-  id: z.string(),
-  userId: z.string(),
-  type: z.string(),
-  duration: z.number(),
-  caloriesBurned: z.number().optional(),
-  metrics: z.record(z.number()).optional(),
-  createdAt: z.string(),
-  completedAt: z.string().nullable(),
+  metrics: z.record(z.string(), z.number()).optional(),
 });
 
 export const WorkoutsRouter = () => {
@@ -59,7 +47,7 @@ export const WorkoutsRouter = () => {
     const userId = c.req.query("userId");
     const drizzle = createDrizzleInstance(c.env.DB);
     const queryOptions: Parameters<typeof drizzle.query.workouts.findMany>[0] = {
-      orderBy: (t, { desc }) => desc(t.createdAt),
+      orderBy: desc(workouts.createdAt),
     };
     if (userId) {
       queryOptions.where = eq(workouts.userId, userId);
@@ -102,6 +90,7 @@ export const WorkoutsRouter = () => {
         id: crypto.randomUUID(),
         createdAt: Date.now(),
         completedAt: null,
+        metrics: validated.metrics ? JSON.stringify(validated.metrics) : null,
       })
       .returning();
 

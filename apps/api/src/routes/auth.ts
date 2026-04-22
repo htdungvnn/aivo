@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { OpenAPIHono } from "@hono/zod-openapi";
+import type { D1Database } from "drizzle-orm/d1";
 
 export interface AuthEnv {
   AUTH_SECRET: string;
@@ -64,7 +64,7 @@ export const AuthRouter = () => {
    */
   router.post("/google", async (c) => {
     const body = await c.req.json();
-    const validated = GoogleAuthRequest.parse(body);
+    GoogleAuthRequest.parse(body);
 
     // TODO: Implement actual Google token verification
     // For now, return dummy response
@@ -113,7 +113,7 @@ export const AuthRouter = () => {
    */
   router.post("/facebook", async (c) => {
     const body = await c.req.json();
-    const validated = FacebookAuthRequest.parse(body);
+    FacebookAuthRequest.parse(body);
 
     // TODO: Implement actual Facebook token verification
     return c.json(

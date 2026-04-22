@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "build": "tsc",
     "type-check": "tsc --noEmit",
     "test": "tsc --noEmit && echo 'Type check passed - shared types are valid'"
   },

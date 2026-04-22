@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Activity, Dumbbell, MessageCircle, User, BarChart2 } from "lucide-react-native";
+import { Activity, Dumbbell, MessageCircle, User, BarChart2, Video } from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -29,6 +29,13 @@ export default function TabLayout() {
         options={{
           title: "Workouts",
           tabBarIcon: ({ color, size }) => <Dumbbell size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="form-analysis"
+        options={{
+          title: "Form",
+          tabBarIcon: ({ color, size }) => <Video size={size} color={color} />,
         }}
       />
       <Tabs.Screen

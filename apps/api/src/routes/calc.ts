@@ -2,9 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { FitnessCalculator } from "@aivo/compute";
 
-export interface Env {
-  // No special bindings needed for calculator
-}
+export type Env = Record<string, unknown>;
 
 export const CalcRouter = () => {
   const router = new Hono<{ Bindings: Env }>();

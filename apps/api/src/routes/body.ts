@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { createDrizzleInstance } from "@aivo/db";
 import { validateBodyMetrics } from "../services/validation";
-import {
+import type {
   BodyMetricResponse,
-  HealthScoreResponse,
+  HealthScoreResponse} from "../services/body-insights";
+import {
   getCachedData,
   setCachedData,
   invalidateBodyCache,
@@ -17,6 +17,8 @@ import {
   validateImage,
 } from "../services/body-insights";
 import { schema } from "@aivo/db/schema";
+import type { D1Database } from "drizzle-orm/d1";
+import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -395,14 +397,13 @@ export const BodyRouter = () => {
 
       const heatmaps = await drizzle.query.bodyHeatmaps.findMany({
         where: (bh, { eq }) => eq(bh.userId, userId),
-        orderBy: (bh, { desc }) => desc(bh.timestamp),
+        orderBy: (bh, { desc }) => desc(bh.createdAt),
         limit,
       });
 
       const parsed = heatmaps.map((h) => ({
         ...h,
         vectorData: h.vectorData ? JSON.parse(h.vectorData) : null,
-        metadata: h.metadata ? JSON.parse(h.metadata) : null,
       }));
 
       await setCachedData(
@@ -457,7 +458,7 @@ export const BodyRouter = () => {
 
       const svgOverlay = generateHeatmapSVG(vectorData);
       const svgBuffer = Buffer.from(svgOverlay);
-      const { url } = await uploadImage(c.env.R2_BUCKET, {
+      await uploadImage(c.env.R2_BUCKET, {
         userId,
         image: svgBuffer,
         filename: `heatmap-${analysisId}.svg`,
@@ -468,19 +469,19 @@ export const BodyRouter = () => {
         },
       });
 
+      // Insert heatmap - requires photoId, so we need to create a bodyPhotos entry first
+      // For now, we'll use analysisId as a placeholder photoId (needs validation)
+      const now = Math.floor(Date.now() / 1000);
       const [heatmap] = await drizzle
         .insert(schema.bodyHeatmaps)
         .values({
           id: crypto.randomUUID(),
           userId,
-          timestamp: Date.now(),
-          imageUrl: url,
+          photoId: analysisId, // TODO: Properly link to bodyPhotos
+          regions: JSON.stringify(vectorData), // vectorData as regions
+          metrics: JSON.stringify({ generatedAt: now }), // minimal metrics
           vectorData: JSON.stringify(vectorData),
-          metadata: JSON.stringify({
-            analysisId,
-            generatedAt: new Date().toISOString(),
-            pointCount: vectorData.length,
-          }),
+          createdAt: now,
         })
         .returning();
 
@@ -491,7 +492,8 @@ export const BodyRouter = () => {
         data: {
           ...heatmap,
           vectorData,
-          metadata: heatmap.metadata ? { ...JSON.parse(heatmap.metadata), vectorData } : { vectorData },
+          regions: vectorData,
+          metrics: heatmap.metrics ? JSON.parse(heatmap.metrics) : null,
         },
       });
     } catch (error) {

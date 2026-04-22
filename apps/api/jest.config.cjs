@@ -11,6 +11,6 @@ module.exports = {
     }]
   },
   moduleNameMapper: {
-    '^@aivo/(.*)$': '<rootDir>/../$1/src'
+    '^@aivo/(.*)$': '<rootDir>/../../packages/$1/src'
   }
 };

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, unique, } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, unique, relation, } from "drizzle-orm/sqlite-core";
 // ============================================
 // AIVO DATABASE SCHEMA for Cloudflare D1 (SQLite)
 // ============================================
@@ -99,11 +99,110 @@ export const workoutExercises = sqliteTable("workout_exercises", {
     order: integer("order"),
     rpe: real("rpe"),
 });
+
+// ============================================
+// AI ADAPTIVE ROUTINE PLANNER SCHEMA
+// ============================================
+
+// Workout routines table - weekly workout plans
+export const workoutRoutines = sqliteTable("workout_routines", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    weekStartDate: text("week_start_date"), // ISO date YYYY-MM-DD
+    isActive: integer("is_active").default(1),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+});
+
+// Routine exercises table - planned exercises for specific days
+export const routineExercises = sqliteTable("routine_exercises", {
+    id: text("id").primaryKey(),
+    routineId: text("routine_id").notNull().references(() => workoutRoutines.id, { onDelete: "cascade" }),
+    dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
+    exerciseName: text("exercise_name").notNull(),
+    exerciseType: text("exercise_type"), // "strength", "cardio", "mobility", "recovery"
+    targetMuscleGroups: text("target_muscle_groups"), // JSON array
+    sets: integer("sets"),
+    reps: integer("reps"),
+    weight: real("weight"),
+    rpe: real("rpe"), // Rate of Perceived Exertion 1-10
+    duration: integer("duration"), // seconds for cardio/recovery
+    restTime: integer("rest_time"), // seconds between sets
+    orderIndex: integer("order_index"),
+    notes: text("notes"),
+});
+
+// Body insights table - recovery and soreness reports
+export const bodyInsights = sqliteTable("body_insights", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    timestamp: integer("timestamp").notNull(),
+    source: text("source"), // "ai_analysis", "user_report", "device"
+    recoveryScore: real("recovery_score"), // 0-100
+    fatigueLevel: integer("fatigue_level"), // 1-10
+    muscleSoreness: text("muscle_soreness"), // JSON: { "chest": 3, "legs": 8, ... }
+    sleepQuality: integer("sleep_quality"), // 1-10
+    sleepHours: real("sleep_hours"),
+    stressLevel: integer("stress_level"), // 1-10
+    hydrationLevel: integer("hydration_level"), // 1-10
+    notes: text("notes"),
+    rawData: text("raw_data"), // Original analysis data
+});
+
+// User goals table - structured fitness goals
+export const userGoals = sqliteTable("user_goals", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "strength", "hypertrophy", "endurance", "weight_loss", "mobility"
+    targetMetric: text("target_metric"), // "bench_press", "body_weight", "5k_time", etc.
+    currentValue: real("current_value"),
+    targetValue: real("target_value"),
+    deadline: text("deadline"), // ISO date
+    priority: integer("priority").default(1), // 1=high, 2=medium, 3=low
+    status: text("status").default("active"), // "active", "completed", "paused"
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+});
+
+// Plan deviations table - tracks adjustments made by AI
+export const planDeviations = sqliteTable("plan_deviations", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    originalRoutineId: text("original_routine_id").references(() => workoutRoutines.id),
+    adjustedRoutineId: text("adjusted_routine_id").references(() => workoutRoutines.id),
+    deviationScore: real("deviation_score"), // 0-100
+    reason: text("reason"), // "missed_workout", "muscle_soreness", "fatigue", "injury"
+    adjustmentsJson: text("adjustments_json"), // Detailed changes made
+    createdAt: integer("created_at").notNull(),
+});
+
+// Workout completion feedback table - tracks what was actually done vs planned
+export const workoutCompletions = sqliteTable("workout_completions", {
+    id: text("id").primaryKey(),
+    workoutId: text("workout_id").notNull().references(() => workouts.id, { onDelete: "cascade" }),
+    routineExerciseId: text("routine_exercise_id").references(() => routineExercises.id),
+    completed: integer("completed").default(1),
+    completionRate: real("completion_rate"), // 0-1 (sets/reps achieved vs planned)
+    actualSets: integer("actual_sets"),
+    actualReps: integer("actual_reps"),
+    actualWeight: real("actual_weight"),
+    rpeReported: real("rpe_reported"),
+    skippedReason: text("skipped_reason"), // "soreness", "fatigue", "time", "injury"
+    notes: text("notes"),
+    createdAt: integer("created_at").notNull(),
+}, (table) => [
+    index('idx_workout_id').on(table.workoutId),
+    index('idx_routine_exercise').on(table.routineExerciseId),
+]);
+
 // Daily schedules table
 export const dailySchedules = sqliteTable("daily_schedules", {
     id: text("id").primaryKey(),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     date: text("date"),
+    routineId: text("routine_id").references(() => workoutRoutines.id),
     workoutId: text("workout_id").references(() => workouts.id),
     recoveryTasks: text("recovery_tasks"),
     nutritionGoals: text("nutrition_goals"),
@@ -348,6 +447,12 @@ export const schema = {
     visionAnalyses,
     workouts,
     workoutExercises,
+    workoutRoutines,
+    routineExercises,
+    bodyInsights,
+    userGoals,
+    planDeviations,
+    workoutCompletions,
     dailySchedules,
     workoutTemplates,
     conversations,

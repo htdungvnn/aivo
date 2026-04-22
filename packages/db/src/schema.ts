@@ -5,8 +5,7 @@ import {
   real,
   primaryKey,
   index,
-  unique,
-  relation,
+  unique
 } from "drizzle-orm/sqlite-core";
 
 // ============================================
@@ -32,6 +31,7 @@ export const users = sqliteTable("users", {
   emailVerified: integer("email_verified").default(0),
   onboardingCompleted: integer("onboarding_completed").default(0),
   receiveMonthlyReports: integer("receive_monthly_reports").default(1),
+  expoPushToken: text("expo_push_token"), // For push notifications
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -48,6 +48,21 @@ export const sessions = sqliteTable("sessions", {
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
+
+// Body photos table - stores uploaded user body photos
+export const bodyPhotos = sqliteTable("body_photos", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  r2Url: text("r2_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  uploadDate: integer("upload_date").notNull().default(0),
+  analysisStatus: text("analysis_status", { length: 20 }).notNull().default("pending"), // pending, processing, completed, failed
+  poseDetected: integer("pose_detected").default(0), // 0=no, 1=yes
+  metadata: text("metadata"), // JSON: width, height, file size, etc.
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_analysis_status').on(table.analysisStatus),
+]);
 
 // Body metrics table
 export const bodyMetrics = sqliteTable("body_metrics", {
@@ -67,15 +82,31 @@ export const bodyMetrics = sqliteTable("body_metrics", {
   notes: text("notes"),
 });
 
-// Body heatmaps table
+// Body heatmaps table - stores AI-analyzed heatmap regions
 export const bodyHeatmaps = sqliteTable("body_heatmaps", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  timestamp: integer("timestamp").notNull(),
-  imageUrl: text("image_url"),
-  vectorData: text("vector_data"),
-  metadata: text("metadata"),
-});
+  photoId: text("photo_id").notNull().references(() => bodyPhotos.id, { onDelete: "cascade" }),
+  regions: text("regions").notNull(), // JSON array: [{ zoneId, intensity, color, confidence }]
+  metrics: text("metrics"), // JSON: { upperBodyScore, coreScore, lowerBodyScore, overallScore }
+  vectorData: text("vector_data"), // JSON array of embedding vector
+  createdAt: integer("created_at").notNull().default(0),
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_photo_id').on(table.photoId),
+]);
+
+// Body heatmap history table - tracks progress snapshots (optional summary table)
+export const bodyHeatmapHistory = sqliteTable("body_heatmap_history", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  heatmapId: text("heatmap_id").notNull().references(() => bodyHeatmaps.id, { onDelete: "cascade" }),
+  snapshotDate: text("snapshot_date").notNull(), // ISO date YYYY-MM-DD
+  comparisonNote: text("comparison_note"), // AI-generated progress summary
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_snapshot_date').on(table.snapshotDate),
+]);
 
 // Vision analyses table
 export const visionAnalyses = sqliteTable("vision_analyses", {
@@ -87,6 +118,75 @@ export const visionAnalyses = sqliteTable("vision_analyses", {
   confidence: real("confidence"),
   createdAt: integer("created_at").notNull(),
 });
+
+// ============================================
+// NUTRITION & FOOD LOGGING SCHEMA
+// ============================================
+
+// Food items database - curated nutritional information
+export const foodItems = sqliteTable("food_items", {
+  id: text("id").primaryKey(),
+  name: text("name", { length: 255 }).notNull(),
+  brand: text("brand", { length: 255 }),
+  servingSize: real("serving_size"), // grams per serving
+  servingUnit: text("serving_unit"), // "g", "oz", "cup", "tbsp", "tsp", "piece"
+  calories: real("calories").notNull(),
+  protein_g: real("protein_g").notNull(),
+  carbs_g: real("carbs_g").notNull(),
+  fat_g: real("fat_g").notNull(),
+  fiber_g: real("fiber_g"),
+  sugar_g: real("sugar_g"),
+  sodium_mg: real("sodium_mg"),
+  isVerified: integer("is_verified").default(1), // 1=verified, 0=user submitted
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_name').on(table.name),
+  unique('unique_name_brand').on(table.name, table.brand),
+]);
+
+// Food logs - user's daily food entries
+export const foodLogs = sqliteTable("food_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  mealType: text("meal_type"), // "breakfast", "lunch", "dinner", "snack", or custom
+  foodItemId: text("food_item_id").references(() => foodItems.id),
+  customName: text("custom_name"),
+  imageUrl: text("image_url"),
+  estimatedPortionG: real("estimated_portion_g"),
+  confidence: real("confidence"), // AI confidence 0-1
+  calories: real("calories").notNull(),
+  protein_g: real("protein_g").notNull(),
+  carbs_g: real("carbs_g").notNull(),
+  fat_g: real("fat_g").notNull(),
+  fiber_g: real("fiber_g"),
+  sugar_g: real("sugar_g"),
+  loggedAt: integer("logged_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_user_id').on(table.userId),
+  index('idx_logged_at').on(table.loggedAt),
+  index('idx_user_meal').on(table.userId, table.mealType),
+]);
+
+// Daily nutrition summaries - materialized aggregates for fast queries
+export const dailyNutritionSummaries = sqliteTable("daily_nutrition_summaries", {
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // ISO date YYYY-MM-DD
+  totalCalories: real("total_calories").default(0),
+  totalProtein_g: real("total_protein_g").default(0),
+  totalCarbs_g: real("total_carbs_g").default(0),
+  totalFat_g: real("total_fat_g").default(0),
+  totalFiber_g: real("total_fiber_g"),
+  totalSugar_g: real("total_sugar_g"),
+  foodLogCount: integer("food_log_count").default(0),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_user_date').on(table.userId, table.date),
+]);
+// Primary key is composite (userId, date)
+// SQLite doesn't support composite PK via drizzle primaryKey() directly
+// We'll add it via migration
 
 // Workouts table
 export const workouts = sqliteTable("workouts", {
@@ -119,11 +219,109 @@ export const workoutExercises = sqliteTable("workout_exercises", {
   rpe: real("rpe"),
 });
 
+// ============================================
+// AI ADAPTIVE ROUTINE PLANNER SCHEMA
+// ============================================
+
+// Workout routines table - weekly workout plans
+export const workoutRoutines = sqliteTable("workout_routines", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  weekStartDate: text("week_start_date"), // ISO date YYYY-MM-DD
+  isActive: integer("is_active").default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+// Routine exercises table - planned exercises for specific days
+export const routineExercises = sqliteTable("routine_exercises", {
+  id: text("id").primaryKey(),
+  routineId: text("routine_id").notNull().references(() => workoutRoutines.id, { onDelete: "cascade" }),
+  dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
+  exerciseName: text("exercise_name").notNull(),
+  exerciseType: text("exercise_type"), // "strength", "cardio", "mobility", "recovery"
+  targetMuscleGroups: text("target_muscle_groups"), // JSON array
+  sets: integer("sets"),
+  reps: integer("reps"),
+  weight: real("weight"),
+  rpe: real("rpe"), // Rate of Perceived Exertion 1-10
+  duration: integer("duration"), // seconds for cardio/recovery
+  restTime: integer("rest_time"), // seconds between sets
+  orderIndex: integer("order_index"),
+  notes: text("notes"),
+});
+
+// Body insights table - recovery and soreness reports
+export const bodyInsights = sqliteTable("body_insights", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  timestamp: integer("timestamp").notNull(),
+  source: text("source"), // "ai_analysis", "user_report", "device"
+  recoveryScore: real("recovery_score"), // 0-100
+  fatigueLevel: integer("fatigue_level"), // 1-10
+  muscleSoreness: text("muscle_soreness"), // JSON: { "chest": 3, "legs": 8, ... }
+  sleepQuality: integer("sleep_quality"), // 1-10
+  sleepHours: real("sleep_hours"),
+  stressLevel: integer("stress_level"), // 1-10
+  hydrationLevel: integer("hydration_level"), // 1-10
+  notes: text("notes"),
+  rawData: text("raw_data"), // Original analysis data
+});
+
+// User goals table - structured fitness goals
+export const userGoals = sqliteTable("user_goals", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "strength", "hypertrophy", "endurance", "weight_loss", "mobility"
+  targetMetric: text("target_metric"), // "bench_press", "body_weight", "5k_time", etc.
+  currentValue: real("current_value"),
+  targetValue: real("target_value"),
+  deadline: text("deadline"), // ISO date
+  priority: integer("priority").default(1), // 1=high, 2=medium, 3=low
+  status: text("status").default("active"), // "active", "completed", "paused"
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+// Plan deviations table - tracks adjustments made by AI
+export const planDeviations = sqliteTable("plan_deviations", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  originalRoutineId: text("original_routine_id").references(() => workoutRoutines.id),
+  adjustedRoutineId: text("adjusted_routine_id").references(() => workoutRoutines.id),
+  deviationScore: real("deviation_score"), // 0-100
+  reason: text("reason"), // "missed_workout", "muscle_soreness", "fatigue", "injury"
+  adjustmentsJson: text("adjustments_json"), // Detailed changes made
+  createdAt: integer("created_at").notNull(),
+});
+
+// Workout completion feedback table - tracks what was actually done vs planned
+export const workoutCompletions = sqliteTable("workout_completions", {
+  id: text("id").primaryKey(),
+  workoutId: text("workout_id").notNull().references(() => workouts.id, { onDelete: "cascade" }),
+  routineExerciseId: text("routine_exercise_id").references(() => routineExercises.id),
+  completed: integer("completed").default(1),
+  completionRate: real("completion_rate"), // 0-1 (sets/reps achieved vs planned)
+  actualSets: integer("actual_sets"),
+  actualReps: integer("actual_reps"),
+  actualWeight: real("actual_weight"),
+  rpeReported: real("rpe_reported"),
+  skippedReason: text("skipped_reason"), // "soreness", "fatigue", "time", "injury"
+  notes: text("notes"),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_workout_id').on(table.workoutId),
+  index('idx_routine_exercise').on(table.routineExerciseId),
+]);
+
 // Daily schedules table
 export const dailySchedules = sqliteTable("daily_schedules", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: text("date"),
+  routineId: text("routine_id").references(() => workoutRoutines.id),
   workoutId: text("workout_id").references(() => workouts.id),
   recoveryTasks: text("recovery_tasks"),
   nutritionGoals: text("nutrition_goals"),
@@ -184,7 +382,13 @@ export const memoryNodes = sqliteTable("memory_nodes", {
   embedding: text("embedding"),
   metadata: text("metadata"),
   relatedNodes: text("related_nodes"),
-});
+  extractedAt: integer("extracted_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_memory_nodes_user_id').on(table.userId),
+  index('idx_memory_nodes_user_id_type').on(table.userId, table.type),
+  index('idx_memory_nodes_user_id_extracted_at').on(table.userId, table.extractedAt),
+]);
 
 // Memory edges table
 export const memoryEdges = sqliteTable("memory_edges", {
@@ -193,7 +397,12 @@ export const memoryEdges = sqliteTable("memory_edges", {
   toNodeId: text("to_node_id").notNull().references(() => memoryNodes.id, { onDelete: "cascade" }),
   relationship: text("relationship"),
   weight: real("weight"),
-});
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_memory_edges_from_node').on(table.fromNodeId),
+  index('idx_memory_edges_to_node').on(table.toNodeId),
+  index('idx_memory_edges_from_relationship').on(table.fromNodeId, table.relationship),
+]);
 
 // Compressed contexts table
 export const compressedContexts = sqliteTable("compressed_contexts", {
@@ -206,7 +415,9 @@ export const compressedContexts = sqliteTable("compressed_contexts", {
   context: text("context"),
   createdAt: integer("created_at").notNull(),
   expiresAt: integer("expires_at"),
-});
+}, (table) => [
+  index('idx_compressed_contexts_user_created').on(table.userId, table.createdAt),
+]);
 
 // Gamification profiles table
 export const gamificationProfiles = sqliteTable("gamification_profiles", {
@@ -221,12 +432,7 @@ export const gamificationProfiles = sqliteTable("gamification_profiles", {
   lastActivityDate: text("last_activity_date"),
   freezeCount: integer("freeze_count").default(0),
   updatedAt: integer("updated_at").notNull(),
-}, (table) => ({
-  user: relation(() => users, {
-    fields: [table.userId],
-    references: [users.id],
-  }),
-}));
+});
 
 // Badges table
 export const badges = sqliteTable("badges", {
@@ -355,11 +561,11 @@ export const socialRelationships = sqliteTable("social_relationships", {
   friendId: text("friend_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   status: text("status").default("accepted"), // "pending", "accepted", "blocked"
   createdAt: integer("created_at").notNull(),
-	}, (table) => [
-	  index('idx_user').on(table.userId),
-	  index('idx_friend').on(table.friendId),
-	  unique('unique_user_friend').on(table.userId, table.friendId),
-	]);
+}, (table) => [
+  index('idx_user').on(table.userId),
+  index('idx_friend').on(table.friendId),
+  unique('unique_user_friend').on(table.userId, table.friendId),
+]);
 
 // Shareable content table
 export const shareableContent = sqliteTable("shareable_content", {
@@ -376,6 +582,72 @@ export const shareableContent = sqliteTable("shareable_content", {
   createdAt: integer("created_at").notNull(),
 });
 
+// ============================================
+// FORM ANALYSIS - AI-POWERED MOVEMENT CORRECTION
+// ============================================
+
+// Form analysis videos table - stores uploaded videos for analysis
+export const formAnalysisVideos = sqliteTable("form_analysis_videos", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  exerciseType: text("exercise_type").notNull(),
+  status: text("status").notNull().default("pending"),
+  videoKey: text("video_key").notNull(),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  frameCount: integer("frame_count"),
+  durationSeconds: integer("duration_seconds"),
+  metadata: text("metadata"), // JSON: fileSize, resolution, fps, uploadedAt
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_form_videos_user_id').on(table.userId),
+  index('idx_form_videos_status').on(table.status),
+  index('idx_form_videos_created_at').on(table.createdAt),
+]);
+
+// Form analyses table - completed analysis results
+export const formAnalyses = sqliteTable("form_analyses", {
+  id: text("id").primaryKey(),
+  videoId: text("video_id").notNull().unique().references(() => formAnalysisVideos.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  exerciseType: text("exercise_type").notNull(),
+  status: text("status").notNull(),
+  overallScore: real("overall_score").notNull(),
+  grade: text("grade").notNull(),
+  issues: text("issues").notNull(), // JSON array of FormIssue
+  corrections: text("corrections").notNull(), // JSON array of FormCorrection
+  summaryJson: text("summary_json").notNull(), // JSON: { strengths, primaryConcern, priority }
+  frameAnalysisJson: text("frame_analysis_json"), // JSON: { keyFrames: [...] }
+  createdAt: integer("created_at").notNull(),
+  completedAt: integer("completed_at"),
+  processingTimeMs: integer("processing_time_ms"),
+}, (table) => [
+  index('idx_form_analyses_user_id').on(table.userId),
+  index('idx_form_analyses_created_at').on(table.createdAt),
+  index('idx_form_analyses_grade').on(table.grade),
+]);
+
+// Notifications table - push notifications and in-app alerts
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "form_analysis_complete", "form_analysis_failed", "streak_milestone", etc.
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  data: text("data"), // JSON: additional context (videoId, grade, etc.)
+  channel: text("channel").default("push"), // "push", "in_app", "email"
+  status: text("status").default("pending"), // "pending", "sent", "delivered", "failed"
+  expoPushTicket: text("expo_push_ticket"),
+  sentAt: integer("sent_at"),
+  deliveredAt: integer("delivered_at"),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_notifications_user_id').on(table.userId),
+  index('idx_notifications_status').on(table.status),
+  index('idx_notifications_created_at').on(table.createdAt),
+]);
+
 // Migrations table
 export const migrations = sqliteTable("migrations", {
   id: text("id").primaryKey(),
@@ -389,11 +661,22 @@ export const migrations = sqliteTable("migrations", {
 export const schema = {
   users,
   sessions,
+  bodyPhotos,
   bodyMetrics,
   bodyHeatmaps,
+  bodyHeatmapHistory,
   visionAnalyses,
+  foodItems,
+  foodLogs,
+  dailyNutritionSummaries,
   workouts,
   workoutExercises,
+  workoutRoutines,
+  routineExercises,
+  bodyInsights,
+  userGoals,
+  planDeviations,
+  workoutCompletions,
   dailySchedules,
   workoutTemplates,
   conversations,
@@ -409,6 +692,9 @@ export const schema = {
   systemMetrics,
   userAnalytics,
   shareableContent,
+  formAnalysisVideos,
+  formAnalyses,
+  notifications,
   migrations,
   dailyCheckins,
   streakFreezes,

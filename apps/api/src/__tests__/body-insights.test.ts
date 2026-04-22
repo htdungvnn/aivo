@@ -282,10 +282,10 @@ describe('Color Scale Functions', () => {
         return { baseColor: 'rgba(255, 255, 255, ', opacity };
       case 'heat':
       default:
-        if (i < 0.2) return { baseColor: 'rgba(59, 130, 246, ', opacity };
-        if (i < 0.4) return { baseColor: 'rgba(6, 182, 212, ', opacity };
-        if (i < 0.6) return { baseColor: 'rgba(34, 197, 94, ', opacity };
-        if (i < 0.8) return { baseColor: 'rgba(234, 179, 8, ', opacity };
+        if (i < 0.2) {return { baseColor: 'rgba(59, 130, 246, ', opacity };}
+        if (i < 0.4) {return { baseColor: 'rgba(6, 182, 212, ', opacity };}
+        if (i < 0.6) {return { baseColor: 'rgba(34, 197, 94, ', opacity };}
+        if (i < 0.8) {return { baseColor: 'rgba(234, 179, 8, ', opacity };}
         return { baseColor: 'rgba(249, 115, 22, ', opacity };
     }
   };

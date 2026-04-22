@@ -1,18 +1,21 @@
-import { Hono, Context } from "hono";
+import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { gamificationProfiles, pointTransactions, streakFreezes, dailyCheckins, users, bodyMetrics } from "@aivo/db";
-import { eq, and, desc, asc, count, gte, gt } from "drizzle-orm";
-import type { Database } from "hono";
+import { eq, and, desc, asc, count, gte, gt, isNull } from "drizzle-orm";
+import type { D1Database } from "drizzle-orm/d1";
+import type { Context } from "hono";
+import type { KVNamespace } from "@cloudflare/workers-types";
 
 type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
 
 export interface Env {
-  DB: Database;
+  DB: D1Database;
   LEADERBOARD_CACHE: KVNamespace;
 }
 
-const router = new Hono<{ Bindings: Env }>();
+export const GamificationRouter = () => {
+  const router = new Hono<{ Bindings: Env }>();
 
 // ============================================
 // SCHEMAS
@@ -51,7 +54,7 @@ const SHARE_BONUS_POINTS = 25;
 // ============================================
 
 function computeStreak(checkinDates: string[]): number {
-  if (checkinDates.length === 0) return 0;
+  if (checkinDates.length === 0) {return 0;}
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const expectedDate = new Date(today);
@@ -70,7 +73,7 @@ function computeStreak(checkinDates: string[]): number {
 }
 
 function findLongestStreak(checkinDates: string[]): number {
-  if (checkinDates.length === 0) return 0;
+  if (checkinDates.length === 0) {return 0;}
   const dates = checkinDates
     .map((d) => new Date(d))
     .sort((a, b) => a.getTime() - b.getTime());
@@ -307,7 +310,7 @@ router.post("/freeze/purchase", async (c) => {
     const existingFreezes = await drizzle.query.streakFreezes.findMany({
       where: and(
         eq(streakFreezes.userId, userId),
-        eq(streakFreezes.usedAt, null)
+        isNull(streakFreezes.usedAt)
       ),
     });
 
@@ -376,7 +379,7 @@ router.post("/freeze/apply", async (c) => {
     const freeze = await drizzle.query.streakFreezes.findFirst({
       where: and(
         eq(streakFreezes.userId, userId),
-        eq(streakFreezes.usedAt, null),
+        isNull(streakFreezes.usedAt),
         gt(streakFreezes.expiresAt, now)
       ),
     });
@@ -676,4 +679,5 @@ function escapeXml(unsafe: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export { router as GamificationRouter };
+  return router;
+};

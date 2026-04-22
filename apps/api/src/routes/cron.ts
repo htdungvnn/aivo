@@ -1,13 +1,20 @@
 import { Hono } from "hono";
 import { createDrizzleInstance } from "@aivo/db";
-import { gamificationProfiles, dailyCheckins, streakFreezes, pointTransactions } from "@aivo/db";
-import { eq, and, sql, desc, asc, gte, gt } from "drizzle-orm";
-import type { Database } from "hono";
+import {
+  gamificationProfiles,
+  dailyCheckins,
+  streakFreezes,
+  pointTransactions,
+  formAnalysisVideos,
+} from "@aivo/db";
+import { eq, and, sql, desc, asc, gte, gt, isNull } from "drizzle-orm";
+import type { D1Database } from "drizzle-orm/d1";
+import { processFormAnalysisJob } from "../services/form-analyzer";
 
 type DrizzleInstance = ReturnType<typeof createDrizzleInstance>;
 
 export interface CronEnv {
-  DB: Database;
+  DB: D1Database;
   LEADERBOARD_CACHE: KVNamespace;
 }
 
@@ -18,7 +25,7 @@ const cron = new Hono<{ Bindings: CronEnv }>();
 // ============================================
 
 function computeStreak(checkinDates: string[]): number {
-  if (checkinDates.length === 0) return 0;
+  if (checkinDates.length === 0) {return 0;}
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const expectedDate = new Date(today);
@@ -37,7 +44,7 @@ function computeStreak(checkinDates: string[]): number {
 }
 
 function findLongestStreak(checkinDates: string[]): number {
-  if (checkinDates.length === 0) return 0;
+  if (checkinDates.length === 0) {return 0;}
   const dates = checkinDates
     .map((d) => new Date(d))
     .sort((a, b) => a.getTime() - b.getTime());
@@ -67,7 +74,7 @@ async function awardStreakPoints(
     where: eq(gamificationProfiles.userId, userId),
   });
 
-  if (!profile) return;
+  if (!profile) {return;}
 
   const currentPoints = profile.totalPoints ?? 0;
   const newBalance = currentPoints + points;
@@ -108,8 +115,9 @@ async function awardStreakPoints(
 // MAIN CRON JOB
 // ============================================
 
-export async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: string; stats?: any; error?: string }> {
+async function runCronJob(env: CronEnv): Promise<{ success: boolean; message: string; stats?: unknown; error?: string }> {
   const startTime = Date.now();
+  // eslint-disable-next-line no-console
   console.log("[Cron] Starting daily gamification processing...");
 
   const drizzle = createDrizzleInstance(env.DB);
@@ -126,11 +134,14 @@ export async function runCronJob(env: CronEnv): Promise<{ success: boolean; mess
       where: gte(gamificationProfiles.updatedAt, cutoffTimestamp),
     });
 
+    // eslint-disable-next-line no-console
     console.log(`[Cron] Processing ${activeProfiles.length} active users`);
 
     let processedStreaks = 0;
     let streaksReset = 0;
     let leaderboardUpdates = 0;
+    let processedVideos = 0;
+    let failedVideos = 0;
 
     for (const profile of activeProfiles) {
       const checkins = await drizzle.query.dailyCheckins.findMany({
@@ -156,7 +167,7 @@ export async function runCronJob(env: CronEnv): Promise<{ success: boolean; mess
         const unusedFreeze = await drizzle.query.streakFreezes.findFirst({
           where: and(
             eq(streakFreezes.userId, profile.userId),
-            eq(streakFreezes.usedAt, null),
+            isNull(streakFreezes.usedAt),
             gt(streakFreezes.expiresAt, now)
           ),
         });
@@ -209,6 +220,37 @@ export async function runCronJob(env: CronEnv): Promise<{ success: boolean; mess
       .set({ usedAt: -1 })
       .where(sql`expires_at < ${expireThreshold} AND used_at IS NULL`);
 
+    // ============================================
+    // FORM ANALYSIS PROCESSING
+    // ============================================
+    const pendingVideos = await drizzle
+      .select()
+      .from(formAnalysisVideos)
+      .where(eq(formAnalysisVideos.status, "pending"))
+      .limit(10); // Process up to 10 videos per cron run to manage costs
+
+    for (const video of pendingVideos) {
+      try {
+        const result = await processFormAnalysisJob(drizzle, video.id, c.env.OPENAI_API_KEY);
+        if (result.success) {
+          processedVideos++;
+          // eslint-disable-next-line no-console
+          console.log(`[Cron] Form analysis completed for video ${video.id}`);
+        } else {
+          failedVideos++;
+          // eslint-disable-next-line no-console
+          console.error(`[Cron] Form analysis failed for video ${video.id}:`, result.error);
+        }
+      } catch (error) {
+        failedVideos++;
+        // eslint-disable-next-line no-console
+        console.error(`[Cron] Error processing video ${video.id}:`, error);
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`[Cron] Form analysis: ${processedVideos} processed, ${failedVideos} failed`);
+
     const topProfiles = await drizzle.query.gamificationProfiles.findMany({
       with: {
         user: {
@@ -234,7 +276,9 @@ export async function runCronJob(env: CronEnv): Promise<{ success: boolean; mess
     leaderboardUpdates++;
 
     const duration = Date.now() - startTime;
-    console.log(`[Cron] Completed: ${processedStreaks} streaks processed, ${streaksReset} reset, ${leaderboardUpdates} leaderboards cached`);
+    // eslint-disable-next-line no-console
+    console.log(`[Cron] Completed: ${processedStreaks} streaks processed, ${streaksReset} reset, ${leaderboardUpdates} leaderboards cached, ${processedVideos} videos analyzed`);
+    // eslint-disable-next-line no-console
     console.log(`[Cron] Duration: ${duration}ms`);
 
     return {
@@ -244,11 +288,14 @@ export async function runCronJob(env: CronEnv): Promise<{ success: boolean; mess
         processedUsers: processedStreaks,
         streaksReset,
         leaderboardUpdates,
+        videosAnalyzed: processedVideos,
+        videosFailed: failedVideos,
         durationMs: duration,
         date: today,
       },
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("[Cron] Error:", error);
     return {
       success: false,

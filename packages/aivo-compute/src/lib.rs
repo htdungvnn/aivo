@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
+use image::{GenericImageView, ImageOutputFormat};
 
 /// Fitness calculation module providing high-performance WASM functions
 #[wasm_bindgen]
@@ -997,10 +998,812 @@ impl ShareCardGenerator {
   }
 }
 
+// ============================================
+// IMAGE PROCESSING MODULE
+// For nutrition photo analysis - resize, compress, validate
+// ============================================
+
+/// Image processor for food photo analysis
+/// Handles resizing, compression, and validation of food images
+#[wasm_bindgen]
+pub struct ImageProcessor;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct ImageMetadata {
+  width: u32,
+  height: u32,
+  format: String,
+  size_bytes: usize,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct ValidationResult {
+  valid: bool,
+  reason: Option<String>,
+  metadata: Option<ImageMetadata>,
+}
+
+#[wasm_bindgen]
+impl ImageProcessor {
+  /// Decode a base64 image string to raw bytes
+  /// Supports data URL format (data:image/jpeg;base64,...) or plain base64
+  fn decode_base64(data: &str) -> Result<Vec<u8>, String> {
+    // Remove data URL prefix if present
+    let base64_str = if let Some(idx) = data.find(',') {
+      &data[idx + 1..]
+    } else {
+      data
+    };
+
+    // Decode base64
+    use base64::Engine;
+    let engine = base64::engine::general_purpose::STANDARD;
+    engine
+      .decode(base64_str)
+      .map_err(|e| format!("Failed to decode base64: {}", e))
+  }
+
+  /// Encode raw image bytes to base64 string
+  fn encode_base64(bytes: &[u8]) -> String {
+    use base64::Engine;
+    let engine = base64::engine::general_purpose::STANDARD;
+    engine.encode(bytes)
+  }
+
+  /// Detect image format from bytes
+  fn detect_format(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.len() < 4 {
+      return None;
+    }
+
+    match &bytes[0..4] {
+      [0xFF, 0xD8, 0xFF, _] => Some("jpeg"),
+      [0x89, 0x50, 0x4E, 0x47] => Some("png"),
+      [0x52, 0x49, 0x46, 0x46] if bytes.len() >= 12 => {
+        // Check for WEBP: "RIFF....WEBP"
+        if bytes[8..12] == *b"WEBP" {
+          Some("webp")
+        } else {
+          None
+        }
+      }
+      _ => None,
+    }
+  }
+
+  /// Encode image as JPEG with specified quality
+  /// Uses direct encoder to avoid Seek requirement
+  fn encode_as_jpeg(img: &image::DynamicImage, quality: u8) -> Result<Vec<u8>, String> {
+    let rgb = img.to_rgb8();
+    let (width, height) = rgb.dimensions();
+    let raw_bytes = rgb.into_raw();
+
+    let mut buf = Vec::new();
+    let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, quality);
+    encoder
+      .encode(&raw_bytes, width, height, image::ColorType::Rgb8)
+      .map_err(|e| format!("Failed to encode JPEG: {}", e))?;
+    Ok(buf)
+  }
+
+  /// Validate that an image is suitable for food analysis
+  /// Checks: minimum size, format, reasonable dimensions, max file size
+  #[wasm_bindgen(js_name = "validateFoodImage")]
+  pub fn validate_food_image(base64_data: &str) -> JsValue {
+    let result = Self::do_validate(base64_data);
+    to_value(&result).unwrap_or(JsValue::NULL)
+  }
+
+  fn do_validate(base64_data: &str) -> ValidationResult {
+    // Check for empty input
+    if base64_data.is_empty() {
+      return ValidationResult {
+        valid: false,
+        reason: Some("Image data is empty".to_string()),
+        metadata: None,
+      };
+    }
+
+    // Decode base64
+    let bytes = match Self::decode_base64(base64_data) {
+      Ok(b) => b,
+      Err(e) => {
+        return ValidationResult {
+          valid: false,
+          reason: Some(e),
+          metadata: None,
+        };
+      }
+    };
+
+    // Check file size (max 10MB)
+    const MAX_SIZE: usize = 10 * 1024 * 1024;
+    if bytes.len() > MAX_SIZE {
+      return ValidationResult {
+        valid: false,
+        reason: Some(format!(
+          "Image too large: {} bytes (max {} allowed)",
+          bytes.len(),
+          MAX_SIZE
+        )),
+        metadata: None,
+      };
+    }
+
+    if bytes.is_empty() {
+      return ValidationResult {
+        valid: false,
+        reason: Some("Decoded image is empty".to_string()),
+        metadata: None,
+      };
+    }
+
+    // Detect format
+    let format = match Self::detect_format(&bytes) {
+      Some(f) => f,
+      None => {
+        return ValidationResult {
+          valid: false,
+          reason: Some("Unsupported image format. Use JPEG, PNG, or WEBP".to_string()),
+          metadata: None,
+        };
+      }
+    };
+
+    // Decode image dimensions
+    let (width, height) = match image::load_from_memory(&bytes) {
+      Ok(img) => {
+        let dims = img.dimensions();
+        (dims.0, dims.1)
+      }
+      Err(e) => {
+        return ValidationResult {
+          valid: false,
+          reason: Some(format!("Failed to decode image: {}", e)),
+          metadata: None,
+        };
+      }
+    };
+
+    // Check minimum dimensions (at least 100x100)
+    if width < 100 || height < 100 {
+      return ValidationResult {
+        valid: false,
+        reason: Some(format!(
+          "Image too small: {}x{} (minimum 100x100 required)",
+          width, height
+        )),
+        metadata: Some(ImageMetadata {
+          width,
+          height,
+          format: format.to_string(),
+          size_bytes: bytes.len(),
+        }),
+      };
+    }
+
+    // Check aspect ratio (reject extreme panoramas or portraits for food photos)
+    let aspect_ratio = width as f64 / height as f64;
+    if aspect_ratio > 3.0 || aspect_ratio < 0.33 {
+      return ValidationResult {
+        valid: false,
+        reason: Some(format!(
+          "Unusual aspect ratio: {:.2}:1. Food photos typically have aspect ratios between 0.33:1 and 3:1",
+          aspect_ratio
+        )),
+        metadata: Some(ImageMetadata {
+          width,
+          height,
+          format: format.to_string(),
+          size_bytes: bytes.len(),
+        }),
+      };
+    }
+
+    // Success
+    ValidationResult {
+      valid: true,
+      reason: None,
+      metadata: Some(ImageMetadata {
+        width,
+        height,
+        format: format.to_string(),
+        size_bytes: bytes.len(),
+      }),
+    }
+  }
+
+  /// Resize image to maximum dimension while maintaining aspect ratio
+  /// Returns base64 encoded JPEG for consistent delivery to AI
+  #[wasm_bindgen(js_name = "resizeImage")]
+  pub fn resize_image(base64_data: &str, max_dimension: Option<u32>) -> Result<String, JsValue> {
+    let max_dim = max_dimension.unwrap_or(1024); // Default 1024px
+
+    if max_dim < 100 {
+      return Err(JsValue::from_str("max_dimension must be at least 100"));
+    }
+
+    // Decode base64
+    let bytes = Self::decode_base64(base64_data)
+      .map_err(|e| JsValue::from_str(&format!("Failed to decode: {}", e)))?;
+
+    // Load image
+    let img = image::load_from_memory(&bytes)
+      .map_err(|e| JsValue::from_str(&format!("Failed to load image: {}", e)))?;
+
+    let (width, height) = img.dimensions();
+
+    // Check if resize is needed
+    if width <= max_dim && height <= max_dim {
+      // Already small enough, just re-encode as JPEG for consistency
+      let buf = Self::encode_as_jpeg(&img, 90)
+        .map_err(|e| JsValue::from_str(&format!("Failed to re-encode: {}", e)))?;
+      return Ok(Self::encode_base64(&buf));
+    }
+
+    // Calculate new dimensions maintaining aspect ratio
+    let (new_width, new_height) = if width > height {
+      let ratio = height as f64 / width as f64;
+      (max_dim, (max_dim as f64 * ratio).round() as u32)
+    } else {
+      let ratio = width as f64 / height as f64;
+      ((max_dim as f64 * ratio).round() as u32, max_dim)
+    };
+
+    // Resize using high-quality Lanczos3 filter
+    let resized = img.resize_exact(new_width, new_height, image::imageops::FilterType::Lanczos3);
+
+    // Encode as JPEG with 90% quality for optimal AI analysis
+    let buf = Self::encode_as_jpeg(&resized, 90)
+      .map_err(|e| JsValue::from_str(&format!("Failed to encode JPEG: {}", e)))?;
+
+    Ok(Self::encode_base64(&buf))
+  }
+
+  /// Compress image to target quality (1-100)
+  /// Higher quality = larger file size, better for AI analysis
+  /// Recommended: 85-95 for food photos
+  #[wasm_bindgen(js_name = "compressImage")]
+  pub fn compress_image(base64_data: &str, quality: Option<u8>) -> Result<String, JsValue> {
+    let q = quality.unwrap_or(90).clamp(1, 100);
+
+    // Decode base64
+    let bytes = Self::decode_base64(base64_data)
+      .map_err(|e| JsValue::from_str(&format!("Failed to decode: {}", e)))?;
+
+    // Load image
+    let img = image::load_from_memory(&bytes)
+      .map_err(|e| JsValue::from_str(&format!("Failed to load image: {}", e)))?;
+
+    // Encode as JPEG with specified quality
+    let buf = Self::encode_as_jpeg(&img, q)
+      .map_err(|e| JsValue::from_str(&format!("Failed to compress: {}", e)))?;
+
+    Ok(Self::encode_base64(&buf))
+  }
+
+  /// Optimize image for AI analysis: resize and compress in one step
+  /// - Resizes to max_dimension (default 1024)
+  /// - Compresses to quality (default 90)
+  /// - Always returns JPEG format for consistent API consumption
+  #[wasm_bindgen(js_name = "optimizeForAI")]
+  pub fn optimize_for_ai(
+    base64_data: &str,
+    max_dimension: Option<u32>,
+    quality: Option<u8>,
+  ) -> Result<String, JsValue> {
+    let max_dim = max_dimension.unwrap_or(1024);
+    let q = quality.unwrap_or(90).clamp(1, 100);
+
+    if max_dim < 100 {
+      return Err(JsValue::from_str("max_dimension must be at least 100"));
+    }
+
+    // Decode and load image
+    let bytes = Self::decode_base64(base64_data)
+      .map_err(|e| JsValue::from_str(&format!("Failed to decode: {}", e)))?;
+
+    let mut img = image::load_from_memory(&bytes)
+      .map_err(|e| JsValue::from_str(&format!("Failed to load image: {}", e)))?;
+
+    let (width, height) = img.dimensions();
+
+    // Resize if needed
+    if width > max_dim || height > max_dim {
+      let (new_width, new_height) = if width > height {
+        let ratio = height as f64 / width as f64;
+        (max_dim, (max_dim as f64 * ratio).round() as u32)
+      } else {
+        let ratio = width as f64 / height as f64;
+        ((max_dim as f64 * ratio).round() as u32, max_dim)
+      };
+
+      img = img.resize_exact(new_width, new_height, image::imageops::FilterType::Lanczos3);
+    }
+
+    // Encode as JPEG with quality
+    let buf = Self::encode_as_jpeg(&img, q)
+      .map_err(|e| JsValue::from_str(&format!("Failed to encode: {}", e)))?;
+
+    Ok(Self::encode_base64(&buf))
+  }
+
+  /// Get image metadata without full processing
+  #[wasm_bindgen(js_name = "getImageMetadata")]
+  pub fn get_image_metadata(base64_data: &str) -> Result<JsValue, JsValue> {
+    let bytes = Self::decode_base64(base64_data)
+      .map_err(|e| JsValue::from_str(&format!("Failed to decode: {}", e)))?;
+
+    let format = match Self::detect_format(&bytes) {
+      Some(f) => f.to_string(),
+      None => return Err(JsValue::from_str("Unknown image format")),
+    };
+
+    let (width, height) = image::load_from_memory(&bytes)
+      .map_err(|e| JsValue::from_str(&format!("Failed to decode image: {}", e)))?
+      .dimensions();
+
+    let metadata = ImageMetadata {
+      width,
+      height,
+      format,
+      size_bytes: bytes.len(),
+    };
+
+    to_value(&metadata)
+      .map_err(|_| JsValue::from_str("Failed to serialize metadata"))
+  }
+}
+
+/// Adaptive routine planner module for AI-powered schedule adjustments
+#[wasm_bindgen]
+pub struct AdaptivePlanner;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct MuscleGroupData {
+    muscle: String,
+    soreness: i32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PlanDeviationScoreData {
+    #[serde(rename = "userId")]
+    user_id: String,
+    #[serde(rename = "weekStartDate")]
+    week_start_date: String,
+    #[serde(rename = "overallScore")]
+    overall_score: f64,
+    #[serde(rename = "missedWorkouts")]
+    missed_workouts: i32,
+    #[serde(rename = "completionRate")]
+    completion_rate: f64,
+    #[serde(rename = "averageRPE")]
+    average_rpe: f64,
+    #[serde(rename = "fatigueAccumulation")]
+    fatigue_accumulation: f64,
+    #[serde(rename = "muscleFatigue")]
+    muscle_fatigue: std::collections::HashMap<String, f64>,
+    trend: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct RecoveryCurveProfile {
+    muscle: String,
+    #[serde(rename = "averageSoreness")]
+    average_soreness: f64,
+    #[serde(rename = "sorenessTrend")]
+    soreness_trend: String,
+    #[serde(rename = "recoveryRate")]
+    recovery_rate: f64,
+    #[serde(rename = "lastNoticed")]
+    last_noticed: i64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct RecoveryCurveData {
+    #[serde(rename = "userId")]
+    user_id: String,
+    #[serde(rename = "generatedAt")]
+    generated_at: i64,
+    profiles: Vec<RecoveryCurveProfile>,
+    #[serde(rename = "overallRecoveryScore")]
+    overall_recovery_score: f64,
+    #[serde(rename = "recommendedRestDays")]
+    recommended_rest_days: i32,
+    #[serde(rename = "canTrainIntensity")]
+    can_train_intensity: String,
+}
+
+/// Workout completion data for deviation calculation
+#[derive(serde::Deserialize)]
+struct WorkoutCompletionData {
+    workout_id: String,
+    routine_exercise_id: Option<String>,
+    completed: bool,
+    #[serde(rename = "completionRate")]
+    completion_rate: f64,
+    #[serde(rename = "actualSets")]
+    actual_sets: Option<i32>,
+    #[serde(rename = "actualReps")]
+    actual_reps: Option<i32>,
+    #[serde(rename = "actualWeight")]
+    actual_weight: Option<f64>,
+    #[serde(rename = "rpeReported")]
+    rpe_reported: Option<f64>,
+    #[serde(rename = "skippedReason")]
+    skipped_reason: Option<String>,
+    notes: Option<String>,
+}
+
+/// Planned routine exercise data
+#[derive(serde::Deserialize)]
+struct RoutineExerciseData {
+    id: String,
+    #[serde(rename = "routineId")]
+    routine_id: String,
+    #[serde(rename = "dayOfWeek")]
+    day_of_week: i32,
+    #[serde(rename = "exerciseName")]
+    exercise_name: String,
+    #[serde(rename = "exerciseType")]
+    exercise_type: String,
+    #[serde(rename = "targetMuscleGroups")]
+    target_muscle_groups: serde_json::Value,
+    sets: Option<i32>,
+    reps: Option<i32>,
+    weight: Option<f64>,
+    rpe: Option<f64>,
+    duration: Option<i32>,
+    #[serde(rename = "restTime")]
+    rest_time: Option<i32>,
+    #[serde(rename = "orderIndex")]
+    order_index: i32,
+    notes: Option<String>,
+}
+
+/// Body insight data for recovery analysis
+#[derive(serde::Deserialize, Clone)]
+struct BodyInsightData {
+    id: String,
+    #[serde(rename = "userId")]
+    user_id: String,
+    timestamp: i64,
+    source: String,
+    #[serde(rename = "recoveryScore")]
+    recovery_score: f64,
+    #[serde(rename = "fatigueLevel")]
+    fatigue_level: i32,
+    #[serde(rename = "muscleSoreness")]
+    muscle_soreness: serde_json::Value,
+    #[serde(rename = "sleepQuality")]
+    sleep_quality: i32,
+    #[serde(rename = "sleepHours")]
+    sleep_hours: f64,
+    #[serde(rename = "stressLevel")]
+    stress_level: i32,
+    #[serde(rename = "hydrationLevel")]
+    hydration_level: i32,
+    notes: Option<String>,
+    #[serde(rename = "rawData")]
+    raw_data: Option<String>,
+}
+
+#[wasm_bindgen]
+impl AdaptivePlanner {
+    /// Calculate the Plan Deviation Score from workout completion data
+    /// This summarizes how much a user has deviated from their planned routine
+    #[wasm_bindgen(js_name = "calculateDeviationScore")]
+    pub fn calculate_deviation_score(
+        completions_json: &str,
+        planned_exercises_json: &str,
+    ) -> String {
+        let completions: Vec<WorkoutCompletionData> = match serde_json::from_str(completions_json) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Error parsing completions: {}", e);
+                return String::new();
+            }
+        };
+
+        let planned_exercises: Vec<RoutineExerciseData> = match serde_json::from_str(planned_exercises_json) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("Error parsing planned exercises: {}", e);
+                return String::new();
+            }
+        };
+
+        let total_planned = planned_exercises.len() as f64;
+        if total_planned == 0.0 {
+            let empty_score = PlanDeviationScoreData {
+                user_id: String::new(),
+                week_start_date: String::new(),
+                overall_score: 0.0,
+                missed_workouts: 0,
+                completion_rate: 0.0,
+                average_rpe: 0.0,
+                fatigue_accumulation: 0.0,
+                muscle_fatigue: std::collections::HashMap::new(),
+                trend: "on_track".to_string(),
+            };
+            return serde_json::to_string(&empty_score).unwrap_or_default();
+        }
+
+        let mut completed_count = 0;
+        let mut total_completion_rate = 0.0;
+        let mut total_rpe = 0.0;
+        let mut rpe_count = 0;
+        let mut missed_workouts = 0;
+        let mut muscle_fatigue: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+        let mut fatigue_accumulation = 0.0;
+
+        // Build a map of planned exercises for lookup
+        let planned_map: std::collections::HashMap<String, &RoutineExerciseData> = planned_exercises
+            .iter()
+            .map(|ex| (ex.id.clone(), ex))
+            .collect();
+
+        for completion in &completions {
+            if completion.completed {
+                completed_count += 1;
+            } else {
+                missed_workouts += 1;
+                // Accumulate fatigue from missed workouts
+                fatigue_accumulation += 0.1;
+            }
+
+            total_completion_rate += completion.completion_rate;
+
+            if let Some(rpe) = completion.rpe_reported {
+                total_rpe += rpe;
+                rpe_count += 1;
+            }
+
+            // Track muscle fatigue from skipped reasons
+            if !completion.completed {
+                if let Some(ref reason) = completion.skipped_reason {
+                    if reason == "soreness" || reason == "fatigue" {
+                        fatigue_accumulation += 0.15;
+                    }
+                }
+            }
+
+            // Aggregate muscle fatigue from routine exercise targets
+            if let Some(routine_ex_id) = &completion.routine_exercise_id {
+                if let Some(planned) = planned_map.get(routine_ex_id) {
+                    if let Ok(muscle_array) = serde_json::from_value::<Vec<String>>(planned.target_muscle_groups.clone()) {
+                        for muscle in muscle_array {
+                            *muscle_fatigue.entry(muscle.clone()).or_insert(0.0) += 1.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        let completion_rate = completed_count as f64 / total_planned;
+        let avg_rpe = if rpe_count > 0 { total_rpe / rpe_count as f64 } else { 0.0 };
+
+        // Normalize muscle fatigue (0-1 scale per muscle)
+        for (_, value) in muscle_fatigue.iter_mut() {
+            *value = (*value / total_planned).min(1.0);
+        }
+
+        // Calculate overall deviation score (0-100, where 0 = perfect adherence, 100 = complete deviation)
+        let mut overall_score = (1.0 - completion_rate) * 100.0;
+        overall_score += fatigue_accumulation * 20.0; // Penalty for fatigue accumulation
+        overall_score = overall_score.min(100.0).max(0.0);
+
+        // Determine trend
+        let trend = if completion_rate >= 0.9 && fatigue_accumulation < 0.2 {
+            "on_track"
+        } else if completion_rate >= 0.7 || fatigue_accumulation < 0.4 {
+            "slightly_behind"
+        } else if completion_rate >= 0.4 {
+            "significantly_behind"
+        } else {
+            "recovery_needed"
+        };
+
+        let score_data = PlanDeviationScoreData {
+            user_id: String::new(), // Will be filled by caller
+            week_start_date: String::new(),
+            overall_score,
+            missed_workouts: missed_workouts,
+            completion_rate,
+            average_rpe: avg_rpe,
+            fatigue_accumulation,
+            muscle_fatigue,
+            trend: trend.to_string(),
+        };
+
+        serde_json::to_string(&score_data).unwrap_or_default()
+    }
+
+    /// Analyze recovery curve based on body insights and muscle groups
+    /// Returns recovery profile for each muscle group trained in current routine
+    #[wasm_bindgen(js_name = "analyzeRecoveryCurve")]
+    pub fn analyze_recovery_curve(
+        body_insights_json: &str,
+        muscle_groups_json: &str,
+    ) -> String {
+        let body_insights: Vec<BodyInsightData> = match serde_json::from_str(body_insights_json) {
+            Ok(b) => b,
+            Err(e) => {
+                eprintln!("Error parsing body insights: {}", e);
+                return String::new();
+            }
+        };
+
+        let muscle_groups: Vec<String> = match serde_json::from_str(muscle_groups_json) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Error parsing muscle groups: {}", e);
+                return String::new();
+            }
+        };
+
+        // Sort insights by timestamp (most recent first)
+        let mut sorted_insights = body_insights.clone();
+        sorted_insights.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+        let now = chrono::Utc::now().timestamp_millis();
+        let mut profiles: Vec<RecoveryCurveProfile> = Vec::new();
+        let mut total_recovery_score = 0.0;
+        let mut recovery_count = 0;
+
+        for muscle in &muscle_groups {
+            // Collect soreness data for this muscle from recent insights (last 7 days)
+            let seven_days_ago = now - 7 * 24 * 60 * 60 * 1000;
+            let recent_soreness: Vec<f64> = sorted_insights.iter()
+                .filter(|insight| insight.timestamp >= seven_days_ago)
+                .filter_map(|insight| {
+                    if let Ok(soreness_map) = serde_json::from_value::<std::collections::HashMap<String, i32>>(insight.muscle_soreness.clone()) {
+                        soreness_map.get(muscle).copied().map(|s| s as f64)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            let avg_soreness = if recent_soreness.is_empty() {
+                0.0
+            } else {
+                recent_soreness.iter().sum::<f64>() / recent_soreness.len() as f64
+            };
+
+            // Determine soreness trend by comparing recent to older
+            let thirty_days_ago = now - 30 * 24 * 60 * 60 * 1000;
+            let older_soreness: Vec<f64> = sorted_insights.iter()
+                .filter(|insight| insight.timestamp >= thirty_days_ago && insight.timestamp < seven_days_ago)
+                .filter_map(|insight| {
+                    if let Ok(soreness_map) = serde_json::from_value::<std::collections::HashMap<String, i32>>(insight.muscle_soreness.clone()) {
+                        soreness_map.get(muscle).copied().map(|s| s as f64)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            let older_avg = if older_soreness.is_empty() {
+                avg_soreness
+            } else {
+                older_soreness.iter().sum::<f64>() / older_soreness.len() as f64
+            };
+
+            let soreness_trend = if avg_soreness < older_avg * 0.7 {
+                "improving"
+            } else if avg_soreness > older_avg * 1.3 {
+                "worsening"
+            } else {
+                "stable"
+            };
+
+            // Estimate recovery rate: days to return to baseline (soreness < 3)
+            let recovery_rate = if avg_soreness < 3.0 {
+                1.0
+            } else if avg_soreness < 5.0 {
+                2.0
+            } else if avg_soreness < 7.0 {
+                3.0
+            } else if avg_soreness < 9.0 {
+                5.0
+            } else {
+                7.0
+            };
+
+            // Find last time this muscle was noticed
+            let last_noticed = sorted_insights.iter()
+                .find(|insight| {
+                    if let Ok(soreness_map) = serde_json::from_value::<std::collections::HashMap<String, i32>>(insight.muscle_soreness.clone()) {
+                        soreness_map.contains_key(muscle) && soreness_map[muscle] > 0
+                    } else {
+                        false
+                    }
+                })
+                .map(|insight| insight.timestamp)
+                .unwrap_or(0);
+
+            profiles.push(RecoveryCurveProfile {
+                muscle: muscle.clone(),
+                average_soreness: avg_soreness,
+                soreness_trend: soreness_trend.to_string(),
+                recovery_rate,
+                last_noticed,
+            });
+
+            total_recovery_score += (10.0 - avg_soreness).max(0.0) * 10.0;
+            recovery_count += 1;
+        }
+
+        let overall_recovery_score = if recovery_count > 0 {
+            total_recovery_score / recovery_count as f64
+        } else {
+            50.0 // Default neutral score
+        };
+
+        // Calculate recommended rest days based on worst recovering muscle
+        let worst_recovery = profiles.iter()
+            .map(|p| p.average_soreness)
+            .fold(0.0f64, |a, b| a.max(b));
+
+        let recommended_rest_days = if worst_recovery >= 8.0 {
+            2
+        } else if worst_recovery >= 5.0 {
+            1
+        } else {
+            0
+        };
+
+        // Determine training intensity capability
+        let can_train_intensity = if overall_recovery_score >= 70.0 {
+            "high"
+        } else if overall_recovery_score >= 40.0 {
+            "moderate"
+        } else {
+            "low"
+        };
+
+        let curve_data = RecoveryCurveData {
+            user_id: String::new(),
+            generated_at: now,
+            profiles,
+            overall_recovery_score,
+            recommended_rest_days,
+            can_train_intensity: can_train_intensity.to_string(),
+        };
+
+        serde_json::to_string(&curve_data).unwrap_or_default()
+    }
+
+    /// Check if schedule reshuffle is recommended based on deviation and recovery
+    #[wasm_bindgen(js_name = "shouldReschedule")]
+    pub fn should_reschedule(deviation_json: &str, recovery_json: &str) -> bool {
+        let deviation: PlanDeviationScoreData = match serde_json::from_str(deviation_json) {
+            Ok(d) => d,
+            Err(_) => return false,
+        };
+
+        let recovery: RecoveryCurveData = match serde_json::from_str(recovery_json) {
+            Ok(r) => r,
+            Err(_) => return false,
+        };
+
+        // Reschedule if:
+        // - Overall deviation score > 40 (significant deviation)
+        // - OR recovery score < 50 and trend is recovery_needed
+        // - OR recommended rest days > 0
+        deviation.overall_score > 40.0 ||
+            (recovery.overall_recovery_score < 50.0 && deviation.trend == "recovery_needed") ||
+            recovery.recommended_rest_days > 0
+    }
+}
+
+// ============================================
+// END OF ADAPTIVE PLANNER MODULE
+// ==========================================
+
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use wasm_bindgen_test::wasm_bindgen_test;
 
   #[wasm_bindgen_test]
   fn test_calculate_bmi() {

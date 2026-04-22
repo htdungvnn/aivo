@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text } from "react-native";
-import {
+import type {
   PostureAssessment,
-  PostureIssueType,
+  PostureIssueType} from "@aivo/shared-types";
+import {
   POSTURE_ISSUE_LABELS,
   SEVERITY_STYLES,
   getScoreColor,

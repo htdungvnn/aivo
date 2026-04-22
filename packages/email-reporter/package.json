@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@aivo/shared-types": "workspace:*",
+    "@aivo/db": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "resend": "^4.1.0"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ import { createDrizzleInstance } from "@aivo/db";
 import { sendMonthlyReport, defaultEmailConfig } from "@aivo/email-reporter";
 import { users } from "@aivo/db";
 import { eq } from "drizzle-orm";
+import type { D1Database } from "drizzle-orm/d1";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -16,7 +17,7 @@ const MonthlyReportSchema = z.object({
 });
 
 export async function triggerMonthlyReports(
-  drizzle: any,
+  drizzle: ReturnType<typeof createDrizzleInstance>,
   year: number,
   month: number,
   dryRun: boolean = false
@@ -24,7 +25,7 @@ export async function triggerMonthlyReports(
   const userRows = await drizzle.query.users.findMany({
     where: eq(users.receiveMonthlyReports, 1),
   });
-  const userList = userRows as any[];
+  const userList = userRows as Array<{ id: string; email: string }>;
 
   let sent = 0;
   let failed = 0;
@@ -45,11 +46,13 @@ export async function triggerMonthlyReports(
 
     results.forEach((result, idx) => {
       if (result.status === 'fulfilled') {
-        if (result.value.success) {
+        const value = result.value as { success: boolean; error?: string };
+        if (value.success) {
           sent++;
         } else {
           failed++;
-          errors.push(`Failed for ${batch[idx].email}: ${result.value.error}`);
+          const errorMsg = value.error || 'Unknown error';
+          errors.push(`Failed for ${batch[idx].email}: ${errorMsg}`);
         }
       } else {
         failed++;
@@ -89,6 +92,7 @@ export const MonthlyReportRouter = () => {
 
       const { sent, failed, errors } = await triggerMonthlyReports(drizzle, reportYear, reportMonth, false);
 
+      // eslint-disable-next-line no-console
       console.log(`Monthly report cron: processed ${sent + failed}, sent=${sent}, failed=${failed}`);
 
       return c.json({
@@ -101,6 +105,7 @@ export const MonthlyReportRouter = () => {
         errors: errors.slice(0, 10),
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Monthly report cron error:", error);
       return c.json({ success: false, error: "Cron failed" }, 500);
     }
@@ -129,6 +134,7 @@ export const MonthlyReportRouter = () => {
         dryRun,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Monthly report trigger error:", error);
       return c.json({ success: false, error: "Failed to trigger monthly reports" }, 500);
     }

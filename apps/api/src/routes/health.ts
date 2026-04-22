@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import { z } from "zod";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { FitnessCalculator } from "@aivo/compute";
 import { createDrizzleInstance } from "@aivo/db";
-import { validateBodyMetrics } from "../services/validation";
+import type { D1Database } from "drizzle-orm/d1";
+import type { Context } from "hono";
+import type { R2Bucket } from "@cloudflare/workers-types";
+import type { KVNamespace } from "@cloudflare/workers-types";
 
 // Env type for health router (matches AppEnv in index.ts)
 interface Env {
@@ -48,7 +49,7 @@ export interface HealthResponse {
 }
 
 const createHealthCheck = () => {
-  return async (c: any) => {
+  return async (c: Context<{ Bindings: Env }>) => {
     const startTime = Date.now();
     const services: ServiceStatus[] = [];
 
@@ -68,7 +69,7 @@ const createHealthCheck = () => {
 
       // Get table list
       const tables = await c.env.DB.exec("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = tables.map((row: any) => row.name).filter((name: string) => !name.startsWith("sqlite_"));
+      const tableList = tables.map((row: { name: string }) => row.name).filter((name: string) => !name.startsWith("sqlite_");
 
       services.push({
         name: "database",
@@ -204,15 +205,38 @@ const createHealthCheck = () => {
     const overallStatus: "healthy" | "degraded" | "unhealthy" =
       unhealthy.length > 0 ? "unhealthy" : degraded.length > 0 ? "degraded" : "healthy";
 
+interface DatabaseDetails {
+  connected: boolean;
+  latency?: number;
+  tables?: string[];
+}
+
+interface CacheDetails {
+  connected: boolean;
+  latency?: number;
+}
+
+interface StorageDetails {
+  connected: boolean;
+  bucket?: string;
+}
+
+interface ServiceDetails {
+  connected: boolean;
+  latency?: number;
+  tables?: string[];
+  bucket?: string;
+}
+
     const response: HealthResponse = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       version: "1.0.0",
       uptime: process.uptime(),
       services,
-      database: services.find((s) => s.name === "database")?.details as any || { connected: false },
-      cache: services.find((s) => s.name === "cache")?.details as any || { connected: false },
-      storage: services.find((s) => s.name === "storage")?.details as any || { connected: false },
+      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as DatabaseDetails,
+      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as CacheDetails,
+      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as StorageDetails,
       compute: {
         wasmLoaded: services.some((s) => s.name === "wasm-compute" && s.status === "healthy"),
         optimizerLoaded: services.some((s) => s.name === "ai-optimizer" && s.status === "healthy"),

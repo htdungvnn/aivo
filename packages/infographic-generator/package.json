@@ -1,0 +1,36 @@
+{
+  "name": "@aivo/infographic-generator",
+  "version": "0.1.0",
+  "description": "SVG/PNG infographic generator for fitness social proof",
+  "main": "pkg/infographic_generator.js",
+  "types": "pkg/infographic_generator.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
+    "test": "wasm-pack test --chrome --headless",
+    "test:node": "wasm-pack test --node",
+    "clean": "rm -rf pkg target"
+  },
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "svg",
+    "png",
+    "infographic",
+    "fitness",
+    "social-proof"
+  ],
+  "author": "AIVO Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aivo/fitness-platform"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "pkg"
+  ]
+}

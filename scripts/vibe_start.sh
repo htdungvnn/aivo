@@ -3,7 +3,7 @@
 # Đường dẫn dự án AIVO
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_DIR="$(dirname "$SCRIPT_DIR")"
-SESSION="aivo_vibe"
+SESSION="aivo_vibe_1"
 
 # Tắt session cũ nếu đang chạy để khởi động lại sạch sẽ
 tmux kill-session -t $SESSION 2>/dev/null

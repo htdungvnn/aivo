@@ -1,4 +1,8 @@
-import type { User, Workout, BodyMetric, Badge, Achievement, GamificationProfile } from "@aivo/shared-types";
+import type { User, Badge, Achievement, AchievementType } from "@aivo/shared-types";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
+import { eq, and, gte, lt, asc, desc } from "drizzle-orm";
+import { schema } from "@aivo/db"; // eslint-disable-line @typescript-eslint/consistent-type-imports
+import { workouts, bodyMetrics, badges, achievements as achievementsTable, gamificationProfiles } from "@aivo/db";
 
 /**
  * Monthly report statistics for a user
@@ -236,7 +240,7 @@ export function generateEmailHTML(data: MonthlyReportData, config: EmailReportCo
  * Calculate monthly statistics from user data
  */
 export async function calculateMonthlyStats(
-  drizzle: any,
+  drizzle: DrizzleD1Database<typeof schema>,
   userId: string,
   year: number,
   month: number
@@ -247,62 +251,39 @@ export async function calculateMonthlyStats(
 
   // Fetch all data for the month in parallel
   const [
-    workouts,
-    bodyMetricsStart,
-    bodyMetricsEnd,
-    badges,
-    achievements,
-    gamificationProfile,
+    dataWorkouts,
+    dataBadges,
+    dataAchievements,
+    dataGamificationProfile,
   ] = await Promise.all([
     // Workouts for the month
     drizzle.query.workouts.findMany({
-      where: (w, { and }) =>
-        and(
-          (w, { eq }) => eq(w.userId, userId),
-          (w, { gte }) => gte(w.createdAt, startDate),
-          (w, { lt }) => lt(w.createdAt, endDate)
-        ),
-      orderBy: (w, { asc }) => asc(w.createdAt),
-    }),
-    // Body metrics at start of month
-    drizzle.query.bodyMetrics.findFirst({
-      where: (bm, { and }) =>
-        and(
-          (bm, { eq }) => eq(bm.userId, userId),
-          (bm, { lt }) => lt(bm.timestamp, startDate)
-        ),
-      orderBy: (bm, { desc }) => desc(bm.timestamp),
-    }),
-    // Body metrics at end of month
-    drizzle.query.bodyMetrics.findFirst({
-      where: (bm, { and }) =>
-        and(
-          (bm, { eq }) => eq(bm.userId, userId),
-          (bm, { lt }) => lt(bm.timestamp, endDate)
-        ),
-      orderBy: (bm, { desc }) => desc(bm.timestamp),
+      where: and(
+        eq(workouts.userId, userId),
+        gte(workouts.createdAt, startDate),
+        lt(workouts.createdAt, endDate)
+      ),
+      orderBy: asc(workouts.createdAt),
     }),
     // Badges earned this month
     drizzle.query.badges.findMany({
-      where: (b, { and }) =>
-        and(
-          (b, { eq }) => eq(b.userId, userId),
-          (b, { gte }) => gte(b.earnedAt, startDate),
-          (b, { lt }) => lt(b.earnedAt, endDate)
-        ),
+      where: and(
+        eq(badges.userId, userId),
+        gte(badges.earnedAt, startDate),
+        lt(badges.earnedAt, endDate)
+      ),
     }),
     // Achievements completed this month
     drizzle.query.achievements.findMany({
-      where: (a, { and }) =>
-        and(
-          (a, { eq }) => eq(a.userId, userId),
-          (a, { gte }) => gte(a.completedAt, startDate),
-          (a, { lt }) => lt(a.completedAt, endDate)
-        ),
+      where: and(
+        eq(achievementsTable.userId, userId),
+        gte(achievementsTable.completedAt, startDate),
+        lt(achievementsTable.completedAt, endDate)
+      ),
     }),
     // Gamification profile
     drizzle.query.gamificationProfiles.findFirst({
-      where: (gp, { eq }) => eq(gp.userId, userId),
+      where: eq(gamificationProfiles.userId, userId),
     }),
   ]);
 
@@ -311,22 +292,23 @@ export async function calculateMonthlyStats(
   let totalMinutes = 0;
   let totalCalories = 0;
 
-  workouts.forEach((w) => {
-    workoutsByType[w.type] = (workoutsByType[w.type] || 0) + 1;
-    totalMinutes += w.duration;
+  dataWorkouts.forEach((w) => {
+    const type = w.type || 'unknown';
+    workoutsByType[type] = (workoutsByType[type] || 0) + 1;
+    totalMinutes += w.duration || 0;
     totalCalories += w.caloriesBurned || 0;
   });
 
   return {
-    workoutsCompleted: workouts.length,
+    workoutsCompleted: dataWorkouts.length,
     totalWorkoutMinutes: totalMinutes,
     totalCaloriesBurned: totalCalories,
     workoutsByType,
-    streakCurrent: gamificationProfile?.streakCurrent || 0,
-    streakLongest: gamificationProfile?.streakLongest || 0,
+    streakCurrent: dataGamificationProfile?.streakCurrent || 0,
+    streakLongest: dataGamificationProfile?.streakLongest || 0,
     pointsEarned: 0, // TODO: Calculate from pointTransactions
-    badgesEarned: badges.length,
-    achievementsCompleted: achievements.filter(a => a.completed).length,
+    badgesEarned: dataBadges.length,
+    achievementsCompleted: dataAchievements.filter(a => a.completed).length,
   };
 }
 
@@ -334,7 +316,7 @@ export async function calculateMonthlyStats(
  * Generate and send a monthly report email
  */
 export async function sendMonthlyReport(
-  drizzle: any,
+  drizzle: DrizzleD1Database<typeof schema>,
   user: User,
   year: number,
   month: number,
@@ -344,18 +326,28 @@ export async function sendMonthlyReport(
     // Check if user has opted in for reports (TODO: add user preference field)
     // For now, assume all users receive reports
 
+    // Date range for the month
+    const startDate = Date.UTC(year, month - 1, 1);
+    const endDate = Date.UTC(year, month, 1);
+
     // Calculate stats
     const stats = await calculateMonthlyStats(drizzle, user.id, year, month);
 
     // Get weight and body fat changes
     const [bodyMetricsStart, bodyMetricsEnd] = await Promise.all([
       drizzle.query.bodyMetrics.findFirst({
-        where: (bm: any) => bm.userId.eq(user.id),
-        orderBy: (bm: any) => bm.timestamp.asc(),
+        where: and(
+          eq(bodyMetrics.userId, user.id),
+          lt(bodyMetrics.timestamp, startDate)
+        ),
+        orderBy: desc(bodyMetrics.timestamp),
       }),
       drizzle.query.bodyMetrics.findFirst({
-        where: (bm: any) => bm.userId.eq(user.id),
-        orderBy: (bm: any) => bm.timestamp.desc(),
+        where: and(
+          eq(bodyMetrics.userId, user.id),
+          lt(bodyMetrics.timestamp, endDate)
+        ),
+        orderBy: desc(bodyMetrics.timestamp),
       }),
     ]);
 
@@ -376,20 +368,23 @@ export async function sendMonthlyReport(
       : undefined;
 
     // Get recent badges and achievements
-    const monthStart = Date.UTC(year, month - 1, 1);
-    const monthEnd = Date.UTC(year, month, 1);
-
-    const [badges, achievements] = await Promise.all([
+    const [dataBadges, dataAchievements] = await Promise.all([
       drizzle.query.badges.findMany({
-        where: (b: any) =>
-          b.userId.eq(user.id).and(b.earnedAt.gte(monthStart)).and(b.earnedAt.lt(monthEnd)),
-        orderBy: (b: any) => b.earnedAt.desc(),
+        where: and(
+          eq(badges.userId, user.id),
+          gte(badges.earnedAt, startDate),
+          lt(badges.earnedAt, endDate)
+        ),
+        orderBy: desc(badges.earnedAt),
         limit: 5,
       }),
       drizzle.query.achievements.findMany({
-        where: (a: any) =>
-          a.userId.eq(user.id).and(a.completedAt.gte(monthStart)).and(a.completedAt.lt(monthEnd)),
-        orderBy: (a: any) => a.completedAt.desc(),
+        where: and(
+          eq(achievementsTable.userId, user.id),
+          gte(achievementsTable.completedAt, startDate),
+          lt(achievementsTable.completedAt, endDate)
+        ),
+        orderBy: desc(achievementsTable.completedAt),
         limit: 5,
       }),
     ]);
@@ -407,8 +402,20 @@ export async function sendMonthlyReport(
       stats,
       weightChange,
       bodyFatChange,
-      recentBadges: badges,
-      recentAchievements: achievements,
+      recentBadges: dataBadges as unknown as Badge[],
+      recentAchievements: dataAchievements
+        .filter(a => a.completed !== null && a.completed !== undefined && (a.completed as number) === 1)
+        .map(a => ({
+          id: a.id,
+          userId: a.userId,
+          type: ((a.type as unknown) as AchievementType) || 'strength',
+          progress: a.progress || 0,
+          target: a.target || 0,
+          reward: a.reward || 0,
+          completed: true,
+          completedAt: a.completedAt ? new Date(a.completedAt * 1000) : undefined,
+          claimed: !!a.claimed,
+        })) as unknown as Achievement[],
       gamificationLevel: 1, // TODO: fetch from gamificationProfiles
       exportLink,
     };
@@ -444,7 +451,7 @@ export async function sendMonthlyReport(
 
     return { success: true };
   } catch (error) {
-    console.error(`Failed to send monthly report to ${user.email}:`, error);
+    console.error(`Failed to send monthly report to ${user.email}:`, error); // eslint-disable-line no-console
     return { success: false, error: String(error) };
   }
 }

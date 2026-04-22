@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "strict": true,
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -12,10 +12,15 @@
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
       "@aivo/db": ["../../packages/db/src"],
-      "@aivo/api-client": ["../../packages/api-client/src"]
+      "@aivo/infographic-generator": ["../../packages/infographic-generator/pkg"],
+      "@aivo/api-client": ["../../packages/api-client/src"],
+      "@aivo/memory-service": ["../../packages/memory-service/src"],
+      "@aivo/optimizer": ["../../packages/optimizer/pkg"]
     },
     "types": ["@cloudflare/workers-types"],
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]

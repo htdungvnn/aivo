@@ -1,7 +1,7 @@
-import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation } from "@aivo/shared-types";
+import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison } from "@aivo/shared-types";
 
 // Re-export types for convenient consumption by mobile/web apps
-export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation };
+export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison };
 
 /**
  * Export format types
@@ -259,6 +259,94 @@ export class ApiClient {
     }
 
     return response.json() as Promise<ApiResponse<VisionAnalysis>>;
+  }
+
+  // ==================== Body Photos & Heatmap APIs ====================
+
+  /**
+   * Upload a body photo for analysis
+   */
+  async uploadBodyPhoto(file: Blob | File): Promise<ApiResponse<{ photo: BodyPhotoRecord }>> {
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    const headers = await this.getAuthHeaders();
+
+    // Don't set Content-Type for FormData - browser/RN will set boundary automatically
+    delete headers["Content-Type"];
+
+    const response = await fetch(`${this.baseUrl}/body-photos/upload`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Upload failed", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ photo: BodyPhotoRecord }>>;
+  }
+
+  /**
+   * Trigger AI analysis of an uploaded photo
+   */
+  async analyzeBodyPhoto(photoId: string): Promise<ApiResponse<{ heatmap: StoredHeatmap; analysis: VisionAnalysisResult }>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/body-photos/${encodeURIComponent(photoId)}/analyze`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Analysis failed", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ heatmap: StoredHeatmap; analysis: VisionAnalysisResult }>>;
+  }
+
+  /**
+   * Get the current (latest) heatmap for the user
+   */
+  async getCurrentHeatmap(): Promise<ApiResponse<{ heatmap: StoredHeatmap | null; photo: BodyPhotoRecord | null }>> {
+    return this.request("/body-heatmap/current");
+  }
+
+  /**
+   * Get heatmap history with pagination
+   */
+  async getHeatmapHistory(params?: { limit?: number; offset?: number }): Promise<ApiResponse<Array<{ heatmap: StoredHeatmap; photo: BodyPhotoRecord }>>> {
+    const url = new URL("/body-heatmap/history", this.baseUrl);
+    if (params?.limit) url.searchParams.append("limit", params.limit.toString());
+    if (params?.offset) url.searchParams.append("offset", params.offset.toString());
+    return this.request(url.toString());
+  }
+
+  /**
+   * Get a specific heatmap by ID
+   */
+  async getHeatmap(id: string): Promise<ApiResponse<{ heatmap: StoredHeatmap; photo: BodyPhotoRecord }>> {
+    return this.request(`/body-heatmap/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * Compare two heatmaps (or current vs previous if only one ID provided)
+   */
+  async compareHeatmaps(id1: string, id2?: string): Promise<ApiResponse<HeatmapComparison>> {
+    const url = new URL("/body-heatmap/compare", this.baseUrl);
+    url.searchParams.append("id1", id1);
+    if (id2) url.searchParams.append("id2", id2);
+    return this.request(url.toString());
+  }
+
+  /**
+   * Delete a body photo and its associated heatmap
+   */
+  async deleteBodyPhoto(id: string): Promise<ApiResponse<{ success: boolean }>> {
+    return this.request(`/body-photos/${encodeURIComponent(id)}`, { method: "DELETE" });
   }
 
   // ==================== AI APIs ====================

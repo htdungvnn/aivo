@@ -1,12 +1,32 @@
 import { Hono } from "hono";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
-import { ExcelGenerator, generateCSV, generateJSON } from "@aivo/excel-export";
+import { ExcelGenerator, generateJSON } from "@aivo/excel-export";
+import type { D1Database } from "drizzle-orm/d1";
+import type { Body } from "hono";
+// Import Drizzle tables for runtime (needed for queries and typeof)
+import type {
+  users,
+  workouts,
+  workoutExercises,
+  dailySchedules,
+  bodyMetrics,
+  bodyHeatmaps,
+  visionAnalyses,
+  conversations,
+  aiRecommendations,
+  badges,
+  achievements,
+  socialProofCards,
+  activityEvents} from "@aivo/db";
+import {
+  gamificationProfiles
+} from "@aivo/db";
+
+// Type imports for row data interfaces (optional, but helpful)
 import type {
   User,
   Workout,
-  WorkoutExercise,
   DailySchedule,
   ScheduledWorkout,
   BodyMetric,
@@ -20,10 +40,23 @@ import type {
   SocialProofCard,
   ActivityEvent,
   WorkoutExercise as SharedWorkoutExercise,
+  UserGoal,
 } from "@aivo/shared-types";
 
-// Import Drizzle tables
-import { users, workouts, workoutExercises, dailySchedules, bodyMetrics, bodyHeatmaps, visionAnalyses, conversations, aiRecommendations, gamificationProfiles, badges, achievements, socialProofCards, activityEvents } from "@aivo/db";
+// Type aliases for Drizzle row types
+type UserRow = typeof users.$TypedSelect;
+type WorkoutRow = typeof workouts.$TypedSelect;
+type WorkoutExerciseRow = typeof workoutExercises.$TypedSelect;
+type DailyScheduleRow = typeof dailySchedules.$TypedSelect;
+type BodyMetricRow = typeof bodyMetrics.$TypedSelect;
+type BodyHeatmapRow = typeof bodyHeatmaps.$TypedSelect;
+type VisionAnalysisRow = typeof visionAnalyses.$TypedSelect;
+type ConversationRow = typeof conversations.$TypedSelect;
+type AIRecommendationRow = typeof aiRecommendations.$TypedSelect;
+type BadgeRow = typeof badges.$TypedSelect;
+type AchievementRow = typeof achievements.$TypedSelect;
+type SocialProofCardRow = typeof socialProofCards.$TypedSelect;
+type ActivityEventRow = typeof activityEvents.$TypedSelect;
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -39,13 +72,13 @@ const ExportQuerySchema = z.object({
 
 // Helper: Convert Unix timestamp (seconds) to Date
 const toDate = (timestamp: number | null | undefined): Date | undefined => {
-  if (timestamp == null) return undefined;
+  if (timestamp === null || timestamp === undefined) { return undefined; }
   return new Date(timestamp * 1000);
 };
 
 // Helper: Parse JSON string safely
 const parseJson = <T>(str: string | null | undefined, fallback: T): T => {
-  if (!str) return fallback;
+  if (str === null || str === undefined) { return fallback; }
   try {
     return JSON.parse(str) as T;
   } catch {
@@ -55,12 +88,12 @@ const parseJson = <T>(str: string | null | undefined, fallback: T): T => {
 
 // Helper: Convert integer flag to boolean
 const toBool = (val: number | null | undefined): boolean => {
-  if (val == null) return false;
-  return val === 1 || val === true;
+  if (val === null || val === undefined) { return false; }
+  return val === 1;
 };
 
 // Transform DB row to User
-const transformUser = (row: any): User => ({
+const transformUser = (row: UserRow): User => ({
   id: row.id,
   email: row.email,
   name: row.name,
@@ -71,14 +104,14 @@ const transformUser = (row: any): User => ({
   restingHeartRate: row.resting_heart_rate ?? undefined,
   maxHeartRate: row.max_heart_rate ?? undefined,
   fitnessLevel: row.fitness_level ?? undefined,
-  goals: row.goals ? parseJson<string[]>(row.goals, []) : undefined,
+  goals: row.goals ? (parseJson<string[]>(row.goals, []) as UserGoal[]) : undefined,
   picture: row.picture ?? undefined,
   createdAt: toDate(row.created_at)!,
   updatedAt: toDate(row.updated_at)!,
 });
 
 // Transform DB row to Workout (exercises added separately)
-const transformWorkout = (row: any): Workout => ({
+const transformWorkout = (row: WorkoutRow): Workout => ({
   id: row.id,
   userId: row.user_id,
   type: row.type,
@@ -96,8 +129,9 @@ const transformWorkout = (row: any): Workout => ({
 });
 
 // Transform DB row to WorkoutExercise
-const transformWorkoutExercise = (row: any): SharedWorkoutExercise => ({
+const transformWorkoutExercise = (row: WorkoutExerciseRow): SharedWorkoutExercise => ({
   id: row.id,
+  workoutId: row.workout_id,
   name: row.name,
   sets: row.sets,
   reps: row.reps,
@@ -109,13 +143,13 @@ const transformWorkoutExercise = (row: any): SharedWorkoutExercise => ({
 });
 
 // Transform DB row to ScheduledWorkout (from daily_schedules with joined workout)
-const transformScheduledWorkout = (schedule: any, workout: any | null): ScheduledWorkout => {
+const transformScheduledWorkout = (schedule: DailyScheduleRow, workout: WorkoutRow | null): ScheduledWorkout => {
   if (!workout) {
     return {
       workoutId: schedule.workout_id ?? undefined,
       templateId: undefined,
       customName: "Untitled",
-      type: (schedule.type as any) ?? "other",
+      type: schedule.type ?? "other",
       duration: schedule.duration ?? 0,
       estimatedCalories: schedule.estimated_calories ?? 0,
       exercises: [],
@@ -135,7 +169,7 @@ const transformScheduledWorkout = (schedule: any, workout: any | null): Schedule
 };
 
 // Transform DB row to DailySchedule
-const transformDailySchedule = (row: any, workout: any = null): DailySchedule => ({
+const transformDailySchedule = (row: DailyScheduleRow, workout: WorkoutRow | null = null): DailySchedule => ({
   id: row.id,
   userId: row.user_id,
   date: row.date,
@@ -143,13 +177,13 @@ const transformDailySchedule = (row: any, workout: any = null): DailySchedule =>
   recoveryTasks: parseJson(row.recovery_tasks, []),
   nutritionGoals: parseJson(row.nutrition_goals, []),
   sleepGoal: parseJson(row.sleep_goal, undefined),
-  generatedBy: row.generated_by as any,
+  generatedBy: row.generated_by as string,
   optimizationScore: row.optimization_score ?? undefined,
   adjustmentsMade: parseJson(row.adjustments_made, []),
 });
 
 // Transform DB row to BodyMetric
-const transformBodyMetric = (row: any): BodyMetric => ({
+const transformBodyMetric = (row: BodyMetricRow): BodyMetric => ({
   id: row.id,
   userId: row.user_id,
   timestamp: row.timestamp * 1000,
@@ -167,7 +201,7 @@ const transformBodyMetric = (row: any): BodyMetric => ({
 });
 
 // Transform DB row to BodyHeatmapData
-const transformBodyHeatmap = (row: any): BodyHeatmapData => ({
+const transformBodyHeatmap = (row: BodyHeatmapRow): BodyHeatmapData => ({
   id: row.id,
   userId: row.user_id,
   timestamp: row.timestamp * 1000,
@@ -177,18 +211,18 @@ const transformBodyHeatmap = (row: any): BodyHeatmapData => ({
 });
 
 // Transform DB row to VisionAnalysis
-const transformVisionAnalysis = (row: any): VisionAnalysis => ({
+const transformVisionAnalysis = (row: VisionAnalysisRow): VisionAnalysis => ({
   id: row.id,
   userId: row.user_id,
   imageUrl: row.image_url,
   processedUrl: row.processed_url ?? undefined,
-  analysis: parseJson(row.analysis, {}),
+  analysis: parseJson(row.analysis, { muscleDevelopment: [], riskFactors: [] }),
   confidence: row.confidence ?? 0,
   createdAt: row.created_at * 1000,
 });
 
 // Transform DB row to Conversation
-const transformConversation = (row: any): Conversation => ({
+const transformConversation = (row: ConversationRow): Conversation => ({
   id: row.id,
   userId: row.user_id,
   message: row.message,
@@ -200,7 +234,7 @@ const transformConversation = (row: any): Conversation => ({
 });
 
 // Transform DB row to AIRecommendation
-const transformAIRecommendation = (row: any): AIRecommendation => ({
+const transformAIRecommendation = (row: AIRecommendationRow): AIRecommendation => ({
   id: row.id,
   userId: row.user_id,
   type: row.type,
@@ -212,26 +246,26 @@ const transformAIRecommendation = (row: any): AIRecommendation => ({
   expiresAt: row.expires_at ? toDate(row.expires_at) : undefined,
   isRead: toBool(row.is_read),
   isDismissed: toBool(row.is_dismissed),
-  feedback: row.feedback ? (parseJson(row.feedback, {}) as any) : undefined,
+  feedback: row.feedback ? (parseJson(row.feedback, {}) as Record<string, unknown>) : undefined,
   createdAt: toDate(row.created_at)!,
 });
 
 // Transform DB row to Badge
-const transformBadge = (row: any): Badge => ({
+const transformBadge = (row: BadgeRow): Badge => ({
   id: row.id,
-  type: row.type as any,
+  type: row.type as string,
   name: row.name,
   description: row.description,
   icon: row.icon,
   earnedAt: toDate(row.earned_at)!,
-  tier: row.tier as any,
+  tier: row.tier as string,
 });
 
 // Transform DB row to Achievement
-const transformAchievement = (row: any): Achievement => ({
+const transformAchievement = (row: AchievementRow): Achievement => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type as any,
+  type: row.type as string,
   progress: row.progress ?? 0,
   target: row.target,
   reward: row.reward,
@@ -241,10 +275,10 @@ const transformAchievement = (row: any): Achievement => ({
 });
 
 // Transform DB row to SocialProofCard
-const transformSocialProofCard = (row: any): SocialProofCard => ({
+const transformSocialProofCard = (row: SocialProofCardRow): SocialProofCard => ({
   id: row.id,
   userId: row.user_id,
-  type: row.type as any,
+  type: row.type as string,
   title: row.title,
   subtitle: row.subtitle ?? "",
   data: parseJson(row.data, { value: 0, label: "", icon: "", color: "" }),
@@ -254,15 +288,15 @@ const transformSocialProofCard = (row: any): SocialProofCard => ({
 });
 
 // Transform DB row to ActivityEvent
-const transformActivityEvent = (row: any): ActivityEvent => ({
+const transformActivityEvent = (row: ActivityEventRow): ActivityEvent => ({
   id: row.id,
   userId: row.user_id,
   workoutId: row.workout_id ?? undefined,
-  type: row.type as any,
+  type: row.type as string,
   payload: parseJson(row.payload, {}),
   clientTimestamp: toDate(row.client_timestamp)!,
   serverTimestamp: toDate(row.server_timestamp)!,
-  deviceInfo: row.device_info ? (parseJson(row.device_info, {}) as any) : undefined,
+  deviceInfo: row.device_info ? (parseJson(row.device_info, {}) as Record<string, unknown>) : undefined,
 });
 
 export const ExportRouter = () => {
@@ -317,16 +351,14 @@ export const ExportRouter = () => {
         }),
         // Body Metrics with optional date range
         drizzle.query.bodyMetrics.findMany({
-          where: (bm, { eq }) => eq(bm.userId, userId),
-          ...(startTimeMs && endTimeMs && {
-            timestamp: { gte: startTimeMs, lte: endTimeMs }
-          }),
+          where: (bm, { and, gte, lte, eq }) =>
+            and(eq(bm.userId, userId), ...(startTimeMs && endTimeMs ? [gte(bm.timestamp, startTimeMs), lte(bm.timestamp, endTimeMs)] : [])),
           orderBy: (bm, { desc }) => desc(bm.timestamp),
         }),
         // Body Heatmaps
         drizzle.query.bodyHeatmaps.findMany({
           where: (bh, { eq }) => eq(bh.userId, userId),
-          orderBy: (bh, { desc }) => desc(bh.timestamp),
+          orderBy: (bh, { desc }) => desc(bh.createdAt),
         }),
         // Vision Analyses
         drizzle.query.visionAnalyses.findMany({
@@ -381,26 +413,32 @@ export const ExportRouter = () => {
       const conversationsList: Conversation[] = conversationRows.map(transformConversation);
       const aiRecommendationsList: AIRecommendation[] = aiRecommendationRows.map(transformAIRecommendation);
       const dailySchedulesList: DailySchedule[] = dailyScheduleRows.map(transformDailySchedule);
-      const gamificationProfile = gamificationProfileRows ? {
-        ...transformUser({ ...gamificationProfileRows, ...users }),
-        totalPoints: gamificationProfileRows.total_points,
-        level: gamificationProfileRows.level,
-        currentXp: gamificationProfileRows.current_xp,
-        xpToNextLevel: gamificationProfileRows.xp_to_next_level,
-        streak: {
-          current: gamificationProfileRows.streak_current,
-          longest: gamificationProfileRows.streak_longest,
-          lastActivityDate: gamificationProfileRows.last_activity_date,
-        },
-        badges: [],
-        achievements: [],
-        socialProofCards: [],
-        leaderboardPosition: gamificationProfileRows.leaderboard_position ?? undefined,
-      } as GamificationProfile : undefined;
       const badgesList: Badge[] = badgeRows.map(transformBadge);
       const achievementsList: Achievement[] = achievementRows.map(transformAchievement);
       const socialProofCardsList: SocialProofCard[] = socialProofCardRows.map(transformSocialProofCard);
       const activityEventsList: ActivityEvent[] = activityEventRows.map(transformActivityEvent);
+
+      // Build gamification profile if user has one
+      let gamificationProfile: GamificationProfile | undefined;
+      if (gamificationProfileRows) {
+        gamificationProfile = {
+          id: gamificationProfileRows.id,
+          userId: user.id,
+          totalPoints: gamificationProfileRows.totalPoints ?? 0,
+          level: gamificationProfileRows.level ?? 1,
+          currentXp: gamificationProfileRows.currentXp ?? 0,
+          xpToNextLevel: gamificationProfileRows.xpToNextLevel ?? 100,
+          streak: {
+            current: gamificationProfileRows.streakCurrent ?? 0,
+            longest: gamificationProfileRows.streakLongest ?? 0,
+            lastActivityDate: gamificationProfileRows.lastActivityDate ?? new Date().toISOString().split('T')[0],
+          },
+          badges: badgesList,
+          achievements: achievementsList,
+          socialProofCards: socialProofCardsList,
+          leaderboardPosition: undefined,
+        };
+      }
 
       // Fetch workout exercises separately and enrich workouts
       const workoutIds = transformedWorkouts.map((w) => w.id);
@@ -441,7 +479,7 @@ export const ExportRouter = () => {
       };
 
       // Generate file based on format
-      let buffer: Buffer;
+      let buffer: Uint8Array;
       let contentType: string;
       let filename: string;
 
@@ -451,19 +489,20 @@ export const ExportRouter = () => {
         case "csv":
           contentType = "application/json";
           filename = `aivo-export-${userId}-${dateStr}.json`;
-          buffer = Buffer.from(generateJSON(exportData));
+          buffer = new TextEncoder().encode(generateJSON(exportData));
           break;
 
         case "json":
           contentType = "application/json";
           filename = `aivo-export-${userId}-${dateStr}.json`;
-          buffer = Buffer.from(generateJSON(exportData));
+          buffer = new TextEncoder().encode(generateJSON(exportData));
           break;
 
         case "xlsx":
         default:
           const generator = new ExcelGenerator();
-          buffer = generator.generateAll(exportData);
+          const xlsxBuffer = generator.generateAll(exportData);
+          buffer = Buffer.from(xlsxBuffer);
           contentType =
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
           filename = `aivo-export-${userId}-${dateStr}.xlsx`;
@@ -478,8 +517,9 @@ export const ExportRouter = () => {
       );
       c.header("Content-Length", buffer.length.toString());
 
-      return c.body(buffer);
+      return c.body(buffer as Body);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Export error:", error);
       return c.json({ success: false, error: "Export failed" }, 500);
     }
@@ -496,7 +536,7 @@ export const ExportRouter = () => {
     const format = c.req.query("format") as ExportFormat || "xlsx";
     const dateStr = new Date().toISOString().split("T")[0];
 
-    let buffer: Buffer;
+    let buffer: Uint8Array;
     let contentType: string;
     let filename: string;
 
@@ -512,13 +552,13 @@ export const ExportRouter = () => {
           "Weight (kg)",
           "Body Fat (%)",
         ].join(",");
-        buffer = Buffer.from(csvHeaders + "\n");
+        buffer = new TextEncoder().encode(csvHeaders + "\n");
         break;
 
       case "json":
         contentType = "application/json";
         filename = `aivo-template-${dateStr}.json`;
-        buffer = Buffer.from(JSON.stringify({ template: "aivo_export", version: "1.0", sheets: [] }, null, 2));
+        buffer = new TextEncoder().encode(JSON.stringify({ template: "aivo_export", version: "1.0", sheets: [] }, null, 2));
         break;
 
       case "xlsx":
@@ -553,7 +593,8 @@ export const ExportRouter = () => {
           socialProofCards: [],
           activityEvents: [],
         };
-        buffer = generator.generateAll(emptyData);
+        const xlsxBuffer = generator.generateAll(emptyData);
+        buffer = Buffer.from(xlsxBuffer);
         contentType =
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         filename = `aivo-template-${dateStr}.xlsx`;
@@ -569,32 +610,3 @@ export const ExportRouter = () => {
 
   return router;
 };
-
-// Drizzle query builder helpers
-function eq(column: any) {
-  return (value: any) => ({ eq: value });
-}
-
-function and(...conditions: any[]) {
-  return { and: conditions };
-}
-
-function gte(column: any, value: any) {
-  return { gte: value };
-}
-
-function lte(column: any, value: any) {
-  return { lte: value };
-}
-
-function inArray(column: any, values: any[]) {
-  return { in: values };
-}
-
-function desc(column: any) {
-  return { desc: column };
-}
-
-function asc(column: any) {
-  return { asc: column };
-}

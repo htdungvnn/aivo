@@ -3,8 +3,7 @@
  * Handles image uploads, downloads, and management for Cloudflare R2
  */
 
-// Use any for R2Bucket to avoid type incompatibilities between global and module types
-type AnyR2Bucket = any;
+import type { R2Bucket, R2Object } from "@cloudflare/workers-types";
 
 // Type guard for R2 errors
 function isR2Error(error: unknown): error is { code: string } {
@@ -41,7 +40,7 @@ export function generateR2Key(userId: string, filename: string, prefix = "body-i
  * Generate a presigned URL for uploading directly from client
  * (For future use when clients upload directly to R2)
  */
-export function generatePresignedUrl(bucket: AnyR2Bucket, key: string, contentType: string, _ttlSeconds = 3600): string {
+export function generatePresignedUrl(bucket: R2Bucket, key: string, contentType: string, _ttlSeconds = 3600): string {
   // Note: This is a simplified version. In production, use the R2 presign API
   // via `r2.presignedPutObject` or the Workers API
   const bucketName = bucket.name || "bucket";
@@ -54,7 +53,7 @@ export function generatePresignedUrl(bucket: AnyR2Bucket, key: string, contentTy
  * @param options - Upload options
  * @returns Object info with public URL
  */
-export async function uploadImage(bucket: AnyR2Bucket, options: R2UploadOptions): Promise<R2ObjectInfo> {
+export async function uploadImage(bucket: R2Bucket, options: R2UploadOptions): Promise<R2ObjectInfo> {
   const { userId, image, filename = `image-${Date.now()}.jpg`, contentType, metadata = {} } = options;
 
   const key = generateR2Key(userId, filename);
@@ -73,7 +72,7 @@ export async function uploadImage(bucket: AnyR2Bucket, options: R2UploadOptions)
 
   return {
     key,
-    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
+    url: `https://${bucket.name || "bucket"}.r2.dev/${key}`,
     size: image.byteLength || image.length,
     contentType,
     uploadedAt: new Date(),
@@ -83,20 +82,20 @@ export async function uploadImage(bucket: AnyR2Bucket, options: R2UploadOptions)
 /**
  * Delete image from R2 bucket
  */
-export async function deleteImage(bucket: AnyR2Bucket, key: string): Promise<void> {
+export async function deleteImage(bucket: R2Bucket, key: string): Promise<void> {
   await bucket.delete(key);
 }
 
 /**
  * Get image metadata from R2
  */
-export async function getImageInfo(bucket: AnyR2Bucket, key: string): Promise<R2ObjectInfo | null> {
+export async function getImageInfo(bucket: R2Bucket, key: string): Promise<R2ObjectInfo | null> {
   try {
     const object = await bucket.head(key);
 
     return {
       key,
-      url: `https://${(bucket as any).name || "bucket"}.r2.dev/${key}`,
+      url: `https://${bucket.name || "bucket"}.r2.dev/${key}`,
       size: object.size,
       contentType: object.httpMetadata?.contentType || "application/octet-stream",
       uploadedAt: new Date(object.uploaded || Date.now()),
@@ -112,15 +111,15 @@ export async function getImageInfo(bucket: AnyR2Bucket, key: string): Promise<R2
 /**
  * List objects for a user
  */
-export async function listUserImages(bucket: AnyR2Bucket, userId: string, prefix = "body-images"): Promise<R2ObjectInfo[]> {
+export async function listUserImages(bucket: R2Bucket, userId: string, prefix = "body-images"): Promise<R2ObjectInfo[]> {
   const userPrefix = `${prefix}/${userId}/`;
   const objects = await bucket.list({
     prefix: userPrefix,
   });
 
-  return objects.objects.map((obj) => ({
+  return objects.objects.map((obj: R2Object) => ({
     key: obj.key,
-    url: `https://${(bucket as any).name || "bucket"}.r2.dev/${obj.key}`,
+    url: `https://${bucket.name || "bucket"}.r2.dev/${obj.key}`,
     size: obj.size,
     contentType: obj.httpMetadata?.contentType || "application/octet-stream",
     uploadedAt: new Date(obj.uploaded || Date.now()),
@@ -154,4 +153,35 @@ export function validateImage(buffer: Buffer | Uint8Array, maxSize = 5 * 1024 * 
   }
 
   return { valid: false, error: "Invalid image format. Supported: JPEG, PNG, WebP" };
+}
+
+/**
+ * Validate video file (size, type)
+ */
+export function validateVideo(buffer: Buffer | Uint8Array, maxSize = 100 * 1024 * 1024): { valid: boolean; error?: string } {
+  if (buffer.byteLength > maxSize) {
+    return { valid: false, error: `Video size exceeds ${maxSize / 1024 / 1024}MB limit` };
+  }
+
+  // Check magic bytes for common video formats
+  const bytes = new Uint8Array(buffer).subarray(0, 12);
+
+  // MP4 (ISO Base Media file format): 00 00 00 ?? 66 74 79 70 (ftyp)
+  // Check for ftyp box at start
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return { valid: true };
+  }
+
+  // QuickTime MOV: same ftyp pattern but different major brand
+  // Also MOV can start with "moov" but we'll check ftyp
+  if (bytes[4] === 0x6d && bytes[5] === 0x6f && bytes[6] === 0x6f && bytes[7] === 0x76) {
+    return { valid: true };
+  }
+
+  // WebM: 1A 45 DF A3 (EBML header)
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
+    return { valid: true };
+  }
+
+  return { valid: false, error: "Invalid video format. Supported: MP4, MOV, WebM" };
 }

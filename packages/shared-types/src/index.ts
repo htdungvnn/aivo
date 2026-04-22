@@ -248,6 +248,7 @@ export interface HeartRateZone {
 
 export interface WorkoutExercise {
   id?: string;
+  workoutId: string;
   name: string;
   sets: number;
   reps: number;
@@ -958,6 +959,174 @@ export function aggregateHeatmapPoints(
 }
 
 // ============================================
+// VISION-TO-SVG HEATMAP ENGINE TYPES
+// ============================================
+
+/**
+ * Pre-defined body zones for SVG heatmap rendering
+ * Coordinates are normalized (0-1) relative to SVG viewport
+ */
+export interface BodyZone {
+  id: string;
+  name: string;
+  bounds: {
+    x: number; // 0-1 left offset
+    y: number; // 0-1 top offset
+    width: number; // 0-1 width
+    height: number; // 0-1 height
+  };
+  muscles: string[]; // Primary muscle groups in this zone
+}
+
+export const BODY_ZONES: BodyZone[] = [
+  // Upper Body
+  {
+    id: "chest",
+    name: "Chest",
+    bounds: { x: 0.35, y: 0.18, width: 0.30, height: 0.15 },
+    muscles: ["pectorals", "deltoids_front"],
+  },
+  {
+    id: "back_upper",
+    name: "Upper Back",
+    bounds: { x: 0.35, y: 0.12, width: 0.30, height: 0.15 },
+    muscles: ["trapezius", "deltoids_rear", "lats"],
+  },
+  {
+    id: "shoulders",
+    name: "Shoulders",
+    bounds: { x: 0.25, y: 0.18, width: 0.50, height: 0.08 },
+    muscles: ["deltoids"],
+  },
+  {
+    id: "arms",
+    name: "Arms",
+    bounds: { x: 0.15, y: 0.20, width: 0.10, height: 0.30 },
+    muscles: ["biceps", "triceps", "forearms"],
+  },
+
+  // Core
+  {
+    id: "abs_upper",
+    name: "Upper Abs",
+    bounds: { x: 0.35, y: 0.32, width: 0.30, height: 0.08 },
+    muscles: ["rectus_abdominis"],
+  },
+  {
+    id: "abs_lower",
+    name: "Lower Abs",
+    bounds: { x: 0.35, y: 0.40, width: 0.30, height: 0.10 },
+    muscles: ["rectus_abdominis", "hip_flexors"],
+  },
+  {
+    id: "obliques",
+    name: "Obliques",
+    bounds: { x: 0.25, y: 0.35, width: 0.50, height: 0.12 },
+    muscles: ["obliques", "serratus_anterior"],
+  },
+  {
+    id: "lower_back",
+    name: "Lower Back",
+    bounds: { x: 0.35, y: 0.28, width: 0.30, height: 0.08 },
+    muscles: ["erector_spinae"],
+  },
+
+  // Lower Body
+  {
+    id: "glutes",
+    name: "Glutes",
+    bounds: { x: 0.35, y: 0.50, width: 0.30, height: 0.12 },
+    muscles: ["gluteus_maximus"],
+  },
+  {
+    id: "quads",
+    name: "Quadriceps",
+    bounds: { x: 0.30, y: 0.62, width: 0.40, height: 0.20 },
+    muscles: ["quadriceps"],
+  },
+  {
+    id: "hamstrings",
+    name: "Hamstrings",
+    bounds: { x: 0.30, y: 0.82, width: 0.40, height: 0.15 },
+    muscles: ["hamstrings"],
+  },
+  {
+    id: "calves",
+    name: "Calves",
+    bounds: { x: 0.35, y: 0.97, width: 0.30, height: 0.10 },
+    muscles: ["gastrocnemius", "soleus"],
+  },
+];
+
+/**
+ * Heatmap region data for a specific body zone
+ */
+export interface HeatmapRegion {
+  zoneId: string;
+  intensity: number; // 0-100 (fat percentage or lean score, lower is better)
+  color: string; // Calculated from intensity
+  confidence: number; // 0-1 from vision analysis
+}
+
+/**
+ * Complete vision analysis result from Claude
+ */
+export interface VisionAnalysisResult {
+  photoId: string;
+  pose: "front" | "back" | "side" | "unknown";
+  regions: HeatmapRegion[];
+  metrics: {
+    upperBodyScore: number; // 0-100, lower is better
+    coreScore: number;
+    lowerBodyScore: number;
+    overallScore: number;
+  };
+  processedAt: string;
+}
+
+/**
+ * Stored heatmap record (from database)
+ */
+export interface StoredHeatmap {
+  id: string;
+  userId: string;
+  photoId: string;
+  regions: HeatmapRegion[];
+  metrics: {
+    upperBodyScore: number;
+    coreScore: number;
+    lowerBodyScore: number;
+    overallScore: number;
+  };
+  createdAt: number;
+}
+
+/**
+ * Body photo upload record
+ */
+export interface BodyPhotoRecord {
+  id: string;
+  userId: string;
+  r2Url: string;
+  thumbnailUrl?: string;
+  uploadDate: number;
+  analysisStatus: "pending" | "processing" | "completed" | "failed";
+  poseDetected?: boolean;
+}
+
+/**
+ * Heatmap comparison data showing progress between two measurements
+ */
+export interface HeatmapComparison {
+  current: StoredHeatmap;
+  previous?: StoredHeatmap;
+  differences: Record<
+    string,
+    { current: number; previous: number; change: number; trend: "improved" | "regressed" | "stable" }
+  >;
+}
+
+// ============================================
 // SECTION 13: POSTURE ANALYSIS - SHARED CONSTANTS & UTILITIES
 // ============================================
 
@@ -1237,4 +1406,495 @@ export function createErrorResponse<T = never>(error: string): ApiResponse<T> {
     timestamp: new Date(),
   };
 }
+
+// ============================================
+// SECTION 17: NUTRITION & FOOD LOGGING
+// ============================================
+
+/**
+ * Food item from nutritional database
+ */
+export interface FoodItem {
+  id: string;
+  name: string;
+  brand?: string;
+  servingSize: number; // grams per serving
+  servingUnit: string; // "g", "oz", "cup", "tbsp", "tsp", "piece"
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  sodium_mg?: number;
+  isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Food item detected by AI vision analysis
+ */
+export interface DetectedFoodItem {
+  name: string;
+  confidence: number; // 0-1
+  estimatedPortionG: number;
+  portionUnit: string; // "g", "oz", "cup", "tbsp", "tsp", "piece"
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  matchedFoodItemId?: string; // If matched to database
+}
+
+/**
+ * AI Vision analysis result for food image
+ */
+export interface FoodVisionAnalysis {
+  id: string;
+  userId: string;
+  imageUrl: string;
+  detectedItems: DetectedFoodItem[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  analysisConfidence: number; // 0-1
+  analysisNotes?: string;
+  portionEstimationMethod?: "volume_analysis" | "comparison" | "density_calc" | "ai_estimation";
+  createdAt: number; // Unix timestamp in milliseconds
+}
+
+/**
+ * Food log entry - user's recorded food consumption
+ */
+export interface FoodLog {
+  id: string;
+  userId: string;
+  mealType: MealType; // "breakfast", "lunch", "dinner", "snack", or custom
+  foodItemId?: string;
+  customName?: string;
+  imageUrl?: string;
+  estimatedPortionG?: number;
+  confidence?: number; // AI confidence if from vision
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  loggedAt: number; // Unix timestamp in milliseconds
+  createdAt: number;
+}
+
+/**
+ * Meal type discriminator - supports standard and custom types
+ */
+export type MealType =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snack"
+  | "pre_workout"
+  | "post_workout"
+  | "custom";
+
+/**
+ * Summary of nutrients for a single meal
+ */
+export interface MealSummary {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  itemCount: number;
+}
+
+/**
+ * Daily nutrition summary with targets
+ */
+export interface DailyNutritionSummary {
+  date: string; // ISO date YYYY-MM-DD
+  totalCalories: number;
+  targetCalories: number;
+  totalProtein: number;
+  targetProtein: number;
+  totalCarbs: number;
+  targetCarbs: number;
+  totalFat: number;
+  targetFat: number;
+  totalFiber?: number;
+  targetFiber?: number;
+  foodLogCount: number;
+  meals: {
+    breakfast?: MealSummary;
+    lunch?: MealSummary;
+    dinner?: MealSummary;
+    snack?: MealSummary;
+    [key: string]: MealSummary | undefined; // For custom meal types
+  };
+}
+
+/**
+ * User's macro targets (can be AI-suggested or manual)
+ */
+export interface MacroTargets {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number;
+  source: "ai_suggested" | "manual";
+  createdAt: number;
+}
+
+// ============================================
+// SECTION 18: AI-GENERATED INFOGRAPHICS
+// ============================================
+
+/**
+ * Infographic template types for social proof content
+ */
+export type InfographicTemplate =
+  | "weekly_summary"
+  | "milestone"
+  | "streak"
+  | "muscle_heatmap"
+  | "comparison";
+
+/**
+ * Color palette configuration for infographic theming
+ */
+export interface ColorPalette {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  textMuted: string;
+}
+
+/**
+ * Typography configuration for infographic rendering
+ */
+export interface TypographyConfig {
+  headlineFont: string;
+  bodyFont: string;
+  headlineSize: number;
+  subheadSize: number;
+  bodySize: number;
+}
+
+/**
+ * Complete infographic configuration
+ */
+export interface InfographicConfig {
+  template: InfographicTemplate;
+  theme: "dark" | "light" | "neon" | "ocean" | "sunset" | "vibrant";
+  layout: "portrait" | "landscape" | "square";
+  colorScheme: ColorPalette;
+  typography: TypographyConfig;
+  includeStats: string[];
+  includeComparison: boolean;
+}
+
+/**
+ * AI-generated story content for the infographic
+ */
+export interface InfographicStory {
+  headline: string;
+  subheadline?: string;
+  narrative: string;  // Main "hype" paragraph
+  stats: Array<{
+    label: string;
+    value: string | number;
+    unit?: string;
+    comparison?: string;  // e.g., "Top 10% of users"
+    icon?: string;
+  }>;
+  callToAction: string;
+  funFacts: string[];
+  tone: "motivational" | "celebratory" | "educational" | "competitive";
+  readingLevel: "easy" | "medium" | "challenging";
+}
+
+/**
+ * User statistics for infographic generation
+ */
+export interface UserStats {
+  period: {
+    startDate: string;  // ISO date YYYY-MM-DD
+    endDate: string;    // ISO date YYYY-MM-DD
+    type: "weekly" | "monthly" | "all_time";
+  };
+  workouts: {
+    count: number;
+    totalMinutes: number;
+    totalCalories: number;
+    avgDuration: number;
+    types: Record<WorkoutType, number>;
+    personalRecords: PersonalRecord[];
+  };
+  strength: {
+    totalVolume: number;
+    topExercises: Array<{ name: string; volume: number }>;
+    estimatedOneRMs: Record<string, number>;
+  };
+  gamification: {
+    streak: number;
+    longestStreak: number;
+    points: number;
+    level: number;
+    badges: number;
+    leaderboardRank?: number;
+    percentile?: number;
+  };
+  body: {
+    weightChange?: number;
+    bodyFatChange?: number;
+    muscleGain?: number;
+    bmi?: number;
+    healthScore?: number;
+    muscleDevelopment?: Array<{ group: MuscleGroup; score: number }>;
+  };
+  comparisons: {
+    vsAverage: Record<string, number>;
+    personalBests: Array<{ metric: string; improvement: number }>;
+  };
+}
+
+/**
+ * Complete infographic data structure
+ */
+export interface InfographicData {
+  id: string;
+  userId: string;
+  template: InfographicTemplate;
+  config: InfographicConfig;
+  story: InfographicStory;
+  stats: UserStats;
+  createdAt: Date;
+  shareableImageUrl?: string;  // R2 URL after rendering
+  svgContent?: string;  // Raw SVG (for debugging)
+  width: number;
+  height: number;
+}
+
+/**
+ * Personal record data
+ */
+export interface PersonalRecord {
+  exercise: string;
+  weight: number;
+  reps: number;
+  date: string;
+  previous?: number;
+  improvementPercent?: number;
+}
+
+/**
+ * Render result from WASM infographic generator
+ */
+export interface InfographicRenderResult {
+  svg: string;
+  pngBuffer?: Uint8Array;
+  pngUrl?: string;
+  renderTimeMs: number;
+  width: number;
+  height: number;
+}
+
+// Type alias for convenience
+export type InfographicRequest = {
+  period: { type: "weekly" | "monthly"; start: string; end?: string };
+  template?: string;
+  config?: Partial<InfographicConfig>;
+};
+
+// ============================================
+// SECTION 18: FORM ANALYSIS - AI-POWERED MOVEMENT CORRECTION
+// ============================================
+
+/**
+ * Supported exercise types for form analysis
+ */
+export type FormExerciseType = "squat" | "deadlift" | "bench_press" | "overhead_press" | "lunge";
+
+/**
+ * Video status lifecycle
+ */
+export type FormVideoStatus = "pending" | "processing" | "completed" | "failed";
+
+/**
+ * Specific movement flaw detected
+ */
+export type FormIssueType =
+  | "knee_valgus"           // Knees cave inward
+  | "knee_hyperextension"   // Locked knees
+  | "rounded_back"          // Thoracic spine rounding
+  | "excessive_lean"        // Excessive forward lean in deadlift
+  | "butt_wink"             // Pelvic tuck at bottom of squat
+  | "heels_rising"          // Heels lift off ground
+  | "incomplete_depth"      // Not hitting parallel in squat
+  | "bar_path_deviation"    // Bar moves forward/backward
+  | "hip_asymmetry"         // One hip rises before other
+  | "shoulder_elevation"    // Shoulders shrugged up
+  | "elbow_flare"           // Elbows flare out excessively
+  | "head_position"         // Head not neutral (cervical flexion/extension)
+  | "asymmetric_extension"; // Unequal limb extension
+
+/**
+ * Severity level of detected issue
+ */
+export type FormIssueSeverity = "minor" | "moderate" | "major";
+
+/**
+ * A specific form issue detected in the video
+ */
+export interface FormIssue {
+  type: FormIssueType;
+  severity: FormIssueSeverity;
+  confidence: number; // 0-1, AI confidence score
+  timestampMs: number; // Time in video where issue occurs (milliseconds)
+  description: string; // Human-readable explanation
+  impact: "performance" | "safety" | "both";
+}
+
+/**
+ * A correction drill to address a specific issue
+ */
+export interface FormCorrection {
+  issueType: FormIssueType;
+  drillName: string;
+  description: string;
+  steps: string[]; // Array of step-by-step instructions
+  cues: string[]; // Verbal cues for the user
+  durationSeconds: number;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  equipment: string[]; // Equipment needed (e.g., "barbell", "resistance band")
+}
+
+/**
+ * Uploaded video awaiting analysis
+ */
+export interface FormAnalysisVideo {
+  id: string;
+  userId: string;
+  exerciseType: FormExerciseType;
+  status: FormVideoStatus;
+  videoKey: string; // R2 key for the uploaded video
+  videoUrl: string; // Signed URL for playback
+  thumbnailUrl?: string; // Extracted thumbnail frame
+  frameCount?: number; // Total frames extracted
+  durationSeconds?: number;
+  metadata: {
+    fileSize: number;
+    resolution?: string;
+    fps?: number;
+    uploadedAt: number;
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Complete analysis result after AI processing
+ */
+export interface FormAnalysisReport {
+  videoId: string;
+  userId: string;
+  exerciseType: FormExerciseType;
+  status: FormVideoStatus;
+  overallScore: number; // 0-100
+  grade: "A" | "B" | "C" | "D" | "F";
+  issues: FormIssue[];
+  corrections: FormCorrection[];
+  summary: {
+    strengths: string[];
+    primaryConcern: string;
+    priority: "low" | "medium" | "high";
+  };
+  frameAnalysis?: {
+    keyFrames: Array<{
+      timestampMs: number;
+      url: string; // R2 URL to annotated frame
+      issuesPresent: FormIssueType[];
+    }>;
+  };
+  createdAt: number;
+  completedAt?: number;
+  processingTimeMs?: number;
+}
+
+/**
+ * Job status for async processing
+ */
+export interface FormAnalysisJob {
+  id: string;
+  videoId: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  attempts: number;
+  errorMessage?: string;
+  queuedAt: number;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+/**
+ * Helper function to calculate overall grade from score
+ */
+export function calculateFormGrade(score: number): "A" | "B" | "C" | "D" | "F" {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
+/**
+ * Helper function to get color for score display
+ */
+export function getFormScoreColor(score: number): string {
+  if (score >= 90) return "#10b981"; // green
+  if (score >= 80) return "#22c55e"; // light green
+  if (score >= 70) return "#eab308"; // yellow
+  if (score >= 60) return "#f97316"; // orange
+  return "#ef4444"; // red
+}
+
+/**
+ * Helper function to group issues by type
+ */
+export function groupIssuesByType(issues: FormIssue[]): Map<FormIssueType, FormIssue[]> {
+  const map = new Map<FormIssueType, FormIssue[]>();
+  for (const issue of issues) {
+    const existing = map.get(issue.type) || [];
+    map.set(issue.type, [...existing, issue]);
+  }
+  return map;
+}
+
+/**
+ * Helper function to get worst severity from list of issues
+ */
+export function getWorstSeverity(issues: FormIssue[]): FormIssueSeverity {
+  if (issues.length === 0) return "minor";
+  const severities: FormIssueSeverity[] = ["minor", "moderate", "major"];
+  for (const severity of severities.reverse()) {
+    if (issues.some(i => i.severity === severity)) {
+      return severity;
+    }
+  }
+  return "minor";
+}
+
+// ============================================
+// SECTION 19: ADAPTIVE PLANNER - RE-PLANNING TYPES
+// ============================================
+// Re-export all adaptive planner types from the separate module
+export * from "./adaptive-planner";
 
