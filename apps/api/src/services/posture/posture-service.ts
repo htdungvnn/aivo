@@ -226,7 +226,14 @@ export class PostureService {
       .limit(limit)
       .all();
 
-    return analyses;
+    return analyses.map(a => ({
+      id: a.id,
+      exerciseType: a.exerciseType,
+      overallScore: a.overallScore,
+      grade: a.grade,
+      completedAt: a.completedAt ?? 0,
+      processingTimeMs: a.processingTimeMs ?? 0,
+    }));
   }
 }
 
