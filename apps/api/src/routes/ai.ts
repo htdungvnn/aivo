@@ -212,7 +212,7 @@ export const AIRouter = () => {
 
       // Use unified AI service with automatic model selection
       const aiService = getAIService(c.env);
-      const response = await aiService.chat(messages, {
+      const response = await aiService.chat(messages as Array<{ role: string; content: string }>, {
         temperature: 0.7,
         maxTokens: 1000,
         jsonMode: false,
@@ -429,7 +429,6 @@ export const AIRouter = () => {
         // Create form data for Whisper API
         const formData = new FormData();
         const blob = new Blob([audioBuffer], { type: "audio/mp3" });
-        // @ts-expect-error - FormData append with Blob works in Workers via @cloudflare/workers-types
         formData.append("file", blob, "audio.mp3");
         formData.append("model", "whisper-1");
 
@@ -438,7 +437,6 @@ export const AIRouter = () => {
           headers: {
             Authorization: `Bearer ${openaiKey}`,
           },
-          // @ts-expect-error - FormData body is supported in Workers
           body: formData,
         });
 

@@ -236,7 +236,33 @@ See `.claude/CLAUDE.md` for detailed authentication documentation.
 
 ## Deployment
 
-See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructions.
+### Web Application (Cloudflare Pages)
+
+```bash
+# Deploy web app to Cloudflare Pages
+./scripts/deploy-web-pages.sh
+
+# Or manually
+cd apps/web
+pnpm run build:pages
+wrangler pages deploy . --project-name aivo-web
+```
+
+See [docs/CLOUDFLARE_PAGES_DEPLOYMENT.md](./docs/CLOUDFLARE_PAGES_DEPLOYMENT.md) for detailed web deployment instructions.
+
+### API (Cloudflare Workers)
+
+```bash
+# Deploy API to Cloudflare Workers
+./scripts/deploy.sh
+
+# Or manually
+cd apps/api
+pnpm run build
+pnpm run deploy
+```
+
+See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complete production deployment guide.
 
 ## Contributing
 

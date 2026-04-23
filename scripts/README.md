@@ -41,7 +41,8 @@ This directory contains scripts for deploying and managing the AIVO platform.
 
 | Script | Description | Usage |
 |--------|-------------|-------|
-| `deploy.sh` | Full production deployment with build, tests, and deploy | `./scripts/deploy.sh` |
+| `deploy.sh` | Full production deployment (API + DB) | `./scripts/deploy.sh` |
+| `deploy-web-pages.sh` | Deploy web app to Cloudflare Pages | `./scripts/deploy-web-pages.sh` |
 | `quick-deploy.sh` | Fast deployment without type-check/lint | `./scripts/quick-deploy.sh` |
 | `migrate.sh` | Database migration generator and applier | `./scripts/migrate.sh [--remote]` |
 | `health.sh` | Health check for deployed services | `./scripts/health.sh` |
@@ -105,6 +106,25 @@ For production deployment on Cloudflare Workers:
    - Facebook: `https://your-domain.com/login`
 
 See [../docs/PRODUCTION_DEPLOYMENT.md](../docs/PRODUCTION_DEPLOYMENT.md) for complete production setup.
+
+### Web Deployment (Cloudflare Pages)
+
+1. **Prepare production environment**:
+   ```bash
+   cp apps/web/.env.production.local.example apps/web/.env.production.local
+   # Edit with your production values
+   ```
+
+2. **Deploy**:
+   ```bash
+   ./scripts/deploy-web-pages.sh
+   ```
+
+3. **Configure custom domain** in Cloudflare Dashboard → Pages
+
+4. **Update OAuth redirect URIs** with your production domain
+
+See [../docs/CLOUDFLARE_PAGES_DEPLOYMENT.md](../docs/CLOUDFLARE_PAGES_DEPLOYMENT.md) for detailed guide.
 
 ### Full Deployment
 ```bash
@@ -183,11 +203,11 @@ pnpm run deploy     # Deploy
 pnpmx wrangler tail # View logs
 ```
 
-### Web (Next.js)
+### Web (Next.js - Cloudflare Pages)
 ```bash
 cd apps/web
-pnpm run build      # Build
-# Deploy via Vercel, Netlify, or copy .next/standalone
+pnpm run build:pages      # Build for Pages
+wrangler pages deploy .   # Deploy to Pages
 ```
 
 ### Database

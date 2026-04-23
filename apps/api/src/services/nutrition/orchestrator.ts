@@ -8,7 +8,6 @@
 import type {
   NutritionConsultRequest,
   NutritionConsultResponse,
-  AgentResponse,
   NutritionAgentType,
   NutritionConsultContext,
 } from "@aivo/shared-types";

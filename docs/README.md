@@ -33,6 +33,10 @@ Welcome to AIVO - the AI-native fitness coaching platform.
 - Token optimization
 - Correlation analysis
 
+### Complete Feature Catalog
+
+- **[All Features](./FEATURES.md)** - Comprehensive list of all 50+ features across API, Web, Mobile, and packages
+
 ## Frontend Applications
 
 - **[Web App](./FRONTEND.md)** - Next.js dashboard and chat

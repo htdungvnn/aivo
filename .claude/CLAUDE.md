@@ -223,6 +223,28 @@ Key steps:
 3. Update OAuth redirect URIs to production domain
 4. Deploy with `./scripts/deploy.sh`
 
+### Web Deployment (Cloudflare Pages)
+
+The web app is configured for Cloudflare Pages deployment:
+
+```bash
+# Deploy web app
+./scripts/deploy-web-pages.sh
+
+# Or manually
+cd apps/web
+pnpm run build:pages
+wrangler pages deploy . --project-name aivo-web
+```
+
+Configuration files:
+- `next.config.cloudflare.js` - Next.js config for Pages
+- `pages.config.toml` - Pages build configuration
+- `_routes` - Routing rules (SPA fallback, API proxy)
+- `.env.production.local` - Production environment variables
+
+See [docs/CLOUDFLARE_PAGES_DEPLOYMENT.md](./docs/CLOUDFLARE_PAGES_DEPLOYMENT.md) for detailed web deployment guide.
+
 ## 11. CURRENT PROJECT STATUS
 - Monorepo structure initialized ✅
 - Next.js web scaffolded ✅
@@ -233,3 +255,62 @@ Key steps:
 - Drizzle ORM schema defined ✅
 - Build pipelines configured ✅
 - Migrated from Bun to pnpm ✅
+
+## 12. AI MODEL SELECTOR SYSTEM
+
+### Overview
+AIVO uses an intelligent model selection system that automatically chooses between OpenAI and Google Gemini based on cost optimization while maintaining quality requirements.
+
+### Features
+- **Automatic Model Selection**: Analyzes task complexity and requirements to select the best model
+- **Cost Optimization**: Prefers cheaper models (Gemini Flash) for simple tasks, uses premium models (GPT-4o, Gemini Pro) only when needed
+- **Capability Matching**: Filters models based on required features (vision, reasoning, code, JSON mode)
+- **Transparent Pricing**: All costs are tracked and reported per request
+
+### Available Models
+| Model | Provider | Input/1M | Output/1M | Quality |
+|-------|----------|----------|-----------|---------|
+| gpt-4o-mini | OpenAI | $0.15 | $0.60 | 8.5/10 |
+| gpt-4o | OpenAI | $2.50 | $10.00 | 9.5/10 |
+| o3-mini | OpenAI | $1.10 | $4.40 | 9.2/10 |
+| gemini-1.5-flash | Google | $0.075 | $0.30 | 8.0/10 |
+| gemini-1.5-pro | Google | $1.25 | $5.00 | 9.3/10 |
+| gemini-2.0-flash | Google | $0.10 | $0.40 | 8.7/10 |
+
+### Configuration
+Set environment variables in `apps/api/.env`:
+```bash
+OPENAI_API_KEY=sk-your-openai-api-key
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### API Endpoints
+- `POST /api/ai/chat` - Chat with auto-selected model (includes cost info in response)
+- `GET /api/ai/models` - List all available models with pricing
+- `POST /api/ai/estimate-cost` - Estimate cost for a given prompt
+
+### Implementation
+The model selector is implemented in:
+- `apps/api/src/utils/model-selector.ts` - Core selection logic and model definitions
+- `apps/api/src/utils/unified-ai-service.ts` - Unified service for both providers
+- `apps/api/src/routes/ai.ts` - Updated to use the new service
+
+### Cost Optimization Strategy
+1. **Aggressive** (`costOptimization: 'aggressive'`): Always pick cheapest capable model
+2. **Balanced** (default): Balance cost and quality based on task requirements
+3. **Quality** (`costOptimization: 'quality'`): Prioritize quality over cost
+
+### Task Complexity Detection
+The system automatically detects:
+- **Simple**: Short greetings, basic questions
+- **Moderate**: Standard queries, simple analysis
+- **Complex**: Multi-step reasoning, detailed analysis
+- **Expert**: Research-level, novel problems, advanced calculations
+
+### Capability Requirements
+- Vision (image analysis)
+- Reasoning (logical thinking)
+- Code (programming tasks)
+- Creative (writing, content)
+- JSON mode (structured output)
+- Function calling (tool use)

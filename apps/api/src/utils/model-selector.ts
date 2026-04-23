@@ -288,15 +288,15 @@ function filterCapableModels(
     }
 
     // Check required capabilities
-    if (requirements.needsVision && !model.capabilities.vision) return false;
-    if (requirements.needsFunctionCalling && !model.capabilities.functionCalling) return false;
-    if (requirements.needsJsonMode && !model.capabilities.jsonMode) return false;
-    if (requirements.needsReasoning && !model.capabilities.reasoning) return false;
-    if (requirements.needsCode && !model.capabilities.code) return false;
-    if (requirements.needsCreative && !model.capabilities.creative) return false;
+    if (requirements.needsVision && !model.capabilities.vision) {return false;}
+    if (requirements.needsFunctionCalling && !model.capabilities.functionCalling) {return false;}
+    if (requirements.needsJsonMode && !model.capabilities.jsonMode) {return false;}
+    if (requirements.needsReasoning && !model.capabilities.reasoning) {return false;}
+    if (requirements.needsCode && !model.capabilities.code) {return false;}
+    if (requirements.needsCreative && !model.capabilities.creative) {return false;}
 
     // High complexity tasks need high complexity capable models
-    if (requirements.complexity === 'expert' && !model.capabilities.highComplexity) return false;
+    if (requirements.complexity === 'expert' && !model.capabilities.highComplexity) {return false;}
     if (requirements.complexity === 'complex' && !model.capabilities.highComplexity && model.qualityScore < 9) {
       return false;
     }
@@ -455,14 +455,14 @@ export function compareModels(
   requirements: TaskRequirements,
   modelIds: string[]
 ): Array<{
-  model: ModelDefinition;
+  model: ModelDefinition | null;
   cost: number;
   capable: boolean;
 }> {
   return modelIds.map(id => {
     const model = MODELS[id];
     if (!model) {
-      return { model: null, cost: Infinity, capable: false } as any;
+      return { model: null, cost: Infinity, capable: false };
     }
     const capable = filterCapableModels(requirements, [model]).length > 0;
     const cost = capable ? calculateCost(model, requirements.estimatedInputTokens, requirements.estimatedOutputTokens) : Infinity;

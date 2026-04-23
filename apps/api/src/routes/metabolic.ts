@@ -63,14 +63,17 @@ export const MetabolicRouter = () => {
       }
 
       // Transform metrics to HistoricalPoint format
-      const historicalData = metrics.map((m: any) => ({
-        timestamp: m.timestamp,
-        weightKg: m.weight || 0,
-        bodyFatPct: m.bodyFatPercentage || 0,
-        muscleMassKg: m.muscleMass || 0,
-        activityLevel: m.activityLevel,
-        calorieIntake: m.calorieIntake,
-      }));
+      const historicalData = metrics.map((m: unknown) => {
+        const row = m as Record<string, unknown>;
+        return {
+          timestamp: row.timestamp as number,
+          weightKg: row.weight ?? 0,
+          bodyFatPct: row.bodyFatPercentage ?? 0,
+          muscleMassKg: row.muscleMass ?? 0,
+          activityLevel: row.activityLevel,
+          calorieIntake: row.calorieIntake,
+        };
+      });
 
       // Call WASM simulation
       const historicalDataJson = JSON.stringify(historicalData);
@@ -79,6 +82,7 @@ export const MetabolicRouter = () => {
 
       return c.json({ success: true, data: result });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("Metabolic simulation error:", error);
       return c.json(
         { success: false, error: "Failed to generate simulation" },

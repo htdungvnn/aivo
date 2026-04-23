@@ -247,7 +247,7 @@ export class UnifiedAIService {
     // Build conversation history
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
-      if (msg.role === 'system') continue;
+      if (msg.role === 'system') {continue;}
 
       if (msg.role === 'user') {
         history.push({ role: 'user', parts: [{ text: msg.content }] });
@@ -257,10 +257,13 @@ export class UnifiedAIService {
     }
 
     // Build chat
-    let chat = geminiModel.startChat({
+    const chatParams = {
       history: history.slice(0, -1),
-      ...(systemInstruction && { systemInstruction: { parts: [{ text: systemInstruction.content }] } }),
-    });
+    };
+    if (systemInstruction) {
+      chatParams.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+    }
+    const chat = geminiModel.startChat(chatParams);
 
     const lastUserMessage = messages.filter(m => m.role === 'user').pop();
     const result = await chat.sendMessage(lastUserMessage?.content || '');
@@ -415,8 +418,8 @@ export class UnifiedAIService {
     };
 
     const excludeProviders: ('openai' | 'gemini')[] = [];
-    if (!this.config.openaiApiKey) excludeProviders.push('openai');
-    if (!this.config.geminiApiKey) excludeProviders.push('gemini');
+    if (!this.config.openaiApiKey) {excludeProviders.push('openai');}
+    if (!this.config.geminiApiKey) {excludeProviders.push('gemini');}
 
     return selectModel(requirements, {
       preferLowestCost: this.config.costOptimization === 'aggressive',
@@ -454,12 +457,12 @@ function filterCapableModels(
     if (requirements.estimatedOutputTokens > model.maxOutputTokens) {
       return false;
     }
-    if (requirements.needsVision && !model.capabilities.vision) return false;
-    if (requirements.needsJsonMode && !model.capabilities.jsonMode) return false;
-    if (requirements.needsReasoning && !model.capabilities.reasoning) return false;
-    if (requirements.needsCode && !model.capabilities.code) return false;
-    if (requirements.needsCreative && !model.capabilities.creative) return false;
-    if (requirements.complexity === 'expert' && !model.capabilities.highComplexity) return false;
+    if (requirements.needsVision && !model.capabilities.vision) {return false;}
+    if (requirements.needsJsonMode && !model.capabilities.jsonMode) {return false;}
+    if (requirements.needsReasoning && !model.capabilities.reasoning) {return false;}
+    if (requirements.needsCode && !model.capabilities.code) {return false;}
+    if (requirements.needsCreative && !model.capabilities.creative) {return false;}
+    if (requirements.complexity === 'expert' && !model.capabilities.highComplexity) {return false;}
     if (requirements.complexity === 'complex' && !model.capabilities.highComplexity && model.qualityScore < 9) {
       return false;
     }

@@ -1,0 +1,16 @@
+# Cloudflare Pages routing configuration
+# This file tells Pages how to route requests
+
+# SPA fallback - all non-file routes go to index.html
+/*    /index.html  200
+
+# Static assets are cached
+/static/*    /static/:splat   200
+/_next/static/*    /_next/static/:splat   200
+/_next/image/*    /_next/image/:splat   200
+
+# API routes should be handled by the API worker, not Pages
+/api/*    https://api.aivo.yourdomain.com/:splat   200
+
+# Health check
+/health    /health.html   200

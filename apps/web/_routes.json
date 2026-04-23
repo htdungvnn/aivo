@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "include": [
+    "**/*"
+  ],
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    ".next/cache/**",
+    "node_modules/**"
+  ]
+}
