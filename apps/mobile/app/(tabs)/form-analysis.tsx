@@ -12,7 +12,6 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  uploadFormVideo,
   getFormVideoStatus,
   getFormVideoResult,
   listUserFormVideos,
@@ -25,9 +24,7 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Play,
   X,
-  Camera,
 } from "lucide-react-native";
 
 type VideoWithStatus = FormAnalysisVideo & {
@@ -44,7 +41,6 @@ export default function FormAnalysisScreen() {
   const [videos, setVideos] = useState<VideoWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<FormExerciseType>("squat");
 
@@ -60,8 +56,8 @@ export default function FormAnalysisScreen() {
     try {
       const data = await listUserFormVideos();
       setVideos(data);
-    } catch (error) {
-      console.error("Failed to load videos:", error);
+    } catch {
+      // Failed to load videos
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -130,9 +126,9 @@ export default function FormAnalysisScreen() {
       }
 
       // Fetch full results
-      const result = await getFormVideoResult(video.id);
+      await getFormVideoResult(video.id);
       router.push({ pathname: "/form-result" as const, params: { videoId: video.id } });
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to load video details");
     }
   };

@@ -5,8 +5,9 @@
 
 import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
-import type { Drizzle } from "drizzle-orm";
-import { sessions, users } from "@aivo/db";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
+import { schema, sessions, users } from "@aivo/db";
+import { randomUUID } from "node:crypto";
 
 // Secret key - should be at least 256 bits (32 bytes)
 let secretKey: Uint8Array | null = null;
@@ -48,7 +49,7 @@ export async function signToken(payload: { sub: string; userId: string; iat?: nu
  */
 export async function verifyToken(
   token: string,
-  db?: Drizzle
+  db?: DrizzleD1Database<typeof schema>
 ): Promise<{ sub: string; userId: string } | null> {
   try {
     const secret = getSecretKey();
@@ -62,7 +63,7 @@ export async function verifyToken(
     if (db) {
       const session = await db.query.sessions.findFirst({
         where: eq(sessions.id, sub),
-      }) as unknown;
+      });
 
       if (!session) {
         return null;
@@ -80,13 +81,13 @@ export async function verifyToken(
  * Create a session record in database
  */
 export async function createSession(
-  db: Drizzle,
+  db: DrizzleD1Database<typeof schema>,
   userId: string,
   provider: "google" | "facebook",
   providerUserId: string,
   accessToken: string
 ): Promise<string> {
-  const sessionId = crypto.randomUUID();
+  const sessionId = randomUUID();
   const now = Math.floor(Date.now() / 1000);
 
   await db.insert(sessions).values({
@@ -106,7 +107,7 @@ export async function createSession(
  * Find or create user from OAuth provider data
  */
 export async function findOrCreateUser(
-  db: Drizzle,
+  db: DrizzleD1Database<typeof schema>,
   providerData: {
     providerId: string;
     email: string;
@@ -124,12 +125,12 @@ export async function findOrCreateUser(
       id: existingUser.id,
       email: existingUser.email,
       name: existingUser.name,
-      picture: existingUser.picture,
+      picture: existingUser.picture ?? undefined,
     };
   }
 
   // Create new user
-  const userId = crypto.randomUUID();
+  const userId = randomUUID();
   const now = Math.floor(Date.now() / 1000);
 
   await db.insert(users).values({

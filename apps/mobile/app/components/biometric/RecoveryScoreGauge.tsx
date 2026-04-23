@@ -2,6 +2,7 @@
 
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import colors from "@/theme/colors";
 
 interface RecoveryScoreGaugeProps {
   score: number;
@@ -9,11 +10,6 @@ interface RecoveryScoreGaugeProps {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   gaugeWrapper: {
     position: "absolute",
     justifyContent: "center",
@@ -22,13 +18,13 @@ const styles = StyleSheet.create({
   backgroundCircle: {
     borderRadius: 50,
     borderWidth: 12,
-    borderColor: "#334155",
+    borderColor: colors.border.primary,
   },
   progressCircle: {
     borderRadius: 50,
     borderWidth: 12,
-    borderTopColor: "transparent",
-    borderRightColor: "transparent",
+    borderTopColor: colors.border.transparent,
+    borderRightColor: colors.border.transparent,
   },
   centerText: {
     position: "absolute",
@@ -36,21 +32,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scoreText: {
-    color: "#fff",
+    color: colors.text.primary,
     fontWeight: "bold",
   },
   labelText: {
-    color: "#94a3b8",
+    color: colors.text.secondary,
     textTransform: "uppercase" as const,
+  },
+  hiddenGauge: {
+    opacity: 0,
   },
 });
 
 export function RecoveryScoreGauge({ score, size = "md" }: RecoveryScoreGaugeProps) {
   const getCategory = (score: number) => {
-    if (score >= 80) {return { label: "Excellent", color: "#22c55e" };}
-    if (score >= 60) {return { label: "Good", color: "#3b82f6" };}
-    if (score >= 40) {return { label: "Fair", color: "#f97316" };}
-    return { label: "Poor", color: "#ef4444" };
+    if (score >= 80) {return { label: "Excellent", color: colors.success };}
+    if (score >= 60) {return { label: "Good", color: colors.brand.primary };}
+    if (score >= 40) {return { label: "Fair", color: colors.warning };}
+    return { label: "Poor", color: colors.error };
   };
 
   const category = getCategory(score);
@@ -60,11 +59,6 @@ export function RecoveryScoreGauge({ score, size = "md" }: RecoveryScoreGaugePro
     lg: { container: 120, text: 32, label: 14 },
   };
   const s = sizes[size];
-  const radius = s.container / 2 - 10;
-  const circumference = 2 * Math.PI * radius;
-  const strokeWidth = 12;
-  const normalizedScore = score / 100;
-  const strokeDashoffset = circumference * (1 - normalizedScore);
 
   return (
     <View style={{ width: s.container, height: s.container }}>
@@ -78,8 +72,8 @@ export function RecoveryScoreGauge({ score, size = "md" }: RecoveryScoreGaugePro
               height: s.container,
               borderColor: category.color,
               transform: [{ rotate: "-135deg" }],
-              opacity: score > 0 ? 1 : 0,
             },
+            score > 0 ? {} : styles.hiddenGauge,
           ]}
         />
       </View>

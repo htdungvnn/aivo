@@ -40,8 +40,7 @@ export default function FormResultScreen() {
       ]);
       setVideoStatus(statusRes.status);
       setResult(resultRes);
-    } catch (error) {
-      console.error("Failed to load result:", error);
+    } catch {
       Alert.alert("Error", "Failed to load analysis results");
     } finally {
       setLoading(false);
@@ -64,17 +63,6 @@ export default function FormResultScreen() {
     if (score >= 70) {return "#3b82f6";} // blue
     if (score >= 60) {return "#f59e0b";} // amber
     return "#ef4444"; // red
-  };
-
-  const getGradeColor = (grade: string): string => {
-    const colors: Record<string, string> = {
-      A: "#22c55e",
-      B: "#84cc16",
-      C: "#3b82f6",
-      D: "#f59e0b",
-      F: "#ef4444",
-    };
-    return colors[grade] || "#9ca3af";
   };
 
   const getSeverityIcon = (severity: string) => {

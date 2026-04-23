@@ -1,6 +1,7 @@
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { Send } from "lucide-react-native";
+import colors from "@/theme/colors";
 
 export default function AIChatScreen() {
   const [messages, setMessages] = useState([
@@ -71,17 +72,17 @@ export default function AIChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: colors.background.primary,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#374151",
+    borderBottomColor: colors.border.primary,
   },
   headerTitle: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 24,
     fontWeight: "bold",
   },
@@ -97,12 +98,12 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: "#3b82f6",
+    backgroundColor: colors.brand.primary,
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "#1f2937",
+    backgroundColor: colors.background.tertiary,
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -110,26 +111,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   userText: {
-    color: "#fff",
+    color: colors.text.primary,
   },
   assistantText: {
-    color: "#d1d5db",
+    color: colors.text.secondary,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#374151",
+    borderTopColor: colors.border.primary,
     gap: 12,
   },
   input: {
     flex: 1,
-    backgroundColor: "#1f2937",
+    backgroundColor: colors.background.tertiary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 14,
     maxHeight: 100,
   },
@@ -137,11 +138,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#374151",
+    backgroundColor: colors.border.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   sendButtonActive: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: colors.brand.primary,
   },
 });

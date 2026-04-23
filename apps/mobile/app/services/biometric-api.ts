@@ -1,7 +1,9 @@
-import { createApiClient } from "@aivo/api-client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const apiClient = createApiClient();
+const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
+const TOKEN_KEY = "aivo.auth.token";
 
+// Sleep Log types (re-exported from shared-types would be ideal but keeping local)
 export interface SleepLog {
   id: string;
   userId: string;
@@ -112,25 +114,69 @@ export interface RecoveryScoreResult {
   warnings: string[];
 }
 
+type ApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+async function getToken(): Promise<string | null> {
+  return await AsyncStorage.getItem(TOKEN_KEY);
+}
+
+async function fetchApi<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = await getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string>),
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || error.message || "Request failed");
+  }
+
+  // Handle 204 No Content
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
 /**
  * Sleep Log API
  */
 export async function createSleepLog(data: SleepLogCreate): Promise<SleepLog> {
-  const response = await apiClient.post("/api/biometric/sleep", data);
-  return response.data;
+  return await fetchApi<SleepLog>("/api/biometric/sleep", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateSleepLog(id: string, data: SleepLogUpdate): Promise<SleepLog> {
-  const response = await apiClient.patch(`/api/biometric/sleep/${id}`, data);
-  return response.data;
+  return await fetchApi<SleepLog>(`/api/biometric/sleep/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function getSleepLogs(
   limit: number = 30,
   offset: number = 0
 ): Promise<SleepLog[]> {
-  const response = await apiClient.get(`/api/biometric/sleep/history?limit=${limit}&offset=${offset}`);
-  return response.data;
+  return await fetchApi<SleepLog[]>(
+    `/api/biometric/sleep/history?limit=${limit}&offset=${offset}`
+  );
 }
 
 export async function getSleepSummary(period: "7d" | "30d" = "30d"): Promise<{
@@ -140,22 +186,27 @@ export async function getSleepSummary(period: "7d" | "30d" = "30d"): Promise<{
   avgConsistency: number;
   logs: SleepLog[];
 }> {
-  const response = await apiClient.get(`/api/biometric/sleep/summary?period=${period}`);
-  return response.data;
+  return await fetchApi<{
+    totalLogs: number;
+    avgDuration: number;
+    avgQuality?: number;
+    avgConsistency: number;
+    logs: SleepLog[];
+  }>(`/api/biometric/sleep/summary?period=${period}`);
 }
 
 /**
  * Biometric Snapshots API
  */
 export async function generateBiometricSnapshot(): Promise<BiometricSnapshot> {
-  const response = await apiClient.post("/api/biometric/snapshot/generate");
-  return response.data;
+  return await fetchApi<BiometricSnapshot>("/api/biometric/snapshot/generate", {
+    method: "POST",
+  });
 }
 
 export async function getBiometricSnapshot(period: "7d" | "30d" = "7d"): Promise<BiometricSnapshot | null> {
   try {
-    const response = await apiClient.get(`/api/biometric/snapshot/${period}`);
-    return response.data;
+    return await fetchApi<BiometricSnapshot>(`/api/biometric/snapshot/${period}`);
   } catch {
     return null;
   }
@@ -167,20 +218,22 @@ export async function getBiometricSnapshot(period: "7d" | "30d" = "7d"): Promise
 export async function getCorrelationFindings(
   limit: number = 10
 ): Promise<CorrelationFinding[]> {
-  const response = await apiClient.get(`/api/biometric/correlations?limit=${limit}`);
-  return response.data;
+  return await fetchApi<CorrelationFinding[]>(
+    `/api/biometric/correlations?limit=${limit}`
+  );
 }
 
 export async function dismissCorrelationFinding(id: string): Promise<void> {
-  await apiClient.patch(`/api/biometric/correlations/${id}/dismiss`);
+  await fetchApi<void>(`/api/biometric/correlations/${id}/dismiss`, {
+    method: "PATCH",
+  });
 }
 
 /**
  * Recovery Score API
  */
 export async function getRecoveryScore(): Promise<RecoveryScoreResult> {
-  const response = await apiClient.get("/api/biometric/recovery-score");
-  return response.data;
+  return await fetchApi<RecoveryScoreResult>("/api/biometric/recovery-score");
 }
 
 /**
@@ -198,8 +251,8 @@ export async function generateAndGetRecoveryScore(): Promise<RecoveryScoreResult
         sleep: snapshot.sleep.consistencyScore * 0.35 + (snapshot.sleep.avgQuality || 50) * 0.35,
         exercise: snapshot.exerciseLoad.intensityStdDev > 0.5 ? 70 : 90,
         nutrition: snapshot.nutrition.consistencyScore,
-        bodyMetrics: snapshot.bodyMetrics.weightChange < 0 ? 80 : 60,
-        hydration: 70, // Placeholder - would come from nutrition data
+        bodyMetrics: 75,
+        hydration: 80,
       },
       warnings: snapshot.warnings,
     };

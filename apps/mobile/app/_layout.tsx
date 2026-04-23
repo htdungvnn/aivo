@@ -5,13 +5,14 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MetricsProvider } from "@/contexts/MetricsContext";
+import colors from "@/theme/colors";
 
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#030712",
+    backgroundColor: colors.background.primary,
   },
 });
 

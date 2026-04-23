@@ -5,7 +5,7 @@ import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
 import { createDrizzleInstance } from "@aivo/db";
 import { bodyPhotos, bodyHeatmaps } from "@aivo/db";
 import { eq, desc, and } from "drizzle-orm";
-import { authenticate } from "../middleware/auth";
+import { authenticate, getUserFromContext } from "../middleware/auth";
 import { VisionAnalysisService } from "../services/vision-analysis";
 import { uploadImage } from "../services/body-insights";
 import type { HeatmapRegion } from "@aivo/shared-types";
@@ -27,7 +27,7 @@ export const BodyPhotosRouter = () => {
 
   // Helper to get user ID from context
   const getUserId = (c: Context): string | undefined => {
-    const user = c.get('user') as { id: string } | undefined;
+    const user = getUserFromContext(c);
     return user?.id;
   };
 
@@ -169,8 +169,8 @@ export const BodyPhotosRouter = () => {
 
     const results = await drizzle
       .select({
-        bodyHeatmaps: true,
-        bodyPhotos: true,
+        bodyHeatmaps,
+        bodyPhotos,
       })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
@@ -208,8 +208,8 @@ export const BodyPhotosRouter = () => {
 
     const results = await drizzle
       .select({
-        bodyHeatmaps: true,
-        bodyPhotos: true,
+        bodyHeatmaps,
+        bodyPhotos,
       })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
@@ -247,8 +247,8 @@ export const BodyPhotosRouter = () => {
 
     const results = await drizzle
       .select({
-        bodyHeatmaps: true,
-        bodyPhotos: true,
+        bodyHeatmaps,
+        bodyPhotos,
       })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))

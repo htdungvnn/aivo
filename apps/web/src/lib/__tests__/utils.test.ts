@@ -1,4 +1,4 @@
-import { cn } from './utils';
+import { cn } from '../utils';
 
 describe('cn (className merger)', () => {
   it('merges class names correctly', () => {

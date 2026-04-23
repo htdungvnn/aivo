@@ -1,15 +1,16 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { Dumbbell } from "lucide-react-native";
+import colors from "@/theme/colors";
 
 export default function WorkoutsScreen() {
   const router = useRouter();
   const workoutCategories = [
-    { name: "HIIT", color: "#ef4444", count: 24 },
-    { name: "Strength", color: "#3b82f6", count: 48 },
-    { name: "Cardio", color: "#10b981", count: 32 },
-    { name: "Yoga", color: "#8b5cf6", count: 18 },
-    { name: "Running", color: "#f59e0b", count: 56 },
+    { name: "HIIT", color: colors.error, count: 24 },
+    { name: "Strength", color: colors.brand.primary, count: 48 },
+    { name: "Cardio", color: colors.success, count: 32 },
+    { name: "Yoga", color: colors.purple, count: 18 },
+    { name: "Running", color: colors.warning, count: 56 },
     { name: "Cycling", color: "#06b6d4", count: 21 },
   ];
 
@@ -42,10 +43,13 @@ export default function WorkoutsScreen() {
           <TouchableOpacity
             style={styles.startButton}
             onPress={() =>
-              router.push("/active-workout", {
-                workoutName: "Full Body Burn",
-                targetRPE: 8,
-                idealRestSeconds: 90,
+              router.push({
+                pathname: "/active-workout",
+                params: {
+                  workoutName: "Full Body Burn",
+                  targetRPE: "8",
+                  idealRestSeconds: "90",
+                },
               })
             }
           >
@@ -60,7 +64,7 @@ export default function WorkoutsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: colors.background.primary,
   },
   header: {
     paddingHorizontal: 20,
@@ -68,12 +72,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 32,
     fontWeight: "bold",
   },
   subtitle: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 14,
     marginTop: 4,
   },
@@ -85,12 +89,12 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: "30%",
-    backgroundColor: "#111827",
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.border.primary,
   },
   categoryIcon: {
     width: 48,
@@ -101,12 +105,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryName: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: "600",
   },
   categoryCount: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 11,
     marginTop: 2,
   },
@@ -115,39 +119,39 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionTitle: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
   },
   recommendedCard: {
-    backgroundColor: "#111827",
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.border.primary,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   recommendedName: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: "600",
   },
   recommendedMeta: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 12,
     marginTop: 4,
   },
   startButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: colors.brand.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   startButtonText: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: "600",
   },

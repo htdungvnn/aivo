@@ -1,17 +1,15 @@
 import { Redirect } from "expo-router";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import * as WebBrowser from "expo-web-browser";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Activity as ActivityIcon, Lock } from "lucide-react-native";
+import colors from "@/theme/colors";
 
 // Configure WebBrowser for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
 const API_URL = "http://localhost:8787";
-
-// Google OAuth Configuration
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 // Facebook OAuth Configuration
 const FACEBOOK_CLIENT_ID = process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_ID || "";
@@ -32,8 +30,8 @@ export default function LoginScreen() {
     try {
       const token = await AsyncStorage.getItem(TOKEN_KEY);
       setIsAuthenticated(!!token);
-    } catch (error) {
-      console.error("Auth check error:", error);
+    } catch {
+      // Handle auth check errors silently
     } finally {
       setCheckingAuth(false);
     }
@@ -45,27 +43,10 @@ export default function LoginScreen() {
         await AsyncStorage.setItem(TOKEN_KEY, token);
         await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
         setIsAuthenticated(true);
-      } catch (e) {
-        console.error("Failed to save login session:", e);
+      } catch {
         Alert.alert("Error", "Failed to save login session");
       }
     })();
-  };
-
-  const handleLogout = async () => {
-    try {
-      const token = await AsyncStorage.getItem(TOKEN_KEY);
-      if (token) {
-        await fetch(`${API_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {});
-      }
-      await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
   };
 
   // Redirect if already authenticated
@@ -167,7 +148,7 @@ async function handleGoogleLogin(onSuccess: (user: unknown, token: string) => vo
         }
       }
     }
-  } catch (error) {
+  } catch {
     Alert.alert("Error", "Failed to initiate Google login");
   }
 }
@@ -201,7 +182,7 @@ async function handleFacebookLogin(onSuccess: (user: unknown, token: string) => 
         }
       }
     }
-  } catch (error) {
+  } catch {
     Alert.alert("Error", "Failed to initiate Facebook login");
   }
 }
@@ -232,7 +213,7 @@ function extractFacebookToken(url: string): string | null {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: colors.background.primary,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -244,38 +225,38 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: "bold",
-    color: "#fff",
+    color: colors.text.primary,
     marginTop: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: "#9ca3af",
+    color: colors.text.secondary,
     marginTop: 8,
   },
   loadingText: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     marginTop: 16,
     fontSize: 16,
   },
   card: {
     width: "100%",
     maxWidth: 360,
-    backgroundColor: "#111827",
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.border.primary,
   },
   cardTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#fff",
+    color: colors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: colors.text.secondary,
     textAlign: "center",
     marginBottom: 24,
   },
@@ -290,31 +271,31 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   googleButton: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.text.primary,
   },
   facebookButton: {
-    backgroundColor: "#1877F2",
+    backgroundColor: colors.brand.facebook,
   },
   buttonIcon: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    backgroundColor: colors.border.light,
     justifyContent: "center",
     alignItems: "center",
   },
   googleIcon: {
-    color: "#4285F4",
+    color: colors.brand.google,
     fontWeight: "bold",
     fontSize: 14,
   },
   facebookIcon: {
-    color: "#fff",
+    color: colors.text.primary,
     fontWeight: "bold",
     fontSize: 18,
   },
   buttonText: {
-    color: "#1f2937",
+    color: colors.background.tertiary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -324,16 +305,16 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
     padding: 12,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: colors.border.medium,
     borderRadius: 8,
   },
   securityText: {
-    color: "#6b7280",
+    color: colors.text.tertiary,
     fontSize: 12,
     flex: 1,
   },
   terms: {
-    color: "#6b7280",
+    color: colors.text.tertiary,
     fontSize: 12,
     textAlign: "center",
     marginTop: 24,

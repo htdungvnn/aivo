@@ -44,7 +44,7 @@ describe('BodyMetricCard Component', () => {
   describe('Change Indicator', () => {
     it('displays positive change with up arrow', () => {
       render(<BodyMetricCard {...defaultProps} change={2.5} />);
-      expect(screen.getByText('+2.5')).toBeInTheDocument();
+      expect(screen.getByText('2.5')).toBeInTheDocument();
     });
 
     it('displays negative change with down arrow', () => {

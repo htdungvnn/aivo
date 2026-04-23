@@ -785,6 +785,32 @@ export class ApiClient {
   async getFoodItem(id: string): Promise<ApiResponse<FoodItem>> {
     return this.request(`/nutrition/food-items/${encodeURIComponent(id)}`);
   }
+
+  // Convenience methods for simple HTTP verbs
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
+    const url = new URL(endpoint, this.baseUrl);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) url.searchParams.append(key, String(value));
+      });
+    }
+    return this.request<ApiResponse<T>>(url.toString());
+  }
+
+  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<ApiResponse<T>>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  async patch<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    return this.request<ApiResponse<T>>(endpoint, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
 }
 
 /**

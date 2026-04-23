@@ -18,7 +18,7 @@ import {
 } from "../services/body-insights";
 import { schema } from "@aivo/db/schema";
 import type { D1Database } from "@cloudflare/workers-types";
-import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
+import type { R2Bucket } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 interface EnvWithR2 {

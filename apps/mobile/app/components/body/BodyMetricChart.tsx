@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { CartesianChart, Line, Bar, Area, CartesianAxis } from "victory-native";
 
 export interface MetricDataPoint {
   date: string;
@@ -28,19 +27,11 @@ const METRIC_UNITS: Record<string, string> = {
   bmi: "",
 };
 
-// Theme colors - centralized palette
 const COLORS = {
   background: "rgba(15, 23, 42, 0.5)",
   border: "#334155",
-  borderTransparent: "transparent",
-  textPrimary: "#ffffff",
   textSecondary: "#94a3b8",
-  grid: "#1e293b",
-  axis: "#334155",
-  chartBackground: "transparent",
-} as const;
-
-type VictoryDataPoint = { x: number; y: number };
+};
 
 export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetricChartProps) {
   const chartColor = color || METRIC_COLORS[metric];
@@ -54,60 +45,41 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
     );
   }
 
-  const sortedData: VictoryDataPoint[] = [...data].map((d, i) => ({ x: i, y: d.value }));
-  const xTickValues = sortedData.map((_, i) => i);
+  const values = data.map((d) => d.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
 
   return (
     <View style={[styles.container, { height }]}>
-      <CartesianChart
-        domain={{ y: [0, Math.max(...data.map((d) => d.value)) * 1.1] }}
-        padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
-        style={{
-          parent: { backgroundColor: COLORS.chartBackground },
-        }}
-        data={sortedData}
-        xKey="x"
-        yKey="y"
-      >
-        {(chartProps: { xScale: (val: number) => number; yScale: (val: number) => number; points: { y: VictoryDataPoint[] } }) => {
-          const { xScale, yScale, points } = chartProps;
-
+      <View className="flex-row items-end justify-between h-32 gap-1">
+        {data.slice(-7).map((point, idx) => {
+          const barHeight = ((point.value - min) / range) * 100;
           return (
-            <>
-              <CartesianAxis
-                xScale={xScale}
-                yScale={yScale}
-                tickCount={5}
-                tickValues={{ x: xTickValues }}
-                formatXLabel={(_: number, i: number) => sortedData[i] ? data[i]?.date || "" : ""}
-                formatYLabel={(t: number) => `${t.toFixed(1)}${unit}`}
-                axisSide={{ x: "bottom", y: "left" }}
+            <View key={idx} className="flex-1 items-center gap-1">
+              <View
+                className="w-full rounded-t-sm"
                 style={{
-                  axis: { stroke: COLORS.axis },
-                  tickLabels: { fill: COLORS.textSecondary, fontSize: 10 },
-                  ticks: { stroke: COLORS.axis },
-                  grid: { stroke: COLORS.grid, strokeDasharray: "3,3" },
+                  height: Math.max(barHeight, 4),
+                  backgroundColor: chartColor,
+                  minHeight: 4,
                 }}
-                lineColor={{ grid: COLORS.grid, frame: COLORS.axis }}
-                lineWidth={1}
-                labelColor={COLORS.textSecondary}
               />
-              <Area
-                points={points.y}
-                color={chartColor}
-                y0={0}
-                curveType="linear"
-              />
-              <Line
-                points={points.y}
-                color={chartColor}
-                strokeWidth={2}
-                curveType="linear"
-              />
-            </>
+              <Text className="text-[8px] text-slate-500" numberOfLines={1}>
+                {point.date.split(" ")[0]}
+              </Text>
+            </View>
           );
-        }}
-      </CartesianChart>
+        })}
+      </View>
+      <View className="flex-row justify-between mt-2">
+        <Text className="text-xs text-slate-400">
+          {min.toFixed(1)}{unit}
+        </Text>
+        <Text className="text-xs text-slate-400">
+          {max.toFixed(1)}{unit}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -133,48 +105,25 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
     );
   }
 
-  const barData: VictoryDataPoint[] = data.map((d, i) => ({ x: i, y: d.current }));
-  const xTickValues = data.map((_, i) => i);
-
   return (
     <View style={[styles.container, { height }]}>
-      <CartesianChart
-        domain={{ x: [0, 100], y: [0, 100] }}
-        padding={{ top: 20, bottom: 50, left: 60, right: 20 }}
-        style={{ parent: { backgroundColor: COLORS.chartBackground } }}
-        data={barData}
-        xKey="x"
-        yKey="y"
-      >
-        {(chartProps: { xScale: (val: number) => number; yScale: (val: number) => number; points: { y: VictoryDataPoint[] } }) => {
-          const { xScale, yScale, points } = chartProps;
-
-          return (
-            <>
-              <CartesianAxis
-                xScale={xScale}
-                yScale={yScale}
-                tickCount={5}
-                tickValues={{ x: xTickValues }}
-                formatXLabel={(_: number, i: number) => data[i]?.muscle.toUpperCase().slice(0, 6) || ""}
-                formatYLabel={(t: number) => `${t}%`}
-                axisSide={{ x: "bottom", y: "left" }}
+      <View className="gap-2">
+        {data.map((item, idx) => (
+          <View key={idx} className="flex-row items-center gap-2">
+            <Text className="text-xs text-slate-400 w-16 capitalize">{item.muscle}</Text>
+            <View className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden">
+              <View
+                className="h-full rounded-full"
                 style={{
-                  tickLabels: { fill: COLORS.textSecondary, fontSize: 9 },
+                  width: `${item.current}%`,
+                  backgroundColor: "#22c55e",
                 }}
-                lineColor={{ grid: COLORS.grid, frame: COLORS.axis }}
-                lineWidth={1}
-                labelColor={COLORS.textSecondary}
               />
-              <Bar
-                points={points.y}
-                color="#22c55e"
-                cornerRadius={4}
-              />
-            </>
-          );
-        }}
-      </CartesianChart>
+            </View>
+            <Text className="text-xs text-slate-300 w-8 text-right">{item.current}%</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -201,10 +150,7 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
     }
   })();
 
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
   const strokeWidth = 12;
-  const normalizedScore = score / 100;
 
   return (
     <View style={styles.gaugeContainer}>
@@ -218,8 +164,8 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
             {
               borderWidth: strokeWidth / 2,
               borderColor: categoryColor,
-              borderTopColor: COLORS.borderTransparent,
-              borderRightColor: COLORS.borderTransparent,
+              borderTopColor: "transparent",
+              borderRightColor: "transparent",
               transform: [{ rotate: "-45deg" }],
             },
           ]}
@@ -254,8 +200,8 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 6,
     borderColor: COLORS.border,
-    borderTopColor: COLORS.borderTransparent,
-    borderRightColor: COLORS.borderTransparent,
+    borderTopColor: "transparent",
+    borderRightColor: "transparent",
     transform: [{ rotate: "-45deg" }],
   },
   gaugeCircle: {
@@ -271,7 +217,7 @@ const styles = StyleSheet.create({
   gaugeScore: {
     fontSize: 28,
     fontWeight: "bold",
-    color: COLORS.textPrimary,
+    color: "#ffffff",
   },
   gaugeCategory: {
     fontSize: 10,

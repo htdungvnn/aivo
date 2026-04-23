@@ -31,13 +31,14 @@
     "@types/node": "^22.13.5",
     "jose": "^6.2.2",
     "turbo": "^2.9.6",
-    "typescript": "5.4.5"
+    "typescript": "6.0.3"
   },
   "packageManager": "pnpm@10.33.0",
   "author": "AIVO Team",
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@react-native-community/datetimepicker": "9.1.0",
     "zod": "^4.0.0"
   }
 }

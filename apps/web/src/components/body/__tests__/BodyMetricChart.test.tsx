@@ -270,7 +270,7 @@ describe('CompositeBodyChart Component', () => {
         <CompositeBodyChart weightData={weightData} bodyFatData={bodyFatData} muscleMassData={muscleMassData} />
       );
       // Should have Y-axis for weight (left) and bodyFat (right)
-      const axes = container.querySelectorAll('.VictoryAxis');
+      const axes = container.querySelectorAll('.recharts-yAxis');
       expect(axes.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -287,7 +287,7 @@ describe('CompositeBodyChart Component', () => {
       const { container } = render(
         <CompositeBodyChart weightData={weightData} bodyFatData={bodyFatData} />
       );
-      const areas = container.querySelectorAll('.VictoryArea');
+      const areas = container.querySelectorAll('.recharts-area');
       expect(areas.length).toBeGreaterThan(0);
     });
 
@@ -295,7 +295,7 @@ describe('CompositeBodyChart Component', () => {
       const { container } = render(
         <CompositeBodyChart weightData={weightData} bodyFatData={bodyFatData} />
       );
-      const lines = container.querySelectorAll('.VictoryLine');
+      const lines = container.querySelectorAll('.recharts-line');
       expect(lines.length).toBeGreaterThan(0);
     });
 
@@ -303,7 +303,7 @@ describe('CompositeBodyChart Component', () => {
       const { container } = render(
         <CompositeBodyChart weightData={weightData} muscleMassData={muscleMassData} />
       );
-      const bars = container.querySelectorAll('.VictoryBar');
+      const bars = container.querySelectorAll('.recharts-bar');
       expect(bars.length).toBeGreaterThan(0);
     });
   });

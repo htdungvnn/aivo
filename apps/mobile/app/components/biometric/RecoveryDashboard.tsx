@@ -304,8 +304,7 @@ export default function RecoveryDashboard() {
               <View className="flex-row items-center gap-1">
                 <Text className="text-slate-400 text-xs">Correlation:</Text>
                 <Text
-                  className="text-xs font-semibold"
-                  style={{ color: correlation.correlationCoefficient > 0 ? "#22c55e" : "#ef4444" }}
+                  className={`text-xs font-semibold ${correlation.correlationCoefficient > 0 ? "text-emerald-400" : "text-red-400"}`}
                 >
                   r = {correlation.correlationCoefficient.toFixed(2)}
                 </Text>

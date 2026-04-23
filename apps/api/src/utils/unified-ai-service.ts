@@ -107,7 +107,7 @@ export class UnifiedAIService {
 
     // Select model
     let selectedModel: ModelDefinition;
-    let selection: ModelSelection | null = null;
+    let selection: ModelSelection | undefined = undefined;
 
     if (forceModel) {
       selectedModel = getModel(forceModel) ?? MODELS[forceModel];
@@ -241,13 +241,15 @@ export class UnifiedAIService {
     });
 
     // Convert messages to Gemini format
-    const systemInstruction = messages.find(m => m.role === 'system');
     const history: Array<{ role: string; parts: { text: string }[] }> = [];
 
     // Build conversation history
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
-      if (msg.role === 'system') {continue;}
+      if (msg.role === 'system') {
+        // For Gemini, we'll prepend system message to first user message
+        continue;
+      }
 
       if (msg.role === 'user') {
         history.push({ role: 'user', parts: [{ text: msg.content }] });
@@ -256,14 +258,17 @@ export class UnifiedAIService {
       }
     }
 
-    // Build chat
-    const chatParams = {
-      history: history.slice(0, -1),
-    };
-    if (systemInstruction) {
-      chatParams.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+    // Prepend system instruction to first user message if exists
+    const systemInstruction = messages.find(m => m.role === 'system');
+    if (systemInstruction && history.length > 0) {
+      const firstUserMessage = history[0];
+      firstUserMessage.parts[0].text = `[System: ${systemInstruction.content}]\n\n${firstUserMessage.parts[0].text}`;
     }
-    const chat = geminiModel.startChat(chatParams);
+
+    // Build chat
+    const chat = geminiModel.startChat({
+      history: history.slice(0, -1),
+    });
 
     const lastUserMessage = messages.filter(m => m.role === 'user').pop();
     const result = await chat.sendMessage(lastUserMessage?.content || '');

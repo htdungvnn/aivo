@@ -10,14 +10,13 @@ import {
   Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMetrics } from "@/contexts/MetricsContext";
-import { RecoveryDashboard } from "@/components/biometric/RecoveryDashboard";
+import RecoveryDashboard from "@/components/biometric/RecoveryDashboard";
 import { launchImageLibraryAsync, MediaTypeOptions, launchCameraAsync } from "expo-image-picker";
 import { BodyMetricChart, HealthScoreGauge, MuscleBalanceChart } from "@/components/body/BodyMetricChart";
 import { PostureAnalysisCard } from "@/components/body/PostureAnalysisCard";
-import { fetchBodyMetrics, fetchHealthScore, uploadBodyImage, analyzeImage } from "../services/metrics-api";
+import { uploadBodyImage, analyzeImage } from "../services/metrics-api";
 import {
   Camera,
   Upload,
@@ -27,7 +26,6 @@ import {
   TrendingUp,
   Scale,
   Target,
-  Sparkles,
   Bed,
 } from "lucide-react-native";
 
@@ -35,7 +33,6 @@ type MainTab = "body" | "recovery";
 type BodyTab = "overview" | "upload" | "trends";
 
 export default function InsightsScreen() {
-  const router = useRouter();
   const { user } = useAuth();
   const { metrics, loading, refreshMetrics, addMetricOptimistic } = useMetrics();
 
@@ -52,7 +49,7 @@ export default function InsightsScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   // Haptic feedback helper
-  const triggerHaptic = async (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => {
+  const triggerHaptic = useCallback(async (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => {
     if (Platform.OS === "web") {return;}
     try {
       switch (type) {
@@ -76,9 +73,9 @@ export default function InsightsScreen() {
           break;
       }
     } catch {
-      console.log("Haptics not available");
+      // Haptics not available
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeMainTab === "body") {
@@ -122,45 +119,6 @@ export default function InsightsScreen() {
     }
   }, [triggerHaptic]);
 
-  const handleUpload = useCallback(async () => {
-    if (!imageFile || !user) {return;}
-
-    setUploading(true);
-    setError(null);
-
-    try {
-      const fileName = `body-photo-${Date.now()}.jpg`;
-      const uploadResult = await uploadBodyImage(imageFile, fileName);
-
-      await triggerHaptic("success");
-
-      Alert.alert(
-        "Upload Complete",
-        "Your photo has been uploaded. Would you like to run AI analysis now?",
-        [
-          { text: "Later", style: "cancel" },
-          {
-            text: "Analyze",
-            onPress: () => {
-              void handleAnalyze(uploadResult.imageUrl);
-            },
-          },
-        ]
-      );
-
-      setSelectedImage(null);
-      setImageFile(null);
-      setBodyTab("overview");
-      await triggerHaptic("light");
-    } catch (err: unknown) {
-      await triggerHaptic("error");
-      const message = err instanceof Error ? err.message : "Failed to upload image";
-      setError(message);
-    } finally {
-      setUploading(false);
-    }
-  }, [imageFile, user, triggerHaptic, handleAnalyze]);
-
   const handleAnalyze = useCallback(async (imageUrl?: string) => {
     const url = imageUrl || selectedImage;
     if (!url) { return; }
@@ -202,6 +160,45 @@ export default function InsightsScreen() {
       setAnalyzing(false);
     }
   }, [selectedImage, triggerHaptic, addMetricOptimistic, refreshMetrics]);
+
+  const handleUpload = useCallback(async () => {
+    if (!imageFile || !user) {return;}
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const fileName = `body-photo-${Date.now()}.jpg`;
+      const uploadResult = await uploadBodyImage(imageFile, fileName);
+
+      await triggerHaptic("success");
+
+      Alert.alert(
+        "Upload Complete",
+        "Your photo has been uploaded. Would you like to run AI analysis now?",
+        [
+          { text: "Later", style: "cancel" },
+          {
+            text: "Analyze",
+            onPress: () => {
+              void handleAnalyze(uploadResult.imageUrl);
+            },
+          },
+        ]
+      );
+
+      setSelectedImage(null);
+      setImageFile(null);
+      setBodyTab("overview");
+      await triggerHaptic("light");
+    } catch (err: unknown) {
+      await triggerHaptic("error");
+      const message = err instanceof Error ? err.message : "Failed to upload image";
+      setError(message);
+    } finally {
+      setUploading(false);
+    }
+  }, [imageFile, user, triggerHaptic, handleAnalyze]);
 
   const clearImage = useCallback(() => {
     setSelectedImage(null);
@@ -326,7 +323,7 @@ export default function InsightsScreen() {
                     <View>
                       <Text className="text-slate-400 text-sm mb-1">Uploading...</Text>
                       <View className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <View className="h-full bg-cyan-500" style={{ width: "100%" }} />
+                        <View className="h-full bg-cyan-500 w-full" />
                       </View>
                     </View>
                   ) : (

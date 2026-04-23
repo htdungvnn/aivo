@@ -14,8 +14,8 @@ export interface AuthUser {
   name?: string;
 }
 
-// Unique context key using Symbol for type safety
-const AUTH_USER_KEY = Symbol("auth-user");
+// Unique context key for storing auth user
+const AUTH_USER_KEY = "auth-user";
 
 /**
  * Authenticate middleware - verifies JWT token and sets user in context

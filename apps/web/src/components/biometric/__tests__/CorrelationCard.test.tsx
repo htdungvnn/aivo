@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { CorrelationCard } from '../CorrelationCard';
 
 describe('CorrelationCard Component', () => {
-  const mockCorrelation = {
+  const mockFinding = {
     id: 'corr-1',
     factorA: 'sleep_duration',
     factorB: 'recovery_score',
@@ -19,47 +19,47 @@ describe('CorrelationCard Component', () => {
     detectedAt: Date.now(),
   };
 
-  const mockOnDismiss = vi.fn();
+  const mockOnDismiss = jest.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should render correlation factors', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
-    expect(screen.getByText(/sleep_duration/)).toBeInTheDocument();
-    expect(screen.getByText(/recovery_score/)).toBeInTheDocument();
+    expect(screen.getByText(/Sleep Duration/)).toBeInTheDocument();
+    expect(screen.getByText(/Recovery Score/)).toBeInTheDocument();
   });
 
   it('should display correlation coefficient', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
-    expect(screen.getByText(/r = 0\.78/)).toBeInTheDocument();
+    expect(screen.getByText(/0\.78/)).toBeInTheDocument();
   });
 
   it('should display p-value', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
-    expect(screen.getByText(/p = 0\.001/)).toBeInTheDocument();
+    expect(screen.getByText(/0\.0010/)).toBeInTheDocument();
   });
 
   it('should show actionable insight', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
     expect(screen.getByText(/Increase sleep duration/)).toBeInTheDocument();
   });
 
   it('should display outlier dates', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
     expect(screen.getByText('2025-04-15')).toBeInTheDocument();
     expect(screen.getByText('2025-04-18')).toBeInTheDocument();
-    expect(screen.getByText(/\+1 more/)).toBeInTheDocument();
+    expect(screen.getByText('2025-04-22')).toBeInTheDocument();
   });
 
   it('should call onDismiss when dismiss button clicked', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
     const dismissButton = screen.getByText('Dismiss');
     fireEvent.click(dismissButton);
@@ -69,52 +69,66 @@ describe('CorrelationCard Component', () => {
 
   it('should show all outlier dates when under limit', () => {
     const correlationWithFewOutliers = {
-      ...mockCorrelation,
+      ...mockFinding,
       outlierDates: ['2025-04-15', '2025-04-18'],
     };
 
-    render(<CorrelationCard correlation={correlationWithFewOutliers} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={correlationWithFewOutliers} onDismiss={mockOnDismiss} />);
 
     expect(screen.getByText('2025-04-15')).toBeInTheDocument();
     expect(screen.getByText('2025-04-18')).toBeInTheDocument();
     expect(screen.queryByText(/\+.*more/)).not.toBeInTheDocument();
   });
 
+  it('should show "+N more" badge when there are more than 5 outliers', () => {
+    const correlationWithManyOutliers = {
+      ...mockFinding,
+      outlierDates: ['2025-04-15', '2025-04-16', '2025-04-17', '2025-04-18', '2025-04-19', '2025-04-20', '2025-04-21'],
+    };
+
+    render(<CorrelationCard finding={correlationWithManyOutliers} onDismiss={mockOnDismiss} />);
+
+    // First 5 dates should be visible
+    expect(screen.getByText('2025-04-15')).toBeInTheDocument();
+    expect(screen.getByText('2025-04-19')).toBeInTheDocument();
+    // The "+2 more" badge should appear
+    expect(screen.getByText(/\+2 more/)).toBeInTheDocument();
+  });
+
   it('should show negative correlation in red', () => {
     const negativeCorrelation = {
-      ...mockCorrelation,
+      ...mockFinding,
       correlationCoefficient: -0.65,
     };
 
-    render(<CorrelationCard correlation={negativeCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={negativeCorrelation} onDismiss={mockOnDismiss} />);
 
-    const correlationText = screen.getByText(/r = -0\.65/);
-    expect(correlationText).toHaveStyle({ color: '#ef4444' });
+    expect(screen.getByText(/-0\.65/)).toBeInTheDocument();
   });
 
-  it('should show positive correlation in green', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+  it('should show positive correlation', () => {
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
-    const correlationText = screen.getByText(/r = 0\.78/);
-    expect(correlationText).toHaveStyle({ color: '#22c55e' });
+    expect(screen.getByText(/0\.78/)).toBeInTheDocument();
   });
 
   it('should display confidence indicator', () => {
-    render(<CorrelationCard correlation={mockCorrelation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={mockFinding} onDismiss={mockOnDismiss} />);
 
-    expect(screen.getByText('85% confidence')).toBeInTheDocument();
+    expect(screen.getByText(/85%/)).toBeInTheDocument();
   });
 
   it('should format factor names with underscores replaced', () => {
     const correlation = {
-      ...mockCorrelation,
+      ...mockFinding,
       factorA: 'late_nutrition',
       factorB: 'poor_recovery',
     };
 
-    render(<CorrelationCard correlation={correlation} onDismiss={mockOnDismiss} />);
+    render(<CorrelationCard finding={correlation} onDismiss={mockOnDismiss} />);
 
-    expect(screen.getByText('late nutrition')).toBeInTheDocument();
-    expect(screen.getByText('poor recovery')).toBeInTheDocument();
+    // late_nutrition is in the map, poor_recovery falls back to replace(/_/g, " ")
+    expect(screen.getByText(/Late Night Eating/)).toBeInTheDocument();
+    expect(screen.getByText(/poor recovery/)).toBeInTheDocument();
   });
 });

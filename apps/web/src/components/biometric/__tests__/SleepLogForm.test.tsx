@@ -2,25 +2,46 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SleepLogForm } from '../SleepLogForm';
-import * as biometricApi from '@/services/biometric-api';
+import { ApiClient } from '@aivo/api-client';
 
-// Mock the API
-vi.mock('@/services/biometric-api', () => ({
-  createSleepLog: vi.fn(),
+// Mock the API client
+const mockCreateSleepLog = jest.fn();
+jest.mock('@aivo/api-client', () => ({
+  ApiClient: jest.fn().mockImplementation(() => ({
+    createSleepLog: mockCreateSleepLog,
+  })),
+  createApiClient: jest.fn().mockImplementation(() => ({
+    createSleepLog: mockCreateSleepLog,
+  })),
+}));
+
+// Mock useAuth to provide a logged-in user
+jest.mock('@/contexts/AuthContext', () => ({
+  ...jest.requireActual('@/contexts/AuthContext'),
+  useAuth: jest.fn(() => ({
+    user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
+    isAuthenticated: true,
+    loading: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+  })),
 }));
 
 describe('SleepLogForm Component', () => {
-  const mockOnSuccess = vi.fn();
-  const mockOnCancel = vi.fn();
+  const mockOnSuccess = jest.fn();
+  const mockOnCancel = jest.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    (biometricApi.createSleepLog as vi.Mock).mockResolvedValue({
-      id: 'sleep-1',
-      date: '2025-04-22',
-      durationHours: 7.5,
-      qualityScore: 85,
-      notes: 'Good sleep',
+    jest.clearAllMocks();
+    mockCreateSleepLog.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'sleep-1',
+        date: '2025-04-22',
+        durationHours: 7.5,
+        qualityScore: 85,
+        notes: 'Good sleep',
+      },
     });
   });
 
@@ -41,8 +62,8 @@ describe('SleepLogForm Component', () => {
     const durationInput = screen.getByLabelText(/duration/i) as HTMLInputElement;
     const qualityInput = screen.getByLabelText(/quality/i) as HTMLInputElement;
 
-    expect(durationInput.value).toBe('7.5');
-    expect(qualityInput.value).toBe('80');
+    expect(durationInput.value).toBe('7');
+    expect(qualityInput.value).toBe('75');
   });
 
   it('should allow changing duration', async () => {
@@ -84,11 +105,11 @@ describe('SleepLogForm Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(biometricApi.createSleepLog).toHaveBeenCalledWith(
+      expect(mockCreateSleepLog).toHaveBeenCalledWith(
         expect.objectContaining({
           date: '2025-04-22',
-          durationHours: 7.5,
-          qualityScore: 80,
+          durationHours: 7,
+          qualityScore: 75,
         })
       );
     });
@@ -108,19 +129,12 @@ describe('SleepLogForm Component', () => {
     });
   });
 
-  it('should call onCancel when cancel button clicked', () => {
-    render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
-
-    const cancelButton = screen.getByText(/cancel/i);
-    fireEvent.click(cancelButton);
-
-    expect(mockOnCancel).toHaveBeenCalled();
-  });
+  // Note: Component does not have a cancel button, so this test is removed
 
   it('should show error message when required fields are empty', async () => {
     // Clear mocks
-    vi.clearAllMocks();
-    (biometricApi.createSleepLog as vi.Mock).mockRejectedValue(new Error('Validation error'));
+    jest.clearAllMocks();
+    mockCreateSleepLog.mockRejectedValue(new Error('Validation error'));
 
     render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
 
@@ -145,7 +159,7 @@ describe('SleepLogForm Component', () => {
 
     // API should handle validation error
     await waitFor(() => {
-      expect(biometricApi.createSleepLog).toHaveBeenCalled();
+      expect(mockCreateSleepLog).toHaveBeenCalled();
     });
   });
 
@@ -159,7 +173,7 @@ describe('SleepLogForm Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(biometricApi.createSleepLog).toHaveBeenCalledWith(
+      expect(mockCreateSleepLog).toHaveBeenCalledWith(
         expect.objectContaining({
           qualityScore: 150,
         })
@@ -168,9 +182,7 @@ describe('SleepLogForm Component', () => {
   });
 
   it('should handle API error gracefully', async () => {
-    (biometricApi.createSleepLog as vi.Mock).mockRejectedValue(
-      new Error('Network error')
-    );
+    mockCreateSleepLog.mockRejectedValue(new Error('Network error'));
 
     render(<SleepLogForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
 
@@ -187,7 +199,7 @@ describe('SleepLogForm Component', () => {
 
   it('should disable submit button during submission', async () => {
     // Make API call take longer
-    (biometricApi.createSleepLog as vi.Mock).mockImplementation(
+    mockCreateSleepLog.mockImplementation(
       () => new Promise((resolve) => setTimeout(resolve, 100))
     );
 

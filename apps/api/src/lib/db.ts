@@ -6,8 +6,9 @@
 import { drizzle as createDrizzle } from "drizzle-orm/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 import { schema } from "@aivo/db/schema";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
 
-let cachedDb: ReturnType<typeof createDrizzle> | null = null;
+let cachedDb: DrizzleD1Database<typeof schema> | null = null;
 
 /**
  * Get or create Drizzle instance

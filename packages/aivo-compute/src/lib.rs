@@ -343,14 +343,14 @@ impl FitnessCalculator {
       if hips <= 0.0 {
         return 0.0;
       }
-      // Female formula: 495 / (1.03979 - 0.13965 * log10(waist + hips - neck) + 0.16344 * log10(height)) - 450
+      // Female formula (SI units): 495 / (1.29579 - 0.35004 * log10(waist + hips - neck) + 0.22100 * log10(height)) - 450
       let sum = waist + hips - neck;
       if sum <= 0.0 {
         return 0.0;
       }
       let log_sum = sum.max(1.0).log10();
       let log_height = height.log10();
-      let body_fat = 495.0 / (1.03979 - 0.13965 * log_sum + 0.16344 * log_height) - 450.0;
+      let body_fat = 495.0 / (1.29579 - 0.35004 * log_sum + 0.22100 * log_height) - 450.0;
       body_fat.max(0.0).min(100.0)
     };
 
@@ -404,11 +404,19 @@ impl FitnessCalculator {
 
     let normalized: Vec<f64> = muscle_scores.iter().map(|&s| s / max_score).collect();
 
+    // Convert to proportions (sum to 1) to compare with optimal ratios
+    let sum_normalized: f64 = normalized.iter().sum();
+    let proportions: Vec<f64> = if sum_normalized > 0.0 {
+        normalized.iter().map(|&n| n / sum_normalized).collect()
+    } else {
+        vec![0.0; muscle_scores.len()]
+    };
+
     // Calculate deviation from optimal ratios
     let mut total_deviation = 0.0;
-    for (i, &norm) in normalized.iter().enumerate() {
+    for (i, &prop) in proportions.iter().enumerate() {
       let optimal = optimal_ratios[i];
-      let deviation = (norm - optimal).abs();
+      let deviation = (prop - optimal).abs();
       total_deviation += deviation;
     }
 

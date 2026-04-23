@@ -10,7 +10,7 @@ export { MemoryService, createMemoryService, createMemoryServiceWithDB } from ".
 export type { MemoryServiceConfig } from "./service.ts";
 
 // Types
-export {
+export type {
   MemoryType,
   RelationshipType,
   MemoryNode,
@@ -21,6 +21,9 @@ export {
   FactExtractionResult,
   MemoryContext,
   TokenBudget,
+} from "./types.ts";
+
+export {
   DEFAULT_TOKEN_BUDGET,
   isHealthCritical,
   isValidEmbedding,

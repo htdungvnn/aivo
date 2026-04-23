@@ -8,11 +8,46 @@
  * This will populate the database with comprehensive test data for an admin user.
  */
 
-import { db } from "./src/index.ts";
-import { mockData } from "./src/__tests__/mock-data.ts";
+import { createDrizzleInstance } from "./index.js";
+import { mockData } from "./__tests__/mock-data.js";
+import { schema } from "./schema.js";
+
+// Helper to generate random UUID (works in both Node.js and browser)
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Helper to get timestamp
+function now(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+// Helper to get date string
+function dateStr(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
+// Helper to get timestamp for days ago
+function daysAgo(days: number): number {
+  return Math.floor(Date.now() / 1000) - (days * 24 * 60 * 60);
+}
 
 async function seedDatabase() {
   console.log("🌱 Starting database seeding...\n");
+
+  // Get the D1 database instance
+  // @ts-ignore - D1 global is available in wrangler dev environment
+  const db = createDrizzleInstance(env.DB);
 
   try {
     // Insert admin user
@@ -136,4 +171,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   seedDatabase().catch(console.error);
 }
 
-export { mockData, seedDatabase };
+export { mockData, seedDatabase, generateId, now, dateStr, daysAgo };

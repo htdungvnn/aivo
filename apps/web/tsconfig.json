@@ -7,18 +7,25 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "module": "ESNext",
+    "allowJs": true,
     "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "module": "esnext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -29,23 +36,14 @@
       "@aivo/compute": [
         "../../packages/aivo-compute/pkg"
       ]
-    },
-    "allowJs": true,
-    "incremental": true,
-    "esModuleInterop": true,
-    "rootDir": ".",
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules",

@@ -4,7 +4,9 @@
 #[cfg(test)]
 mod biometric_stats {
     use wasm_bindgen_test::*;
-    use aivo_compute::{CorrelationAnalyzer, DailyBiometricData};
+    use aivo_compute::{CorrelationAnalyzer, DailyBiometricData, AnomalyPoint};
+    use serde_wasm_bindgen::from_value;
+    use serde_json::from_str;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -106,7 +108,9 @@ mod biometric_stats {
         let x: Vec<f64> = data.iter().map(|d| d.sleep_quality).collect();
         let y: Vec<f64> = data.iter().map(|d| d.recovery_score).collect();
 
-        let (r, p_value) = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let result = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let r = result.r();
+        let p_value = result.p_value();
 
         // Should show positive correlation (better sleep → higher recovery)
         assert!(r > 0.0, "Expected positive correlation, got r={}", r);
@@ -121,7 +125,8 @@ mod biometric_stats {
         let x: Vec<f64> = data.iter().map(|d| d.exercise_load).collect();
         let y: Vec<f64> = data.iter().map(|d| d.recovery_score).collect();
 
-        let (r, p_value) = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let result = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let r = result.r();
 
         // Should show negative correlation (higher exercise load → lower recovery)
         assert!(r < 0.0, "Expected negative correlation, got r={}", r);
@@ -134,7 +139,8 @@ mod biometric_stats {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![2.0, 4.0, 6.0, 8.0, 10.0]; // y = 2x
 
-        let (r, p_value) = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let result = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let r = result.r();
 
         assert!((r - 1.0).abs() < 0.001, "Expected r=1.0, got {}", r);
     }
@@ -145,7 +151,8 @@ mod biometric_stats {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![10.0, 8.0, 6.0, 4.0, 2.0]; // y = 12 - 2x
 
-        let (r, p_value) = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let result = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let r = result.r();
 
         assert!((r + 1.0).abs() < 0.001, "Expected r=-1.0, got {}", r);
     }
@@ -156,7 +163,8 @@ mod biometric_stats {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![5.0, 2.0, 8.0, 1.0, 9.0]; // Random
 
-        let (r, p_value) = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let result = CorrelationAnalyzer::pearson_correlation(&x, &y);
+        let r = result.r();
 
         // r should be close to 0
         assert!(r.abs() < 0.5, "Expected small correlation, got {}", r);
@@ -175,7 +183,8 @@ mod biometric_stats {
             "2025-04-07".to_string(),
         ];
 
-        let anomalies = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies_js = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies: Vec<AnomalyPoint> = from_value(anomalies_js).unwrap();
 
         // Should detect the outlier (25.0)
         assert_eq!(anomalies.len(), 1, "Expected 1 anomaly");
@@ -197,7 +206,8 @@ mod biometric_stats {
             "2025-04-07".to_string(),
         ];
 
-        let anomalies = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies_js = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies: Vec<AnomalyPoint> = from_value(anomalies_js).unwrap();
 
         assert_eq!(anomalies.len(), 2, "Expected 2 anomalies");
     }
@@ -215,7 +225,8 @@ mod biometric_stats {
             "2025-04-07".to_string(),
         ];
 
-        let anomalies = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies_js = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test_factor", 2.0);
+        let anomalies: Vec<AnomalyPoint> = from_value(anomalies_js).unwrap();
 
         assert_eq!(anomalies.len(), 0, "Expected no anomalies");
     }
@@ -254,7 +265,8 @@ mod biometric_stats {
     fn test_sleep_consistency() {
         // Consistent sleep: low std dev
         let durations = vec![7.5, 7.8, 7.3, 7.6, 7.4];
-        let consistency = CorrelationAnalyzer::calculate_sleep_consistency(&durations);
+        let qualities = vec![85.0, 87.0, 82.0, 86.0, 84.0]; // Matching qualities
+        let consistency = CorrelationAnalyzer::calculate_sleep_consistency(&durations, &qualities);
 
         assert!(consistency > 80.0, "Consistent sleep should have high score, got {}", consistency);
     }
@@ -263,7 +275,8 @@ mod biometric_stats {
     fn test_sleep_inconsistency() {
         // Inconsistent sleep: high std dev
         let durations = vec![5.0, 9.0, 6.0, 10.0, 4.0];
-        let consistency = CorrelationAnalyzer::calculate_sleep_consistency(&durations);
+        let qualities = vec![60.0, 85.0, 70.0, 90.0, 55.0]; // Varying qualities
+        let consistency = CorrelationAnalyzer::calculate_sleep_consistency(&durations, &qualities);
 
         assert!(consistency < 50.0, "Inconsistent sleep should have low score, got {}", consistency);
     }
@@ -272,8 +285,12 @@ mod biometric_stats {
     fn test_nutrition_consistency() {
         // Consistent calorie intake
         let calories = vec![2200.0, 2150.0, 2250.0, 2180.0, 2220.0];
-        let target = 2200.0;
-        let consistency = CorrelationAnalyzer::calculate_nutrition_consistency(&calories, target);
+        let targets = vec![2200.0, 2200.0, 2200.0, 2200.0, 2200.0];
+        let late_night_count = 0;
+        let total_days = 5;
+        let consistency = CorrelationAnalyzer::calculate_nutrition_consistency(
+            &calories, &targets, late_night_count, total_days
+        );
 
         assert!(consistency > 85.0, "Consistent nutrition should have high score, got {}", consistency);
     }
@@ -282,8 +299,12 @@ mod biometric_stats {
     fn test_nutrition_inconsistency() {
         // Variable calorie intake
         let calories = vec![1500.0, 3000.0, 1800.0, 3500.0, 1600.0];
-        let target = 2200.0;
-        let consistency = CorrelationAnalyzer::calculate_nutrition_consistency(&calories, target);
+        let targets = vec![2200.0, 2200.0, 2200.0, 2200.0, 2200.0];
+        let late_night_count = 2;
+        let total_days = 5;
+        let consistency = CorrelationAnalyzer::calculate_nutrition_consistency(
+            &calories, &targets, late_night_count, total_days
+        );
 
         assert!(consistency < 50.0, "Inconsistent nutrition should have low score, got {}", consistency);
     }
@@ -301,7 +322,8 @@ mod biometric_stats {
             Some(2.5)
         ).unwrap();
 
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let result_str = result.as_string().unwrap();
+        let parsed: serde_json::Value = from_str(&result_str).unwrap();
 
         // Should still work but with minimal correlations
         assert!(parsed["total_correlations"].as_i64().unwrap() >= 0);
@@ -317,7 +339,8 @@ mod biometric_stats {
             Some(2.5)
         ).unwrap();
 
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let result_str = result.as_string().unwrap();
+        let parsed: serde_json::Value = from_str(&result_str).unwrap();
 
         assert!(parsed["period_days"].as_i64().unwrap() == 7);
         assert!(parsed["total_correlations"].as_i64().unwrap() >= 0);
@@ -334,7 +357,8 @@ mod biometric_stats {
             Some(3.0)  // Higher anomaly threshold
         ).unwrap();
 
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let result_str = result.as_string().unwrap();
+        let parsed: serde_json::Value = from_str(&result_str).unwrap();
 
         assert!(parsed["period_days"].as_i64().unwrap() == 30);
         assert!(parsed["anomaly_threshold"].as_f64().unwrap() == 3.0);
@@ -380,7 +404,8 @@ mod biometric_stats {
             Some(2.5)
         ).unwrap();
 
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let result_str = result.as_string().unwrap();
+        let parsed: serde_json::Value = from_str(&result_str).unwrap();
 
         // Check all required fields exist
         assert!(parsed["period_days"].is_number());
@@ -400,9 +425,10 @@ mod biometric_stats {
         // Test anomaly point direction
         let data = vec![10.0, 11.0, 10.5, 25.0]; // High outlier
         let dates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string(), "d4".to_string()];
-        let anomalies = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test", 2.0);
+        let anomalies_js = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test", 2.0);
+        let anomalies: Vec<aivo_compute::AnomalyPoint> = serde_wasm_bindgen::from_value(anomalies_js).unwrap();
 
-        assert_eq!(anomalies[0].deviation_direction, "high");
+        assert_eq!(anomalies[0].deviation_direction, "above");
         assert!(anomalies[0].observed_value > anomalies[0].expected_value);
     }
 
@@ -411,9 +437,10 @@ mod biometric_stats {
         // Test low outlier
         let data = vec![10.0, 11.0, 10.5, 2.0]; // Low outlier
         let dates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string(), "d4".to_string()];
-        let anomalies = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test", 2.0);
+        let anomalies_js = CorrelationAnalyzer::detect_anomalies(&data, &dates, "test", 2.0);
+        let anomalies: Vec<aivo_compute::AnomalyPoint> = serde_wasm_bindgen::from_value(anomalies_js).unwrap();
 
-        assert_eq!(anomalies[0].deviation_direction, "low");
+        assert_eq!(anomalies[0].deviation_direction, "below");
         assert!(anomalies[0].observed_value < anomalies[0].expected_value);
     }
 }

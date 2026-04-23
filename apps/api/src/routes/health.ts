@@ -92,8 +92,9 @@ const createHealthCheck = () => {
       const dbLatency = Date.now() - dbStart;
 
       // Get table list
-      const execResults = await (c.env.DB.exec as unknown as () => Promise<D1ExecResult>)("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = execResults.results.map((row) => row.name)
+      const tableRows = await c.env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as any;
+      const tableList = (Array.isArray(tableRows) ? tableRows : [])
+        .map((row: any) => row.name)
         .filter((name: string) => !name.startsWith("sqlite_"));
 
       services.push({
@@ -236,9 +237,9 @@ const createHealthCheck = () => {
       version: "1.0.0",
       uptime: (Date.now() - MODULE_START_TIME) / 1000,
       services,
-      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as DatabaseDetails,
-      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as CacheDetails,
-      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as StorageDetails,
+      database: ((services.find((s) => s.name === "database")?.details || { connected: false }) as any) as DatabaseDetails,
+      cache: ((services.find((s) => s.name === "cache")?.details || { connected: false }) as any) as CacheDetails,
+      storage: ((services.find((s) => s.name === "storage")?.details || { connected: false }) as any) as StorageDetails,
       compute: {
         wasmLoaded: false, // Temporarily disabled
         optimizerLoaded: services.some((s) => s.name === "ai-optimizer" && s.status === "healthy"),

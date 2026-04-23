@@ -1,12 +1,13 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Heart, Dumbbell, Flame, Clock } from "lucide-react-native";
+import colors from "@/theme/colors";
 
 export default function DashboardScreen() {
   const stats = [
-    { icon: Heart, label: "Heart Rate", value: "72", unit: "bpm", color: "#3b82f6" },
-    { icon: Dumbbell, label: "Workouts", value: "12", unit: "this week", color: "#10b981" },
-    { icon: Flame, label: "Calories", value: "2,847", unit: "kcal", color: "#f59e0b" },
-    { icon: Clock, label: "Active", value: "345", unit: "minutes", color: "#8b5cf6" },
+    { icon: Heart, label: "Heart Rate", value: "72", unit: "bpm", color: colors.brand.primary },
+    { icon: Dumbbell, label: "Workouts", value: "12", unit: "this week", color: colors.success },
+    { icon: Flame, label: "Calories", value: "2,847", unit: "kcal", color: colors.warning },
+    { icon: Clock, label: "Active", value: "345", unit: "minutes", color: colors.purple },
   ];
 
   const recentWorkouts = [
@@ -69,7 +70,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#030712",
+    backgroundColor: colors.background.primary,
   },
   header: {
     paddingHorizontal: 20,
@@ -77,11 +78,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   greeting: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 14,
   },
   title: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 32,
     fontWeight: "bold",
     marginTop: 4,
@@ -94,11 +95,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: "47%",
-    backgroundColor: "#111827",
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.border.primary,
   },
   iconContainer: {
     width: 40,
@@ -109,46 +110,46 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statValue: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 24,
     fontWeight: "bold",
   },
   statLabel: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 12,
     marginTop: 4,
   },
   statUnit: {
-    color: "#6b7280",
+    color: colors.text.tertiary,
   },
   section: {
     paddingHorizontal: 20,
     marginTop: 24,
   },
   sectionTitle: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
   },
   workoutCard: {
-    backgroundColor: "#111827",
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.border.primary,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   workoutName: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: "600",
   },
   workoutDate: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -156,12 +157,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   workoutDuration: {
-    color: "#fff",
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: "500",
   },
   workoutCalories: {
-    color: "#9ca3af",
+    color: colors.text.secondary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -169,19 +170,19 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   aiCard: {
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    backgroundColor: colors.overlay.light,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.3)",
+    borderColor: colors.border.light,
   },
   aiLabel: {
-    color: "#60a5fa",
+    color: colors.brand.primary,
     fontSize: 12,
     marginBottom: 8,
   },
   aiText: {
-    color: "#d1d5db",
+    color: colors.text.secondary,
     fontSize: 14,
     lineHeight: 20,
   },

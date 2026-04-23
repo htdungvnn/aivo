@@ -31,21 +31,14 @@ const COLORS = {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-interface ActiveWorkoutScreenProps {
-  workoutName?: string;
-  targetRPE?: number;
-  idealRestSeconds?: number;
-  hasSpotter?: boolean;
-}
-
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<ActiveWorkoutScreenProps>();
+  const params = useLocalSearchParams();
 
-  const workoutName = params.workoutName || "Workout";
-  const targetRPE = params.targetRPE || 8;
-  const idealRestSeconds = params.idealRestSeconds || 90;
-  const hasSpotter = params.hasSpotter || false;
+  const workoutName = Array.isArray(params.workoutName) ? params.workoutName[0] : (typeof params.workoutName === "string" ? params.workoutName : "Workout");
+  const targetRPE = params.targetRPE ? parseInt(Array.isArray(params.targetRPE) ? params.targetRPE[0] : (params.targetRPE as string), 10) : 8;
+  const idealRestSeconds = params.idealRestSeconds ? parseInt(Array.isArray(params.idealRestSeconds) ? params.idealRestSeconds[0] : (params.idealRestSeconds as string), 10) : 90;
+  const hasSpotter = params.hasSpotter === "true" || (Array.isArray(params.hasSpotter) ? params.hasSpotter[0] === "true" : false);
   const [session, setSession] = useState<LiveWorkoutSession | null>(null);
   const [currentSet, setCurrentSet] = useState(1);
   const [weight, setWeight] = useState("");

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/AuthContext";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
+import colors from "@/theme/colors";
 
 const COLORS = {
   background: "#030712",
@@ -13,13 +14,13 @@ const COLORS = {
   textMuted: "#9ca3af",
   textPrimary: "#ffffff",
   primary: "#3b82f6",
-  danger: COLORS.danger,
-  success: COLORS.success,
+  danger: colors.danger,
+  success: colors.success,
   successDark: "#064e3b",
-  successLight: COLORS.successLight,
+  successLight: colors.successLight,
   gray: "#6b7280",
-  overlay: COLORS.overlay,
-  transparent: COLORS.transparent,
+  overlay: colors.overlay,
+  transparent: colors.transparent,
 } as const;
 
 export default function ProfileScreen() {
@@ -88,42 +89,42 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background.primary }]} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <User size={48} color={COLORS.textMuted} />
+        <View style={[styles.avatar, { backgroundColor: colors.background.tertiary }]}>
+          <User size={48} color={colors.text.secondary} />
         </View>
-        <Text style={styles.userName}>{user?.name || "Alex Johnson"}</Text>
-        <Text style={styles.userEmail}>{user?.email || "alex@aivo.fit"}</Text>
+        <Text style={[styles.userName, { color: colors.text.primary }]}>{user?.name || "Alex Johnson"}</Text>
+        <Text style={[styles.userEmail, { color: colors.text.secondary }]}>{user?.email || "alex@aivo.fit"}</Text>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>15</Text>
-            <Text style={styles.statLabel}>Workouts</Text>
+            <Text style={[styles.statValue, { color: colors.text.primary }]}>15</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Workouts</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border.primary }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>2,847</Text>
-            <Text style={styles.statLabel}>Calories</Text>
+            <Text style={[styles.statValue, { color: colors.text.primary }]}>2,847</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Calories</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border.primary }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>345</Text>
-            <Text style={styles.statLabel}>Minutes</Text>
+            <Text style={[styles.statValue, { color: colors.text.primary }]}>345</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Minutes</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.menuContainer}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress ? () => void item.onPress?.() : undefined}>
-            <View style={[styles.menuIconContainer, item.isPrimary && styles.primaryIconContainer]}>
-              <item.icon size={20} color={item.isDestructive ? COLORS.danger : item.isPrimary ? COLORS.success : "#3b82f6"} />
+          <TouchableOpacity key={index} style={[styles.menuItem, { backgroundColor: colors.background.secondary, borderColor: colors.border.primary }]} onPress={item.onPress ? () => void item.onPress?.() : undefined}>
+            <View style={[styles.menuIconContainer, item.isPrimary && styles.primaryIconContainer, { backgroundColor: item.isPrimary ? colors.overlay.light : colors.background.tertiary }]}>
+              <item.icon size={20} color={item.isDestructive ? colors.error : item.isPrimary ? colors.success : colors.brand.primary} />
             </View>
-            <Text style={[styles.menuLabel, item.isDestructive && styles.destructiveText]}>
+            <Text style={[styles.menuLabel, { color: colors.text.primary }, item.isDestructive && { color: colors.error }]}>
               {item.label}
             </Text>
             {item.action && (
-              <Text style={styles.menuAction}>{item.action}</Text>
+              <Text style={[styles.menuAction, { color: colors.brand.primary }]}>{item.action}</Text>
             )}
           </TouchableOpacity>
         ))}
@@ -131,22 +132,22 @@ export default function ProfileScreen() {
 
       {/* Export Format Selection Modal */}
       {showExportOptions && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Export Data</Text>
-            <Text style={styles.modalSubtitle}>Select format to download</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay.medium }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background.secondary, borderColor: colors.border.primary }]}>
+            <Text style={[styles.modalTitle, { color: colors.text.primary }]}>Export Data</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.text.secondary }]}>Select format to download</Text>
 
             {exportFormats.map((format, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.formatOption, exportFormat === format.value && styles.selectedFormatOption]}
+                style={[styles.formatOption, { backgroundColor: colors.background.tertiary, borderColor: colors.border.transparent }, exportFormat === format.value && [styles.selectedFormatOption, { borderColor: colors.success, backgroundColor: "#064e3b" }]]}
                 onPress={() => setExportFormat(format.value)}
               >
-                <format.icon size={24} color={exportFormat === format.value ? COLORS.success : COLORS.textMuted} />
-                <Text style={styles.formatLabel}>{format.label}</Text>
+                <format.icon size={24} color={exportFormat === format.value ? colors.success : colors.text.secondary} />
+                <Text style={[styles.formatLabel, { color: colors.text.primary }]}>{format.label}</Text>
                 {exportFormat === format.value && (
-                  <View style={styles.checkmark}>
-                    <Text style={styles.checkmarkText}>✓</Text>
+                  <View style={[styles.checkmark, { backgroundColor: colors.success }]}>
+                    <Text style={[styles.checkmarkText, { color: colors.text.primary }]}>✓</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -154,17 +155,17 @@ export default function ProfileScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[styles.modalButton, styles.cancelButton, { backgroundColor: colors.border.primary }]}
                 onPress={() => setShowExportOptions(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.text.secondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton, isExporting && styles.disabledButton]}
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: colors.success }, isExporting && styles.disabledButton]}
                 onPress={() => void handleExport()}
                 disabled={isExporting}
               >
-                <Text style={styles.confirmButtonText}>
+                <Text style={[styles.confirmButtonText, { color: colors.text.primary }]}>
                   {isExporting ? "Exporting..." : "Export"}
                 </Text>
               </TouchableOpacity>
@@ -173,7 +174,7 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <Text style={styles.version}>AIVO v0.1.0</Text>
+      <Text style={[styles.version, { color: colors.text.tertiary }]}>AIVO v0.1.0</Text>
     </ScrollView>
   );
 }
@@ -181,31 +182,26 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     alignItems: "center",
     paddingTop: 60,
     paddingBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: COLORS.surfaceDark,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   userName: {
-    color: COLORS.textPrimary,
     fontSize: 24,
     fontWeight: "bold",
   },
   userEmail: {
-    color: COLORS.textMuted,
     fontSize: 14,
     marginTop: 4,
   },
@@ -219,18 +215,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "bold",
   },
   statLabel: {
-    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: COLORS.border,
   },
   menuContainer: {
     marginTop: 24,
@@ -239,36 +232,28 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   menuIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: COLORS.surfaceDark,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   primaryIconContainer: {
-    backgroundColor: COLORS.successLight,
+    // backgroundColor set inline
   },
   menuLabel: {
     flex: 1,
-    color: COLORS.textPrimary,
     fontSize: 16,
   },
   menuAction: {
-    color: COLORS.primary,
     fontSize: 14,
-  },
-  destructiveText: {
-    color: COLORS.danger,
   },
   // Export Modal Styles
   modalOverlay: {
@@ -277,30 +262,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: COLORS.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
     zIndex: 1000,
   },
   modalContent: {
-    backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 24,
     width: "100%",
     maxWidth: 360,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   modalTitle: {
-    color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 4,
   },
   modalSubtitle: {
-    color: COLORS.textMuted,
     fontSize: 14,
     textAlign: "center",
     marginBottom: 20,
@@ -308,21 +288,17 @@ const styles = StyleSheet.create({
   formatOption: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surfaceDark,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: COLORS.transparent,
     gap: 12,
   },
   selectedFormatOption: {
-    borderColor: COLORS.success,
-    backgroundColor: "#064e3b",
+    // borderColor and backgroundColor set inline
   },
   formatLabel: {
     flex: 1,
-    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "500",
   },
@@ -330,12 +306,10 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.success,
     justifyContent: "center",
     alignItems: "center",
   },
   checkmarkText: {
-    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -351,18 +325,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: COLORS.border,
+    // backgroundColor set inline
   },
   cancelButtonText: {
-    color: COLORS.textMuted,
     fontSize: 16,
     fontWeight: "600",
   },
   confirmButton: {
-    backgroundColor: COLORS.success,
+    // backgroundColor set inline
   },
   confirmButtonText: {
-    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -370,7 +342,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   version: {
-    color: "#6b7280",
     fontSize: 12,
     textAlign: "center",
     marginTop: 24,

@@ -7,7 +7,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
 import { MemoryService } from "@aivo/memory-service";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
-import { createAIService } from "../utils/unified-ai-service";
+import { createAIService, type ChatMessage } from "../utils/unified-ai-service";
 import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";
 
 export interface Env {
@@ -158,7 +158,7 @@ export const AIRouter = () => {
       // Build messages array
       const systemPrompt = `You are AIVO, an expert AI fitness coach and nutrition advisor.`;
 
-      const messages: Array<{ role: string; content: string }> = [
+      const messages: ChatMessage[] = [
         { role: "system", content: systemPrompt },
       ];
 
@@ -195,7 +195,7 @@ export const AIRouter = () => {
 
       // Add conversation history
       if (history.length > 0) {
-        const allMessages: Array<{ role: string; content: string }> = [];
+        const allMessages: ChatMessage[] = [];
         history.reverse().forEach((conv) => {
           allMessages.push({ role: "user", content: conv.message });
           if (conv.response) {
@@ -212,7 +212,7 @@ export const AIRouter = () => {
 
       // Use unified AI service with automatic model selection
       const aiService = getAIService(c.env);
-      const response = await aiService.chat(messages as Array<{ role: string; content: string }>, {
+      const response = await aiService.chat(messages, {
         temperature: 0.7,
         maxTokens: 1000,
         jsonMode: false,

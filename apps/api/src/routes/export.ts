@@ -83,85 +83,85 @@ const toBool = (val: number | null | undefined): boolean => {
 
 // Transform DB row to User
 const transformUser = (row: unknown): User => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    email: r.email as string,
-    name: r.name as string,
-    age: r.age ?? undefined,
-    gender: r.gender ?? undefined,
-    height: r.height ?? undefined,
-    weight: r.weight ?? undefined,
-    restingHeartRate: r.resting_heart_rate ?? undefined,
-    maxHeartRate: r.max_heart_rate ?? undefined,
-    fitnessLevel: r.fitness_level ?? undefined,
-    goals: r.goals ? (parseJson<string[]>(r.goals, []) as UserGoal[]) : undefined,
+    id: r.id,
+    email: r.email,
+    name: r.name,
+    age: r.age,
+    gender: r.gender,
+    height: r.height,
+    weight: r.weight,
+    restingHeartRate: r.resting_heart_rate,
+    maxHeartRate: r.max_heart_rate,
+    fitnessLevel: r.fitness_level,
+    goals: r.goals ? (JSON.parse(r.goals) as UserGoal[]) : undefined,
     picture: r.picture ?? undefined,
-    createdAt: toDate(r.created_at)!,
-    updatedAt: toDate(r.updated_at)!,
+    createdAt: toDate(r.created_at) ?? new Date(),
+    updatedAt: toDate(r.updated_at) ?? new Date(),
   };
 };
 
 // Transform DB row to Workout (exercises added separately)
 const transformWorkout = (row: unknown): Workout => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    type: r.type as Workout['type'],
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
     name: r.name ?? undefined,
-    duration: r.duration as number,
+    duration: r.duration,
     caloriesBurned: r.calories_burned ?? undefined,
-    startTime: toDate(r.start_time)!,
-    endTime: toDate(r.end_time)!,
+    startTime: toDate(r.start_time) ?? new Date(),
+    endTime: toDate(r.end_time) ?? new Date(),
     notes: r.notes ?? undefined,
-    metrics: r.metrics ? parseJson(r.metrics, {}) : undefined,
+    metrics: r.metrics ? JSON.parse(r.metrics) : undefined,
     exercises: undefined,
-    createdAt: toDate(r.created_at)!,
+    createdAt: toDate(r.created_at) ?? new Date(),
     completedAt: r.completed_at ? toDate(r.completed_at) : undefined,
-    status: r.status as Workout['status'],
+    status: r.status,
   };
 };
 
 // Transform DB row to WorkoutExercise
 const transformWorkoutExercise = (row: unknown): SharedWorkoutExercise => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    workoutId: r.workout_id as string,
-    name: r.name as string,
-    sets: r.sets as number,
-    reps: r.reps as number,
+    id: r.id,
+    workoutId: r.workout_id,
+    name: r.name,
+    sets: r.sets,
+    reps: r.reps,
     weight: r.weight ?? undefined,
     restTime: r.rest_time ?? undefined,
     notes: r.notes ?? undefined,
-    order: r.order as number,
+    order: r.order,
     rpe: r.rpe ?? undefined,
   };
 };
 
 // Transform DB row to ScheduledWorkout (from daily_schedules with joined workout)
 const transformScheduledWorkout = (schedule: unknown, workout: unknown | null): ScheduledWorkout => {
-  const s = schedule as Record<string, unknown>;
+  const s = schedule as any;
   if (!workout) {
     return {
       workoutId: s.workout_id ?? undefined,
       templateId: undefined,
       customName: "Untitled",
-      type: (s.type as string) ?? "other",
+      type: s.type ?? "other",
       duration: s.duration ?? 0,
       estimatedCalories: s.estimated_calories ?? 0,
       exercises: [],
       notes: undefined,
     };
   }
-  const w = workout as Record<string, unknown>;
+  const w = workout as any;
   return {
-    workoutId: w.id as string,
+    workoutId: w.id,
     templateId: undefined,
-    customName: w.name ?? (w.type as string),
-    type: w.type as string,
-    duration: w.duration as number,
+    customName: w.name ?? w.type,
+    type: w.type,
+    duration: w.duration,
     estimatedCalories: w.calories_burned ?? 0,
     exercises: [],
     notes: w.notes ?? undefined,
@@ -170,128 +170,128 @@ const transformScheduledWorkout = (schedule: unknown, workout: unknown | null): 
 
 // Transform DB row to DailySchedule
 const transformDailySchedule = (row: unknown, workout: unknown | null = null): DailySchedule => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    date: r.date as string,
+    id: r.id,
+    userId: r.user_id,
+    date: r.date,
     workout: r.workout_id ? transformScheduledWorkout(row, workout) : undefined,
-    recoveryTasks: parseJson(r.recovery_tasks, []),
-    nutritionGoals: parseJson(r.nutrition_goals, []),
-    sleepGoal: parseJson(r.sleep_goal, undefined),
-    generatedBy: r.generated_by as string,
-    optimizationScore: r.optimization_score ?? undefined,
-    adjustmentsMade: parseJson(r.adjustments_made, []),
+    recoveryTasks: typeof r.recovery_tasks === 'string' ? JSON.parse(r.recovery_tasks) : [],
+    nutritionGoals: typeof r.nutrition_goals === 'string' ? JSON.parse(r.nutrition_goals) : [],
+    sleepGoal: typeof r.sleep_goal === 'string' ? JSON.parse(r.sleep_goal) : undefined,
+    generatedBy: r.generated_by,
+    optimizationScore: r.optimization_score,
+    adjustmentsMade: typeof r.adjustments_made === 'string' ? JSON.parse(r.adjustments_made) : [],
   };
 };
 
 // Transform DB row to BodyMetric
 const transformBodyMetric = (row: unknown): BodyMetric => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    timestamp: (r.timestamp as number) * 1000,
-    weight: r.weight ?? undefined,
-    bodyFatPercentage: r.body_fat_percentage ?? undefined,
-    muscleMass: r.muscle_mass ?? undefined,
-    boneMass: r.bone_mass ?? undefined,
-    waterPercentage: r.water_percentage ?? undefined,
-    bmi: r.bmi ?? undefined,
-    waistCircumference: r.waist_circumference ?? undefined,
-    chestCircumference: r.chest_circumference ?? undefined,
-    hipCircumference: r.hip_circumference ?? undefined,
-    source: r.source ?? undefined,
-    notes: r.notes ?? undefined,
+    id: r.id,
+    userId: r.user_id,
+    timestamp: r.timestamp * 1000,
+    weight: r.weight,
+    bodyFatPercentage: r.body_fat_percentage,
+    muscleMass: r.muscle_mass,
+    boneMass: r.bone_mass,
+    waterPercentage: r.water_percentage,
+    bmi: r.bmi,
+    waistCircumference: r.waist_circumference,
+    chestCircumference: r.chest_circumference,
+    hipCircumference: r.hip_circumference,
+    source: r.source,
+    notes: r.notes,
   };
 };
 
 // Transform DB row to BodyHeatmapData
 const transformBodyHeatmap = (row: unknown): BodyHeatmapData => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    timestamp: (r.timestamp as number) * 1000,
-    imageUrl: r.image_url ?? undefined,
-    vectorData: parseJson(r.vector_data, []),
-    metadata: parseJson(r.metadata, undefined),
+    id: r.id,
+    userId: r.user_id,
+    timestamp: r.timestamp * 1000,
+    imageUrl: r.image_url,
+    vectorData: typeof r.vector_data === 'string' ? JSON.parse(r.vector_data) : [],
+    metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : undefined,
   };
 };
 
 // Transform DB row to VisionAnalysis
 const transformVisionAnalysis = (row: unknown): VisionAnalysis => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    imageUrl: r.image_url as string,
-    processedUrl: r.processed_url ?? undefined,
-    analysis: parseJson(r.analysis, { muscleDevelopment: [], riskFactors: [] }),
+    id: r.id,
+    userId: r.user_id,
+    imageUrl: r.image_url,
+    processedUrl: r.processed_url,
+    analysis: typeof r.analysis === 'string' ? JSON.parse(r.analysis) : { muscleDevelopment: [], riskFactors: [] },
     confidence: r.confidence ?? 0,
-    createdAt: (r.created_at as number) * 1000,
+    createdAt: r.created_at * 1000,
   };
 };
 
 // Transform DB row to Conversation
 const transformConversation = (row: unknown): Conversation => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    message: r.message as string,
-    response: r.response as string,
-    context: r.context ? (parseJson<string[]>(r.context, []) as string[]) : undefined,
-    tokensUsed: r.tokens_used as number,
-    model: r.model ?? undefined,
-    createdAt: toDate(r.created_at)!,
+    id: r.id,
+    userId: r.user_id,
+    message: r.message,
+    response: r.response,
+    context: r.context ? (JSON.parse(r.context) as string[]) : undefined,
+    tokensUsed: r.tokens_used,
+    model: r.model,
+    createdAt: toDate(r.created_at) ?? new Date(),
   };
 };
 
 // Transform DB row to AIRecommendation
 const transformAIRecommendation = (row: unknown): AIRecommendation => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    type: r.type as AIRecommendation['type'],
-    title: r.title as string,
-    description: r.description as string,
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
+    title: r.title,
+    description: r.description,
     confidence: r.confidence ?? 0,
-    reasoning: r.reasoning ?? undefined,
-    actions: parseJson(r.actions, []),
+    reasoning: r.reasoning,
+    actions: typeof r.actions === 'string' ? JSON.parse(r.actions) : [],
     expiresAt: r.expires_at ? toDate(r.expires_at) : undefined,
     isRead: toBool(r.is_read),
     isDismissed: toBool(r.is_dismissed),
-    feedback: r.feedback ? (parseJson(r.feedback, {}) as Record<string, unknown>) : undefined,
-    createdAt: toDate(r.created_at)!,
+    feedback: r.feedback && typeof r.feedback === 'string' ? JSON.parse(r.feedback) : undefined,
+    createdAt: toDate(r.created_at) ?? new Date(),
   };
 };
 
 // Transform DB row to Badge
 const transformBadge = (row: unknown): Badge => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    type: r.type as Badge['type'],
-    name: r.name as string,
-    description: r.description as string,
-    icon: r.icon as string,
-    earnedAt: toDate(r.earned_at)!,
-    tier: r.tier as Badge['tier'],
+    id: r.id,
+    type: r.type,
+    name: r.name,
+    description: r.description,
+    icon: r.icon,
+    earnedAt: toDate(r.earned_at) ?? new Date(),
+    tier: r.tier,
   };
 };
 
 // Transform DB row to Achievement
 const transformAchievement = (row: unknown): Achievement => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    type: r.type as Achievement['type'],
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
     progress: r.progress ?? 0,
-    target: r.target as number,
-    reward: r.reward as string,
+    target: r.target,
+    reward: r.reward,
     completed: toBool(r.completed),
     completedAt: r.completed_at ? toDate(r.completed_at) : undefined,
     claimed: toBool(r.claimed),
@@ -300,32 +300,32 @@ const transformAchievement = (row: unknown): Achievement => {
 
 // Transform DB row to SocialProofCard
 const transformSocialProofCard = (row: unknown): SocialProofCard => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    type: r.type as SocialProofCard['type'],
-    title: r.title as string,
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
+    title: r.title,
     subtitle: r.subtitle ?? "",
-    data: parseJson(r.data, { value: 0, label: "", icon: "", color: "" }),
-    shareableImageUrl: r.shareable_image_url ?? undefined,
-    createdAt: toDate(r.created_at)!,
+    data: typeof r.data === 'string' ? JSON.parse(r.data) : { value: 0, label: "", icon: "", color: "" },
+    shareableImageUrl: r.shareable_image_url,
+    createdAt: toDate(r.created_at) ?? new Date(),
     isPublic: toBool(r.is_public),
   };
 };
 
 // Transform DB row to ActivityEvent
 const transformActivityEvent = (row: unknown): ActivityEvent => {
-  const r = row as Record<string, unknown>;
+  const r = row as any;
   return {
-    id: r.id as string,
-    userId: r.user_id as string,
-    workoutId: r.workout_id ?? undefined,
-    type: r.type as ActivityEvent['type'],
-    payload: parseJson(r.payload, {}),
-    clientTimestamp: toDate(r.client_timestamp)!,
-    serverTimestamp: toDate(r.server_timestamp)!,
-    deviceInfo: r.device_info ? (parseJson(r.device_info, {}) as Record<string, unknown>) : undefined,
+    id: r.id,
+    userId: r.user_id,
+    workoutId: r.workout_id,
+    type: r.type,
+    payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : {},
+    clientTimestamp: toDate(r.client_timestamp) ?? new Date(),
+    serverTimestamp: toDate(r.server_timestamp) ?? new Date(),
+    deviceInfo: r.device_info && typeof r.device_info === 'string' ? JSON.parse(r.device_info) : undefined,
   };
 };
 
@@ -348,7 +348,7 @@ export const ExportRouter = () => {
       // Verify user exists using new Drizzle 0.45 API
       const userRows = await drizzle.query.users.findFirst({
         where: (u, { eq }) => eq(u.id, userId),
-      }) as unknown;
+      }) as any;
       if (!userRows) {
         return c.json({ success: false, error: "User not found" }, 404);
       }
@@ -377,61 +377,61 @@ export const ExportRouter = () => {
         drizzle.query.workouts.findMany({
           where: (w, { eq }) => eq(w.userId, userId),
           orderBy: (w, { desc }) => desc(w.createdAt),
-        }) as unknown,
+        }) as any,
         // Body Metrics with optional date range
         drizzle.query.bodyMetrics.findMany({
           where: (bm, { and, gte, lte, eq }) =>
             and(eq(bm.userId, userId), ...(startTimeMs && endTimeMs ? [gte(bm.timestamp, startTimeMs), lte(bm.timestamp, endTimeMs)] : [])),
           orderBy: (bm, { desc }) => desc(bm.timestamp),
-        }) as unknown,
+        }) as any,
         // Body Heatmaps
         drizzle.query.bodyHeatmaps.findMany({
           where: (bh, { eq }) => eq(bh.userId, userId),
           orderBy: (bh, { desc }) => desc(bh.createdAt),
-        }) as unknown,
+        }) as any,
         // Vision Analyses
         drizzle.query.visionAnalyses.findMany({
           where: (va, { eq }) => eq(va.userId, userId),
           orderBy: (va, { desc }) => desc(va.createdAt),
-        }) as unknown,
+        }) as any,
         // Conversations
         drizzle.query.conversations.findMany({
           where: (c, { eq }) => eq(c.userId, userId),
           orderBy: (c, { desc }) => desc(c.createdAt),
-        }) as unknown,
+        }) as any,
         // AI Recommendations
         drizzle.query.aiRecommendations.findMany({
           where: (ar, { eq }) => eq(ar.userId, userId),
           orderBy: (ar, { desc }) => desc(ar.createdAt),
-        }) as unknown,
+        }) as any,
         // Daily Schedules
         drizzle.query.dailySchedules.findMany({
           where: (ds, { eq }) => eq(ds.userId, userId),
           orderBy: (ds, { desc }) => desc(ds.id),
-        }) as unknown,
+        }) as any,
         // Gamification Profile
         drizzle.query.gamificationProfiles.findFirst({
           where: (gp, { eq }) => eq(gp.userId, userId),
-        }) as unknown,
+        }) as any,
         // Badges
         drizzle.query.badges.findMany({
           where: (b, { eq }) => eq(b.userId, userId),
           orderBy: (b, { desc }) => desc(b.earnedAt),
-        }) as unknown,
+        }) as any,
         // Achievements
         drizzle.query.achievements.findMany({
           where: (a, { eq }) => eq(a.userId, userId),
-        }) as unknown,
+        }) as any,
         // Social Proof Cards
         drizzle.query.socialProofCards.findMany({
           where: (spc, { eq }) => eq(spc.userId, userId),
           orderBy: (spc, { desc }) => desc(spc.createdAt),
-        }) as unknown,
+        }) as any,
         // Activity Events
         drizzle.query.activityEvents.findMany({
           where: (ae, { eq }) => eq(ae.userId, userId),
           orderBy: (ae, { desc }) => desc(ae.serverTimestamp),
-        }) as unknown,
+        }) as any,
       ]);
 
       // Transform DB rows to shared-types
@@ -478,7 +478,7 @@ export const ExportRouter = () => {
           .findMany({
             where: (we, { inArray }) => inArray(we.workoutId, workoutIds),
             orderBy: (we, { asc }) => asc(we.order),
-          }) as unknown;
+          }) as any[];
         workoutExercises = exerciseRows.map(transformWorkoutExercise);
       }
 
@@ -546,7 +546,7 @@ export const ExportRouter = () => {
       );
       c.header("Content-Length", buffer.length.toString());
 
-      return c.body(buffer);
+      return c.body(buffer as any);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Export error:", error);
@@ -628,7 +628,7 @@ export const ExportRouter = () => {
     c.header("Content-Disposition", `attachment; filename="${filename}"`);
     c.header("Content-Length", buffer.length.toString());
 
-    return c.body(buffer);
+    return c.body(buffer as any);
   });
 
   return router;

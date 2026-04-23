@@ -2,18 +2,42 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RecoveryDashboard } from '../RecoveryDashboard';
-import * as biometricApi from '@/services/biometric-api';
+import { ApiClient } from '@aivo/api-client';
 
-// Mock the API
-vi.mock('@/services/biometric-api', () => ({
-  getSleepSummary: vi.fn(),
-  getCorrelationFindings: vi.fn(),
-  getBiometricSnapshot: vi.fn(),
-  generateBiometricSnapshot: vi.fn(),
+// Mock the API client
+const mockGetSleepHistory = jest.fn();
+const mockGetCorrelations = jest.fn();
+const mockGetBiometricSnapshot = jest.fn();
+const mockGenerateBiometricSnapshot = jest.fn();
+jest.mock('@aivo/api-client', () => ({
+  ApiClient: jest.fn().mockImplementation(() => ({
+    getSleepHistory: mockGetSleepHistory,
+    getCorrelations: mockGetCorrelations,
+    getBiometricSnapshot: mockGetBiometricSnapshot,
+    generateBiometricSnapshot: mockGenerateBiometricSnapshot,
+  })),
+  createApiClient: jest.fn().mockImplementation(() => ({
+    getSleepHistory: mockGetSleepHistory,
+    getCorrelations: mockGetCorrelations,
+    getBiometricSnapshot: mockGetBiometricSnapshot,
+    generateBiometricSnapshot: mockGenerateBiometricSnapshot,
+  })),
+}));
+
+// Mock useAuth to provide a logged-in user
+jest.mock('@/contexts/AuthContext', () => ({
+  ...jest.requireActual('@/contexts/AuthContext'),
+  useAuth: jest.fn(() => ({
+    user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
+    isAuthenticated: true,
+    loading: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+  })),
 }));
 
 // Mock fetch globally
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 describe('RecoveryDashboard Component', () => {
   const mockSnapshot = {
@@ -70,25 +94,25 @@ describe('RecoveryDashboard Component', () => {
     },
   ];
 
-  const mockSleepSummary = {
+  const mockSleepHistory = {
     avgDuration: 7.5,
     avgQuality: 82,
     avgConsistency: 78,
-    totalLogs: 7,
+    totalDays: 7,
     logs: [],
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    (biometricApi.getSleepSummary as vi.Mock).mockResolvedValue(mockSleepSummary);
-    (biometricApi.getCorrelationFindings as vi.Mock).mockResolvedValue(mockCorrelations);
-    (biometricApi.getBiometricSnapshot as vi.Mock).mockResolvedValue(mockSnapshot);
-    (biometricApi.generateBiometricSnapshot as vi.Mock).mockResolvedValue(mockSnapshot);
+    jest.clearAllMocks();
+    mockGetSleepHistory.mockResolvedValue(mockSleepHistory);
+    mockGetCorrelations.mockResolvedValue(mockCorrelations);
+    mockGetBiometricSnapshot.mockResolvedValue(mockSnapshot);
+    mockGenerateBiometricSnapshot.mockResolvedValue(mockSnapshot);
   });
 
   it('should render loading state initially', () => {
     // Mock all API calls to pend
-    (biometricApi.getSleepSummary as vi.Mock).mockImplementation(() => new Promise(() => {}));
+    mockGetSleepHistory.mockImplementation(() => new Promise(() => {}));
 
     render(<RecoveryDashboard />);
 
@@ -158,23 +182,23 @@ describe('RecoveryDashboard Component', () => {
     const dismissButton = screen.getByText('Dismiss');
     fireEvent.click(dismissButton);
 
-    expect(biometricApi.getCorrelationFindings).toHaveBeenCalledWith(5);
+    expect(mockGetCorrelations).toHaveBeenCalledWith(5);
   });
 
   it('should generate snapshot on button click', async () => {
     const user = { id: 'user-123' };
-    vi.spyOn(React, 'useContext').mockReturnValue({ user });
+    jest.spyOn(React, 'useContext').mockReturnValue({ user });
 
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Run Analysis Now')).toBeInTheDocument();
+      expect(screen.getByText('Run Analysis')).toBeInTheDocument();
     });
 
-    const button = screen.getByText('Run Analysis Now');
+    const button = screen.getByText('Run Analysis');
     fireEvent.click(button);
 
-    expect(biometricApi.generateBiometricSnapshot).toHaveBeenCalled();
+    expect(mockGenerateBiometricSnapshot).toHaveBeenCalled();
   });
 
   it('should display warnings when present', async () => {
@@ -205,12 +229,12 @@ describe('RecoveryDashboard Component', () => {
     fireEvent.click(insightsTab);
 
     await waitFor(() => {
-      expect(screen.getByText('No significant correlations')).toBeInTheDocument();
+      expect(screen.getByText('No significant correlations found yet.')).toBeInTheDocument();
     });
   });
 
   it('should show no correlations message when empty', async () => {
-    (biometricApi.getCorrelationFindings as vi.Mock).mockResolvedValue([]);
+    mockGetCorrelations.mockResolvedValue([]);
 
     render(<RecoveryDashboard />);
 

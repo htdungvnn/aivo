@@ -11,6 +11,7 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { getDb } from "../lib/db";
 import { deleteImage } from "../services/r2";
 import { generateInfographicStory } from "../services/infographic-ai";
@@ -140,7 +141,7 @@ export const InfographicRouter = () => {
       const renderResult = await renderAndUploadInfographic(infographicData, {
         scale: 2.0, // Retina quality
         uploadToR2: true,
-        r2Bucket: c.env.R2,
+        r2Bucket: c.env.R2 as any,
       });
 
       if (!renderResult.pngUrl) {
@@ -198,13 +199,15 @@ export const InfographicRouter = () => {
  */
 async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
   const id = c.req.param("id");
+  if (!id) {
+    return c.json({ success: false, error: "Infographic ID required" }, 400);
+  }
   const authUser = getUserFromContext(c) as AuthUser;
   const userId = authUser.id;
   const db = getDb(c.env);
 
-   
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
+    where: eq(socialProofCards.id, id),
   });
 
   if (!card) {
@@ -237,7 +240,10 @@ async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
  * Also removes the image from R2.
  */
 async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
-  const id = c.req.param("id") as string;
+  const id = c.req.param("id");
+  if (!id) {
+    return c.json({ success: false, error: "Infographic ID required" }, 400);
+  }
   const authUser = getUserFromContext(c) as AuthUser;
   const userId = authUser.id;
 
@@ -247,7 +253,7 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
 
   const db = getDb(c.env);
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
+    where: eq(socialProofCards.id, id),
   });
 
   if (!card) {
@@ -273,7 +279,7 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
   }
 
   // Delete database record
-  await db.delete(socialProofCards).where((tbl, { eq }) => eq(tbl.id, id));
+  await db.delete(socialProofCards).where(eq(socialProofCards.id, id));
 
   return c.json({ success: true, data: { deleted: true } });
 }

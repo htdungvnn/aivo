@@ -865,4 +865,5 @@ export const schema = {
   socialRelationships,
   liveWorkoutSessions,
   setRpeLogs,
+  sleepLogs,
 };
