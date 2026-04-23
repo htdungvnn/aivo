@@ -82,7 +82,7 @@ Please analyze the nutritional and medication safety aspects. Respond ONLY with 
 /**
  * Call OpenAI API with the prompt
  */
-async function callOpenAI(prompt: string, context: MedicalAgentRequest["context"]): Promise<MedicalAgentResponse> {
+async function callOpenAI(prompt: string, _context: MedicalAgentRequest["context"]): Promise<MedicalAgentResponse> {
   const { openai } = await import("../../utils/openai");
 
   const result = await openai.chat.completions.create({

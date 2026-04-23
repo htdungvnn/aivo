@@ -170,6 +170,59 @@ POST /api/auth/logout      # Invalidate session
 4. Configure OAuth redirect URIs
 5. Copy App ID to environment variables
 
+## 12. ENVIRONMENT SETUP
+
+### Development Environment
+
+Use the provided setup scripts:
+
+```bash
+# 1. Create .env files from templates
+./scripts/setup-env.sh
+
+# 2. Generate secure secrets
+./scripts/generate-secrets.sh
+
+# 3. Validate configuration
+./scripts/validate-env.sh
+
+# 4. Start development
+./scripts/dev.sh
+```
+
+### Required Environment Variables
+
+**API (Cloudflare Workers)**:
+- `AUTH_SECRET` (required) - JWT signing secret
+- `GOOGLE_CLIENT_ID` (optional) - Google OAuth client ID
+- `FACEBOOK_APP_ID` (optional) - Facebook App ID
+- `OPENAI_API_KEY` (optional) - OpenAI API key
+- `ALLOWED_ORIGINS` (optional) - CORS origins, defaults to localhost
+- `R2_PUBLIC_URL` (optional) - R2 public URL for images
+
+**Web (Next.js)**:
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (required for OAuth)
+- `NEXT_PUBLIC_FACEBOOK_CLIENT_ID` (required for OAuth)
+- `NEXT_PUBLIC_API_URL` - API endpoint URL
+- `NEXT_PUBLIC_R2_PUBLIC_URL` - R2 public URL
+
+**Mobile (Expo)**:
+- `EXPO_PUBLIC_GOOGLE_CLIENT_ID` (required for OAuth)
+- `EXPO_PUBLIC_FACEBOOK_CLIENT_ID` (required for OAuth)
+- `EXPO_PUBLIC_API_URL` - API endpoint URL
+- `EXPO_PUBLIC_R2_PUBLIC_URL` - R2 public URL
+- `EXPO_PUBLIC_SCHEME` - Deep linking scheme
+
+### Production Deployment
+
+See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complete production setup.
+
+Key steps:
+1. Set Cloudflare secrets via `wrangler secret put`
+2. Configure `wrangler.toml` with actual resource IDs
+3. Update OAuth redirect URIs to production domain
+4. Deploy with `./scripts/deploy.sh`
+
 ## 11. CURRENT PROJECT STATUS
 - Monorepo structure initialized ✅
 - Next.js web scaffolded ✅

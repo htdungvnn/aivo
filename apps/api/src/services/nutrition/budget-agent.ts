@@ -74,7 +74,7 @@ Please provide a comprehensive budget analysis. Respond ONLY with valid JSON.`;
 /**
  * Call OpenAI API with the prompt
  */
-async function callOpenAI(prompt: string, context: BudgetAgentRequest["context"]): Promise<BudgetAgentResponse> {
+async function callOpenAI(prompt: string, _context: BudgetAgentRequest["context"]): Promise<BudgetAgentResponse> {
   const { openai } = await import("../../utils/openai");
 
   const result = await openai.chat.completions.create({

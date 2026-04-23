@@ -8,7 +8,7 @@
  */
 
 import { AGENT_SYSTEM_PROMPTS } from "./prompts";
-import type { ChefAgentRequest, ChefAgentResponse, Recipe, NutritionConsultContext } from "@aivo/shared-types";
+import type { ChefAgentRequest, Recipe, NutritionConsultContext } from "@aivo/shared-types";
 import type { AgentInvocationResult } from "./types";
 
 /**
@@ -93,7 +93,7 @@ Please generate a recipe. Respond ONLY with valid JSON.`;
 /**
  * Call OpenAI API with the prompt
  */
-async function callOpenAI(prompt: string, context: NutritionConsultContext): Promise<Recipe> {
+async function callOpenAI(prompt: string, _context: NutritionConsultContext): Promise<Recipe> {
   const { openai } = await import("../../utils/openai");
 
   const result = await openai.chat.completions.create({

@@ -17,6 +17,11 @@ interface EnvWithR2 {
   OPENAI_API_KEY?: string;
 }
 
+type HeatmapWithPhoto = {
+  bodyHeatmaps: typeof bodyHeatmaps.$inferSelect;
+  bodyPhotos: typeof bodyPhotos.$inferSelect;
+};
+
 export const BodyPhotosRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
@@ -166,14 +171,14 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      } as any)
+      })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(eq(bodyHeatmaps.userId, userId))
       .orderBy(desc(bodyHeatmaps.createdAt))
       .limit(1);
 
-    const row = results[0] as any;
+    const row = results[0] as HeatmapWithPhoto | undefined;
     if (!row) {
       return c.json({ heatmap: null, photo: null });
     }
@@ -205,7 +210,7 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      } as any)
+      })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(eq(bodyHeatmaps.userId, userId))
@@ -213,8 +218,8 @@ export const BodyPhotosRouter = () => {
       .limit(limit);
 
     return c.json({
-      history: results.map((row) => {
-        const r = row as any;
+      history: results.map((row): { heatmap: { regions: unknown; metrics: Record<string, unknown>; [key: string]: unknown }; photo: { id: string; r2Url: string; uploadDate: number } } => {
+        const r = row as HeatmapWithPhoto;
         return {
           heatmap: {
             ...r.bodyHeatmaps,
@@ -244,13 +249,13 @@ export const BodyPhotosRouter = () => {
       .select({
         bodyHeatmaps: true,
         bodyPhotos: true,
-      } as any)
+      })
       .from(bodyHeatmaps)
       .innerJoin(bodyPhotos, eq(bodyPhotos.id, bodyHeatmaps.photoId))
       .where(and(eq(bodyHeatmaps.id, id), eq(bodyHeatmaps.userId, userId)))
       .limit(1);
 
-    const row = results[0] as any;
+    const row = results[0] as HeatmapWithPhoto | undefined;
     if (!row) {
       return c.json({ error: 'Heatmap not found' }, 404);
     }

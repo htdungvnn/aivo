@@ -14,8 +14,8 @@ export interface AuthUser {
   name?: string;
 }
 
-// Unique context key
-const CONTEXT_KEY = "auth-user";
+// Unique context key using Symbol for type safety
+const AUTH_USER_KEY = Symbol("auth-user");
 
 /**
  * Authenticate middleware - verifies JWT token and sets user in context
@@ -23,7 +23,7 @@ const CONTEXT_KEY = "auth-user";
  * 1. Authorization: Bearer <token> header
  * 2. auth_token httpOnly cookie
  */
-export async function authenticate(c: Context) {
+export async function authenticate(c: Context): Promise<Response | void> {
   let token: string | null = null;
 
   // Try Authorization header first
@@ -69,12 +69,12 @@ export async function authenticate(c: Context) {
       return c.json({ success: false, error: "User not found" }, 401);
     }
 
-    // Store user in context using Hono's context set method
-    (c as any)[CONTEXT_KEY] = {
+    // Store user in context using Hono's set method with Symbol key
+    c.set(AUTH_USER_KEY, {
       id: user.id,
       email: user.email,
       name: user.name,
-    };
+    });
 
     return;
   } catch (error) {
@@ -103,7 +103,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
  * Get user from context
  */
 export function getUserFromContext(c: Context): AuthUser | undefined {
-  return (c as any)[CONTEXT_KEY];
+  return c.get(AUTH_USER_KEY) as AuthUser | undefined;
 }
 
 /**

@@ -1,8 +1,7 @@
-import { Hono } from "hono";
-import { FitnessCalculator } from "@aivo/compute";
+import { Hono, type Context } from "hono";
+// import { FitnessCalculator } from "@aivo/compute";  // Temporarily disabled - WASM init issues
 import { createDrizzleInstance } from "@aivo/db";
 import type { D1Database } from "@cloudflare/workers-types";
-import type { Context } from "hono";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
@@ -14,6 +13,8 @@ interface Env {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
   BODY_INSIGHTS_CACHE: KVNamespace;
+  LEADERBOARD_CACHE: KVNamespace;
+  RATE_LIMIT_KV: KVNamespace;
   OPENAI_API_KEY?: string;
 }
 
@@ -50,8 +51,28 @@ export interface HealthResponse {
   };
 }
 
+interface DatabaseDetails {
+  connected: boolean;
+  latency?: number;
+  tables?: string[];
+}
+
+interface CacheDetails {
+  connected: boolean;
+  latency?: number;
+}
+
+interface StorageDetails {
+  connected: boolean;
+  bucket?: string;
+}
+
+// Type for D1 exec result
+interface D1ExecResult {
+  results: Array<{ name: string }>;
+}
+
 const createHealthCheck = () => {
-  const startTime = Date.now();
   return async (c: Context<{ Bindings: Env }>) => {
     const requestTime = Date.now();
     const services: ServiceStatus[] = [];
@@ -71,8 +92,8 @@ const createHealthCheck = () => {
       const dbLatency = Date.now() - dbStart;
 
       // Get table list
-      const execResults = await (c.env.DB.exec as any)("SELECT name FROM sqlite_master WHERE type='table'");
-      const tableList = (execResults as any[]).flatMap((result: any) => result.results.map((row: any) => row.name))
+      const execResults = await (c.env.DB.exec as unknown as () => Promise<D1ExecResult>)("SELECT name FROM sqlite_master WHERE type='table'");
+      const tableList = execResults.results.map((row) => row.name)
         .filter((name: string) => !name.startsWith("sqlite_"));
 
       services.push({
@@ -132,58 +153,58 @@ const createHealthCheck = () => {
       });
     }
 
-    // 5. Check WASM Compute
-    try {
-      const wasmStart = Date.now();
-      const bmi = FitnessCalculator.calculateBMI(70, 1.75);
-      const wasmLatency = Date.now() - wasmStart;
+    // 5. Check WASM Compute (temporarily disabled)
+    // try {
+    //   const wasmStart = Date.now();
+    //   const bmi = FitnessCalculator.calculateBMI(70, 1.75);
+    //   const wasmLatency = Date.now() - wasmStart;
+    //
+    //   services.push({
+    //     name: "wasm-compute",
+    //     status: "healthy",
+    //     latency: wasmLatency,
+    //     details: {
+    //       module: "@aivo/compute",
+    //       testResult: { bmi: bmi },
+    //     },
+    //   });
+    // } catch (error) {
+    //   services.push({
+    //     name: "wasm-compute",
+    //     status: "unhealthy",
+    //     error: error instanceof Error ? error.message : "WASM module failed",
+    //   });
+    // }
 
-      services.push({
-        name: "wasm-compute",
-        status: "healthy",
-        latency: wasmLatency,
-        details: {
-          module: "@aivo/compute",
-          testResult: { bmi: bmi },
-        },
-      });
-    } catch (error) {
-      services.push({
-        name: "wasm-compute",
-        status: "unhealthy",
-        error: error instanceof Error ? error.message : "WASM module failed",
-      });
-    }
-
-    // 6. Check AI Optimizer
-    try {
-      const { optimize_content_wasm } = await import("@aivo/optimizer");
-      const testText = "This is a test message for optimizer validation.";
-      const result = optimize_content_wasm(testText, "");
-
-      if (result && typeof result === "string") {
-        services.push({
-          name: "ai-optimizer",
-          status: "healthy",
-          details: {
-            module: "@aivo/optimizer",
-            features: ["token-optimization", "semantic-pruning"],
-          },
-        });
-      } else {
-        services.push({
-          name: "ai-optimizer",
-          status: "degraded",
-          details: { issue: "Optimization returned unexpected result" },
-        });
-      }
-    } catch (error) {
-      services.push({
-        name: "ai-optimizer",
-        status: "unhealthy",
-        error: error instanceof Error ? error.message : "Optimizer initialization failed",
-      });
-    }
+    // 6. Check AI Optimizer (temporarily disabled)
+    // try {
+    //   const { optimize_content_wasm } = await import("@aivo/optimizer");
+    //   const testText = "This is a test message for optimizer validation.";
+    //   const result = optimize_content_wasm(testText, "");
+    //
+    //   if (result && typeof result === "string") {
+    //     services.push({
+    //       name: "ai-optimizer",
+    //       status: "healthy",
+    //       details: {
+    //         module: "@aivo/optimizer",
+    //         features: ["token-optimization", "semantic-pruning"],
+    //       },
+    //     });
+    //   } else {
+    //     services.push({
+    //       name: "ai-optimizer",
+    //       status: "degraded",
+    //       details: { issue: "Optimization returned unexpected result" },
+    //     });
+    //   }
+    // } catch (error) {
+    //   services.push({
+    //     name: "ai-optimizer",
+    //     status: "unhealthy",
+    //     error: error instanceof Error ? error.message : "Optimizer initialization failed",
+    //   });
+    // }
 
     // 7. Check AI Configuration (OpenAI)
     if (c.env.OPENAI_API_KEY) {
@@ -209,33 +230,17 @@ const createHealthCheck = () => {
     const overallStatus: "healthy" | "degraded" | "unhealthy" =
       unhealthy.length > 0 ? "unhealthy" : degraded.length > 0 ? "degraded" : "healthy";
 
-interface DatabaseDetails {
-  connected: boolean;
-  latency?: number;
-  tables?: string[];
-}
-
-interface CacheDetails {
-  connected: boolean;
-  latency?: number;
-}
-
-interface StorageDetails {
-  connected: boolean;
-  bucket?: string;
-}
-
     const response: HealthResponse = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       version: "1.0.0",
       uptime: (Date.now() - MODULE_START_TIME) / 1000,
       services,
-      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as any as DatabaseDetails,
-      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as any as CacheDetails,
-      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as any as StorageDetails,
+      database: (services.find((s) => s.name === "database")?.details || { connected: false }) as DatabaseDetails,
+      cache: (services.find((s) => s.name === "cache")?.details || { connected: false }) as CacheDetails,
+      storage: (services.find((s) => s.name === "storage")?.details || { connected: false }) as StorageDetails,
       compute: {
-        wasmLoaded: services.some((s) => s.name === "wasm-compute" && s.status === "healthy"),
+        wasmLoaded: false, // Temporarily disabled
         optimizerLoaded: services.some((s) => s.name === "ai-optimizer" && s.status === "healthy"),
       },
     };

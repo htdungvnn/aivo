@@ -6,6 +6,7 @@ import { users } from "@aivo/db";
 import { eq } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import type { User } from "@aivo/shared-types";
 
 interface EnvWithR2 {
   DB: D1Database;
@@ -25,7 +26,7 @@ export async function triggerMonthlyReports(
 ): Promise<{ sent: number; failed: number; errors: string[] }> {
   const userRows = await drizzle.query.users.findMany({
     where: eq(users.receiveMonthlyReports, 1),
-  }) as any[];
+  }) as User[];
 
   let sent = 0;
   let failed = 0;
@@ -36,11 +37,11 @@ export async function triggerMonthlyReports(
     const batch = userRows.slice(i, i + batchSize);
 
     const results = await Promise.allSettled(
-      batch.map(async (user: any) => {
+      batch.map(async (user: unknown) => {
         if (dryRun) {
-          return { success: true, user: user.email };
+          return { success: true, user: (user as User).email };
         }
-        return sendMonthlyReport(drizzle, user as any, year, month, defaultEmailConfig);
+        return sendMonthlyReport(drizzle, user as User, year, month, defaultEmailConfig);
       })
     );
 

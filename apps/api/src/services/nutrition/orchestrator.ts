@@ -16,6 +16,9 @@ import { invokeChefAgent } from "./chef-agent";
 import { invokeMedicalAgent } from "./medical-agent";
 import { invokeBudgetAgent } from "./budget-agent";
 import type { AgentInvocationResult } from "./types";
+import type { ChefAgentRequest } from "./chef-agent";
+import type { MedicalAgentRequest } from "./medical-agent";
+import type { BudgetAgentRequest } from "./budget-agent";
 
 /**
  * Main orchestration function for nutrition consultations
@@ -159,19 +162,19 @@ async function invokeAgents(
         return invokeChefAgent({
           query: request.query,
           context: request.context,
-        } as import("./chef-agent").ChefAgentRequest);
+        } as ChefAgentRequest);
 
       case "medical":
         return invokeMedicalAgent({
           query: request.query,
           context: request.context,
-        } as import("./medical-agent").MedicalAgentRequest);
+        } as MedicalAgentRequest);
 
       case "budget":
         return invokeBudgetAgent({
           query: request.query,
           context: request.context,
-        } as import("./budget-agent").BudgetAgentRequest);
+        } as BudgetAgentRequest);
 
       default:
         return {

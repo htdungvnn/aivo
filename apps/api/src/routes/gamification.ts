@@ -31,16 +31,6 @@ const CheckinSchema = z.object({
   workoutId: z.string().optional(),
 });
 
-const PurchaseFreezeSchema = z.object({
-  userId: z.string(),
-});
-
-const ShareSchema = z.object({
-  userId: z.string(),
-  theme: z.string().optional().default("default"),
-  hideWeight: z.boolean().optional().default(false),
-});
-
 const LeaderboardQuerySchema = z.object({
   limit: z.number().int().positive().optional().default(100),
   friendsOnly: z.boolean().optional().default(false),

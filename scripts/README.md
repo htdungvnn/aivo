@@ -4,6 +4,25 @@ This directory contains scripts for deploying and managing the AIVO platform.
 
 ## Quick Start
 
+### One-Command Setup (Development)
+
+```bash
+# 1. Install dependencies and setup database
+./scripts/setup-dev.sh
+
+# 2. Create environment files
+./scripts/setup-env.sh
+
+# 3. Generate secrets
+./scripts/generate-secrets.sh
+
+# 4. Validate configuration
+./scripts/validate-env.sh
+
+# 5. Start all services
+./scripts/dev.sh
+```
+
 ### One-Command Deploy (Production)
 ```bash
 ./scripts/deploy.sh
@@ -26,10 +45,66 @@ This directory contains scripts for deploying and managing the AIVO platform.
 | `quick-deploy.sh` | Fast deployment without type-check/lint | `./scripts/quick-deploy.sh` |
 | `migrate.sh` | Database migration generator and applier | `./scripts/migrate.sh [--remote]` |
 | `health.sh` | Health check for deployed services | `./scripts/health.sh` |
-| `setup-dev.sh` | Initial local development setup | `./scripts/setup-dev.sh` |
+| `setup-dev.sh` | Initial local development setup (deps, DB) | `./scripts/setup-dev.sh` |
+| `setup-env.sh` | Create .env files from templates | `./scripts/setup-env.sh` |
+| `validate-env.sh` | Validate environment configuration | `./scripts/validate-env.sh` |
+| `generate-secrets.sh` | Generate secure secrets for deployment | `./scripts/generate-secrets.sh` |
 | `dev.sh` | Start all dev services in tmux | `./scripts/dev.sh` |
 
-## Deployment Options
+## Environment Setup
+
+### Development Environment
+
+1. **Create environment files**:
+   ```bash
+   ./scripts/setup-env.sh
+   ```
+   This creates `.env` files from templates in:
+   - `apps/api/.env`
+   - `apps/web/.env.local`
+   - `apps/mobile/.env`
+
+2. **Generate secrets**:
+   ```bash
+   ./scripts/generate-secrets.sh
+   ```
+   Generates `AUTH_SECRET` and other secure values.
+
+3. **Edit `.env` files** with your actual credentials:
+   - `AUTH_SECRET` (from generate-secrets.sh)
+   - `GOOGLE_CLIENT_ID` (from Google Cloud Console)
+   - `FACEBOOK_APP_ID` (from Facebook Developers)
+   - `OPENAI_API_KEY` (optional, for AI features)
+
+4. **Validate**:
+   ```bash
+   ./scripts/validate-env.sh
+   ```
+
+### Production Environment
+
+For production deployment on Cloudflare Workers:
+
+1. **Set Cloudflare secrets** (not in wrangler.toml):
+   ```bash
+   cd apps/api
+   wrangler secret put AUTH_SECRET
+   wrangler secret put OPENAI_API_KEY
+   wrangler secret put GOOGLE_CLIENT_ID
+   wrangler secret put FACEBOOK_APP_ID
+   ```
+
+2. **Configure wrangler.toml** with actual resource IDs:
+   - `database_id` for D1
+   - `id` for each KV namespace
+   - `bucket_name` for R2
+   - `R2_PUBLIC_URL` in `[vars]`
+
+3. **OAuth redirect URIs** must point to production domain:
+   - Google: `https://your-domain.com/login`
+   - Facebook: `https://your-domain.com/login`
+
+See [../docs/PRODUCTION_DEPLOYMENT.md](../docs/PRODUCTION_DEPLOYMENT.md) for complete production setup.
 
 ### Full Deployment
 ```bash

@@ -80,8 +80,8 @@ export async function analyzePosture(skeletonData: SkeletonData): Promise<Postur
 
     // Convert grade to typed literal
     const validGrades: Array<"A" | "B" | "C" | "D" | "F"> = ["A", "B", "C", "D", "F"];
-    if (!validGrades.includes(result.grade as any)) {
-      result.grade = "C" as any;
+    if (!validGrades.includes(result.grade as PostureAnalysisResult['grade'])) {
+      result.grade = "C" as PostureAnalysisResult['grade'];
     }
 
     return result;

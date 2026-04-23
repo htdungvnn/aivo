@@ -70,7 +70,7 @@ export const InfographicRouter = () => {
     const userId = authUser.id;
 
     // Get DB instance
-    const db: any = getDb(c.env);
+    const db = getDb(c.env);
 
     // 2. Parse and validate request
     const requestBody = await c.req.json().catch(() => null);
@@ -90,7 +90,7 @@ export const InfographicRouter = () => {
 
     try {
       // 3. Aggregate user statistics from database
-      const stats = await aggregateUserStats(db as any, userId, period);
+      const stats = await aggregateUserStats(db, userId, period);
 
       // 4. Generate AI narrative
       const story = await generateInfographicStory(userId, stats, {
@@ -140,7 +140,7 @@ export const InfographicRouter = () => {
       const renderResult = await renderAndUploadInfographic(infographicData, {
         scale: 2.0, // Retina quality
         uploadToR2: true,
-        r2Bucket: c.env.R2 as any,
+        r2Bucket: c.env.R2,
       });
 
       if (!renderResult.pngUrl) {
@@ -200,10 +200,11 @@ async function handleGetInfographic(c: Context<{ Bindings: Env }>) {
   const id = c.req.param("id");
   const authUser = getUserFromContext(c) as AuthUser;
   const userId = authUser.id;
-  const db: any = getDb(c.env);
+  const db = getDb(c.env);
 
+   
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl: any, { eq }: { eq: any }) => eq(tbl.id, id),
+    where: (tbl, { eq }) => eq(tbl.id, id),
   });
 
   if (!card) {
@@ -244,9 +245,9 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
     return c.json({ success: false, error: "Unauthorized" }, 401);
   }
 
-  const db: any = getDb(c.env);
+  const db = getDb(c.env);
   const card = await db.query.socialProofCards.findFirst({
-    where: (tbl: any, { eq }: { eq: any }) => eq(tbl.id, id),
+    where: (tbl, { eq }) => eq(tbl.id, id),
   });
 
   if (!card) {
@@ -272,7 +273,7 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
   }
 
   // Delete database record
-  await db.delete(socialProofCards).where((tbl: any, { eq }: { eq: any }) => eq(tbl.id, id));
+  await db.delete(socialProofCards).where((tbl, { eq }) => eq(tbl.id, id));
 
   return c.json({ success: true, data: { deleted: true } });
 }

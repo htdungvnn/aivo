@@ -3,7 +3,7 @@
  * Shared between agent services and API routes
  */
 
-import type { NutritionAgentType, NutritionConsultRequest, NutritionConsultResponse, AgentResponse, StoredNutritionConsult } from "@aivo/shared-types";
+import type { NutritionAgentType, StoredNutritionConsult } from "@aivo/shared-types";
 
 /**
  * Configuration for the nutrition agent system

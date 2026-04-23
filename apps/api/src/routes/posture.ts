@@ -9,14 +9,11 @@
 
 import { Hono } from "hono";
 import { createDrizzleInstance } from "@aivo/db";
-import { eq, sql, and } from "drizzle-orm";
-import type { Context } from "hono";
+import { eq, and } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import {
-  analyzePosture,
-  extractKeyframes,
   analyzeFrameRealtime,
   generateFeedbackMessage,
   type SkeletonData,
@@ -110,6 +107,7 @@ export const postureRouter = () => {
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("[Posture] Upload failed:", error);
       return c.json(
         {
@@ -211,6 +209,7 @@ export const postureRouter = () => {
         data: result,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("[Posture] Analysis failed:", error);
       return c.json(
         {
@@ -228,7 +227,7 @@ export const postureRouter = () => {
    */
   router.post("/realtime", async (c) => {
     try {
-      const authUser = getUserFromContext(c) as AuthUser;
+      // Authentication verified by middleware
       const body = await c.req.json();
 
       const validation = RealTimeFeedbackSchema.safeParse(body);
@@ -260,6 +259,7 @@ export const postureRouter = () => {
         },
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("[Posture] Realtime analysis failed:", error);
       return c.json(
         { success: false, error: "Realtime analysis failed" },
@@ -291,6 +291,7 @@ export const postureRouter = () => {
         data: analysis,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("[Posture] Get analysis failed:", error);
       return c.json(
         { success: false, error: "Failed to get analysis" },
@@ -318,6 +319,7 @@ export const postureRouter = () => {
         data: analyses,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("[Posture] Get history failed:", error);
       return c.json(
         { success: false, error: "Failed to get history" },

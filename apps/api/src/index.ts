@@ -1,4 +1,4 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono, type Context, type Schedule } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { SwaggerUI } from "@hono/swagger-ui";
@@ -110,8 +110,8 @@ app.use(async (c, next) => {
   await next();
 });
 
-async function applyRateLimit(c: any, maxRequests: number, windowMs: number): Promise<void> {
-  const env = c.env as AppEnv;
+async function applyRateLimit(c: Context<{ Bindings: AppEnv }>, maxRequests: number, windowMs: number): Promise<void> {
+  const env = c.env;
   if (!env.RATE_LIMIT_KV) {return;}
 
   const userId = c.req.header("X-User-Id") || c.req.ip || "anonymous";
@@ -209,8 +209,7 @@ export { app as default };
 
 // Cron schedule handler - runs daily at midnight UTC
 export async function onSchedule(
-  ctx: unknown
+  ctx: Schedule<{ Bindings: AppEnv }>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await runCronJob((ctx as any).env);
+  await runCronJob(ctx.env);
 }

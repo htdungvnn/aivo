@@ -5,7 +5,6 @@ import {
   dailyCheckins,
   streakFreezes,
   pointTransactions,
-  formAnalysisVideos,
 } from "@aivo/db";
 import { eq, and, sql, desc, asc, gte, gt, isNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";

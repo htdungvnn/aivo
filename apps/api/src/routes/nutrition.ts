@@ -839,9 +839,7 @@ Guidelines:
 
   // Add food item to database (for admin/user submitted)
   router.post("/database/items", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
-    const userId = authUser.id;
-
+    // Authentication verified by middleware
     // In production, add admin check here
 
     try {
@@ -932,7 +930,7 @@ Guidelines:
           query: result.userQuery,
           context,
           agentsConsulted: result.agentsConsulted,
-          responses: result.responses as any[],
+          responses: result.responses,
           synthesizedAdvice: result.synthesizedAdvice,
           warnings: result.warnings,
           processingTimeMs: result.processingTimeMs,

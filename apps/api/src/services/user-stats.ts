@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm";
 import type { UserStats, WorkoutType, MuscleDevelopment, MuscleGroup } from "@aivo/shared-types";
 
-// Use any for DB to bypass type issues with Drizzle in Workers environment
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Using any to bypass Drizzle type issues in Workers environment
 type DB = any;
 
 // Define intermediate types inline

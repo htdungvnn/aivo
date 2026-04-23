@@ -1,17 +1,7 @@
 import { Hono } from "hono";
-import { createDrizzleInstance } from "@aivo/db";
-import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Context } from "hono";
 import type { D1Database } from "@cloudflare/workers-types";
-import {
-  liveWorkoutSessions,
-  setRpeLogs,
-  type LiveAdjustmentRequest,
-  type StartLiveWorkoutRequest,
-  type SetRPELog,
-  type LogRPERequest,
-} from "@aivo/shared-types";
 import { LiveWorkoutService } from "../services/live-workout";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
@@ -94,6 +84,7 @@ export const liveWorkoutRouter = () => {
 
       return c.json({ success: true, data: session });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("Start live workout error:", error);
       return c.json(
         { success: false, error: "Failed to start session: " + String(error) },
@@ -118,6 +109,7 @@ export const liveWorkoutRouter = () => {
 
       return c.json({ success: true, data: session });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("Get session error:", error);
       return c.json(
         { success: false, error: "Failed to get session: " + String(error) },
@@ -162,6 +154,7 @@ export const liveWorkoutRouter = () => {
 
       return c.json({ success: true, data: log });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("Log RPE error:", error);
       return c.json(
         { success: false, error: "Failed to log RPE: " + String(error) },
@@ -194,6 +187,7 @@ export const liveWorkoutRouter = () => {
 
       return c.json(result);
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("Live adjustment error:", error);
       return c.json(
         { success: false, error: "Failed to calculate adjustment: " + String(error) },
@@ -225,6 +219,7 @@ export const liveWorkoutRouter = () => {
 
       return c.json({ success: true, data: session });
     } catch (error) {
+      // eslint-disable-next-line no-console -- Error logging is intentional
       console.error("End session error:", error);
       return c.json(
         { success: false, error: "Failed to end session: " + String(error) },

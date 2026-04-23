@@ -35,13 +35,30 @@ cd aivo
 pnpm install
 ```
 
-### 2. Build WASM Compute Package
+### 2. Set Up Environment Variables
+
+```bash
+# Run the setup script to create .env files from templates
+./scripts/setup-env.sh
+
+# Validate your configuration
+./scripts/validate-env.sh
+```
+
+Edit the created `.env` files with your actual credentials:
+- Generate `AUTH_SECRET`: `openssl rand -base64 32`
+- Get OAuth client IDs from Google Cloud Console and Facebook Developers
+- (Optional) Add OpenAI API key for AI features
+
+See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complete setup instructions.
+
+### 3. Build WASM Compute Package
 
 ```bash
 pnpm run build:wasm
 ```
 
-### 3. Start Development Services
+### 4. Start Development Services
 
 Using Turborepo (runs all services):
 

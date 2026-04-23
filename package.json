@@ -37,6 +37,7 @@
   "author": "AIVO Team",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "zod": "^4.0.0"
   }
 }

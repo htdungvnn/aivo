@@ -3,7 +3,7 @@ import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
 import axios from "axios";
 import type { D1Database } from "@cloudflare/workers-types";
-import { createDrizzleInstance, users, sessions } from "@aivo/db";
+import { createDrizzleInstance, sessions } from "@aivo/db";
 import { eq } from "drizzle-orm";
 import { findOrCreateUser, signToken, createSession, verifyToken } from "../utils/auth";
 

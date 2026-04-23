@@ -199,7 +199,7 @@ export const BodyRouter = () => {
         });
       }
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
 
       return c.json({
         success: true,
@@ -241,7 +241,7 @@ export const BodyRouter = () => {
       const cacheKey = getCacheKey(userId, "metrics", paramStr);
 
       const { data: cachedData, hit: cacheHit } = await getCachedData<BodyMetricResponse[]>(
-        c.env.BODY_INSIGHTS_CACHE as any,
+        c.env.BODY_INSIGHTS_CACHE,
         cacheKey
       );
 
@@ -264,7 +264,7 @@ export const BodyRouter = () => {
       });
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE as any,
+        c.env.BODY_INSIGHTS_CACHE,
         cacheKey,
         metrics,
         CACHE_TTL.METRICS
@@ -348,7 +348,7 @@ export const BodyRouter = () => {
         })
         .returning();
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
 
       return c.json({ success: true, data: metric }, 201);
     } catch (error) {
@@ -378,7 +378,7 @@ export const BodyRouter = () => {
           vectorData: unknown[] | null;
           metadata: unknown | null;
         }>
-      >(c.env.BODY_INSIGHTS_CACHE as any, cacheKey);
+      >(c.env.BODY_INSIGHTS_CACHE, cacheKey);
 
       if (cacheHit && cachedData) {
         c.header("X-Cache", "HIT");
@@ -397,7 +397,7 @@ export const BodyRouter = () => {
       }));
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE as any,
+        c.env.BODY_INSIGHTS_CACHE,
         cacheKey,
         parsed,
         CACHE_TTL.HEATMAPS
@@ -472,7 +472,7 @@ export const BodyRouter = () => {
         })
         .returning();
 
-      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE as any, userId);
+      await invalidateBodyCache(c.env.BODY_INSIGHTS_CACHE, userId);
 
       return c.json({
         success: true,
@@ -501,7 +501,7 @@ export const BodyRouter = () => {
       const cacheKey = getCacheKey(userId, "health-score");
 
       const { data: cachedData, hit: cacheHit } = await getCachedData<HealthScoreResponse>(
-        c.env.BODY_INSIGHTS_CACHE as any,
+        c.env.BODY_INSIGHTS_CACHE,
         cacheKey
       );
 
@@ -626,7 +626,7 @@ export const BodyRouter = () => {
       };
 
       await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE as any,
+        c.env.BODY_INSIGHTS_CACHE,
         cacheKey,
         result.data,
         CACHE_TTL.HEALTH_SCORE

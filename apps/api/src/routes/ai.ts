@@ -3,15 +3,17 @@ import { z } from "zod";
 import { createDrizzleInstance, conversations, workoutRoutines, dailySchedules, planDeviations } from "@aivo/db";
 import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
-import { optimize_content_wasm } from "@aivo/optimizer";
+// import { optimize_content_wasm } from "@aivo/optimizer";  // Temporarily disabled - WASM init issues
 import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
 import { MemoryService } from "@aivo/memory-service";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import { createAIService } from "../utils/unified-ai-service";
 import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";
 
 export interface Env {
   DB: D1Database;
   OPENAI_API_KEY?: string;
+  GEMINI_API_KEY?: string;
 }
 
 const ChatRequest = z.object({
@@ -25,6 +27,23 @@ export const AIRouter = () => {
 
   // Apply authentication to all AI routes
   router.use("*", authenticate);
+
+  // Initialize unified AI service (lazy initialization)
+  let cachedAIService: ReturnType<typeof createAIService> | null = null;
+
+  const getAIService = (env: Env) => {
+    if (!cachedAIService) {
+      cachedAIService = createAIService({
+        openaiApiKey: env.OPENAI_API_KEY,
+        geminiApiKey: env.GEMINI_API_KEY,
+        defaultProvider: 'auto',
+        costOptimization: 'balanced', // Can be 'aggressive', 'balanced', 'quality'
+        maxCostPerRequest: 0.50, // Max $0.50 per request
+        qualityThreshold: 7, // Minimum quality score 7/10
+      });
+    }
+    return cachedAIService;
+  };
 
   // Memory service cache (initialized on first use with OpenAI key)
   let cachedMemoryService: MemoryService | null = null;
@@ -88,7 +107,7 @@ export const AIRouter = () => {
    * /ai/chat:
    *   post:
    *     summary: AI Chat
-   *     description: Send a message to the AI fitness coach
+   *     description: Send a message to the AI fitness coach (auto-selects best model)
    *     tags: [ai]
    *     security:
    *       - bearer: []
@@ -124,8 +143,8 @@ export const AIRouter = () => {
         return c.json({ success: false, error: "Cannot chat as another user" }, 403);
       }
 
-      const openaiKey = c.env.OPENAI_API_KEY;
-      if (!openaiKey) {
+      // Check if any AI service is configured
+      if (!c.env.OPENAI_API_KEY && !c.env.GEMINI_API_KEY) {
         return c.json({ success: false, error: "AI service not configured" }, 503);
       }
 
@@ -136,7 +155,7 @@ export const AIRouter = () => {
         limit: 20,
       });
 
-      // Build messages array with token optimization
+      // Build messages array
       const systemPrompt = `You are AIVO, an expert AI fitness coach and nutrition advisor.`;
 
       const messages: Array<{ role: string; content: string }> = [
@@ -144,9 +163,10 @@ export const AIRouter = () => {
       ];
 
       // Get memory context if available
-      if (c.env.OPENAI_API_KEY) {
+      const openaiKey = c.env.OPENAI_API_KEY;
+      if (openaiKey) {
         try {
-          const memoryService = getMemoryService(c.env.DB, c.env.OPENAI_API_KEY);
+          const memoryService = getMemoryService(c.env.DB, openaiKey);
           const memoryContext = await memoryService.getMemoriesForContext(
             userId,
             validated.message,
@@ -173,7 +193,7 @@ export const AIRouter = () => {
         });
       }
 
-      // Add conversation history with token thinning
+      // Add conversation history
       if (history.length > 0) {
         const allMessages: Array<{ role: string; content: string }> = [];
         history.reverse().forEach((conv) => {
@@ -183,53 +203,25 @@ export const AIRouter = () => {
           }
         });
 
-        const conversationJson = JSON.stringify({ messages: allMessages });
-        const optimizedJson = optimize_content_wasm(conversationJson, "");
-        const optimized = JSON.parse(optimizedJson);
-
-        if (optimized.optimizedContent) {
-          try {
-            const optimizedData = JSON.parse(optimized.optimizedContent);
-            if (Array.isArray(optimizedData.messages)) {
-              messages.push(...optimizedData.messages.slice(-10));
-            }
-          } catch {
-            const recent = allMessages.slice(-10);
-            messages.push(...recent);
-          }
-        } else {
-          const recent = allMessages.slice(-10);
-          messages.push(...recent);
-        }
+        // Use recent messages
+        const recent = allMessages.slice(-10);
+        messages.push(...recent);
       }
 
       messages.push({ role: "user", content: validated.message });
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openaiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
+      // Use unified AI service with automatic model selection
+      const aiService = getAIService(c.env);
+      const response = await aiService.chat(messages, {
+        temperature: 0.7,
+        maxTokens: 1000,
+        jsonMode: false,
       });
 
-      if (!response.ok) {
-        const error = await response.json() as { error?: { message?: string } };
-        throw new Error(`OpenAI error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json() as {
-        choices: { message: { content: string } }[];
-        usage?: { total_tokens: number };
-      };
-      const aiMessage = data.choices[0]?.message?.content || "No response generated";
-      const tokensUsed = data.usage?.total_tokens || 0;
+      const aiMessage = response.content;
+      const tokensUsed = response.tokensUsed?.total || 0;
+      const modelUsed = response.model;
+      const provider = response.provider;
 
       const conversationId = crypto.randomUUID();
 
@@ -241,14 +233,14 @@ export const AIRouter = () => {
         response: aiMessage,
         context: validated.context ? JSON.stringify(validated.context) : null,
         tokensUsed,
-        model: "gpt-4o-mini",
+        model: `${provider}:${modelUsed}`,
         createdAt: Math.floor(Date.now() / 1000),
       }).returning();
 
       // Process conversation for memory extraction (async, don't await to avoid blocking response)
-      if (c.env.OPENAI_API_KEY) {
+      if (openaiKey) {
         try {
-          const memoryService = getMemoryService(c.env.DB, c.env.OPENAI_API_KEY);
+          const memoryService = getMemoryService(c.env.DB, openaiKey);
           memoryService.processConversationTurn(
             userId,
             validated.message,
@@ -270,6 +262,14 @@ export const AIRouter = () => {
         data: {
           message: aiMessage,
           tokensUsed,
+          model: modelUsed,
+          provider,
+          cost: response.cost,
+          selection: response.selection ? {
+            selectedModel: response.selection.model.name,
+            estimatedCost: response.selection.estimatedCost,
+            reasoning: response.selection.reasoning,
+          } : undefined,
           timestamp: new Date().toISOString(),
         },
       });
@@ -416,11 +416,11 @@ export const AIRouter = () => {
 
       let text = providedText;
 
-      // If audio is provided, transcribe with Whisper
+      // If audio is provided, transcribe with Whisper (OpenAI only)
       if (audio) {
         const openaiKey = c.env.OPENAI_API_KEY;
         if (!openaiKey) {
-          return c.json({ success: false, error: "OpenAI API not configured" }, 503);
+          return c.json({ success: false, error: "Audio transcription requires OpenAI API key. Please configure OPENAI_API_KEY." }, 503);
         }
 
         // Decode base64 to buffer
@@ -429,7 +429,7 @@ export const AIRouter = () => {
         // Create form data for Whisper API
         const formData = new FormData();
         const blob = new Blob([audioBuffer], { type: "audio/mp3" });
-        // @ts-ignore - FormData append with Blob works in Workers via @cloudflare/workers-types
+        // @ts-expect-error - FormData append with Blob works in Workers via @cloudflare/workers-types
         formData.append("file", blob, "audio.mp3");
         formData.append("model", "whisper-1");
 
@@ -438,13 +438,13 @@ export const AIRouter = () => {
           headers: {
             Authorization: `Bearer ${openaiKey}`,
           },
-          // @ts-ignore
+          // @ts-expect-error - FormData body is supported in Workers
           body: formData,
         });
 
         if (!response.ok) {
           const errBody = await response.json();
-          const errMsg = (errBody as any)?.error?.message || response.statusText;
+          const errMsg = (errBody as { error?: { message?: string } })?.error?.message || response.statusText;
           throw new Error(`Whisper error: ${errMsg}`);
         }
 
@@ -516,6 +516,129 @@ export const AIRouter = () => {
     });
 
     return c.json(conversationsList);
+  });
+
+  // Get available AI models and their pricing
+  /**
+   * @swagger
+   * /ai/models:
+   *   get:
+   *     summary: List available AI models
+   *     description: Get list of available AI models with pricing and capabilities
+   *     tags: [ai]
+   *     security:
+   *       - bearer: []
+   *     responses:
+   *       200:
+   *         description: List of models
+   */
+  router.get("/models", async (c) => {
+    const aiService = getAIService(c.env);
+    const models = aiService.getAvailableModels();
+
+    return c.json({
+      success: true,
+      data: models.map(model => ({
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        contextWindow: model.contextWindow,
+        maxOutputTokens: model.maxOutputTokens,
+        pricing: {
+          inputPer1M: model.inputPricePer1M,
+          outputPer1M: model.outputPricePer1M,
+        },
+        capabilities: model.capabilities,
+        qualityScore: model.qualityScore,
+      })),
+      config: {
+        costOptimization: aiService['config'].costOptimization,
+        maxCostPerRequest: aiService['config'].maxCostPerRequest,
+        qualityThreshold: aiService['config'].qualityThreshold,
+      },
+    });
+  });
+
+  // Estimate cost for a task
+  /**
+   * @swagger
+   * /ai/estimate-cost:
+   *   post:
+   *     summary: Estimate AI cost for a task
+   *     description: Get cost estimate for a given prompt/task
+   *     tags: [ai]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               prompt:
+   *                 type: string
+   *                 description: The prompt or task description
+   *               estimatedOutputTokens:
+   *                 type: number
+   *                 description: Estimated output tokens (optional)
+   *             required:
+   *               - prompt
+   *     responses:
+   *       200:
+   *         description: Cost estimates for available models
+   */
+  router.post("/estimate-cost", async (c) => {
+    try {
+      const body = await c.req.json();
+      const { prompt, estimatedOutputTokens } = body as { prompt: string; estimatedOutputTokens?: number };
+
+      if (!prompt || typeof prompt !== 'string') {
+        return c.json({ success: false, error: "Prompt is required" }, 400);
+      }
+
+      const aiService = getAIService(c.env);
+      const selection = aiService.getRecommendation(prompt, estimatedOutputTokens);
+
+      // Get cost for all capable models
+      const allModels = aiService.getAvailableModels();
+      const inputTokens = Math.ceil(prompt.length / 4);
+      const outputTokens = estimatedOutputTokens || Math.min(Math.ceil(prompt.length / 3), 2000);
+
+      const estimates = allModels
+        .filter(model => {
+          const totalTokens = inputTokens + outputTokens;
+          return totalTokens <= model.contextWindow && outputTokens <= model.maxOutputTokens;
+        })
+        .map(model => ({
+          model: model.id,
+          name: model.name,
+          provider: model.provider,
+          estimatedCost: (inputTokens / 1_000_000) * model.inputPricePer1M + (outputTokens / 1_000_000) * model.outputPricePer1M,
+          qualityScore: model.qualityScore,
+        }))
+        .sort((a, b) => a.estimatedCost - b.estimatedCost);
+
+      return c.json({
+        success: true,
+        data: {
+          recommendation: {
+            model: selection.model.id,
+            name: selection.model.name,
+            provider: selection.model.provider,
+            estimatedCost: selection.estimatedCost,
+            reasoning: selection.reasoning,
+          },
+          allEstimates: estimates,
+          tokenEstimate: { input: inputTokens, output: outputTokens, total: inputTokens + outputTokens },
+        },
+      });
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("Cost estimation error:", error);
+      const message = error instanceof Error ? error.message : "Estimation failed";
+      return c.json({ success: false, error: message }, 500);
+    }
   });
 
   // Adaptive routine replanning endpoint
@@ -719,32 +842,19 @@ Output JSON format:
   "reasoning": ["...", "..."]
 }`;
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openaiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "You are an AI fitness coach that optimizes workout schedules based on recovery and adherence data." },
-            { role: "user", content: prompt },
-          ],
+      // Use unified AI service for model selection
+      const aiService = getAIService(c.env);
+      const response = await aiService.chat(
+        [{ role: "system", content: "You are an AI fitness coach that optimizes workout schedules based on recovery and adherence data." },
+         { role: "user", content: prompt }],
+        {
           temperature: 0.7,
-          max_tokens: 2000,
-        }),
-      });
+          maxTokens: 2000,
+          jsonMode: true,
+        }
+      );
 
-      if (!response.ok) {
-        const error = await response.json() as { error?: { message?: string } };
-        throw new Error(`OpenAI error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json() as {
-        choices: { message: { content: string } }[];
-      };
-      const aiResponse = data.choices[0]?.message?.content || "{}";
+      const aiResponse = response.content;
 
       // Parse AI response
       let aiResult: AIReplanResult;

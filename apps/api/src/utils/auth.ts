@@ -5,6 +5,7 @@
 
 import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
+import type { Drizzle } from "drizzle-orm";
 import { sessions, users } from "@aivo/db";
 
 // Secret key - should be at least 256 bits (32 bytes)
@@ -47,7 +48,7 @@ export async function signToken(payload: { sub: string; userId: string; iat?: nu
  */
 export async function verifyToken(
   token: string,
-  db?: any
+  db?: Drizzle
 ): Promise<{ sub: string; userId: string } | null> {
   try {
     const secret = getSecretKey();
@@ -61,7 +62,7 @@ export async function verifyToken(
     if (db) {
       const session = await db.query.sessions.findFirst({
         where: eq(sessions.id, sub),
-      }) as any;
+      }) as unknown;
 
       if (!session) {
         return null;
@@ -69,7 +70,7 @@ export async function verifyToken(
     }
 
     return { sub, userId };
-  } catch (error: unknown) {
+  } catch {
     // Any error during verification means token is invalid
     return null;
   }
@@ -79,7 +80,7 @@ export async function verifyToken(
  * Create a session record in database
  */
 export async function createSession(
-  db: any,
+  db: Drizzle,
   userId: string,
   provider: "google" | "facebook",
   providerUserId: string,
@@ -96,7 +97,7 @@ export async function createSession(
     accessToken,
     createdAt: now,
     updatedAt: now,
-  }) as any;
+  });
 
   return sessionId;
 }
@@ -105,7 +106,7 @@ export async function createSession(
  * Find or create user from OAuth provider data
  */
 export async function findOrCreateUser(
-  db: any,
+  db: Drizzle,
   providerData: {
     providerId: string;
     email: string;
@@ -116,7 +117,7 @@ export async function findOrCreateUser(
   // Try to find existing user by email
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, providerData.email),
-  }) as any;
+  });
 
   if (existingUser) {
     return {
@@ -141,7 +142,7 @@ export async function findOrCreateUser(
     receiveMonthlyReports: 1,
     createdAt: now,
     updatedAt: now,
-  }) as any;
+  });
 
   return {
     id: userId,
