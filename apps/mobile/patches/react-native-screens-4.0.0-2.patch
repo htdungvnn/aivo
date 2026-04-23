@@ -1,0 +1,25 @@
+--- a/src/components/FullWindowOverlay.tsx
++++ b/src/components/FullWindowOverlay.tsx
+@@ -21,13 +21,13 @@ const NativeFullWindowOverlay: React.ComponentType<
+ type FullWindowOverlayProps = {
+   children: ReactNode;
+-  unstable_accessibilityContainerViewIsModal?: boolean;
++  accessibilityContainerViewIsModal?: boolean;
+ };
+ 
+ function FullWindowOverlay(props: FullWindowOverlayProps) {
+   const { width, height } = useWindowDimensions();
+   if (Platform.OS !== 'ios') {
+     console.warn('Using FullWindowOverlay is only valid on iOS devices.');
+     return <View {...props} />;
+   }
+   return (
+     <NativeFullWindowOverlay
+       style={[StyleSheet.absoluteFill, { width, height }]}
+-      accessibilityContainerViewIsModal={
+-        props.unstable_accessibilityContainerViewIsModal
+-      }
++      accessibilityContainerViewIsModal={props.accessibilityContainerViewIsModal}
+     >
+       {props.children}
+     </NativeFullWindowOverlay>

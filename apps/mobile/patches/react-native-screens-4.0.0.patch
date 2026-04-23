@@ -1,0 +1,11 @@
+--- a/lib/typescript/components/FullWindowOverlay.d.ts
++++ b/lib/typescript/components/FullWindowOverlay.d.ts
+@@ -1,7 +1,7 @@
+ import React, { ReactNode } from 'react';
+ type FullWindowOverlayProps = {
+     children: ReactNode;
+-    unstable_accessibilityContainerViewIsModal?: boolean;
++    accessibilityContainerViewIsModal?: boolean;
+ };
+ declare function FullWindowOverlay(props: FullWindowOverlayProps): React.JSX.Element;
+ export default FullWindowOverlay;
