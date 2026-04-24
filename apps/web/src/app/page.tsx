@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import {
   Activity,
   Dumbbell,
@@ -11,6 +12,7 @@ import {
   Calendar,
   Zap,
   ChevronRight,
+  ChevronDown,
   ArrowRight,
   BarChart3,
   Bot,
@@ -20,11 +22,16 @@ import {
   Database,
   Globe,
   CheckCircle2,
+  Star,
+  Quote,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MuscleDashboard } from "@/components/body/MuscleActivationChart";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { PricingSection } from "@/components/PricingSection";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 60 },
@@ -43,10 +50,124 @@ const staggerContainer = {
   },
 };
 
+// Detailed content for each feature card
+const featureDetails: Record<string, {
+  benefits: string[];
+  specs: { label: string; value: string }[];
+  useCases: string[];
+}> = {
+  edgeAuth: {
+    benefits: [
+      "Zero-knowledge proofs for privacy-preserving authentication",
+      "Behavioral biometrics continuously verify user identity",
+      "Geographic-based risk assessment blocks suspicious logins",
+      "Hardware-backed keys for phishing-resistant MFA",
+      "SOC 2 Type II certified infrastructure"
+    ],
+    specs: [
+      { label: "Auth Latency", value: "< 50ms global" },
+      { label: "Uptime SLA", value: "99.99%" },
+      { label: "Encryption", value: "AES-256-GCM" },
+      { label: "Compliance", value: "GDPR, HIPAA, SOC2" }
+    ],
+    useCases: [
+      "Healthcare providers requiring HIPAA compliance",
+      "Enterprise teams with SSO requirements",
+      "High-security applications with sensitive health data",
+      "Global apps needing low-latency auth worldwide"
+    ]
+  },
+  aiInsight: {
+    benefits: [
+      "Real-time body composition analysis from a single photo",
+      "Muscle group activation heatmaps with 95% accuracy",
+      "Progress tracking with AI-generated insights",
+      "Personalized recommendations based on your unique physiology",
+      "3D body model generation from 2D inputs"
+    ],
+    specs: [
+      { label: "Analysis Time", value: "< 3 seconds" },
+      { label: "Accuracy", value: "95%+" },
+      { label: "Data Points", value: "600+ muscle points" },
+      { label: "Models", value: "Custom CNN + ViT" }
+    ],
+    useCases: [
+      "Track muscle growth and fat loss over time",
+      "Identify muscular imbalances for injury prevention",
+      "Optimize training focus based on weak points",
+      "Share progress with trainers for coaching"
+    ]
+  },
+  scheduler: {
+    benefits: [
+      "50% reduction in AI token usage through smart batching",
+      "Recovery-aware scheduling adapts to your fatigue levels",
+      "Progressive overload automatically incorporated",
+      "Equipment and time constraints respected",
+      "Seamless calendar integration with Google/Apple Calendar"
+    ],
+    specs: [
+      { label: "Optimization", value: "Rust WASM engine" },
+      { label: "Schedule Generation", value: "< 500ms" },
+      { label: "Token Savings", value: "~50%" },
+      { label: "Calendar Sync", value: "Real-time" }
+    ],
+    useCases: [
+      "Busy professionals needing efficient workout planning",
+      "Athletes managing multiple training modalities",
+      "Gyms creating personalized programs at scale",
+      "Anyone wanting to maximize results with minimal AI cost"
+    ]
+  },
+  tracking: {
+    benefits: [
+      "Millisecond-precision sync across all devices",
+      "Offline-first architecture works without connectivity",
+      "Real-time collaboration with trainers and teammates",
+      "Comprehensive analytics dashboard with trend analysis",
+      "Export data to CSV, JSON, or PDF formats"
+    ],
+    specs: [
+      { label: "Sync Speed", value: "< 100ms" },
+      { label: "Offline Support", value: "7 days" },
+      { label: "Data Resolution", value: "1ms precision" },
+      { label: "Storage", value: "Unlimited" }
+    ],
+    useCases: [
+      "Monitor daily fitness metrics and recovery",
+      "Share workouts with training partners",
+      "Analyze long-term trends and plateaus",
+      "Prepare for competitions with precise tracking"
+    ]
+  },
+  retention: {
+    benefits: [
+      "AI analyzes user behavior to predict churn risk",
+      "Personalized push notifications with 40%+ open rates",
+      "Adaptive challenges match user fitness levels",
+      "Social features including leaderboards and groups",
+      "Achievement system with 100+ badges"
+    ],
+    specs: [
+      { label: "Engagement Boost", value: "+156% retention" },
+      { label: "Notification AI", value: "GPT-4 powered" },
+      { label: "Badges Available", value: "100+" },
+      { label: "Social Features", value: "Full suite" }
+    ],
+    useCases: [
+      "Fitness apps reducing monthly churn",
+      "Gyms increasing member retention",
+      "Corporate wellness programs boosting participation",
+      "Coaches keeping clients motivated long-term"
+    ]
+  }
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -163,92 +284,15 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Hero Visual - 2D Vector Heatmap Representation */}
+          {/* Hero Visual - Interactive Muscle Activation Dashboard */}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
             className="relative max-w-4xl mx-auto"
           >
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/20 to-purple-900/20 border border-blue-500/20 shadow-2xl">
-              {/* Grid Lines */}
-              <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {[...Array(11)].map((_, i) => (
-                  <g key={i}>
-                    <line x1={`${i * 10}%`} y1="0" x2={`${i * 10}%`} y2="100%" stroke="#06b6d4" strokeWidth="0.1" />
-                    <line x1="0" y1={`${i * 10}%`} x2="100%" y2={`${i * 10}%`} stroke="#06b6d4" strokeWidth="0.1" />
-                  </g>
-                ))}
-              </svg>
-
-              {/* Body Outline - Silhouette */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 400" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <radialGradient id="heatGradient" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
-                    <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.4" />
-                  </radialGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                {/* Body Heatmap Visualization */}
-                <g filter="url(#glow)">
-                  {/* Head */}
-                  <ellipse cx="100" cy="45" rx="25" ry="30" fill="url(#heatGradient)" opacity="0.7" />
-                  {/* Torso */}
-                  <path
-                    d="M 65 70 Q 60 100 55 180 L 55 250 Q 55 260 65 260 L 135 260 Q 145 260 145 250 L 145 180 Q 140 100 135 70 Z"
-                    fill="url(#heatGradient)"
-                    opacity="0.6"
-                  />
-                  {/* Arms */}
-                  <path d="M 55 80 Q 20 120 10 180 Q 5 200 15 210 Q 25 200 30 180 Q 40 120 65 100" fill="url(#heatGradient)" opacity="0.5" />
-                  <path d="M 145 80 Q 180 120 190 180 Q 195 200 185 210 Q 175 200 170 180 Q 160 120 135 100" fill="url(#heatGradient)" opacity="0.5" />
-                  {/* Legs */}
-                  <path d="M 65 260 Q 55 300 50 350 Q 48 380 55 390 Q 65 385 70 360 Q 80 320 85 280" fill="url(#heatGradient)" opacity="0.5" />
-                  <path d="M 135 260 Q 145 300 150 350 Q 152 380 145 390 Q 135 385 130 360 Q 120 320 115 280" fill="url(#heatGradient)" opacity="0.5" />
-                </g>
-
-                {/* Heat Points - High intensity zones */}
-                <g className="animate-pulse">
-                  <circle cx="100" cy="120" r="8" fill="#22d3ee" opacity="0.9" filter="url(#glow)" />
-                  <circle cx="70" cy="160" r="6" fill="#3b82f6" opacity="0.8" />
-                  <circle cx="130" cy="160" r="6" fill="#3b82f6" opacity="0.8" />
-                  <circle cx="60" cy="300" r="5" fill="#8b5cf6" opacity="0.7" />
-                  <circle cx="140" cy="300" r="5" fill="#8b5cf6" opacity="0.7" />
-                </g>
-
-                {/* Data Labels */}
-                <g className="text-xs fill-cyan-300 opacity-80" fontFamily="monospace">
-                  <text x="100" y="40" textAnchor="middle">AI Analysis</text>
-                  <text x="100" y="115" textAnchor="middle" className="text-[10px]">Core: 94%</text>
-                  <text x="100" y="260" textAnchor="middle" className="text-[10px]">Legs: 78%</text>
-                </g>
-              </svg>
-
-              {/* Floating Data Points */}
-              <div className="absolute top-1/4 left-1/4 animate-float">
-                <div className="px-3 py-1.5 bg-slate-900/90 border border-cyan-500/30 rounded-lg text-xs font-mono text-cyan-400">
-                  VO2 Max: 52
-                </div>
-              </div>
-              <div className="absolute top-1/3 right-1/4 animate-float-delayed">
-                <div className="px-3 py-1.5 bg-slate-900/90 border border-blue-500/30 rounded-lg text-xs font-mono text-blue-400">
-                  Recovery: 89%
-                </div>
-              </div>
-              <div className="absolute bottom-1/3 left-1/3 animate-float">
-                <div className="px-3 py-1.5 bg-slate-900/90 border border-purple-500/30 rounded-lg text-xs font-mono text-purple-400">
-                  Strain: Optimal
-                </div>
-              </div>
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/20 to-purple-900/20 border border-blue-500/20 shadow-2xl">
+              <MuscleDashboard />
             </div>
           </motion.div>
 
@@ -300,7 +344,10 @@ export default function LandingPage() {
           >
             {/* Feature 1: Edge Auth */}
             <motion.div variants={fadeInUp}>
-              <Card className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-emerald-500/50 transition-all overflow-hidden h-full">
+              <Card
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-emerald-500/50 transition-all overflow-hidden h-full cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === 'edgeAuth' ? null : 'edgeAuth')}
+              >
                 <CardContent className="pt-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative">
@@ -313,9 +360,67 @@ export default function LandingPage() {
                       protecting your health data with biometric verification and behavioral analysis.
                     </p>
                     <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium group-hover:gap-3 transition-all">
-                      <span>Learn more</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>{expandedCard === 'edgeAuth' ? 'Show less' : 'Learn more'}</span>
+                      {expandedCard === 'edgeAuth' ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
+
+                    {/* Expandable Content */}
+                    {expandedCard === 'edgeAuth' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 pt-6 border-t border-emerald-500/20 overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          {/* Key Benefits */}
+                          <div>
+                            <h4 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Key Benefits
+                            </h4>
+                            <ul className="space-y-2">
+                              {featureDetails.edgeAuth.benefits.map((benefit, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-gray-300 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {featureDetails.edgeAuth.specs.map((spec, idx) => (
+                              <div key={idx} className="bg-emerald-500/5 rounded-lg p-3">
+                                <div className="text-xs text-emerald-400/70 uppercase tracking-wider">{spec.label}</div>
+                                <div className="text-white font-semibold mt-1">{spec.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Use Cases */}
+                          <div>
+                            <h4 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+                              <Quote className="w-4 h-4" />
+                              Ideal For
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {featureDetails.edgeAuth.useCases.map((useCase, idx) => (
+                                <Badge key={idx} variant="outline" className="border-emerald-500/30 text-emerald-300 bg-emerald-500/10">
+                                  {useCase}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -323,7 +428,10 @@ export default function LandingPage() {
 
             {/* Feature 2: AI Body Insight */}
             <motion.div variants={fadeInUp}>
-              <Card className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-cyan-500/50 transition-all overflow-hidden h-full">
+              <Card
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-cyan-500/50 transition-all overflow-hidden h-full cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === 'aiInsight' ? null : 'aiInsight')}
+              >
                 <CardContent className="pt-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative">
@@ -336,9 +444,67 @@ export default function LandingPage() {
                       fat percentage zones, and provides actionable insights with surgical precision.
                     </p>
                     <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium group-hover:gap-3 transition-all">
-                      <span>See demo</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>{expandedCard === 'aiInsight' ? 'Show less' : 'See demo'}</span>
+                      {expandedCard === 'aiInsight' ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
+
+                    {/* Expandable Content */}
+                    {expandedCard === 'aiInsight' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 pt-6 border-t border-cyan-500/20 overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          {/* Key Benefits */}
+                          <div>
+                            <h4 className="text-cyan-400 font-semibold mb-3 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Key Benefits
+                            </h4>
+                            <ul className="space-y-2">
+                              {featureDetails.aiInsight.benefits.map((benefit, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-gray-300 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {featureDetails.aiInsight.specs.map((spec, idx) => (
+                              <div key={idx} className="bg-cyan-500/5 rounded-lg p-3">
+                                <div className="text-xs text-cyan-400/70 uppercase tracking-wider">{spec.label}</div>
+                                <div className="text-white font-semibold mt-1">{spec.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Use Cases */}
+                          <div>
+                            <h4 className="text-cyan-400 font-semibold mb-3 flex items-center gap-2">
+                              <Quote className="w-4 h-4" />
+                              Ideal For
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {featureDetails.aiInsight.useCases.map((useCase, idx) => (
+                                <Badge key={idx} variant="outline" className="border-cyan-500/30 text-cyan-300 bg-cyan-500/10">
+                                  {useCase}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -346,7 +512,10 @@ export default function LandingPage() {
 
             {/* Feature 3: AI Smart Scheduler */}
             <motion.div variants={fadeInUp}>
-              <Card className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-purple-500/50 transition-all overflow-hidden h-full">
+              <Card
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-purple-500/50 transition-all overflow-hidden h-full cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === 'scheduler' ? null : 'scheduler')}
+              >
                 <CardContent className="pt-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative">
@@ -359,9 +528,67 @@ export default function LandingPage() {
                       while getting hyper-personalized plans that adapt to your recovery and progress.
                     </p>
                     <div className="flex items-center gap-2 text-purple-400 text-sm font-medium group-hover:gap-3 transition-all">
-                      <span>Optimization demo</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>{expandedCard === 'scheduler' ? 'Show less' : 'Optimization demo'}</span>
+                      {expandedCard === 'scheduler' ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
+
+                    {/* Expandable Content */}
+                    {expandedCard === 'scheduler' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 pt-6 border-t border-purple-500/20 overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          {/* Key Benefits */}
+                          <div>
+                            <h4 className="text-purple-400 font-semibold mb-3 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Key Benefits
+                            </h4>
+                            <ul className="space-y-2">
+                              {featureDetails.scheduler.benefits.map((benefit, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-gray-300 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {featureDetails.scheduler.specs.map((spec, idx) => (
+                              <div key={idx} className="bg-purple-500/5 rounded-lg p-3">
+                                <div className="text-xs text-purple-400/70 uppercase tracking-wider">{spec.label}</div>
+                                <div className="text-white font-semibold mt-1">{spec.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Use Cases */}
+                          <div>
+                            <h4 className="text-purple-400 font-semibold mb-3 flex items-center gap-2">
+                              <Quote className="w-4 h-4" />
+                              Ideal For
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {featureDetails.scheduler.useCases.map((useCase, idx) => (
+                                <Badge key={idx} variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10">
+                                  {useCase}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -369,7 +596,10 @@ export default function LandingPage() {
 
             {/* Feature 4: Status Tracking */}
             <motion.div variants={fadeInUp}>
-              <Card className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-blue-500/50 transition-all overflow-hidden h-full">
+              <Card
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-blue-500/50 transition-all overflow-hidden h-full cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === 'tracking' ? null : 'tracking')}
+              >
                 <CardContent className="pt-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative">
@@ -382,9 +612,67 @@ export default function LandingPage() {
                       and monitor your fitness journey with millisecond-precision data updates.
                     </p>
                     <div className="flex items-center gap-2 text-blue-400 text-sm font-medium group-hover:gap-3 transition-all">
-                      <span>View dashboard</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>{expandedCard === 'tracking' ? 'Show less' : 'View dashboard'}</span>
+                      {expandedCard === 'tracking' ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
+
+                    {/* Expandable Content */}
+                    {expandedCard === 'tracking' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 pt-6 border-t border-blue-500/20 overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          {/* Key Benefits */}
+                          <div>
+                            <h4 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Key Benefits
+                            </h4>
+                            <ul className="space-y-2">
+                              {featureDetails.tracking.benefits.map((benefit, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-gray-300 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {featureDetails.tracking.specs.map((spec, idx) => (
+                              <div key={idx} className="bg-blue-500/5 rounded-lg p-3">
+                                <div className="text-xs text-blue-400/70 uppercase tracking-wider">{spec.label}</div>
+                                <div className="text-white font-semibold mt-1">{spec.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Use Cases */}
+                          <div>
+                            <h4 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                              <Quote className="w-4 h-4" />
+                              Ideal For
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {featureDetails.tracking.useCases.map((useCase, idx) => (
+                                <Badge key={idx} variant="outline" className="border-blue-500/30 text-blue-300 bg-blue-500/10">
+                                  {useCase}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -392,7 +680,10 @@ export default function LandingPage() {
 
             {/* Feature 5: Retention Engine */}
             <motion.div variants={fadeInUp}>
-              <Card className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-orange-500/50 transition-all overflow-hidden h-full">
+              <Card
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-slate-700/50 hover:border-orange-500/50 transition-all overflow-hidden h-full cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === 'retention' ? null : 'retention')}
+              >
                 <CardContent className="pt-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative">
@@ -405,9 +696,67 @@ export default function LandingPage() {
                       and adaptive challenges keep users engaged and coming back for more.
                     </p>
                     <div className="flex items-center gap-2 text-orange-400 text-sm font-medium group-hover:gap-3 transition-all">
-                      <span>Learn strategy</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span>{expandedCard === 'retention' ? 'Show less' : 'Learn strategy'}</span>
+                      {expandedCard === 'retention' ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
+
+                    {/* Expandable Content */}
+                    {expandedCard === 'retention' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 pt-6 border-t border-orange-500/20 overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          {/* Key Benefits */}
+                          <div>
+                            <h4 className="text-orange-400 font-semibold mb-3 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Key Benefits
+                            </h4>
+                            <ul className="space-y-2">
+                              {featureDetails.retention.benefits.map((benefit, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-gray-300 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Specs Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {featureDetails.retention.specs.map((spec, idx) => (
+                              <div key={idx} className="bg-orange-500/5 rounded-lg p-3">
+                                <div className="text-xs text-orange-400/70 uppercase tracking-wider">{spec.label}</div>
+                                <div className="text-white font-semibold mt-1">{spec.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Use Cases */}
+                          <div>
+                            <h4 className="text-orange-400 font-semibold mb-3 flex items-center gap-2">
+                              <Quote className="w-4 h-4" />
+                              Ideal For
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {featureDetails.retention.useCases.map((useCase, idx) => (
+                                <Badge key={idx} variant="outline" className="border-orange-500/30 text-orange-300 bg-orange-500/10">
+                                  {useCase}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
