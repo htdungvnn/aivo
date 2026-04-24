@@ -13,6 +13,7 @@ jest.mock('lucide-react-native', () => {
     TrendingUp: () => null,
     Utensils: () => null,
     User: () => null,
+    Upload: () => null,
     Zap: () => null,
     AlertTriangle: () => null,
   };

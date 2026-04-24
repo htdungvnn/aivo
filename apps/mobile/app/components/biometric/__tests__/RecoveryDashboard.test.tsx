@@ -105,7 +105,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Recovery Score')).toBeInTheDocument();
+      expect(screen.getByText('Recovery Score')).toBeOnTheScreen();
     });
   });
 
@@ -113,7 +113,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('75')).toBeInTheDocument();
+      expect(screen.getByText('75')).toBeOnTheScreen();
     });
   });
 
@@ -121,7 +121,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/good/i)).toBeInTheDocument();
+      expect(screen.getByText(/good/i)).toBeOnTheScreen();
     });
   });
 
@@ -129,48 +129,48 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Sleep')).toBeInTheDocument();
+      expect(screen.getByText('Sleep')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText(/7\.5h/)).toBeInTheDocument();
-    expect(screen.getByText(/82%/)).toBeInTheDocument();
+    expect(screen.getByText(/7\.5h/)).toBeOnTheScreen();
+    expect(screen.getByText(/82%/)).toBeOnTheScreen();
   });
 
   it('should display exercise stats', async () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Exercise')).toBeInTheDocument();
+      expect(screen.getByText('Exercise')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeOnTheScreen();
   });
 
   it('should display nutrition stats', async () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nutrition')).toBeInTheDocument();
+      expect(screen.getByText('Nutrition')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeOnTheScreen();
   });
 
   it('should display top correlation insight', async () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Top Insight')).toBeInTheDocument();
+      expect(screen.getByText('Top Insight')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
+    expect(screen.getByText(/Better sleep correlates/)).toBeOnTheScreen();
   });
 
   it('should display actionable insight', async () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Aim for 7\+ hours/)).toBeInTheDocument();
+      expect(screen.getByText(/Aim for 7\+ hours/)).toBeOnTheScreen();
     });
   });
 
@@ -178,7 +178,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Late night eating detected/)).toBeInTheDocument();
+      expect(screen.getByText(/Late night eating detected/)).toBeOnTheScreen();
     });
   });
 
@@ -186,7 +186,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Dismiss')).toBeInTheDocument();
+      expect(screen.getByText('Dismiss')).toBeOnTheScreen();
     });
 
     const dismissButton = screen.getByText('Dismiss');
@@ -199,7 +199,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Run Analysis Now')).toBeInTheDocument();
+      expect(screen.getByText('Run Analysis Now')).toBeOnTheScreen();
     });
 
     const refreshButton = screen.getByText('Run Analysis Now');
@@ -217,18 +217,19 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     // Should show loading indicator (depends on implementation)
-    expect(document.body).toBeInTheDocument();
+    // Verify component renders (loading state will be covered by other tests)
+    expect(screen.toJSON()).toBeTruthy();
   });
 
   it('should display recovery factors breakdown', async () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Recovery Factors')).toBeInTheDocument();
+      expect(screen.getByText('Recovery Factors')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText('82')).toBeInTheDocument(); // Sleep factor
-    expect(screen.getByText('70')).toBeInTheDocument(); // Exercise factor
+    expect(screen.getByText('82')).toBeOnTheScreen(); // Sleep factor
+    expect(screen.getByText('70')).toBeOnTheScreen(); // Exercise factor
   });
 
   it('should show empty correlations message when none found', async () => {
@@ -237,7 +238,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No significant correlations/)).toBeInTheDocument();
+      expect(screen.getByText(/No significant correlations/)).toBeOnTheScreen();
     });
   });
 
@@ -249,7 +250,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to load/i)).toBeOnTheScreen();
     });
   });
 });

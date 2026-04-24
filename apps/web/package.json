@@ -38,6 +38,9 @@
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
     "@aivo/jest-config": "workspace:*",
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@tailwindcss/postcss": "^4.2.4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",

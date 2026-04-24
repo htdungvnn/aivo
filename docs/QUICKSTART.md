@@ -29,39 +29,28 @@ This installs all dependencies across the monorepo.
 
 ## 2. Environment Setup
 
-### API (`apps/api/.env`)
+### Centralized Configuration
 
-```env
-# Cloudflare Workers
-CLOUDFLARE_ACCOUNT_ID=your_account_id
-CLOUDFLARE_D1_DATABASE_ID=aivo-db
+All environment variables are managed from `.env/.env.base`:
 
-# OpenAI (required)
-OPENAI_API_KEY=sk-your-openai-key
+```bash
+# 1. Copy the template
+cp .env/.env.example .env/.env.base
 
-# Optional: OAuth (for testing)
-# Get from Google Cloud Console / Facebook Developers
-GOOGLE_CLIENT_ID=your_google_client_id
-FACEBOOK_APP_ID=your_facebook_app_id
+# 2. Edit with your values
+vim .env/.env.base
 
-# JWT secret (generate random string)
-AUTH_SECRET=your-secret-key-min-32-chars
+# Minimum required:
+# - AUTH_SECRET (generate: openssl rand -base64 32)
+# - R2_PUBLIC_URL (your R2 bucket URL)
+# - NEXT_PUBLIC_API_URL=http://localhost:8787
+# - EXPO_PUBLIC_API_URL=http://localhost:8787
+
+# 3. Distribute to apps
+./scripts/setup-env.sh
 ```
 
-### Web (`apps/web/.env.local`)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8788
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-```
-
-### Mobile (`apps/mobile/.env`)
-
-```env
-EXPO_PUBLIC_API_URL=http://localhost:8788
-EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-EXPO_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_app_id
-```
+See [`.env/VARIABLES.md`](./env/VARIABLES.md) for complete variable reference.
 
 ---
 
@@ -116,7 +105,7 @@ Open three terminal windows:
 ```bash
 cd apps/api
 pnpmx wrangler dev
-# Running on http://localhost:8788
+# Running on http://localhost:8787
 ```
 
 **Terminal 2 - Web (Next.js):**
@@ -143,7 +132,7 @@ pnpmx expo start
 ### Health Check
 
 ```bash
-curl http://localhost:8788/health
+curl http://localhost:8787/health
 # Expected: {"status":"ok"}
 ```
 
@@ -245,6 +234,10 @@ aivo/
 │   └── shared-types/ # TypeScript types
 ├── docs/             # Documentation
 ├── scripts/          # Build/deploy scripts
+├── .env/             # Centralized environment config
+│   ├── .env.base     # All env variables (SECRETS - DO NOT COMMIT)
+│   ├── .env.example  # Template for team
+│   └── VARIABLES.md  # Complete reference
 └── package.json      # Root (Turborepo)
 ```
 
@@ -262,8 +255,9 @@ aivo/
 ## Need Help?
 
 - **Documentation:** See `/docs` folder
-- **Issues:** Check [Troubleshooting](./TROUBLESHOOTING.md)
-- **Community:** [GitHub Issues](https://github.com/your-repo/issues)
+- **Environment Variables:** See [`.env/VARIABLES.md`](./env/VARIABLES.md)
+- **Troubleshooting:** Check [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- **Issues:** Check [GitHub Issues](https://github.com/your-repo/issues)
 
 ---
 
@@ -271,5 +265,5 @@ aivo/
 
 ---
 
-**Last Updated:** 2026-04-22  
+**Last Updated:** 2026-04-24  
 **Minimum Requirements:** Node 18, Rust 1.70, pnpm 9

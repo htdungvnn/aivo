@@ -14,13 +14,15 @@ bucket_name = "aivo-images"
 
 [[kv_namespaces]]
 binding = "BODY_INSIGHTS_CACHE"
-id = "aivo-body-cache"
-preview_id = "aivo-body-cache-preview"
+id = "f453355bae1a43bb944ce8d01cc40356"
+
+[[kv_namespaces]]
+binding = "BIOMETRIC_CACHE"
+id = "0e2ea990aa4441fc84b2bd0a38496524"
 
 [[kv_namespaces]]
 binding = "LEADERBOARD_CACHE"
-id = "aivo-leaderboard"
-preview_id = "aivo-leaderboard-preview"
+id = "c09a3fb62443492389f1675371e1c4d8"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
@@ -37,7 +39,7 @@ crons = ["0 0 * * *", "0 9 1 * *"]  # Daily at midnight + monthly on 1st
 # - OPENAI_API_KEY: Your OpenAI API key
 # - GOOGLE_CLIENT_ID: Google OAuth client ID
 # - FACEBOOK_APP_ID: Facebook app ID
-R2_PUBLIC_URL = ""  # Set to your R2 public URL in production
+R2_PUBLIC_URL = "https://312b98fff6f54aa11ae59cb06d30015a.r2.cloudflarestorage.com/aivo-images"  # Set to your R2 public URL in production
 
 [[routes]]
 pattern = "/api/*"

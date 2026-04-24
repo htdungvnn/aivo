@@ -29,6 +29,8 @@ import { MetabolicRouter } from "./routes/metabolic";
 import { postureRouter } from "./routes/posture";
 import { AdminTestRouter } from "./routes/admin-test";
 import { DigitalTwinRouter } from "./routes/digital-twin";
+import { BiometricRouter } from "./routes/biometric";
+import { AcousticRouter } from "./routes/acoustic";
 
 // Temporarily disabled - WIP with type errors
 // import { formRouter } from "./routes/form-analyze";
@@ -37,6 +39,7 @@ export interface AppEnv {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
   BODY_INSIGHTS_CACHE: KVNamespace;
+  BIOMETRIC_CACHE: KVNamespace;
   LEADERBOARD_CACHE: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   OPENAI_API_KEY?: string;
@@ -161,6 +164,7 @@ app.route("/body", BodyRouter());
 app.route("/body-photos", BodyPhotosRouter());
 // Temporarily disabled - WIP with type errors
 // app.route("/nutrition", NutritionRouter());
+app.route("/api/biometric", BiometricRouter());
 app.route("/api/export", ExportRouter());
 app.route("/api", MonthlyReportRouter());
 app.route("/health", HealthRouter());
@@ -171,6 +175,7 @@ app.route("/api/infographic", InfographicRouter());
 app.route("/api/metabolic", MetabolicRouter());
 app.route("/api/posture", postureRouter());
 app.route("/api/digital-twin", DigitalTwinRouter());
+app.route("/api/acoustic", AcousticRouter());
 // Admin test data endpoint (development only)
 if (process.env.NODE_ENV !== "production") {
   app.route("/api/admin/test", AdminTestRouter());

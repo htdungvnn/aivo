@@ -19,8 +19,13 @@ image = { version = "0.24", default-features = false, features = ["jpeg", "png",
 base64 = "0.21"
 regex = "1.10"
 
+# DSP and signal processing for acoustic myography
+rustfft = "6.2"
+numeric-array = "0.5"
+
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+rand = "0.8"
 
 [profile.release]
 lto = true

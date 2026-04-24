@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react-native';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react-native';
 import '@testing-library/jest-native';
 import { MetricsProvider, useMetrics } from '../MetricsContext';
 import * as SecureStore from 'expo-secure-store';
@@ -175,7 +175,7 @@ describe('MetricsContext', () => {
 
       const refreshButton = screen.getByTestId('refresh');
       await act(async () => {
-        refreshButton.click();
+        fireEvent.press(refreshButton);
       });
 
       await waitFor(() => {
@@ -218,7 +218,7 @@ describe('MetricsContext', () => {
 
       const refreshButton = screen.getByTestId('refresh');
       await act(async () => {
-        refreshButton.click();
+        fireEvent.press(refreshButton);
       });
 
       await waitFor(() => {
@@ -247,7 +247,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-metric');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       await waitFor(() => {
@@ -274,7 +274,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-metric');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       await waitFor(() => {
@@ -285,6 +285,7 @@ describe('MetricsContext', () => {
     it('throws error on failed add', async () => {
       (fetch as jest.Mock).mockResolvedValue({
         ok: false,
+        json: async () => ({ error: 'Network error' }),
       });
 
       render(
@@ -295,14 +296,12 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-metric');
       await act(async () => {
-        try {
-          addButton.click();
-        } catch (e) {
-          // Expected error
-        }
+        fireEvent.press(addButton);
       });
 
-      expect(screen.getByTestId('error')).toHaveTextContent('Failed to add metric');
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Failed to add metric');
+      });
     });
   });
 
@@ -326,7 +325,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       await waitFor(() => {
@@ -345,7 +344,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       // Should show optimistic metric before API returns
@@ -366,7 +365,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       await waitFor(() => {
@@ -387,7 +386,7 @@ describe('MetricsContext', () => {
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
         try {
-          addButton.click();
+          fireEvent.press(addButton);
         } catch (e) {
           // Expected error
         }
@@ -420,6 +419,12 @@ describe('MetricsContext', () => {
         </MetricsProvider>
       );
 
+      // Click refresh to load metrics
+      const refreshButton = screen.getByTestId('refresh');
+      await act(async () => {
+        fireEvent.press(refreshButton);
+      });
+
       await waitFor(() => {
         const latestMetric = screen.getByTestId('latest-metric').textContent;
         expect(latestMetric).not.toBe('none');
@@ -441,7 +446,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
-        addButton.click();
+        fireEvent.press(addButton);
       });
 
       // Check that state updates (metrics count increases)

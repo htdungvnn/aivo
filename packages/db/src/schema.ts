@@ -747,6 +747,213 @@ export const correlationFindings = sqliteTable("correlation_findings", {
   index('idx_findings_detected').on(table.detectedAt),
 ]);
 
+// ============================================
+// ACOUSTIC MYOGRAPHY - MUSCLE FATIGUE ANALYSIS
+// ============================================
+
+// Acoustic baselines - stored baseline measurements for rested muscle
+export const acousticBaselines = sqliteTable("acoustic_baselines", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  muscleGroup: text("muscle_group").notNull(), // MuscleGroup from shared-types
+  createdAt: integer("created_at").notNull(),
+  // Baseline features (JSON)
+  medianFrequency: real("median_frequency").notNull(), // Hz for fresh muscle
+  rmsAmplitude: real("rms_amplitude").notNull(),
+  spectralEntropy: real("spectral_entropy").notNull(),
+  contractionRate: real("contraction_rate").notNull(), // contractions per second
+  qualityScore: real("quality_score").notNull(), // 0-1
+  // Metadata
+  sampleRate: integer("sample_rate").default(8000),
+  chunkDurationMs: integer("chunk_duration_ms").default(500),
+  ambientNoiseLevel: real("ambient_noise_level"), // dB background noise at calibration
+  notes: text("notes"),
+  rawFeaturesJson: text("raw_features_json"), // Full features from calibration sample
+}, (table) => [
+  index('idx_acoustic_baseline_user_muscle').on(table.userId, table.muscleGroup),
+  unique('unique_baseline_user_muscle').on(table.userId, table.muscleGroup),
+]);
+
+// Acoustic sessions - workout sessions with continuous acoustic monitoring
+export const acousticSessions = sqliteTable("acoustic_sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workoutId: text("workout_id").references(() => workouts.id), // Optional link to workout
+  exerciseName: text("exercise_name"), // e.g., "bench_press", "squat"
+  muscleGroup: text("muscle_group").notNull(), // Primary muscle being monitored
+  startTime: integer("start_time").notNull(),
+  endTime: integer("end_time"),
+  // Session aggregates
+  totalChunks: integer("total_chunks").default(0),
+  validChunks: integer("valid_chunks").default(0),
+  avgFatigueLevel: real("avg_fatigue_level"), // 0-100
+  peakFatigueLevel: real("peak_fatigue_level"), // 0-100
+  fatigueTrend: text("fatigue_trend"), // "improving", "stable", "declining"
+  // Baseline used for this session
+  baselineId: text("baseline_id").references(() => acousticBaselines.id),
+  // Metadata
+  deviceType: text("device_type").default("iphone"), // "iphone", "android", "web"
+  sampleRate: integer("sample_rate").default(8000),
+  ambientNoiseLevel: real("ambient_noise_level"),
+  notes: text("notes"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_acoustic_session_user_time').on(table.userId, sql`desc ${table.startTime}`),
+  index('idx_acoustic_session_workout').on(table.workoutId),
+]);
+
+// Audio chunks - individual audio samples (optional persistence for re-analysis)
+export const acousticAudioChunks = sqliteTable("acoustic_audio_chunks", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => acousticSessions.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunk_index").notNull(),
+  timestamp: integer("timestamp").notNull(), // Relative to session start (ms)
+  // Audio data (optional - may be stored in R2 instead)
+  pcmDataKey: text("pcm_data_key"), // R2 key if audio persisted
+  // Cached features from processing
+  featuresJson: text("features_json"), // AcousticFeatures as JSON
+  // Signal quality
+  isValid: integer("is_valid").default(1),
+  confidence: real("confidence"), // 0-1
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_chunks_session_index').on(table.sessionId, table.chunkIndex),
+  index('idx_chunks_timestamp').on(table.sessionId, table.timestamp),
+]);
+
+// Muscle fatigue readings - latest fatigue state per muscle group (materialized view pattern)
+export const muscleFatigueReadings = sqliteTable("muscle_fatigue_readings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  muscleGroup: text("muscle_group").notNull(),
+  sessionId: text("session_id").references(() => acousticSessions.id),
+  // Current fatigue state
+  fatigueLevel: real("fatigue_level").notNull(), // 0-100
+  fatigueCategory: text("fatigue_category").notNull(), // "fresh", "moderate", "fatigued", "exhausted"
+  medianFrequency: real("median_frequency"), // Current median freq (Hz)
+  medianFreqShift: real("median_freq_shift"), // Change from baseline (negative = fatigued)
+  // Confidence and reasoning
+  confidence: real("confidence").notNull(), // 0-1
+  recommendations: text("recommendations"), // JSON array of recommendations
+  // Timestamps
+  measuredAt: integer("measured_at").notNull(),
+  sessionStartTime: integer("session_start_time"), // For context
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_fatigue_user_muscle').on(table.userId, table.muscleGroup),
+  index('idx_fatigue_updated').on(sql`desc ${table.updatedAt}`),
+  unique('unique_fatigue_user_muscle').on(table.userId, table.muscleGroup),
+]);
+
+// Acoustic fatigue trends - aggregated trend data for analytics
+export const acousticFatigueTrends = sqliteTable("acoustic_fatigue_trends", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  period: text("period").notNull(), // "daily", "weekly", "monthly"
+  periodStart: text("period_start").notNull(), // ISO date YYYY-MM-DD
+  muscleGroup: text("muscle_group").notNull(),
+  // Trend metrics
+  avgFatigueLevel: real("avg_fatigue_level"), // 0-100
+  peakFatigueLevel: real("peak_fatigue_level"),
+  recoveryRate: real("recovery_rate"), // How quickly fatigue reduces (0-1)
+  sessionsCount: integer("sessions_count").default(0),
+  totalDurationMinutes: integer("total_duration_minutes").default(0),
+  // Correlation with workout metrics
+  avgWorkoutIntensity: real("avg_workout_intensity"), // From workout logs
+  correlationWithVolume: real("correlation_with_volume"), // Pearson r
+  // Calculated at
+  calculatedAt: integer("calculated_at").notNull(),
+}, (table) => [
+  index('idx_trend_user_period').on(table.userId, table.period, table.periodStart),
+  index('idx_trend_muscle').on(table.muscleGroup),
+]);
+
+// ============================================
+// ADAPTIVE MACRO OSCILLATION SCHEMA
+// ============================================
+
+// User macro targets override (persisted user preferences)
+export const userMacroTargets = sqliteTable("user_macro_targets", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  calories: integer("calories").notNull(),
+  protein_g: integer("protein_g").notNull(),
+  carbs_g: integer("carbs_g").notNull(),
+  fat_g: integer("fat_g").notNull(),
+  water_ml: integer("water_ml").default(3000),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+// Macro adjustment sessions - tracks active adjustment periods
+export const macroAdjustmentSessions = sqliteTable("macro_adjustment_sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startedAt: integer("started_at").notNull(),
+  lastActivityAt: integer("last_activity_at").notNull(),
+  status: text("status", { enum: ["active", "paused", "completed"] }).notNull(),
+  // Current macro values at session start
+  baseCalories: integer("base_calories"),
+  baseProtein: real("base_protein"),
+  baseCarbs: real("base_carbs"),
+  baseFat: real("base_fat"),
+  // Current effective values (may differ due to adjustments)
+  effectiveCalories: integer("effective_calories"),
+  effectiveProtein: real("effective_protein"),
+  effectiveCarbs: real("effective_carbs"),
+  effectiveFat: real("effective_fat"),
+  endedAt: integer("ended_at"),
+}, (table) => [
+  index('idx_macro_session_user').on(table.userId),
+  index('idx_macro_session_status').on(table.status),
+]);
+
+// Macro adjustment logs - history of all suggested adjustments
+export const macroAdjustmentLogs = sqliteTable("macro_adjustment_logs", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => macroAdjustmentSessions.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  timestamp: integer("timestamp").notNull(),
+  // Adjustment details
+  adjustmentType: text("adjustment_type"), // "increase_calories", "decrease_calories", "rebalance_macros", "maintain"
+  calorieChange: integer("calorie_change"),
+  proteinChange: real("protein_change"),
+  carbsChange: real("carbs_change"),
+  fatChange: real("fat_change"),
+  reasoning: text("reasoning"), // JSON array or plain text
+  confidence: real("confidence"), // 0-1 from adjustment engine
+  urgency: text("urgency"), // "low", "medium", "high", "critical"
+  // User feedback
+  userAccepted: integer("user_accepted").default(0), // 0=pending, 1=accepted, 2=dismissed
+  userFeedback: text("user_feedback"),
+}, (table) => [
+  index('idx_macro_logs_session').on(table.sessionId),
+  index('idx_macro_logs_user').on(table.userId),
+  index('idx_macro_logs_timestamp').on(sql`desc ${table.timestamp}`),
+]);
+
+// Sensor data snapshots - raw sensor readings aggregates
+export const sensorDataSnapshots = sqliteTable("sensor_data_snapshots", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  timestamp: integer("timestamp").notNull(),
+  period: text("period"), // "hourly", "daily", "weekly"
+  // Aggregated sensor metrics
+  steps: integer("steps"),
+  activeMinutes: integer("active_minutes"),
+  avgHeartRate: real("avg_heart_rate"),
+  restingHeartRate: integer("resting_heart_rate"),
+  hrvMs: integer("hrv_ms"), // Heart rate variability in milliseconds (SDNN)
+  hrvRmssd: real("hrv_rmssd"), // Root mean square of successive differences
+  stressScore: real("stress_score"), // 0-100 calculated from HRV
+  // Source metadata
+  source: text("source"), // "apple_health", "google_fit", "manual"
+  rawData: text("raw_data"), // JSON: full daily aggregates for debugging
+}, (table) => [
+  index('idx_sensor_snapshot_user_time').on(table.userId, table.timestamp),
+  index('idx_sensor_snapshot_period').on(table.userId, table.period),
+]);
+
 // Migrations table
 export const migrations = sqliteTable("migrations", {
   id: text("id").primaryKey(),
@@ -945,6 +1152,18 @@ export const schema = {
   liveWorkoutSessions,
   setRpeLogs,
   sleepLogs,
+  // Acoustic myography tables
+  acousticBaselines,
+  acousticSessions,
+  acousticAudioChunks,
+  muscleFatigueReadings,
+  acousticFatigueTrends,
+  // Adaptive macro oscillation tables
+  userMacroTargets,
+  macroAdjustmentSessions,
+  macroAdjustmentLogs,
+  sensorDataSnapshots,
+  biometricSnapshots,
   bodyAvatarModels,
   bodyProjections,
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createApiClient } from "@aivo/api-client";
 import {
@@ -199,11 +199,14 @@ export function RecoveryDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "correlations" | "sleep">("overview");
 
-  const apiClient = user ? createApiClient({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787/api",
-    tokenProvider: async () => localStorage.getItem("aivo_token") || "",
-    userIdProvider: async () => user.id,
-  }) : null;
+  const apiClient = useMemo(() => {
+    if (!user) return null;
+    return createApiClient({
+      baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787/api",
+      tokenProvider: async () => localStorage.getItem("aivo_token") || "",
+      userIdProvider: async () => user.id,
+    });
+  }, [user]);
 
   const loadData = useCallback(async (showRefresh = false) => {
     if (!apiClient) {return;}
@@ -445,6 +448,39 @@ export function RecoveryDashboard() {
                   </CardContent>
                 </Card>
               )}
+            </motion.div>
+          )}
+
+          {/* Sleep Tab */}
+          {activeTab === "sleep" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <Card className="bg-slate-900/60 border-slate-700/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-slate-400" />
+                    Recent Sleep
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {sleepHistory.slice(0, 5).map((entry: SleepLog) => (
+                      <SleepLogEntry
+                        key={entry.id}
+                        date={entry.date}
+                        duration={entry.durationHours}
+                        quality={entry.qualityScore}
+                      />
+                    ))}
+                    {sleepHistory.length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">No sleep data logged yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
 

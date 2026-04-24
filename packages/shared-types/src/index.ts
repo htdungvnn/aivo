@@ -2381,7 +2381,112 @@ export interface RecoveryScoreResult {
 }
 
 // ============================================
-// SECTION 20: ADAPTIVE PLANNER - RE-PLANNING TYPES
+// SECTION 21: ACOUSTIC MYOGRAPHY - MUSCLE FATIGUE ANALYSIS
+// ============================================
+
+/**
+ * Frequency band energy distribution for muscle sound analysis
+ */
+export interface BandEnergy {
+  band: "very_low" | "low" | "mid" | "high";
+  minHz: number;
+  maxHz: number;
+  energy: number;
+  normalized: number; // 0-1 proportion of total energy
+}
+
+/**
+ * Features extracted from a single audio chunk (500ms)
+ * Represents the acoustic signature of muscle activity
+ */
+export interface AcousticFeatures {
+  rmsAmplitude: number; // Root mean square amplitude (0-1 normalized)
+  medianFrequency: number; // F50 - median frequency in Hz (primary fatigue indicator)
+  frequencyBands: BandEnergy[]; // Energy distribution across frequency bands
+  spectralEntropy: number; // Shannon entropy (0-1), higher = more random/noisy
+  motorUnitRecruitment: number; // 0-1 estimate of motor unit firing rate
+  contractionCount: number; // Detected muscle contractions in the chunk
+  signalToNoiseRatio: number; // SNR in dB
+  confidence: number; // 0-1 overall signal quality confidence
+  isValid: boolean; // True if signal meets minimum quality thresholds
+}
+
+/**
+ * Baseline measurement from rested muscle
+ * Used as reference for fatigue detection
+ */
+export interface BaselineData {
+  medianFrequency: number; // Baseline median freq (Hz) for fresh muscle
+  rmsAmplitude: number; // Baseline amplitude
+  spectralEntropy: number; // Baseline entropy
+  contractionRate: number; // Baseline contractions per second
+  qualityScore: number; // 0-1 baseline quality assessment
+}
+
+/**
+ * Fatigue assessment result
+ * Combines current features with baseline to determine fatigue level
+ */
+export interface FatigueResult {
+  fatigueLevel: number; // 0-100 composite fatigue score
+  fatigueCategory: "fresh" | "moderate" | "fatigued" | "exhausted";
+  medianFreqShift: number; // Hz shift from baseline (negative = fatigued)
+  confidence: number; // 0-1 confidence in this assessment
+  recommendations: string[]; // User-facing recommendations based on fatigue
+}
+
+/**
+ * Acoustic myography configuration
+ */
+export interface AcousticConfig {
+  sampleRate: number; // Hz, typically 8000
+  chunkDurationMs: number; // Duration of audio chunks to process
+  lowCutoff: number; // Band-pass filter low cutoff (Hz)
+  highCutoff: number; // Band-pass filter high cutoff (Hz)
+  minContractionSeparationMs: number; // Minimum time between contractions
+  bands: BandEnergy[]; // Frequency band definitions
+}
+
+/**
+ * Complete acoustic session data for storage/analysis
+ */
+export interface AcousticSession {
+  id: string;
+  userId: string;
+  exerciseName: string;
+  muscleGroup: MuscleGroup;
+  startTime: number; // Unix timestamp ms
+  endTime?: number;
+  totalChunks: number;
+  validChunks: number;
+  avgFatigueLevel: number;
+  peakFatigueLevel: number;
+  fatigueTrend: "improving" | "stable" | "declining";
+  baselineUsed?: string; // Baseline ID
+  metadata: {
+    deviceType: "iphone" | "android" | "web";
+    sampleRate: number;
+    ambientNoiseLevel?: number;
+    notes?: string;
+  };
+  createdAt: number;
+}
+
+/**
+ * Audio chunk storage (for potential re-analysis)
+ */
+export interface AudioChunk {
+  id: string;
+  sessionId: string;
+  chunkIndex: number;
+  timestamp: number; // Relative to session start (ms)
+  pcmData?: string; // Base64 encoded PCM (optional, may be in R2)
+  r2Key?: string; // R2 storage key if audio persisted
+  features?: AcousticFeatures; // Cached features from processing
+}
+
+// ============================================
+// SECTION 22: ADAPTIVE PLANNER - RE-PLANNING TYPES
 // ============================================
 // Re-export all adaptive planner types from the separate module
 export * from "./adaptive-planner";

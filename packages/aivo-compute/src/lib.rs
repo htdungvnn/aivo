@@ -4234,6 +4234,20 @@ impl LiveWorkoutAdjuster {
 mod posture;
 pub use posture::PostureAnalyzer;
 
+// ============================================
+// ACOUSTIC MYOGRAPHY MODULE
+// ============================================
+
+mod acoustic_myography;
+pub use acoustic_myography::AcousticMyography;
+
+// ============================================
+// ADAPTIVE MACRO ADJUSTMENT MODULE
+// = ============================================
+
+mod macro_adjuster;
+pub use macro_adjuster::MacroAdjuster;
+
 #[cfg(test)]
 mod tests {
   use wasm_bindgen_test::*;

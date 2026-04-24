@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
@@ -46,7 +46,7 @@ export const DigitalTwinRouter = () => {
       // Get user's latest body metrics
       const db = createDrizzleInstance(c.env.DB);
       const { schema } = await import("@aivo/db/schema");
-      const { desc, eq, isNull } = await import("drizzle-orm");
+      const { desc, eq } = await import("drizzle-orm");
 
       const latestMetric = await db
         .select()
@@ -228,6 +228,18 @@ export const DigitalTwinRouter = () => {
         };
       });
 
+      // Get user for height/age/gender first
+      const user = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (!user) {
+        return c.json({ success: false, error: "User not found" }, 404);
+      }
+
       // Generate base simulation using WASM
       const historicalDataJson = JSON.stringify(historicalData);
       const resultJson = MetabolicTwin.generateSimulation(
@@ -266,14 +278,6 @@ export const DigitalTwinRouter = () => {
         timestamp: Date.now(),
       };
 
-      // Get user for height/age/gender
-      const user = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.id, userId))
-        .limit(1)
-        .then((rows) => rows[0]);
-
       // Get user's avatar model for somatotype if available
       const avatarModel = await db
         .select({
@@ -291,7 +295,7 @@ export const DigitalTwinRouter = () => {
       const morphTargets = JSON.parse(morphTargetsJson);
 
       // Generate narrative using AI (with fallback to heuristic)
-      const narrative = await generateProjectionNarrative(c, simulation, adjustedProjection, adherenceFactor, avatarModel?.somatotype);
+      const narrative = await generateProjectionNarrative(c, simulation, adjustedProjection, adherenceFactor, avatarModel?.somatotype ?? undefined);
 
       // Store projection in database
       const now = Math.floor(Date.now() / 1000);
@@ -355,14 +359,16 @@ export const DigitalTwinRouter = () => {
     try {
       const db = createDrizzleInstance(c.env.DB);
       const { schema } = await import("@aivo/db/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
 
       const projection = await db
         .select()
         .from(schema.bodyProjections)
         .where(
-          eq(schema.bodyProjections.id, projectionId),
-          eq(schema.bodyProjections.userId, userId)
+          and(
+            eq(schema.bodyProjections.id, projectionId),
+            eq(schema.bodyProjections.userId, userId)
+          )
         )
         .limit(1)
         .then((rows) => rows[0]);
@@ -377,8 +383,8 @@ export const DigitalTwinRouter = () => {
           id: projection.id,
           timeHorizonDays: projection.timeHorizonDays,
           adherenceFactor: projection.adherenceFactor,
-          adjustedProjection: JSON.parse(projection.adjustedProjectionJson),
-          morphTargets: JSON.parse(projection.morphTargetsJson),
+          adjustedProjection: projection.adjustedProjectionJson ? JSON.parse(projection.adjustedProjectionJson) : null,
+          morphTargets: projection.morphTargetsJson ? JSON.parse(projection.morphTargetsJson) : null,
           narrative: projection.narrative,
           createdAt: projection.createdAt,
         },
@@ -403,13 +409,13 @@ export const DigitalTwinRouter = () => {
     try {
       const db = createDrizzleInstance(c.env.DB);
       const { schema } = await import("@aivo/db/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, desc } = await import("drizzle-orm");
 
       const avatarModel = await db
         .select()
         .from(schema.bodyAvatarModels)
         .where(eq(schema.bodyAvatarModels.userId, userId))
-        .orderBy((columns) => columns.desc(schema.bodyAvatarModels.updatedAt))
+        .orderBy(desc(schema.bodyAvatarModels.updatedAt))
         .limit(1)
         .then((rows) => rows[0]);
 
@@ -432,7 +438,7 @@ export const DigitalTwinRouter = () => {
           gender: avatarModel.gender,
           somatotype: avatarModel.somatotype,
           somatotypeConfidence: avatarModel.somatotypeConfidence,
-          morphTargets: JSON.parse(avatarModel.morphTargetsJson),
+          morphTargets: avatarModel.morphTargetsJson ? JSON.parse(avatarModel.morphTargetsJson) : null,
           avatarStyle: avatarModel.avatarStyle,
           skinTone: avatarModel.skinTone,
           showMuscleDefinitions: avatarModel.showMuscleDefinitions === 1,
@@ -453,7 +459,7 @@ export const DigitalTwinRouter = () => {
 
 // Helper function to generate human-readable narrative using AI
 async function generateProjectionNarrative(
-  c: any,
+  c: Context<{ Bindings: EnvWithBindings }>,
   simulation: Record<string, unknown>,
   projection: Record<string, unknown>,
   adherenceFactor: number,
@@ -464,7 +470,7 @@ async function generateProjectionNarrative(
   const finalBest = scenarios.best_case[scenarios.best_case.length - 1];
   const finalWorst = scenarios.worst_case[scenarios.worst_case.length - 1];
 
-  const weightChange = (projection.weight_kg - (finalConsistent.weight_kg as number));
+  const weightChange = (projection.weight_kg as number) - (finalConsistent.weight_kg as number);
   const confidence = Math.round((projection.confidence as number) * 100);
 
   // Try AI narrative if API keys are configured
@@ -486,7 +492,7 @@ User Somatotype: ${userSomatotype || "unknown"}
 Time Horizon: ${Math.round((projection.days_ahead as number) / 7)} weeks
 Adherence Level: ${Math.round(adherenceFactor * 100)}%
 Projected Weight Change: ${weightChange > 0 ? "+" : ""}${weightChange.toFixed(1)}kg
-Projected Body Fat: ${projection.body_fat_percentage.toFixed(1)}%
+Projected Body Fat: ${(projection.body_fat_percentage as number).toFixed(1)}%
 Confidence Level: ${confidence}%
 Best-case vs Worst-case Spread: ${((finalBest.weight_kg as number) - (finalWorst.weight_kg as number)).toFixed(1)}kg
 

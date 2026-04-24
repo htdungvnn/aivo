@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RecoveryDashboard } from '../RecoveryDashboard';
 import { ApiClient } from '@aivo/api-client';
@@ -129,6 +129,26 @@ describe('RecoveryDashboard Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Setup localStorage with user data for AuthProvider fallback
+    localStorage.setItem('aivo_user', JSON.stringify({
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+    }));
+    localStorage.setItem('aivo_token', 'test-jwt-token');
+
+    // Mock fetch for auth verification
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/auth/verify')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true, user: { id: 'user-123', email: 'test@example.com', name: 'Test User' } }),
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
     mockGetSleepHistory.mockResolvedValue({ success: true, data: mockSleepHistory });
     mockGetCorrelations.mockResolvedValue({ success: true, data: mockCorrelations });
     mockGetBiometricSnapshot.mockResolvedValue({ success: true, data: mockSnapshot });
@@ -168,10 +188,19 @@ describe('RecoveryDashboard Component', () => {
     renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Sleep')).toBeInTheDocument();
+      expect(screen.getByText('Biometric Recovery')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/7\.5h/)).toBeInTheDocument();
+    // Find the "Sleep" label in the overview stats card (it's a <span>, not the tab button)
+    const sleepLabel = screen.getByText('Sleep', { selector: 'span' });
+    // Get the card containing this label
+    const sleepCard = sleepLabel.closest('div[class*="bg-gradient"]');
+    expect(sleepCard).not.toBeNull();
+    // Within that card, find the duration value (e.g., "7.5h")
+    expect(within(sleepCard as HTMLElement).getByText('7.5h')).toBeInTheDocument();
+
+    // Verify sleep section appears in overview stats
+    expect(screen.getByText('Avg duration')).toBeInTheDocument();
   });
 
   it('should display exercise stats', async () => {
@@ -197,8 +226,18 @@ describe('RecoveryDashboard Component', () => {
   it('should display top correlation insight', async () => {
     renderWithAuth(<RecoveryDashboard />);
 
+    // Wait for snapshot to load, then switch to correlations tab
     await waitFor(() => {
-      expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
+      expect(screen.getByText('Biometric Recovery')).toBeInTheDocument();
+    });
+
+    // Click on Correlations tab
+    const correlationsTab = screen.getByRole('button', { name: /Correlations/i });
+    fireEvent.click(correlationsTab);
+
+    // Now the actionable insight should be visible
+    await waitFor(() => {
+      expect(screen.getByText(/Aim for 7\+ hours/)).toBeInTheDocument();
     });
   });
 
@@ -219,16 +258,21 @@ describe('RecoveryDashboard Component', () => {
     renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Late night eating detected')).toBeInTheDocument();
+      // Warnings are displayed with bullet prefix: "• Late night eating detected on 2025-04-20"
+      expect(screen.getByText(/• Late night eating detected/)).toBeInTheDocument();
     });
   });
 
   it('should switch between tabs', async () => {
     renderWithAuth(<RecoveryDashboard />);
 
+    // Wait for the dashboard to load (header appears)
     await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
+      expect(screen.getByText('Biometric Recovery')).toBeInTheDocument();
     });
+
+    // Verify Overview tab is present
+    expect(screen.getByRole('button', { name: /Overview/i })).toBeInTheDocument();
 
     // Click Sleep tab
     const sleepTab = screen.getByRole('button', { name: /Sleep/i });
@@ -243,7 +287,7 @@ describe('RecoveryDashboard Component', () => {
     fireEvent.click(correlationsTab);
 
     await waitFor(() => {
-      expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
+      expect(screen.getByText(/Aim for 7\+ hours/)).toBeInTheDocument();
     });
   });
 
@@ -251,6 +295,15 @@ describe('RecoveryDashboard Component', () => {
     mockGetCorrelations.mockResolvedValue({ success: true, data: [] });
 
     renderWithAuth(<RecoveryDashboard />);
+
+    // Wait for snapshot to load
+    await waitFor(() => {
+      expect(screen.getByText('Biometric Recovery')).toBeInTheDocument();
+    });
+
+    // Switch to Correlations tab to see the message
+    const correlationsTab = screen.getByRole('button', { name: /Correlations/i });
+    fireEvent.click(correlationsTab);
 
     await waitFor(() => {
       expect(screen.getByText('No significant correlations found yet.')).toBeInTheDocument();

@@ -6,14 +6,12 @@ import { View, Text } from 'react-native';
 
 // Mock Victory Native
 jest.mock('victory-native', () => ({
-  VictoryChart: ({ children }: any) => <View testID="victory-chart">{children}</View>,
-  VictoryLine: ({ data }: any) => <View testID="victory-line" />,
-  VictoryArea: ({ data }: any) => <View testID="victory-area" />,
-  VictoryBar: ({ data }: any) => <View testID="victory-bar" />,
-  VictoryAxis: ({ dependentAxis, tickFormat }: any) => (
-    <View testID="victory-axis" />
-  ),
-  VictoryTooltip: ({ children }: any) => <View testID="victory-tooltip">{children}</View>,
+  VictoryChart: ({ children }: any) => React.createElement(View, { testID: 'victory-chart' }, children),
+  VictoryLine: ({ data }: any) => React.createElement(View, { testID: 'victory-line' }),
+  VictoryArea: ({ data }: any) => React.createElement(View, { testID: 'victory-area' }),
+  VictoryBar: ({ data }: any) => React.createElement(View, { testID: 'victory-bar' }),
+  VictoryAxis: ({ dependentAxis, tickFormat }: any) => React.createElement(View, { testID: 'victory-axis' }),
+  VictoryTooltip: ({ children }: any) => React.createElement(View, { testID: 'victory-tooltip' }, children),
   VictoryTheme: {
     material: {},
   },
@@ -31,17 +29,17 @@ describe('Mobile BodyMetricChart Component', () => {
       const { container } = render(
         <BodyMetricChart data={mockData} metric="weight" />
       );
-      expect(container).toBeInTheDocument();
+      expect(container).toBeOnTheScreen();
     });
 
     it('renders VictoryChart with data', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
 
     it('renders empty state with no data', () => {
       render(<BodyMetricChart data={[]} metric="weight" />);
-      expect(screen.getByText('No data available')).toBeInTheDocument();
+      expect(screen.getByText('No data available')).toBeOnTheScreen();
     });
 
     it('renders with custom height', () => {
@@ -53,29 +51,29 @@ describe('Mobile BodyMetricChart Component', () => {
 
     it('renders VictoryArea for area chart', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-area')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-area')).toBeOnTheScreen();
     });
   });
 
   describe('Metric Types', () => {
     it('renders weight chart', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
 
     it('renders body fat chart', () => {
       render(<BodyMetricChart data={mockData} metric="bodyFat" />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
 
     it('renders muscle mass chart', () => {
       render(<BodyMetricChart data={mockData} metric="muscleMass" />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
 
     it('renders BMI chart', () => {
       render(<BodyMetricChart data={mockData} metric="bmi" />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
   });
 
@@ -122,12 +120,12 @@ describe('Mobile MuscleBalanceChart Component', () => {
       const { container } = render(
         <MuscleBalanceChart data={mockMuscleData} />
       );
-      expect(container).toBeInTheDocument();
+      expect(container).toBeOnTheScreen();
     });
 
     it('renders VictoryChart', () => {
       render(<MuscleBalanceChart data={mockMuscleData} />);
-      expect(screen.getByTestId('victory-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
     });
 
     it('renders VictoryBar for each muscle', () => {
@@ -138,7 +136,7 @@ describe('Mobile MuscleBalanceChart Component', () => {
 
     it('renders empty state with no data', () => {
       render(<MuscleBalanceChart data={[]} />);
-      expect(screen.getByText('No muscle data available')).toBeInTheDocument();
+      expect(screen.getByText('No muscle data available')).toBeOnTheScreen();
     });
 
     it('renders with custom height', () => {
@@ -164,36 +162,36 @@ describe('Mobile HealthScoreGauge Component', () => {
       const { container } = render(
         <HealthScoreGauge score={75} category="good" />
       );
-      expect(container).toBeInTheDocument();
+      expect(container).toBeOnTheScreen();
     });
 
     it('displays score', () => {
       render(<HealthScoreGauge score={85} category="excellent" />);
-      expect(screen.getByText('85')).toBeInTheDocument();
+      expect(screen.getByText('85')).toBeOnTheScreen();
     });
 
     it('displays category in uppercase', () => {
       render(<HealthScoreGauge score={85} category="excellent" />);
-      expect(screen.getByText('EXCELLENT')).toBeInTheDocument();
+      expect(screen.getByText('EXCELLENT')).toBeOnTheScreen();
     });
 
     it('renders gauge container', () => {
       const { container } = render(
         <HealthScoreGauge score={75} category="fair" />
       );
-      expect(container.querySelector('.gaugeContainer')).toBeInTheDocument();
+      expect(container.querySelector('.gaugeContainer')).toBeOnTheScreen();
     });
   });
 
   describe('Edge Cases', () => {
     it('handles score 0', () => {
       render(<HealthScoreGauge score={0} category="poor" />);
-      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeOnTheScreen();
     });
 
     it('handles score 100', () => {
       render(<HealthScoreGauge score={100} category="excellent" />);
-      expect(screen.getByText('100')).toBeInTheDocument();
+      expect(screen.getByText('100')).toBeOnTheScreen();
     });
 
     it('handles all category types', () => {
@@ -202,7 +200,7 @@ describe('Mobile HealthScoreGauge Component', () => {
         const { container, unmount } = render(
           <HealthScoreGauge score={50} category={category} />
         );
-        expect(container).toBeInTheDocument();
+        expect(container).toBeOnTheScreen();
         unmount();
       });
     });

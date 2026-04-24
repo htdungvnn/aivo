@@ -19,6 +19,15 @@ wrangler login
 
 # Create D1 database
 wrangler d1 database create aivo-db --name=aivo-db --location=auto
+# {
+#   "d1_databases": [
+#     {
+#       "binding": "aivo_db",
+#       "database_name": "aivo-db",
+#       "database_id": "c262737b-ab5f-4973-841a-7c75ef0dcb20"
+#     }
+#   ]
+# }
 
 # Note the database_id from the output
 ```
@@ -28,6 +37,14 @@ wrangler d1 database create aivo-db --name=aivo-db --location=auto
 ```bash
 # Create R2 bucket
 wrangler r2 bucket create aivo-images
+# {
+#   "r2_buckets": [
+#     {
+#       "bucket_name": "aivo-images",
+#       "binding": "aivo_images"
+#     }
+#   ]
+# }
 
 # Enable public access (optional, for image hosting)
 # Configure bucket policy in Cloudflare dashboard
@@ -38,13 +55,47 @@ wrangler r2 bucket create aivo-images
 ```bash
 # Body insights cache
 wrangler kv namespace create BODY_INSIGHTS_CACHE
+# {
+#   "kv_namespaces": [
+#     {
+#       "binding": "BODY_INSIGHTS_CACHE",
+#       "id": "f453355bae1a43bb944ce8d01cc40356"
+#     }
+#   ]
+# }
 # Note the namespace_id
 
 # Leaderboard cache
 wrangler kv namespace create LEADERBOARD_CACHE
+# {
+#   "kv_namespaces": [
+#     {
+#       "binding": "LEADERBOARD_CACHE",
+#       "id": "c09a3fb62443492389f1675371e1c4d8"
+#     }
+#   ]
+# }
 
 # Rate limiting
 wrangler kv namespace create RATE_LIMIT_KV
+# {
+#   "kv_namespaces": [
+#     {
+#       "binding": "RATE_LIMIT_KV",
+#       "id": "cecb209e86dc4b36b3661e6b8d595b74"
+#     }
+#   ]
+# }
+
+wrangler kv namespace create BIOMETRIC_CACHE 
+# {
+#   "kv_namespaces": [
+#     {
+#       "binding": "BIOMETRIC_CACHE",
+#       "id": "0e2ea990aa4441fc84b2bd0a38496524"
+#     }
+#   ]
+# }
 ```
 
 ## 2. Update wrangler.toml
@@ -55,7 +106,7 @@ Update `apps/api/wrangler.toml` with your actual IDs:
 [[d1_databases]]
 binding = "DB"
 database_name = "aivo-db"
-database_id = "YOUR_DATABASE_ID"  # Replace with actual ID
+database_id = "c262737b-ab5f-4973-841a-7c75ef0dcb20"  # Replace with actual ID
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
@@ -63,18 +114,18 @@ bucket_name = "aivo-images"
 
 [[kv_namespaces]]
 binding = "BODY_INSIGHTS_CACHE"
-id = "YOUR_BODY_INSIGHTS_CACHE_ID"  # Replace with actual ID
+id = "f453355bae1a43bb944ce8d01cc40356"  # Replace with actual ID
 
 [[kv_namespaces]]
 binding = "LEADERBOARD_CACHE"
-id = "YOUR_LEADERBOARD_CACHE_ID"  # Replace with actual ID
+id = "c09a3fb62443492389f1675371e1c4d8"  # Replace with actual ID
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "YOUR_RATE_LIMIT_KV_ID"  # Replace with actual ID
+id = "cecb209e86dc4b36b3661e6b8d595b74"  # Replace with actual ID
 
 [vars]
-R2_PUBLIC_URL = "https://your-bucket.r2.dev"  # Your R2 public URL
+R2_PUBLIC_URL = "https://312b98fff6f54aa11ae59cb06d30015a.r2.cloudflarestorage.com/aivo-images"  # Your R2 public URL
 ```
 
 ## 3. Set Production Secrets

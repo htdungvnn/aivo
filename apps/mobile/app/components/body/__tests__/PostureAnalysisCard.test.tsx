@@ -28,69 +28,69 @@ describe('Mobile PostureAnalysisCard Component', () => {
 
     it('does not show content when loading', () => {
       render(<PostureAnalysisCard loading={true} />);
-      expect(screen.queryByText('Posture Analysis')).not.toBeInTheDocument();
+      expect(screen.queryByText('Posture Analysis')).not.toBeOnTheScreen();
     });
   });
 
   describe('Empty State', () => {
     it('shows empty state when no assessment provided', () => {
       render(<PostureAnalysisCard />);
-      expect(screen.getByText('Posture Analysis')).toBeInTheDocument();
-      expect(screen.getByText(/Upload a body photo/)).toBeInTheDocument();
+      expect(screen.getByText('Posture Analysis')).toBeOnTheScreen();
+      expect(screen.getByText(/Upload a body photo/)).toBeOnTheScreen();
     });
 
     it('shows empty state when assessment is undefined', () => {
       render(<PostureAnalysisCard assessment={undefined} />);
-      expect(screen.getByText(/Upload a body photo/)).toBeInTheDocument();
+      expect(screen.getByText(/Upload a body photo/)).toBeOnTheScreen();
     });
   });
 
   describe('Score Display', () => {
     it('displays the posture score', () => {
       render(<PostureAnalysisCard assessment={mockAssessment} />);
-      expect(screen.getByText('75')).toBeInTheDocument();
+      expect(screen.getByText('75')).toBeOnTheScreen();
     });
 
     it('displays excellent score label for >= 80', () => {
       const excellentAssessment = { ...mockAssessment, score: 85, issues: [] };
       render(<PostureAnalysisCard assessment={excellentAssessment} />);
-      expect(screen.getByText('Excellent')).toBeInTheDocument();
+      expect(screen.getByText('Excellent')).toBeOnTheScreen();
     });
 
     it('displays good score label for 60-79', () => {
-      expect(screen.getByText('Good')).toBeInTheDocument();
+      expect(screen.getByText('Good')).toBeOnTheScreen();
     });
 
     it('displays fair score label for 40-59', () => {
       const fairAssessment = { ...mockAssessment, score: 45, issues: [] };
       render(<PostureAnalysisCard assessment={fairAssessment} />);
-      expect(screen.getByText('Fair')).toBeInTheDocument();
+      expect(screen.getByText('Fair')).toBeOnTheScreen();
     });
 
     it('displays needs work label for < 40', () => {
       const poorAssessment = { ...mockAssessment, score: 30, issues: [] };
       render(<PostureAnalysisCard assessment={poorAssessment} />);
-      expect(screen.getByText('Needs Work')).toBeInTheDocument();
+      expect(screen.getByText('Needs Work')).toBeOnTheScreen();
     });
   });
 
   describe('Issues List', () => {
     it('displays all detected issues', () => {
       render(<PostureAnalysisCard assessment={mockAssessment} />);
-      expect(screen.getByText('Forward Head')).toBeInTheDocument();
-      expect(screen.getByText('Rounded Shoulders')).toBeInTheDocument();
+      expect(screen.getByText('Forward Head')).toBeOnTheScreen();
+      expect(screen.getByText('Rounded Shoulders')).toBeOnTheScreen();
     });
 
     it('displays issue severity badges', () => {
       render(<PostureAnalysisCard assessment={mockAssessment} />);
-      expect(screen.getByText('mild')).toBeInTheDocument();
-      expect(screen.getByText('moderate')).toBeInTheDocument();
+      expect(screen.getByText('mild')).toBeOnTheScreen();
+      expect(screen.getByText('moderate')).toBeOnTheScreen();
     });
 
     it('does not show issues section when no issues', () => {
       const noIssuesAssessment = { score: 95, issues: [], recommendations: [] };
       render(<PostureAnalysisCard assessment={noIssuesAssessment} />);
-      expect(screen.queryByText('Detected Issues')).not.toBeInTheDocument();
+      expect(screen.queryByText('Detected Issues')).not.toBeOnTheScreen();
     });
 
     it('handles unknown issue types', () => {
@@ -100,15 +100,15 @@ describe('Mobile PostureAnalysisCard Component', () => {
         recommendations: [],
       };
       render(<PostureAnalysisCard assessment={unknownIssueAssessment} />);
-      expect(screen.getByText('unknown_issue')).toBeInTheDocument();
+      expect(screen.getByText('unknown_issue')).toBeOnTheScreen();
     });
   });
 
   describe('Recommendations', () => {
     it('displays all recommendations', () => {
       render(<PostureAnalysisCard assessment={mockAssessment} />);
-      expect(screen.getByText('Keep your head aligned with your spine')).toBeInTheDocument();
-      expect(screen.getByText('Pull shoulders back and down')).toBeInTheDocument();
+      expect(screen.getByText('Keep your head aligned with your spine')).toBeOnTheScreen();
+      expect(screen.getByText('Pull shoulders back and down')).toBeOnTheScreen();
     });
 
     it('shows checkmark for recommendations', () => {
@@ -120,7 +120,7 @@ describe('Mobile PostureAnalysisCard Component', () => {
     it('does not show recommendations section when empty', () => {
       const noRecsAssessment = { score: 75, issues: [], recommendations: [] };
       render(<PostureAnalysisCard assessment={noRecsAssessment} />);
-      expect(screen.queryByText('Recommendations')).not.toBeInTheDocument();
+      expect(screen.queryByText('Recommendations')).not.toBeOnTheScreen();
     });
   });
 
@@ -128,7 +128,7 @@ describe('Mobile PostureAnalysisCard Component', () => {
     it('renders score progress bar', () => {
       const { container } = render(<PostureAnalysisCard assessment={mockAssessment} />);
       const progressBar = container.querySelector('.h-2');
-      expect(progressBar).toBeInTheDocument();
+      expect(progressBar).toBeOnTheScreen();
     });
 
     it('sets bar width based on score', () => {
@@ -155,13 +155,13 @@ describe('Mobile PostureAnalysisCard Component', () => {
     it('handles score of 0', () => {
       const zeroAssessment = { score: 0, issues: [], recommendations: [] };
       render(<PostureAnalysisCard assessment={zeroAssessment} />);
-      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeOnTheScreen();
     });
 
     it('handles score of 100', () => {
       const perfectAssessment = { score: 100, issues: [], recommendations: [] };
       render(<PostureAnalysisCard assessment={perfectAssessment} />);
-      expect(screen.getByText('100')).toBeInTheDocument();
+      expect(screen.getByText('100')).toBeOnTheScreen();
     });
 
     it('handles maximum issues', () => {
@@ -179,7 +179,7 @@ describe('Mobile PostureAnalysisCard Component', () => {
       render(<PostureAnalysisCard assessment={manyIssuesAssessment} />);
       const issueTypes = ['Forward Head', 'Rounded Shoulders', 'Hyperlordosis', 'Kyphosis', 'Pelvic Tilt'];
       issueTypes.forEach((type) => {
-        expect(screen.getByText(type)).toBeInTheDocument();
+        expect(screen.getByText(type)).toBeOnTheScreen();
       });
     });
   });

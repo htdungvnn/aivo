@@ -7,7 +7,7 @@ export default {
     // Mock problematic RN polyfills with Flow types
     '^@react-native/js-polyfills/(.*)$': '<rootDir>/__mocks__/react-native-js-polyfills.js',
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   testTimeout: 30000,
   // Allow transforming node_modules packages that need it, even under pnpm's nested layout
   transformIgnorePatterns: [

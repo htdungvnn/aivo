@@ -44,8 +44,7 @@ cargo install wasm-pack
 # Wrangler CLI
 npm install -g wrangler
 
-# Drizzle Kit (included in db package)
-# Already in db package devDependencies
+# Drizzle Kit (included in db package devDependencies)
 ```
 
 ### Cloudflare Setup
@@ -55,8 +54,12 @@ npm install -g wrangler
    ```bash
    wrangler d1 database create aivo-db --region=us-east-1
    ```
-3. Configure `wrangler.toml` with your database ID
-4. Login to Wrangler:
+3. Create an R2 bucket:
+   ```bash
+   wrangler r2 bucket create aivo-images
+   ```
+4. Configure `wrangler.toml` with your database ID and bucket name
+5. Login to Wrangler:
    ```bash
    wrangler login
    ```
@@ -75,28 +78,43 @@ pnpm install
 
 ### 2. Configure Environment Variables
 
-Create `.env` files for each package as needed:
+**Important:** All environment variables are managed centrally in `.env/.env.base`.
 
-**API (apps/api/.env)**
-```env
-# Cloudflare configuration
-CLOUDFLARE_ACCOUNT_ID=your_account_id
-CLOUDFLARE_D1_DATABASE_ID=aivo-db
+```bash
+# Copy the template
+cp .env/.env.example .env/.env.base
 
-# OAuth (optional)
-GOOGLE_CLIENT_ID=your_google_client_id
-FACEBOOK_APP_ID=your_facebook_app_id
+# Edit with your actual values
+vim .env/.env.base
 ```
 
-**Web (apps/web/.env.local)**
-```env
-NEXT_PUBLIC_API_URL=https://api.aivo.yourdomain.com
-NEXT_PUBLIC_OAUTH_GOOGLE_CLIENT_ID=your_google_client_id
+See [`.env/VARIABLES.md`](./env/VARIABLES.md) for complete variable reference.
+
+**Minimum required for local development:**
+```bash
+# Generate AUTH_SECRET
+openssl rand -base64 32
+
+# Set API URLs
+NEXT_PUBLIC_API_URL=http://localhost:8787
+EXPO_PUBLIC_API_URL=http://localhost:8787
+R2_PUBLIC_URL=https://your-bucket.r2.dev
 ```
 
-### 3. Verify Local Development
+### 3. Distribute to Apps
 
-Start all services in development mode:
+```bash
+./scripts/setup-env.sh
+```
+
+This creates:
+- `apps/api/.env`
+- `apps/web/.env.local`
+- `apps/mobile/.env`
+
+### 4. Verify Local Development
+
+Start all services:
 
 ```bash
 # Terminal 1: Start API (Cloudflare Workers Dev)
@@ -152,16 +170,16 @@ pnpm run clean
 pnpm run build
 ```
 
-### Build Order Explained
+### Build Order
 
-The monorepo uses Turborepo to orchestrate builds. The dependency order is:
+The monorepo uses Turborepo to orchestrate builds:
 
-1. **@aivo/shared-types** - Type definitions (type-check only)
+1. **@aivo/shared-types** - Type definitions
 2. **@aivo/compute** - Rust/WASM compilation
 3. **@aivo/db** - Drizzle schema and migrations
 4. **@aivo/api** - Cloudflare Workers build
 5. **@aivo/web** - Next.js production build
-6. **@aivo/mobile** - Expo/EAS build (platform-specific)
+6. **@aivo/mobile** - Expo/EAS build
 
 ### Individual Package Builds
 
@@ -176,7 +194,7 @@ pnpm run build
 ```bash
 cd apps/api
 pnpm run build
-# Output: .wrangler/mine目录 with bundled worker
+# Output: .wrangler/mine with bundled worker
 ```
 
 **Web (apps/web)**
@@ -186,21 +204,13 @@ pnpm run build
 # Output: .next/standalone and .next/static
 ```
 
-**Mobile (apps/mobile)**
-```bash
-cd apps/mobile
-pnpm run build:web  # Web export
-# OR
-pnpm run build      # Native builds (iOS/Android via EAS)
-```
-
 ---
 
 ## Deployment
 
 ### API (Cloudflare Workers)
 
-#### Option A: Automated Deploy (Recommended)
+#### Automated Deploy (Recommended)
 
 Use the deployment script:
 
@@ -214,7 +224,7 @@ This script:
 3. Applies database migrations
 4. Deploys to Cloudflare Workers
 
-#### Option B: Manual Deploy
+#### Manual Deploy
 
 ```bash
 # Build everything
@@ -229,11 +239,26 @@ cd apps/api
 pnpm run deploy
 ```
 
+#### Setting Secrets in Production
+
+Set secrets via Wrangler before deployment:
+
+```bash
+cd apps/api
+wrangler secret put AUTH_SECRET
+wrangler secret put OPENAI_API_KEY  # if using
+wrangler secret put GEMINI_API_KEY  # if using
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put FACEBOOK_APP_ID
+```
+
+Set environment variables in Cloudflare Dashboard (or via wrangler.toml `[vars]`):
+- `ALLOWED_ORIGINS` - Your production domains (comma-separated)
+- `R2_PUBLIC_URL` - Your production R2 public URL
+
 ### Web (Next.js)
 
-Deploy to your preferred hosting platform:
-
-#### Vercel (Recommended for Next.js)
+#### Vercel (Recommended)
 
 ```bash
 cd apps/web
@@ -242,18 +267,27 @@ vercel --prod
 
 Or connect repository to Vercel for automatic deployments.
 
-#### Other Platforms
+#### Cloudflare Pages
 
-Build and upload:
 ```bash
-cd apps/web
-pnpm run build
-
-# Output is in apps/web/.next/standalone
-# Upload to your hosting provider
+./scripts/deploy-web-pages.sh
 ```
 
-### Mobile (React Native / Expo)
+Or manually:
+```bash
+cd apps/web
+pnpm run build:pages
+wrangler pages deploy . --project-name aivo-web
+```
+
+**Required environment variables on Cloudflare Pages:**
+- `NEXT_PUBLIC_API_URL` - Your production API URL
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+- `NEXT_PUBLIC_FACEBOOK_CLIENT_ID`
+- `NEXT_PUBLIC_R2_PUBLIC_URL`
+- `NEXT_PUBLIC_APP_URL`
+
+### Mobile (Expo)
 
 #### EAS Build (Recommended)
 
@@ -262,6 +296,8 @@ cd apps/mobile
 pnpmx eas build --platform ios --profile production
 pnpmx eas build --platform android --profile production
 ```
+
+Configure environment variables in `eas.json` build profiles.
 
 #### Submit to App Stores
 
@@ -281,12 +317,12 @@ pnpmx eas submit --platform android
 
 1. **API Health**
    ```bash
-   curl https://api.aivo.yourdomain.com/health
+   curl https://api.yourdomain.com/health
    # Expected: {"status":"ok"}
    ```
 
 2. **Web Application**
-   Visit `https://aivo.yourdomain.com`
+   Visit `https://yourdomain.com`
    - Check page loads
    - Test API connectivity
    - Verify static assets
@@ -362,7 +398,7 @@ pnpm run build
 
 ```bash
 # Check wrangler version
-wrangler --version  # Should be ^3.99.0
+wrangler --version  # Should be ^4.x
 
 # Clear Wrangler cache
 rm -rf .wrangler
@@ -381,6 +417,21 @@ pnpm run build
 
 2. Check `wrangler.toml` has correct `database_id`
 3. Ensure database binding name matches (`DB`)
+
+#### Missing KV Namespace
+
+If you see KV namespace errors, verify bindings in `wrangler.toml`:
+```bash
+wrangler kv:namespace list
+```
+
+Create missing namespaces:
+```bash
+wrangler kv:namespace create BODY_INSIGHTS_CACHE
+wrangler kv:namespace create BIOMETRIC_CACHE
+wrangler kv:namespace create LEADERBOARD_CACHE
+wrangler kv:namespace create RATE_LIMIT_KV
+```
 
 #### Mobile Build Fails
 
@@ -434,7 +485,7 @@ Use this checklist before each production deployment:
 - [ ] Type check passes (`pnpm run type-check`)
 - [ ] Lint check passes (`pnpm run lint`)
 - [ ] Database migrations reviewed
-- [ ] Environment variables configured
+- [ ] Environment variables configured in `.env/.env.base`
 - [ ] Backup taken (database)
 
 ### Build Phase
@@ -493,6 +544,8 @@ jobs:
 
 ---
 
-**Last Updated:** 2026-04-22
-**Version:** 1.0.0
+**Last Updated:** 2026-04-24
+**Version:** 1.1.0
 **Package Manager:** pnpm 9+
+
+---
