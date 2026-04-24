@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { PrivacyPageClient } from "./PrivacyPageClient";
 
 export const metadata: Metadata = {

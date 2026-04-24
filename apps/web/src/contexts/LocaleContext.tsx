@@ -1,11 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
 type Language = "en" | "vi";
 
 interface Translations {
-  [key: string]: string | { [key: string]: any };
+  [key: string]: string | { [key: string]: string };
 }
 
 interface LocaleContextType {
@@ -15,12 +15,15 @@ interface LocaleContextType {
   translations: Translations;
 }
 
+import enTranslations from "./en.json" with { type: "json" };
+import viTranslations from "./vi.json" with { type: "json" };
+
 const translations: Record<Language, Translations> = {
-  en: require("./en.json"),
-  vi: require("./vi.json"),
+  en: enTranslations,
+  vi: viTranslations,
 };
 
-function getNestedValue(obj: any, path: string): string {
+function getNestedValue(obj: Record<string, unknown>, path: string): string {
   return path.split(".").reduce((current, key) => current?.[key], obj) || path;
 }
 

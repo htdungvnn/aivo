@@ -73,7 +73,7 @@ export function PricingSection() {
           variants={staggerContainer}
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
         >
-          {plans.map((plan, index) => {
+          {plans.map((plan) => {
             const planData = t(`pricing.${plan}`);
             const isPro = plan === "pro";
             const isEnterprise = plan === "enterprise";

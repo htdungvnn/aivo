@@ -3,35 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocale } from "@/contexts/LocaleContext";
-import {
-  Activity,
-  Dumbbell,
-  Shield,
-  Brain,
-  Calendar,
-  Zap,
-  ChevronRight,
-  ChevronDown,
-  ArrowRight,
-  BarChart3,
-  Bot,
-  GitGraph,
-  Cloud,
-  Server,
-  Database,
-  Globe,
-  CheckCircle2,
-  Star,
-  Quote,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { MuscleDashboard } from "@/components/body/MuscleActivationChart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MuscleDashboard } from "@/components/body/MuscleActivationChart";
-import { LanguageToggle } from "@/components/LanguageToggle";
-import { PricingSection } from "@/components/PricingSection";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 60 },

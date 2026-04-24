@@ -11,7 +11,7 @@ import {
 import { useLocale } from "@/contexts/LocaleContext";
 
 export function LanguageToggle() {
-  const { language, setLanguage, t } = useLocale();
+  const { language, setLanguage } = useLocale();
 
   return (
     <DropdownMenu>

@@ -219,7 +219,7 @@ export function TermsPageClient() {
                         { title: "Lawful Use", desc: "Use the Service in accordance with all applicable laws" },
                         { title: "No Abuse", desc: "Do not attempt to manipulate, exploit, or overload the system" },
                         { title: "Respect Others", desc: "Treat other users with respect; no harassment or bullying" },
-                        { title: Report Issues", desc: "Report security vulnerabilities or bugs promptly" },
+                        { title: "Report Issues", desc: "Report security vulnerabilities or bugs promptly" },
                       ].map((item, idx) => (
                         <div key={idx} className="bg-slate-800/50 rounded-lg p-4">
                           <h4 className="text-purple-400 font-semibold mb-1">{item.title}</h4>

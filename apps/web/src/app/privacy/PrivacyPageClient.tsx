@@ -15,7 +15,6 @@ import {
   Cookie,
   FileText,
   UserCheck,
-  Trash2,
   Mail,
   Phone,
 } from "lucide-react";
