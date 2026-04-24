@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "features": "Tính năng",
+    "reviews": "Đánh giá",
+    "techStack": "Công nghệ",
+    "pricing": "Bảng giá",
+    "signIn": "Đăng nhập",
+    "getStarted": "Bắt đầu miễn phí"
+  },
+  "hero": {
+    "badge": "Trí tuệ thể dục AI",
+    "title1": "Hiểu Cơ Thể",
+    "title2": "Mạnh Nhất Bởi AI",
+    "description": "Khai phá tiềm năng cơ thể với phân tích AI, theo dõi thời gian thực và kế hoạch thể dục cá nhân hóa. Trải nghiệm tương lai công nghệ sức khỏe trên mạng lưới biên Cloudflare.",
+    "cta": "Bắt đầu phân tích miễn phí",
+    "demo": "Xem demo"
+  },
+  "trust": {
+    "cloudflare": "Được cung cấp bởi Cloudflare",
+    "realtime": "Đồng bộ thời gian thực",
+    "encrypted": "Mã hóa đầu cuối",
+    "hipaa": "Tuân thủ HIPAA"
+  },
+  "features": {
+    "core5": "5 Cốt lõi",
+    "subtitle": "Năm trụ cột mạnh mẽ hòa quyện để thay đổi hành trình thể dục của bạn",
+    "edgeAuth": {
+      "title": "Xác thực Biên",
+      "description": "Bảo mật cấp quân đội với Cloudflare Turnstile. Xác thực zero-trust tại biên, bảo vệ dữ liệu sức khỏe với xác thực sinh trắc học và phân tích hành vi.",
+      "cta": "Tìm hiểu thêm"
+    },
+    "aiInsight": {
+      "title": "AI Phân Tích Cơ Thể",
+      "description": "Trực quan hóa cấu trúc cơ thể qua bản đồ nhiệt vector 2D. AI của chúng tôi phân tích phân bổ cơ bắp, vùng phần trăm mỡ và cung cấp những hiểu biết hành động với độ chính xác phẫu thuật.",
+      "cta": "Xem demo"
+    },
+    "scheduler": {
+      "title": "AI Lập Lịch Thông Minh",
+      "description": "Động cơ tối ưu hóa Rust tạo kế hoạch tập luyện cá nhân hóa. Tiết kiệm 50% token AI trong khi có kế hoạch siêu cá nhân hóa thích ứng với phục hồi và tiến độ của bạn.",
+      "cta": "Demo tối ưu hóa"
+    },
+    "tracking": {
+      "title": "Theo Dõi Trạng Thái",
+      "description": "Dashboard đồng bộ thời gian thực trên Web và Mobile. Theo dõi số liệu, trực quan hóa xu hướng và giám sát hành trình thể dục với cập nhật dữ liệu chính xác mili-giây.",
+      "cta": "Xem dashboard"
+    },
+    "retention": {
+      "title": "Công cụ Giữ Chân",
+      "description": "Gamification AI với công nghệ đồ thị bộ nhớ. Thúc đẩy cá nhân hóa, hệ thống thành tựu và thử thách thích nghiacyp t người dùng tương tác và quay lại nhiều hơn.",
+      "cta": "Chiến lược giữ chân"
+    }
+  },
+  "techStack": {
+    "badge": "Kiến trúc Tiết kiệm Chi phí Cloudflare",
+    "title1": "Xây dựng cho",
+    "title2": "Quy mô & Tiết kiệm",
+    "subtitle": "Kiến trúc ưu tiên serverless của chúng tôi mang lại hiệu suất cấp doanh nghiệp với một phần chi phí.",
+    "services": {
+      "hono": {
+        "title": "Hono",
+        "description": "Khung biên siêu nhẹ cho API hiệu suất cao",
+        "badges": {
+          "edge": "Native Biên",
+          "size": "~3KB"
+        }
+      },
+      "wasm": {
+        "title": "Rust WASM",
+        "description": "Hiệu suất gần nguyên cho tính toán thể dục phức tạp",
+        "badges": {
+          "compute": "Tính toán",
+          "savings": "Tiết kiệm ~50% token"
+        }
+      },
+      "d1": {
+        "title": "D1 SQL",
+        "description": "Cơ sở dữ liệu quan hệ serverless với zero-config",
+        "badges": {
+          "sqlite": "Tương thích SQLite",
+          "ha": "HA tích hợp"
+        }
+      },
+      "r2": {
+        "title": "R2 Storage",
+        "description": "Lưu trữ đối tượng zero-egress cho media và backup",
+        "badges": {
+          "s3": "Tương thích S3",
+          "egress": "$0 egress"
+        }
+      },
+      "drizzle": {
+        "title": "Drizzle ORM",
+        "description": "Truy vấn an toàn kiểu với hệ thống migration tích hợp",
+        "badges": {
+          "ts": "TypeScript",
+          "migrations": "Migrations"
+        }
+      }
+    },
+    "comparison": {
+      "title": "Cloudflare so với Cloud Truyền thống",
+      "headers": {
+        "service": "Dịch vụ",
+        "cloudflare": "Cloudflare",
+        "traditional": "AWS/GCP",
+        "savings": "Tiết kiệm"
+      },
+      "rows": {
+        "compute": {
+          "name": "Compute (cho 1M requests)",
+          "cloudflare": "$0.50",
+          "traditional": "$3.50"
+        },
+        "database": {
+          "name": "Database (cho mỗi GB)",
+          "cloudflare": "$0.25",
+          "traditional": "$0.75"
+        },
+        "storage": {
+          "name": "Storage (egress)",
+          "cloudflare": "$0.00",
+          "traditional": "$0.09"
+        },
+        "latency": {
+          "name": "Độ trễ Toàn cầu",
+          "cloudflare": "<50ms",
+          "traditional": "100-300ms"
+        }
+      }
+    }
+  },
+  "pricing": {
+    "title": "Giá Cả Đơn Giản, Minh Bạch",
+    "subtitle": "Chọn gói phù hợp với hành trình thể dục của bạn. Tất cả gói đều bao gồm tính năng AI cốt lõi.",
+    "cta": "Bắt đầu phân tích miễn phí",
+    "free": {
+      "name": "Miễn phí",
+      "price": "0",
+      "period": "vĩnh viễn",
+      "description": "Hoàn hảo để bắt đầu",
+      "features": [
+        "5 phân tích AI mỗi tháng",
+        "Theo dõi số liệu cơ bản",
+        "Truy cập ứng dụng mobile",
+        "Hỗ trợ cộng đồng",
+        "Thông tin chuẩn"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "299.000",
+      "period": "/tháng",
+      "description": "Dành cho người yêu thể dục nghiêm túc",
+      "features": [
+        "Phân tích AI không giới hạn",
+        "Phân tích cấu trúc cơ thể nâng cao",
+        "Kế hoạch tập luyện cá nhân hóa",
+        "Theo dõi dinh dưỡng",
+        "Phân tích tiến độ",
+        "Hỗ trợ ưu tiên",
+        "Xuất báo cáo"
+      ]
+    },
+    "enterprise": {
+      "name": "Doanh nghiệp",
+      "price": "Liên hệ",
+      "period": "",
+      "description": "Dành cho phòng gym và tổ chức",
+      "features": [
+        "Mọi tính năng Pro",
+        "Quản lý đa người dùng",
+        "Tích hợp tùy chỉnh",
+        "Truy cập API",
+        "Hỗ trợ tận tâm",
+        "Cam kết SLA",
+        "Tùy chọn white-label"
+      ]
+    },
+    "vnNote": "Giá được tối ưu cho thị trường Việt Nam. Thanh toán: MoMo, ZaloPay, VNPay, Chuyển khoản ngân hàng",
+    "switchToVn": "Xem giá tiền Việt",
+    "switchToEn": "Xem giá USD"
+  },
+  "cta": {
+    "title": "Sẵn sàng biến hành trình thể dục của bạn?",
+    "subtitle": "Hàng nghìn người dùng đã khai phá tiềm năng cơ thể với những hiểu biết từ AI của AIVO. Bắt đầu miễn phí, không cần thẻ tín dụng.",
+    "cta": "Bắt đầu miễn phí",
+    "demo": "Đặt lịch Demo",
+    "freeTier": "Gói miễn phí bao gồm: 5 phân tích AI, theo dõi cơ bản, truy cập ứng dụng mobile"
+  },
+  "footer": {
+    "privacy": "Quyền riêng tư",
+    "terms": "Điều khoản",
+    "contact": "Liên hệ",
+    "copyright": "© 2025 AIVO. Built on Cloudflare."
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "features": "Features",
+    "reviews": "Reviews",
+    "techStack": "Tech Stack",
+    "pricing": "Pricing",
+    "signIn": "Sign In",
+    "getStarted": "Get Started Free"
+  },
+  "hero": {
+    "badge": "AI-Powered Fitness Intelligence",
+    "title1": "Body Insight",
+    "title2": "Powered by AI",
+    "description": "Unlock your body's full potential with AI-driven analysis, real-time tracking, and personalized fitness plans. Experience the future of health technology built on Cloudflare's edge network.",
+    "cta": "Start Free Analysis",
+    "demo": "Watch Demo"
+  },
+  "trust": {
+    "cloudflare": "Powered by Cloudflare",
+    "realtime": "Real-time Sync",
+    "encrypted": "End-to-end Encrypted",
+    "hipaa": "HIPAA Compliant"
+  },
+  "features": {
+    "core5": "The Core 5",
+    "subtitle": "Five powerful pillars working in harmony to transform your fitness journey",
+    "edgeAuth": {
+      "title": "Edge Auth",
+      "description": "Military-grade security with Cloudflare Turnstile. Zero-trust authentication at the edge, protecting your health data with biometric verification and behavioral analysis.",
+      "cta": "Learn more"
+    },
+    "aiInsight": {
+      "title": "AI Body Insight",
+      "description": "Visualize your body composition through 2D vector heatmaps. Our AI analyzes muscle distribution, fat percentage zones, and provides actionable insights with surgical precision.",
+      "cta": "See demo"
+    },
+    "scheduler": {
+      "title": "AI Smart Scheduler",
+      "description": "Rust-powered optimization engine creates personalized workout schedules. Save 50% on AI tokens while getting hyper-personalized plans that adapt to your recovery and progress.",
+      "cta": "Optimization demo"
+    },
+    "tracking": {
+      "title": "Status Tracking",
+      "description": "Real-time dashboard syncing across Web and Mobile. Track metrics, visualize trends, and monitor your fitness journey with millisecond-precision data updates.",
+      "cta": "View dashboard"
+    },
+    "retention": {
+      "title": "Retention Engine",
+      "description": "AI-powered gamification with memory graph technology. Personalized nudges, achievement systems, and adaptive challenges keep users engaged and coming back for more.",
+      "cta": "Learn strategy"
+    }
+  },
+  "techStack": {
+    "badge": "Cloudflare Cost-Saver Architecture",
+    "title1": "Built for",
+    "title2": "Scale & Savings",
+    "subtitle": "Our serverless-first architecture delivers enterprise-grade performance at a fraction of the cost.",
+    "services": {
+      "hono": {
+        "title": "Hono",
+        "description": "Ultra-lightweight edge framework for high-performance APIs",
+        "badges": {
+          "edge": "Edge Native",
+          "size": "~3KB"
+        }
+      },
+      "wasm": {
+        "title": "Rust WASM",
+        "description": "Near-native performance for complex fitness calculations",
+        "badges": {
+          "compute": "Compute",
+          "savings": "~50% tokens saved"
+        }
+      },
+      "d1": {
+        "title": "D1 SQL",
+        "description": "Serverless relational database with zero-config",
+        "badges": {
+          "sqlite": "SQLite-compatible",
+          "ha": "HA built-in"
+        }
+      },
+      "r2": {
+        "title": "R2 Storage",
+        "description": "Zero-egress object storage for media and backups",
+        "badges": {
+          "s3": "S3-compatible",
+          "egress": "$0 egress"
+        }
+      },
+      "drizzle": {
+        "title": "Drizzle ORM",
+        "description": "Type-safe queries with built-in migration system",
+        "badges": {
+          "ts": "TypeScript",
+          "migrations": "Migrations"
+        }
+      }
+    },
+    "comparison": {
+      "title": "Cloudflare vs Traditional Cloud",
+      "headers": {
+        "service": "Service",
+        "cloudflare": "Cloudflare",
+        "traditional": "AWS/GCP",
+        "savings": "Savings"
+      },
+      "rows": {
+        "compute": {
+          "name": "Compute (per 1M requests)",
+          "cloudflare": "$0.50",
+          "traditional": "$3.50"
+        },
+        "database": {
+          "name": "Database (per GB)",
+          "cloudflare": "$0.25",
+          "traditional": "$0.75"
+        },
+        "storage": {
+          "name": "Storage (egress)",
+          "cloudflare": "$0.00",
+          "traditional": "$0.09"
+        },
+        "latency": {
+          "name": "Global Latency",
+          "cloudflare": "<50ms",
+          "traditional": "100-300ms"
+        }
+      }
+    }
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that fits your fitness journey. All plans include our core AI-powered features.",
+    "cta": "Start Free Analysis",
+    "free": {
+      "name": "Free",
+      "price": "0",
+      "period": "forever",
+      "description": "Perfect for getting started",
+      "features": [
+        "5 AI body analyses per month",
+        "Basic metric tracking",
+        "Mobile app access",
+        "Community support",
+        "Standard insights"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "299",
+      "period": "/month",
+      "description": "For serious fitness enthusiasts",
+      "features": [
+        "Unlimited AI analyses",
+        "Advanced body composition",
+        "Personalized workout plans",
+        "Nutrition tracking",
+        "Progress analytics",
+        "Priority support",
+        "Export reports"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Contact us",
+      "period": "",
+      "description": "For gyms and organizations",
+      "features": [
+        "Everything in Pro",
+        "Multi-user management",
+        "Custom integrations",
+        "API access",
+        "Dedicated support",
+        "SLA guarantees",
+        "White-label options"
+      ]
+    },
+    "vnNote": "Pricing optimized for Vietnam market. Payment methods: MoMo, ZaloPay, VNPay, Bank Transfer",
+    "switchToVn": "Xem giá tiền Việt",
+    "switchToEn": "View in USD"
+  },
+  "cta": {
+    "title": "Ready to Transform Your Fitness Journey?",
+    "subtitle": "Join thousands of users who have already unlocked their body's full potential with AIVO's AI-powered insights. Start free, no credit card required.",
+    "cta": "Get Started Free",
+    "demo": "Schedule Demo",
+    "freeTier": "Free tier includes: 5 AI analyses, basic tracking, mobile app access"
+  },
+  "footer": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "copyright": "© 2025 AIVO. Built on Cloudflare."
+  }
+}
