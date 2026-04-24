@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import colors from "@/theme/colors";
 
 export interface MetricDataPoint {
   date: string;
@@ -27,10 +28,10 @@ const METRIC_UNITS: Record<string, string> = {
   bmi: "",
 };
 
-const COLORS = {
+const CHART_COLORS = {
   background: "rgba(15, 23, 42, 0.5)",
-  border: "#334155",
-  textSecondary: "#94a3b8",
+  border: colors.border.primary,
+  textSecondary: colors.text.secondary,
 };
 
 export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetricChartProps) {
@@ -40,7 +41,7 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
   if (data.length === 0) {
     return (
       <View style={[styles.container, { height }]}>
-        <Text className="text-slate-400 text-center">No data available</Text>
+        <Text style={styles.noDataText}>No data available</Text>
       </View>
     );
   }
@@ -52,31 +53,32 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
 
   return (
     <View style={[styles.container, { height }]}>
-      <View className="flex-row items-end justify-between h-32 gap-1">
+      <View style={styles.chartRow}>
         {data.slice(-7).map((point, idx) => {
           const barHeight = ((point.value - min) / range) * 100;
           return (
-            <View key={idx} className="flex-1 items-center gap-1">
+            <View key={idx} style={styles.barContainer}>
               <View
-                className="w-full rounded-t-sm"
-                style={{
-                  height: Math.max(barHeight, 4),
-                  backgroundColor: chartColor,
-                  minHeight: 4,
-                }}
+                style={[
+                  styles.bar,
+                  {
+                    height: Math.max(barHeight, 4),
+                    backgroundColor: chartColor,
+                  },
+                ]}
               />
-              <Text className="text-[8px] text-slate-500" numberOfLines={1}>
+              <Text style={styles.barLabel} numberOfLines={1}>
                 {point.date.split(" ")[0]}
               </Text>
             </View>
           );
         })}
       </View>
-      <View className="flex-row justify-between mt-2">
-        <Text className="text-xs text-slate-400">
+      <View style={styles.rangeRow}>
+        <Text style={styles.rangeLabel}>
           {min.toFixed(1)}{unit}
         </Text>
-        <Text className="text-xs text-slate-400">
+        <Text style={styles.rangeLabel}>
           {max.toFixed(1)}{unit}
         </Text>
       </View>
@@ -100,27 +102,23 @@ export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartPro
   if (data.length === 0) {
     return (
       <View style={[styles.container, { height }]}>
-        <Text className="text-slate-400 text-center">No muscle data available</Text>
+        <Text style={styles.noDataText}>No muscle data available</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { height }]}>
-      <View className="gap-2">
+      <View style={styles.muscleList}>
         {data.map((item, idx) => (
-          <View key={idx} className="flex-row items-center gap-2">
-            <Text className="text-xs text-slate-400 w-16 capitalize">{item.muscle}</Text>
-            <View className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden">
+          <View key={idx} style={styles.muscleRow}>
+            <Text style={styles.muscleName}>{item.muscle}</Text>
+            <View style={styles.muscleBarContainer}>
               <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${item.current}%`,
-                  backgroundColor: "#22c55e",
-                }}
+                style={[styles.muscleBar, { width: `${item.current}%`, backgroundColor: colors.success }]}
               />
             </View>
-            <Text className="text-xs text-slate-300 w-8 text-right">{item.current}%</Text>
+            <Text style={styles.muscleValue}>{item.current}%</Text>
           </View>
         ))}
       </View>
@@ -138,35 +136,33 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
   const categoryColor = (() => {
     switch (category) {
       case "excellent":
-        return "#22c55e";
+        return colors.success;
       case "good":
-        return "#3b82f6";
+        return colors.brand.primary;
       case "fair":
-        return "#f97316";
+        return colors.warning;
       case "poor":
-        return "#ef4444";
+        return colors.error;
       default:
-        return "#64748b";
+        return colors.text.tertiary;
     }
   })();
 
   const strokeWidth = 12;
+  const borderWidth = strokeWidth / 2;
 
   return (
     <View style={styles.gaugeContainer}>
       <View style={styles.gaugeSvgContainer}>
         {/* Background circle */}
-        <View style={[styles.gaugeCircle, { borderWidth: strokeWidth / 2, borderColor: COLORS.border }]} />
+        <View style={[styles.gaugeCircle, { borderColor: CHART_COLORS.border, borderWidth }]} />
         {/* Score arc */}
         <View
           style={[
-            styles.gaugeCircle,
+            styles.gaugeCircleBase,
             {
-              borderWidth: strokeWidth / 2,
+              borderWidth,
               borderColor: categoryColor,
-              borderTopColor: "transparent",
-              borderRightColor: "transparent",
-              transform: [{ rotate: "-45deg" }],
             },
           ]}
         />
@@ -183,9 +179,74 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.background,
+    backgroundColor: CHART_COLORS.background,
     borderRadius: 12,
     padding: 16,
+  },
+  noDataText: {
+    color: CHART_COLORS.textSecondary,
+    textAlign: "center",
+  },
+  chartRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    height: 128,
+    gap: 4,
+  },
+  barContainer: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  bar: {
+    width: "100%",
+    borderRadius: 2,
+    minHeight: 4,
+  },
+  barLabel: {
+    fontSize: 8,
+    color: colors.text.tertiary,
+  },
+  rangeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  rangeLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  muscleList: {
+    gap: 8,
+  },
+  muscleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  muscleName: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    width: 64,
+    textTransform: "capitalize",
+  },
+  muscleBarContainer: {
+    flex: 1,
+    height: 12,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  muscleBar: {
+    height: "100%",
+    borderRadius: 6,
+  },
+  muscleValue: {
+    fontSize: 12,
+    color: colors.text.primary,
+    width: 32,
+    textAlign: "right",
   },
   gaugeContainer: {
     width: 120,
@@ -199,15 +260,24 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 6,
-    borderColor: COLORS.border,
-    borderTopColor: "transparent",
-    borderRightColor: "transparent",
+    borderColor: CHART_COLORS.border,
+    borderTopColor: colors.transparent,
+    borderRightColor: colors.transparent,
     transform: [{ rotate: "-45deg" }],
   },
   gaugeCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
+  },
+  gaugeCircleBase: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 6,
+    borderTopColor: colors.transparent,
+    borderRightColor: colors.transparent,
+    transform: [{ rotate: "-45deg" }],
   },
   gaugeCenter: {
     position: "absolute",
@@ -217,7 +287,7 @@ const styles = StyleSheet.create({
   gaugeScore: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: colors.text.primary,
   },
   gaugeCategory: {
     fontSize: 10,

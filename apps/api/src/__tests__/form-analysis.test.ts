@@ -87,23 +87,23 @@ describe('Form Analysis', () => {
 
   describe('generateR2Key', () => {
     it('generates keys with correct prefix and structure', () => {
-      const key1 = generateR2Key('user123', 'video.mp4');
-      const key2 = generateR2Key('user456', 'workout.mov');
+      const key1 = generateR2Key('user123', 'video.mp4', 'form-videos');
+      const key2 = generateR2Key('user456', 'workout.mov', 'form-videos');
 
       expect(key1).toMatch(/^form-videos\/user123\/\d+-[a-z0-9]+-video\.mp4$/);
       expect(key2).toMatch(/^form-videos\/user456\/\d+-[a-z0-9]+-workout\.mov$/);
     });
 
     it('includes timestamp for uniqueness', () => {
-      const key1 = generateR2Key('user1', 'test.mp4');
-      const key2 = generateR2Key('user1', 'test.mp4');
+      const key1 = generateR2Key('user1', 'test.mp4', 'form-videos');
+      const key2 = generateR2Key('user1', 'test.mp4', 'form-videos');
 
       // Keys should be different due to timestamp or random component
       expect(key1).not.toBe(key2);
     });
 
     it('handles special characters in filename', () => {
-      const key = generateR2Key('user1', 'my video (final).mp4');
+      const key = generateR2Key('user1', 'my video (final).mp4', 'form-videos');
       expect(key).not.toContain('(');
       expect(key).not.toContain(')');
       expect(key).not.toContain(' ');

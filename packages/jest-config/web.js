@@ -14,5 +14,12 @@ export default {
     '^@/contexts/(.*)$': '<rootDir>/src/contexts/$1',
     '^@/app/(.*)$': '<rootDir>/src/app/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
-  }
+  },
+  transform: {
+    ...base.transform,
+    '^.+\\.(ts|tsx|js|jsx)$': ['babel-jest', {
+      babelrc: false,
+      configFile: '<rootDir>/babel.config.js',
+    }],
+  },
 };

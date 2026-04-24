@@ -9,34 +9,24 @@ import {
   transformMetricData,
 } from '../metrics-api';
 import type { BodyMetric, AnalysisResult, HeatmapData, HealthScore } from '../metrics-api';
-
-// Mock AsyncStorage
-const mockStorage: Record<string, string> = {};
-const AsyncStorageMock = {
-  getItem: async (key: string): Promise<string | null> => {
-    return mockStorage[key] || null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    mockStorage[key] = value;
-  },
-  removeItem: async (key: string): Promise<void> => {
-    delete mockStorage[key];
-  },
-  clear: async (): Promise<void> => {
-    Object.keys(mockStorage).forEach((key) => {
-      delete mockStorage[key];
-    });
-  },
-};
-
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: AsyncStorageMock.getItem,
-  setItemAsync: AsyncStorageMock.setItem,
-  deleteItemAsync: AsyncStorageMock.removeItem,
-}));
+import * as SecureStore from 'expo-secure-store';
 
 // Mock fetch
 global.fetch = jest.fn();
+
+jest.mock('expo-secure-store', () => {
+  const storage: Record<string, string> = {};
+  return {
+    getItem: async (key: string): Promise<string | null> => storage[key] || null,
+    setItem: async (key: string, value: string): Promise<void> => { storage[key] = value; },
+    removeItem: async (key: string): Promise<void> => { delete storage[key]; },
+    clear: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
+    getItemAsync: async (key: string): Promise<string | null> => storage[key] || null,
+    setItemAsync: async (key: string, value: string): Promise<void> => { storage[key] = value; },
+    deleteItemAsync: async (key: string): Promise<void> => { delete storage[key]; },
+    clearAsync: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
+  };
+});
 
 describe('Metrics API Service', () => {
   const mockToken = 'test-jwt-token';
@@ -92,23 +82,23 @@ describe('Metrics API Service', () => {
   };
 
   beforeEach(async () => {
-    await AsyncStorageMock.clear();
+    await SecureStore.clear();
     jest.clearAllMocks();
     (fetch as jest.Mock).mockClear();
     // Set default token and user ID
-    await AsyncStorageMock.setItem('aivo_token', mockToken);
-    await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+    await SecureStore.setItem('aivo_token', mockToken);
+    await SecureStore.setItem('aivo_user_id', mockUserId);
   });
 
   describe('Authentication', () => {
     it('throws when token is missing', async () => {
-      await AsyncStorageMock.removeItem('aivo_token');
+      await SecureStore.removeItem('aivo_token');
 
       await expect(fetchBodyMetrics()).rejects.toThrow('Not authenticated');
     });
 
     it('throws when user ID is missing', async () => {
-      await AsyncStorageMock.removeItem('aivo_user_id');
+      await SecureStore.removeItem('aivo_user_id');
 
       await expect(fetchBodyMetrics()).rejects.toThrow('User ID not found');
     });
@@ -190,9 +180,14 @@ describe('Metrics API Service', () => {
             Authorization: `Bearer ${mockToken}`,
             'X-User-Id': mockUserId,
           },
-          body: expect.stringContaining(JSON.stringify(newMetric)),
+          body: expect.any(String),
         }
       );
+
+      // Verify body contains the expected data
+      const callBody = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body);
+      expect(callBody).toMatchObject(newMetric);
+      expect(callBody.userId).toBe(mockUserId);
     });
 
     it('includes userId in request body', async () => {

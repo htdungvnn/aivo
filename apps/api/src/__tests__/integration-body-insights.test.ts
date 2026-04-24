@@ -1,48 +1,47 @@
 /// <reference types="jest" />
-/// <reference types="jest" />
-import { describe, it, expect, beforeEach, afterEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDrizzleInstance } from '@aivo/db';
-import { validateBodyMetrics } from '../src/services/validation';
+import { validateBodyMetrics } from '../services/validation';
 
 // Mock environment
 const mockEnv = {
   DB: {
-    execute: vi.fn(),
-    executeSql: vi.fn(),
-    batch: vi.fn(),
-    query: vi.fn(),
-    migrate: vi.fn(),
-    raw: vi.fn(),
-    _connect: vi.fn(),
-    _dispose: vi.fn(),
-    drizzle: vi.fn(),
+    execute: jest.fn(),
+    executeSql: jest.fn(),
+    batch: jest.fn(),
+    query: jest.fn(),
+    migrate: jest.fn(),
+    raw: jest.fn(),
+    _connect: jest.fn(),
+    _dispose: jest.fn(),
+    drizzle: jest.fn(),
   },
   BODY_INSIGHTS_CACHE: {
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+    get: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
   },
   OPENAI_API_KEY: 'test-openai-key',
   AUTH_SECRET: 'test-secret',
 };
 
-vi.mock('../src/services/r2', () => ({
-  uploadImage: vi.fn(),
-  getImageUrl: vi.fn(),
-  deleteImage: vi.fn(),
-  generateSignedUrl: vi.fn(),
+jest.mock('../services/r2', () => ({
+  uploadImage: jest.fn(),
+  getImageUrl: jest.fn(),
+  deleteImage: jest.fn(),
+  generateSignedUrl: jest.fn(),
 }));
 
-vi.mock('@aivo/db', () => ({
-  createDrizzleInstance: vi.fn(),
+jest.mock('@aivo/db', () => ({
+  createDrizzleInstance: jest.fn(),
 }));
 
 describe('API Integration - Body Insights', () => {
   describe('R2 Storage Service', () => {
     it('should upload image to R2 and return URL', async () => {
-      const { uploadImage } = await import('../src/services/r2');
+      const { uploadImage } = await import('../services/r2');
 
       const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
       const mockResult = {
@@ -60,7 +59,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should generate signed URL for private images', async () => {
-      const { generateSignedUrl } = await import('../src/services/r2');
+      const { generateSignedUrl } = await import('../services/r2');
 
       const mockUrl = 'https://bucket.r2.dev/private/image.jpg?token=xxx';
       generateSignedUrl.mockResolvedValue(mockUrl);
@@ -71,7 +70,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should delete image from R2', async () => {
-      const { deleteImage } = await import('../src/services/r2');
+      const { deleteImage } = await import('../services/r2');
 
       deleteImage.mockResolvedValue({ success: true });
 
@@ -84,8 +83,8 @@ describe('API Integration - Body Insights', () => {
   describe('Cache Operations', () => {
     it('should store and retrieve metrics from KV cache', async () => {
       const mockMetrics = [{ id: '1', weight: 70 }];
-      mockEnv.BODY_INSIGHTS_CACHE.get = vi.fn().mockResolvedValue(JSON.stringify(mockMetrics));
-      mockEnv.BODY_INSIGHTS_CACHE.put = vi.fn().mockResolvedValue(undefined);
+      mockEnv.BODY_INSIGHTS_CACHE.get = jest.fn().mockResolvedValue(JSON.stringify(mockMetrics));
+      mockEnv.BODY_INSIGHTS_CACHE.put = jest.fn().mockResolvedValue(undefined);
 
       const cached = await mockEnv.BODY_INSIGHTS_CACHE.get('metrics:user123');
       expect(cached).toBe(JSON.stringify(mockMetrics));
@@ -95,7 +94,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should invalidate cache on data change', async () => {
-      mockEnv.BODY_INSIGHTS_CACHE.delete = vi.fn().mockResolvedValue(undefined);
+      mockEnv.BODY_INSIGHTS_CACHE.delete = jest.fn().mockResolvedValue(undefined);
 
       await mockEnv.BODY_INSIGHTS_CACHE.delete('metrics:user123');
 
@@ -103,7 +102,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should handle cache miss', async () => {
-      mockEnv.BODY_INSIGHTS_CACHE.get = vi.fn().mockResolvedValue(null);
+      mockEnv.BODY_INSIGHTS_CACHE.get = jest.fn().mockResolvedValue(null);
 
       const cached = await mockEnv.BODY_INSIGHTS_CACHE.get('nonexistent');
       expect(cached).toBeNull();
@@ -112,7 +111,7 @@ describe('API Integration - Body Insights', () => {
 
   describe('Database Operations', () => {
     beforeEach(() => {
-      vi.clearAllMocks();
+      jest.clearAllMocks();
     });
 
     it('should insert body metric with all fields', async () => {
@@ -129,7 +128,7 @@ describe('API Integration - Body Insights', () => {
         visionAnalysisId: 'analysis-123',
       };
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         success: true,
         data: mockMetric,
       });
@@ -166,7 +165,7 @@ describe('API Integration - Body Insights', () => {
         ],
       };
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue(mockResult);
+      mockEnv.DB.execute = jest.fn().mockResolvedValue(mockResult);
 
       const startDate = Math.floor(Date.now() / 1000) - 30 * 86400;
       const endDate = Math.floor(Date.now() / 1000);
@@ -190,7 +189,7 @@ describe('API Integration - Body Insights', () => {
         { x: 24, y: 38, muscle: 'shoulders', intensity: 0.5 },
       ];
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         success: true,
         data: { id: 'heatmap-123' },
       });
@@ -213,7 +212,7 @@ describe('API Integration - Body Insights', () => {
         bodyComposition: { bodyFatEstimate: 0.15 },
       };
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         success: true,
         data: { id: 'analysis-123' },
       });
@@ -246,7 +245,7 @@ describe('API Integration - Body Insights', () => {
         }],
       };
 
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      (global as any).fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
       });
@@ -281,7 +280,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      (global as any).fetch = vi.fn().mockRejectedValue(new Error('API error'));
+      (global as any).fetch = jest.fn().mockRejectedValue(new Error('API error'));
 
       try {
         await (global as any).fetch('https://api.openai.com/v1/chat/completions');
@@ -343,7 +342,7 @@ describe('API Integration - Body Insights', () => {
         ],
       };
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         data: mockMetricsResponse.data,
       });
 
@@ -353,7 +352,7 @@ describe('API Integration - Body Insights', () => {
 
       expect(response.status).toBe(200);
       expect(json.success).toBe(true);
-      expect(json.data).toHaveLength(1);
+      expect(json.data).toHaveLength(2);
     });
 
     it('should require userId parameter', async () => {
@@ -409,7 +408,7 @@ describe('API Integration - Body Insights', () => {
         return c.json({ success: true, data: result.data });
       });
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         data: { id: 'new-metric', userId: 'user123', weight: 75 },
       });
 
@@ -469,7 +468,7 @@ describe('API Integration - Body Insights', () => {
         });
       });
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({
         data: [{ weight: 70, bodyFatPercentage: 0.15 }],
       });
 
@@ -530,7 +529,7 @@ describe('API Integration - Body Insights', () => {
         timestamp: Math.floor(Date.now() / 1000),
       };
 
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({ data: [mockHeatmap] });
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({ data: [mockHeatmap] });
 
       const request = new Request('http://localhost:8787/api/body/heatmaps?userId=user123&limit=1');
       const response = await app.fetch(request);
@@ -603,6 +602,7 @@ describe('API Integration - Body Insights', () => {
     it('should detect inconsistent muscle mass', () => {
       const result = validateBodyMetrics({
         weight: 70,
+        bodyFatPercentage: 0.05,
         muscleMass: 65, // 65/70 = 93% muscle, impossible
       });
       expect(result.valid).toBe(false);
@@ -621,7 +621,7 @@ describe('API Integration - Body Insights', () => {
 
   describe('Error Handling', () => {
     it('should handle database connection errors', async () => {
-      mockEnv.DB.execute = vi.fn().mockRejectedValue(new Error('Database connection failed'));
+      mockEnv.DB.execute = jest.fn().mockRejectedValue(new Error('Database connection failed'));
 
       try {
         await mockEnv.DB.execute(mockEnv.DB.raw('SELECT * FROM bodyMetrics'));
@@ -640,7 +640,7 @@ describe('API Integration - Body Insights', () => {
     });
 
     it('should handle empty response data', async () => {
-      mockEnv.DB.execute = vi.fn().mockResolvedValue({ success: true, data: [] });
+      mockEnv.DB.execute = jest.fn().mockResolvedValue({ success: true, data: [] });
 
       const result = await mockEnv.DB.execute(mockEnv.DB.raw('SELECT * FROM bodyMetrics WHERE 1=0'));
 

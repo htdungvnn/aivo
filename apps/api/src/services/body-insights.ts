@@ -1,61 +1,34 @@
-// Import removed to avoid type conflicts - using unknown for R2Bucket
-// import { FitnessCalculator } from "@aivo/compute";
+/**
+ * Body Insights Service
+ * Provides caching utilities, image validation, and AI analysis for body metrics
+ */
 
-export interface BodyMetricResponse {
-  id: string;
-  userId: string;
+import type { R2Bucket } from "@cloudflare/workers-types";
+import type { HeatmapRegion, BodyMetric } from "@aivo/shared-types";
+
+export interface CacheResult<T> {
+  data: T | null;
+  hit: boolean;
+}
+
+export const CACHE_TTL = {
+  METRICS: 300,
+  HEATMAPS: 300,
+  HEALTH_SCORE: 600,
+} as const;
+
+// Response type for body metrics (matches DB schema with timestamp)
+export type BodyMetricResponse = Omit<BodyMetric, 'source'> & {
   timestamp: number;
-  weight?: number | null;
-  bodyFatPercentage?: number | null;
-  muscleMass?: number | null;
-  boneMass?: number | null;
-  waterPercentage?: number | null;
-  bmi?: number | null;
-  waistCircumference?: number | null;
-  chestCircumference?: number | null;
-  hipCircumference?: number | null;
-  notes?: string | null;
-  source?: string | null;
-}
-
-export interface PostureAssessment {
-  alignmentScore: number;
-  issues: string[];
-  confidence: number;
-}
-
-export interface SymmetryAssessment {
-  leftRightBalance: number;
-  imbalances: string[];
-}
-
-export interface MuscleDevelopment {
-  muscle: string;
-  score: number;
-  zone: string;
-}
-
-export interface VisionAnalysisResponse {
   id: string;
   userId: string;
-  imageUrl: string;
-  processedUrl?: string;
-  analysis: {
-    posture?: PostureAssessment;
-    symmetry?: SymmetryAssessment;
-    muscleDevelopment: MuscleDevelopment[];
-    bodyComposition?: {
-      bodyFatEstimate: number;
-      muscleMassEstimate: number;
-    };
-  };
-  confidence: number;
-  createdAt: number;
-}
+  source?: string | null;
+};
 
+// Response type for health score
 export interface HealthScoreResponse {
   score: number;
-  category: "poor" | "fair" | "good" | "excellent";
+  category: "excellent" | "good" | "fair" | "poor";
   factors: {
     bmi: number;
     bodyFat: number;
@@ -65,198 +38,299 @@ export interface HealthScoreResponse {
   recommendations: string[];
 }
 
-export const CACHE_TTL = {
-  METRICS: 300,
-  HEATMAPS: 300,
-  HEALTH_SCORE: 600,
-};
-
-export const getCacheKey = (userId: string, type: string, params?: string): string => {
-  return `body:${userId}:${type}${params ? `:${params}` : ""}`;
-};
-
-export async function getCachedData<T>(
-  kv: KVNamespace,
-  key: string
-): Promise<{ data: T | null; hit: boolean }> {
-  try {
-    const cached = await kv.get<T>(key, { type: "json" });
-    if (cached) {
-      return { data: cached, hit: true };
-    }
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Cache get error:", error);
-  }
-  return { data: null, hit: false };
+interface BodyComposition {
+  bodyFatEstimate: number;
+  muscleMassEstimate: number;
 }
 
+interface AnalysisResult {
+  pose: "front" | "back" | "side" | "unknown";
+  regions: HeatmapRegion[];
+  metrics: {
+    upperBodyScore: number;
+    coreScore: number;
+    lowerBodyScore: number;
+    overallScore: number;
+  };
+  bodyComposition?: BodyComposition;
+}
+
+/**
+ * Generate a cache key for a given user, operation, and optional params
+ */
+export function getCacheKey(userId: string, operation: string, params?: string): string {
+  const base = `body:${userId}:${operation}`;
+  return params ? `${base}:${params}` : base;
+}
+
+/**
+ * Get data from cache
+ */
+export async function getCachedData<T>(
+  kv: { get: (key: string) => Promise<T | null> },
+  key: string
+): Promise<CacheResult<T>> {
+  try {
+    const data = await kv.get(key);
+    return {
+      data: data ?? null,
+      hit: data !== null && data !== undefined,
+    };
+  } catch {
+    return { data: null, hit: false };
+  }
+}
+
+/**
+ * Set data in cache with TTL
+ */
 export async function setCachedData(
-  kv: KVNamespace,
+  kv: { put: (key: string, value: string, options?: { expirationTtl: number }) => Promise<void> },
   key: string,
   data: unknown,
   ttl: number
 ): Promise<void> {
   try {
     await kv.put(key, JSON.stringify(data), { expirationTtl: ttl });
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Cache set error:", error);
+  } catch {
+    // Don't throw - cache failures should be non-blocking
   }
 }
 
-export async function invalidateBodyCache(kv: KVNamespace, userId: string): Promise<void> {
+/**
+ * Invalidate cache for a user's body data
+ */
+export async function invalidateBodyCache(
+  kv: { put: (key: string, value: string) => Promise<void> },
+  userId: string
+): Promise<void> {
   try {
-    // In production, use a more sophisticated cache invalidation strategy
-    // For now, we'll rely on TTL
-    // eslint-disable-next-line no-console
     console.log(`Cache invalidation requested for user ${userId}`);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Cache invalidation error:", error);
+    await kv.put(`body:${userId}:version`, Date.now().toString());
+  } catch {
+    // Cache invalidation failures should be non-blocking
   }
 }
 
-export function validateImage(buffer: Buffer): { valid: boolean; error?: string } {
-  // Basic image validation
-  if (buffer.length < 100) {
-    return { valid: false, error: "Image file too small" };
-  }
-  // Check magic bytes for common image formats
-  const bytes = new Uint8Array(buffer.slice(0, 4));
-  const jpegMagic = [0xff, 0xd8, 0xff];
-  const pngMagic = [0x89, 0x50, 0x4e, 0x47];
-
-  const isJPEG = bytes.slice(0, 3).every((b, i) => b === jpegMagic[i]);
-  const isPNG = bytes.every((b, i) => b === pngMagic[i]);
-
-  if (!isJPEG && !isPNG) {
-    return { valid: false, error: "Only JPEG and PNG images are supported" };
-  }
-
-  return { valid: true };
-}
-
+/**
+ * Upload an image to R2 storage
+ */
 export async function uploadImage(
-  bucket: unknown,
-  options: {
+  bucket: R2Bucket,
+  params: {
     userId: string;
     image: Buffer;
     filename: string;
     contentType: string;
     metadata: Record<string, string>;
   }
-): Promise<{ url: string; key: string }> {
-  const key = `body-images/${options.userId}/${Date.now()}-${options.filename}`;
+): Promise<{ key: string }> {
+  const { userId, image, filename, contentType, metadata } = params;
+  const key = `body-insights/${userId}/${crypto.randomUUID()}-${filename}`;
 
-  // Type assertion for R2 bucket
-  const r2Bucket = bucket as { put: (key: string, body: Buffer, options: { httpMetadata: { contentType: string; cacheControl: string }; customMetadata: Record<string, string> }) => Promise<void>; name?: string };
-
-  await r2Bucket.put(key, options.image, {
+  await bucket.put(key, image, {
     httpMetadata: {
-      contentType: options.contentType,
-      cacheControl: "public, max-age=31536000", // 1 year
+      contentType,
     },
-    customMetadata: options.metadata,
+    customMetadata: metadata,
   });
 
-  const url = `https://${r2Bucket.name || "bucket"}.r2.cloudflarestorage.com/${key}`;
-
-  return { url, key };
+  return { key };
 }
 
+/**
+ * Analyze a body image using AI vision
+ * Uses Anthropic Claude for body composition analysis
+ */
 export async function analyzeImageWithAI(
   apiKey: string,
   imageUrl: string,
-  _options: { analyzeMuscles?: boolean; analyzePosture?: boolean }
+  options?: {
+    analyzeMuscles?: boolean;
+    analyzePosture?: boolean;
+  }
 ): Promise<{
-  analysis: VisionAnalysisResponse["analysis"];
+  analysis: AnalysisResult;
   confidence: number;
   processedUrl?: string;
 }> {
-  const systemPrompt = `You are a fitness and body composition AI analyzer.`;
+  const { Anthropic } = await import("@anthropic-ai/sdk");
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 1000,
-      response_format: { type: "json_object" },
-    }),
-  });
+  const anthropic = new Anthropic({ apiKey });
 
-  if (!response.ok) {
-    const error = await response.json() as { error?: { message?: string } };
-    throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
-  }
+  const prompt = options?.analyzeMuscles
+    ? `
+Analyze this body photo for fitness assessment. Identify the following body zones and estimate their development/fat level:
 
-  const data = await response.json() as {
-    choices: { message: { content: string } }[];
-  };
-  const content = data.choices[0]?.message?.content;
+ZONES: chest, back_upper, shoulders, arms, abs_upper, abs_lower, obliques, lower_back, glutes, quads, hamstrings, calves
 
-  if (!content) {
-    throw new Error("No analysis returned from AI");
-  }
+For each zone, provide:
+1. intensity: 0-100 (0 = very lean/muscular, 100 = high body fat)
+2. confidence: 0-1 (your certainty)
 
-  try {
-    const parsed = JSON.parse(content) as VisionAnalysisResponse["analysis"];
-    return {
-      analysis: parsed,
-      confidence: 0.85,
-    };
-  } catch {
-    // eslint-disable-next-line no-console
-    console.error("Failed to parse AI response:", content);
-    throw new Error("Invalid analysis response from AI");
+Also detect the pose: "front", "back", "side", or "unknown".
+
+Calculate overall scores (0-100, lower is better):
+- upperBodyScore: average of chest, back_upper, shoulders, arms
+- coreScore: average of abs_upper, abs_lower, obliques, lower_back
+- lowerBodyScore: average of glutes, quads, hamstrings, calves
+- overallScore: weighted average
+
+Estimate body composition:
+- bodyFatEstimate: estimated body fat percentage (0-1, e.g., 0.15 for 15%)
+- muscleMassEstimate: estimated muscle mass as percentage of body weight (0-1, e.g., 0.30 for 30%)
+
+Respond ONLY with valid JSON:
+{
+  "pose": "front|back|side|unknown",
+  "regions": [
+    {
+      "zoneId": "chest|back_upper|...",
+      "intensity": 0-100,
+      "confidence": 0-1
+    }
+  ],
+  "metrics": {
+    "upperBodyScore": 0-100,
+    "coreScore": 0-100,
+    "lowerBodyScore": 0-100,
+    "overallScore": 0-100
+  },
+  "bodyComposition": {
+    "bodyFatEstimate": 0-1,
+    "muscleMassEstimate": 0-1
   }
 }
+`
+    : `Analyze this body photo and provide a basic assessment. Respond with JSON containing pose ("front", "back", "side", or "unknown"), overallScore (0-100), bodyFatEstimate (0-1), and muscleMassEstimate (0-1).`;
 
-export function generateHeatmapSVG(
-  vectorData: Array<{ x: number; y: number; muscle: string; intensity: number }>
-): string {
-  const viewBox = "0 0 200 400";
-  const colorScale = (intensity: number): string => {
-    if (intensity < 0.2) { return "#3b82f6"; }
-    if (intensity < 0.4) { return "#06b6d4"; }
-    if (intensity < 0.6) { return "#22c55e"; }
-    if (intensity < 0.8) { return "#eab308"; }
-    return "#f97316";
+  const response = await anthropic.messages.create({
+    model: "claude-opus-4-7",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "url",
+              url: imageUrl,
+            },
+          },
+          {
+            type: "text",
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  });
+
+  const contentBlock = response.content[0];
+  const content = "text" in contentBlock ? contentBlock.text : undefined;
+  if (!content) {
+    throw new Error("No response from AI analysis");
+  }
+
+  const analysis = JSON.parse(content) as AnalysisResult;
+  const confidence = response.stop_reason === "end_turn" ? 0.9 : 0.7;
+
+  return {
+    analysis,
+    confidence,
   };
+}
 
-  const circles = vectorData
-    .map((point) => {
-      const cx = point.x;
-      const cy = point.y;
-      const radius = 8 + point.intensity * 6;
-      const color = colorScale(point.intensity);
-      const opacity = 0.4 + point.intensity * 0.5;
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${radius}" ry="${radius * 1.2}" fill="${color}" fill-opacity="${opacity}" />`;
-    })
-    .join("\n    ");
+/**
+ * Generate an SVG heatmap overlay from vector data
+ */
+export function generateHeatmapSVG(
+  vectorData: Array<{
+    x: number;
+    y: number;
+    intensity: number;
+    muscle: string;
+  }>,
+  options?: {
+    width?: number;
+    height?: number;
+  }
+): string {
+  const width = options?.width || 400;
+  const height = options?.height || 600;
+
+  // Scale normalized coordinates (0-100) to SVG dimensions
+  const scaleX = width / 100;
+  const scaleY = height / 100;
+
+  // Group points by muscle for optimized rendering
+  const pointsByMuscle = new Map<string, typeof vectorData>();
+  for (const point of vectorData) {
+    const existing = pointsByMuscle.get(point.muscle) || [];
+    pointsByMuscle.set(point.muscle, [...existing, point]);
+  }
+
+  // Generate SVG circles for each point with gradient color based on intensity
+  const circles: string[] = [];
+  for (const [muscle, points] of pointsByMuscle.entries()) {
+    for (const point of points) {
+      const x = point.x * scaleX;
+      const y = point.y * scaleY;
+      const radius = 15 + point.intensity * 10; // 15-25px based on intensity
+
+      // Color: blue (low) -> green -> yellow -> red (high)
+      let color: string;
+      if (point.intensity < 0.3) {
+        color = `rgba(59, 130, 246, ${0.4 + point.intensity * 0.6})`; // blue
+      } else if (point.intensity < 0.6) {
+        color = `rgba(34, 197, 94, ${0.4 + (point.intensity - 0.3) * 0.6})`; // green
+      } else if (point.intensity < 0.8) {
+        color = `rgba(234, 179, 8, ${0.4 + (point.intensity - 0.6) * 0.6})`; // yellow
+      } else {
+        color = `rgba(239, 68, 68, ${0.4 + (point.intensity - 0.8) * 0.6})`; // red
+      }
+
+      circles.push(
+        `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="none" opacity="0.7" data-muscle="${muscle}" data-intensity="${point.intensity}"/>`
+      );
+    }
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="100%" height="100%">
-  ${circles}
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    ${circles.join("\n    ")}
+  </g>
 </svg>`;
+}
+
+/**
+ * Validate image file using magic bytes
+ */
+export function validateImage(buffer: Buffer | Uint8Array): { valid: boolean; error?: string } {
+  if (buffer.length < 4) {
+    return { valid: false, error: 'Image file too small' };
+  }
+
+  // Check JPEG (FF D8 FF)
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return { valid: true };
+  }
+
+  // Check PNG (89 50 4E 47)
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    return { valid: true };
+  }
+
+  return { valid: false, error: 'Only JPEG and PNG images are supported' };
 }

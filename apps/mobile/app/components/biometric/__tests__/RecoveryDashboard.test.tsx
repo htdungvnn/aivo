@@ -1,20 +1,20 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react-native';
+import '@testing-library/jest-native';
 import { RecoveryDashboard } from '../RecoveryDashboard';
 import * as biometricApi from '@/services/biometric-api';
 
 // Mock the API
-vi.mock('@/services/biometric-api', () => ({
-  getSleepSummary: vi.fn(),
-  getCorrelationFindings: vi.fn(),
-  getBiometricSnapshot: vi.fn(),
-  generateBiometricSnapshot: vi.fn(),
-  getRecoveryScore: vi.fn(),
+jest.mock('@/services/biometric-api', () => ({
+  getSleepSummary: jest.fn(),
+  getCorrelationFindings: jest.fn(),
+  getBiometricSnapshot: jest.fn(),
+  generateBiometricSnapshot: jest.fn(),
+  getRecoveryScore: jest.fn(),
 }));
 
 // Mock fetch globally (used for some additional calls)
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 describe('Mobile RecoveryDashboard Component', () => {
   const mockSnapshot = {
@@ -93,12 +93,12 @@ describe('Mobile RecoveryDashboard Component', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    (biometricApi.getSleepSummary as vi.Mock).mockResolvedValue(mockSleepSummary);
-    (biometricApi.getCorrelationFindings as vi.Mock).mockResolvedValue(mockCorrelations);
-    (biometricApi.getBiometricSnapshot as vi.Mock).mockResolvedValue(mockSnapshot);
-    (biometricApi.generateBiometricSnapshot as vi.Mock).mockResolvedValue(mockSnapshot);
-    (biometricApi.getRecoveryScore as vi.Mock).mockResolvedValue(mockRecoveryScore);
+    jest.clearAllMocks();
+    (biometricApi.getSleepSummary as jest.Mock).mockResolvedValue(mockSleepSummary);
+    (biometricApi.getCorrelationFindings as jest.Mock).mockResolvedValue(mockCorrelations);
+    (biometricApi.getBiometricSnapshot as jest.Mock).mockResolvedValue(mockSnapshot);
+    (biometricApi.generateBiometricSnapshot as jest.Mock).mockResolvedValue(mockSnapshot);
+    (biometricApi.getRecoveryScore as jest.Mock).mockResolvedValue(mockRecoveryScore);
   });
 
   it('should render recovery dashboard', async () => {
@@ -210,7 +210,7 @@ describe('Mobile RecoveryDashboard Component', () => {
 
   it('should show loading state initially', () => {
     // Make all API calls pend
-    (biometricApi.getSleepSummary as vi.Mock).mockImplementation(
+    (biometricApi.getSleepSummary as jest.Mock).mockImplementation(
       () => new Promise(() => {})
     );
 
@@ -232,7 +232,7 @@ describe('Mobile RecoveryDashboard Component', () => {
   });
 
   it('should show empty correlations message when none found', async () => {
-    (biometricApi.getCorrelationFindings as vi.Mock).mockResolvedValue([]);
+    (biometricApi.getCorrelationFindings as jest.Mock).mockResolvedValue([]);
 
     render(<RecoveryDashboard />);
 
@@ -242,7 +242,7 @@ describe('Mobile RecoveryDashboard Component', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    (biometricApi.getSleepSummary as vi.Mock).mockRejectedValue(
+    (biometricApi.getSleepSummary as jest.Mock).mockRejectedValue(
       new Error('Network error')
     );
 

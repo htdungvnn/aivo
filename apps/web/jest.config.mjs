@@ -1,11 +1,15 @@
 import base from '@aivo/jest-config';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default {
   ...base,
   roots: ['<rootDir>', '<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   testEnvironment: 'jsdom',
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '@testing-library/jest-dom'],
   moduleNameMapper: {
     ...base.moduleNameMapper,
@@ -17,5 +21,11 @@ export default {
     '^@/lib/(.*)$': '<rootDir>/src/lib/$1',
     '^@/services/(.*)$': '<rootDir>/src/services/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
-  }
+  },
+  transform: {
+    '^.+\\.(ts|tsx|js|jsx)$': ['babel-jest', {
+      babelrc: false,
+      configFile: `${__dirname}/babel.config.js`,
+    }],
+  },
 };

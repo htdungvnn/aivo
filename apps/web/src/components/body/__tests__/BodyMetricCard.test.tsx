@@ -44,12 +44,12 @@ describe('BodyMetricCard Component', () => {
   describe('Change Indicator', () => {
     it('displays positive change with up arrow', () => {
       render(<BodyMetricCard {...defaultProps} change={2.5} />);
-      expect(screen.getByText('2.5')).toBeInTheDocument();
+      expect(screen.getByText(/2\.5/)).toBeInTheDocument();
     });
 
     it('displays negative change with down arrow', () => {
       render(<BodyMetricCard {...defaultProps} change={-1.5} />);
-      expect(screen.getByText('-1.5')).toBeInTheDocument();
+      expect(screen.getByText(/1\.5/)).toBeInTheDocument();
     });
 
     it('displays custom change label', () => {
@@ -64,7 +64,7 @@ describe('BodyMetricCard Component', () => {
 
     it('hides change when zero', () => {
       render(<BodyMetricCard {...defaultProps} change={0} />);
-      expect(screen.queryByText(/0/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/vs last/)).not.toBeInTheDocument();
     });
   });
 

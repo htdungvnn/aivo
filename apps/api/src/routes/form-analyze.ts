@@ -18,6 +18,11 @@ import {
 // Re-export types from shared-types
 export type { FormAnalysisVideo, FormExerciseType };
 
+// Export schemas for testing
+export const UploadVideoSchema = z.object({
+  exerciseType: z.enum(["squat", "deadlift", "bench_press", "overhead_press", "lunge"]),
+});
+
 // Minimal R2 bucket interface
 interface R2BucketWithName extends R2Bucket {
   name?: string;
@@ -33,18 +38,6 @@ export const formRouter = () => {
 
   // Apply authentication to all form analysis routes
   router.use("*", authenticate);
-
-  // ============================================
-  // VALIDATION SCHEMAS
-  // ============================================
-
-const UploadVideoSchema = z.object({
-  exerciseType: z.enum(["squat", "deadlift", "bench_press", "overhead_press", "lunge"]),
-});
-
-// ============================================
-// UTILITIES
-// ============================================
 
 function generateVideoId(): string {
   return `vid_${crypto.randomUUID()}`;

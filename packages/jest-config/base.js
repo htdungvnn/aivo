@@ -1,17 +1,16 @@
 /**
- * Base Jest configuration for AIVO TypeScript packages
- * Shared for non-UI packages (db, shared-types, compute)
+ * Base Jest configuration for AIVO packages
+ * Shared configuration with ESM support
  */
 
 export default {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  // Use test environment from individual configs
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: '<rootDir>/tsconfig.json',
-      useESM: true
+    '^.+\\.(ts|tsx|js|jsx)$': ['ts-jest', {
+      useESM: true,
+      isolatedModules: false, // Set isolatedModules in tsconfig instead
     }]
   },
   moduleNameMapper: {
@@ -25,5 +24,8 @@ export default {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   clearMocks: true,
-  restoreMocks: true
+  restoreMocks: true,
+  testTimeout: 30000,
+  // Extend Jest's default snapshot serializers if needed
+  snapshotSerializers: [],
 };

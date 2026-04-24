@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react-native';
+import '@testing-library/jest-native';
 import { RecoveryScoreGauge } from '../RecoveryScoreGauge';
 
 describe('RecoveryScoreGauge Component', () => {

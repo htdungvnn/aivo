@@ -1,11 +1,16 @@
-import rn from '@aivo/jest-config/react-native';
-
 export default {
-  ...rn,
-  roots: ['<rootDir>/app'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
+  preset: 'jest-expo',
+  roots: ['<rootDir>/app', '<rootDir>'],
+  moduleNameMapper: {
+    '^@aivo/(.*)$': '<rootDir>/../../packages/$1/src',
+    '^@/(.*)$': '<rootDir>/app/$1',
+    // Mock problematic RN polyfills with Flow types
+    '^@react-native/js-polyfills/(.*)$': '<rootDir>/__mocks__/react-native-js-polyfills.js',
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testTimeout: 30000,
+  // Allow transforming node_modules packages that need it, even under pnpm's nested layout
   transformIgnorePatterns: [
-    // Allow transforming React Native and related packages even if nested under .pnpm
-    'node_modules/(?!.*(?:react-native|@react-native|expo|@expo|@react-native-community|@react-navigation|native-base|react-native-svg|@shopify|react-native-reanimated|lucide-react-native|victory-native|@testing-library/react-native|@testing-library/jest-native)/)'
-  ]
+    '/node_modules/(?!(.*/)?(react-native|@react-native|@react-native-community|expo|@expo|expo-.*|expo-modules-core|expo-secure-store|react-native-reanimated|lucide-react-native|@unimodules|unimodules|@testing-library/react-native|@testing-library/jest-native|victory-native|native-base|react-native-svg)/)'
+  ],
 };

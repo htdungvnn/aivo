@@ -1,10 +1,10 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { PostureAnalysisCard } from './PostureAnalysisCard';
+import { render, screen } from '@testing-library/react-native';
+import '@testing-library/jest-native';
+import { PostureAnalysisCard } from '../PostureAnalysisCard';
 
 // Mock NativeWind/Styled components
-vi.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 
 describe('Mobile PostureAnalysisCard Component', () => {
   const mockAssessment = {

@@ -6,23 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { createApiClient, type ExportFormat } from "@aivo/api-client";
 import colors from "@/theme/colors";
 
-const COLORS = {
-  background: "#030712",
-  surface: "#111827",
-  surfaceDark: "#1f2937",
-  border: "#374151",
-  textMuted: "#9ca3af",
-  textPrimary: "#ffffff",
-  primary: "#3b82f6",
-  danger: colors.danger,
-  success: colors.success,
-  successDark: "#064e3b",
-  successLight: colors.successLight,
-  gray: "#6b7280",
-  overlay: colors.overlay,
-  transparent: colors.transparent,
-} as const;
-
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");

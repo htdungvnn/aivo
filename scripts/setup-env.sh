@@ -2,7 +2,6 @@
 
 set -e
 
-# Sửa lỗi tại đây: Đã thêm dấu ngoặc kép đóng "
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -28,42 +27,81 @@ cd "$PROJECT_ROOT"
 
 print_header "AIVO Environment Setup"
 
-# Hàm helper để tạo file env từ template
-setup_env_file() {
+# Check if central .env.base exists in .env/ folder
+ENV_BASE=".env/.env.base"
+if [ ! -f "$ENV_BASE" ]; then
+  print_error "Central .env/.env.base file not found!"
+  print_info "Please create .env/.env.base from the template first."
+  exit 1
+fi
+
+# Function to extract section from .env file and write to target
+extract_section() {
   local target=$1
-  local template=$2
-  if [ ! -f "$target" ]; then
-    print_warning "$target not found"
-    if [ -f "$template" ]; then
-      cp "$template" "$target"
-      print_success "Created $target from template"
-    else
-      print_error "Template $template not found"
+  local start_pattern=$2  # Pattern that marks the beginning of section
+  local end_pattern=$3    # Pattern that marks the end of section
+  local in_section=0
+
+  # Create or truncate target file
+  > "$target"
+
+  while IFS= read -r line; do
+    # Check if we're entering the section
+    if [[ "$line" == *"$start_pattern"* ]] && [ $in_section -eq 0 ]; then
+      in_section=1
+      echo "# Auto-generated from $ENV_BASE - $(date)" > "$target"
+      echo "" >> "$target"
+      continue
     fi
+
+    # Check if we're exiting the section (next section header or end marker)
+    if [ $in_section -eq 1 ] && [[ "$line" == *"$end_pattern"* ]]; then
+      break
+    fi
+
+    # Write lines if we're in the section
+    # Skip empty lines and comment lines (starting with #)
+    if [ $in_section -eq 1 ] && [[ -n "$line" ]] && [[ ! "$line" =~ ^[[:space:]]*# ]]; then
+      # Extract only the variable assignment (remove any leading/trailing whitespace)
+      echo "$line" >> "$target"
+    fi
+  done < "$ENV_BASE"
+
+  if [ -s "$target" ]; then
+    print_success "Created $target from central .env"
   else
-    print_success "$target exists"
+    print_warning "No variables extracted for $target"
   fi
 }
 
-# Thực hiện kiểm tra các file env
-setup_env_file "apps/api/.env" "apps/api/.env.example"
-setup_env_file "apps/web/.env.local" "apps/web/.env.local.example"
-setup_env_file "apps/mobile/.env" "apps/mobile/.env.example"
+# Extract sections for each app
+# API: from "CLOUDFLARE WORKERS API" to "WEB APP - NEXT.JS"
+extract_section "apps/api/.env" "CLOUDFLARE WORKERS API" "WEB APP - NEXT.JS"
+# Web: from "WEB APP - NEXT.JS" to "MOBILE APP - EXPO"
+extract_section "apps/web/.env.local" "WEB APP - NEXT.JS" "MOBILE APP - EXPO"
+# Mobile: from "MOBILE APP - EXPO" to end of file (no end pattern, so it will capture everything until end)
+extract_section "apps/mobile/.env" "MOBILE APP - EXPO" "EOF_MARKER"
+
+# Also copy .env/.env.base to .env/.env.example for reference (remove secrets first)
+if [ ! -f ".env/.env.example" ]; then
+  # Create example file by removing secret values
+  sed 's/=.*$/=your_value_here/' "$ENV_BASE" > ".env/.env.example"
+  print_success "Created .env/.env.example from $ENV_BASE"
+fi
 
 print_header "Required Setup Steps"
 
-# Tạo mã secret cho JWT signing
-echo "1. Generate AUTH_SECRET for API (JWT signing):"
+echo "1. Verify AUTH_SECRET in apps/api/.env:"
 echo -e "   ${CYAN}openssl rand -base64 32${NC}"
-echo "   Copy the output to apps/api/.env as AUTH_SECRET"
+echo "   (Should match AUTH_SECRET in your .env)"
 echo ""
 
-echo "2. Set up OAuth providers (Client IDs - these are public, not secrets):"
+echo "2. Set up OAuth providers (Client IDs):"
 echo -e "   ${CYAN}Google:${NC} https://console.cloud.google.com/apis/credentials"
 echo -e "   ${CYAN}Facebook:${NC} https://developers.facebook.com/apps"
-echo "   Update Client IDs in your .env files:"
-echo "   - GOOGLE_CLIENT_ID (API, Web, Mobile)"
-echo "   - FACEBOOK_APP_ID (API, Web, Mobile)"
+echo "   Update these variables in all .env files:"
+echo "   - GOOGLE_CLIENT_ID"
+echo "   - FACEBOOK_APP_ID"
 echo ""
 
 print_header "Production Deployment (Cloudflare)"
@@ -75,8 +113,11 @@ echo "Set environment variables in Cloudflare Dashboard:"
 echo "   - GOOGLE_CLIENT_ID"
 echo "   - FACEBOOK_APP_ID"
 echo "   - OPENAI_API_KEY (optional)"
+echo "   - GEMINI_API_KEY (optional)"
 
 print_header "Quick Start"
 echo "API: cd apps/api && pnpmx wrangler dev"
 echo "Web: cd apps/web && pnpm run dev"
+echo "Mobile: cd apps/mobile && pnpmx expo start"
 print_success "Environment setup complete!"
+

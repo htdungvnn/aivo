@@ -64,6 +64,7 @@ describe('PostureAnalysisCard Component', () => {
     });
 
     it('displays good score label for 60-79', () => {
+      render(<PostureAnalysisCard {...defaultProps} />);
       expect(screen.getByText('Good')).toBeInTheDocument();
     });
 
@@ -146,7 +147,8 @@ describe('PostureAnalysisCard Component', () => {
     it('applies severity-specific styling', () => {
       render(<PostureAnalysisCard {...defaultProps} />);
       const mildBadge = screen.getByText('mild');
-      expect(mildBadge).toHaveClass('bg-amber-500/30');
+      // Check inline style for severity background (mild = amber rgba)
+      expect(mildBadge).toHaveStyle({ backgroundColor: 'rgba(251, 191, 36, 0.2)' });
     });
   });
 

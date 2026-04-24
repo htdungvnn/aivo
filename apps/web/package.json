@@ -57,5 +57,11 @@
     "shadcn": "^3.8.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.0.0",
+      "react-dom": "19.0.0"
+    }
   }
 }

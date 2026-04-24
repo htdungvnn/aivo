@@ -13,6 +13,7 @@ import type { HeatmapRegion } from "@aivo/shared-types";
 interface EnvWithR2 {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
+  R2_PUBLIC_URL: string;
   BODY_INSIGHTS_CACHE: KVNamespace;
   OPENAI_API_KEY?: string;
 }
@@ -51,7 +52,7 @@ export const BodyPhotosRouter = () => {
 
     // Upload to R2
     const bytes = await file.arrayBuffer();
-    const uploadResult = await uploadImage(c.env.R2_BUCKET, {
+    const { key } = await uploadImage(c.env.R2_BUCKET, {
       userId,
       image: Buffer.from(bytes),
       filename,
@@ -59,8 +60,9 @@ export const BodyPhotosRouter = () => {
       metadata: {},
     });
 
-    // Get the public URL
-    const r2Url = uploadResult.url;
+    // Construct the public URL using R2_PUBLIC_URL
+    const baseUrl = c.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
+    const r2Url = `${baseUrl}/${key}`;
 
     // Create drizzle instance
     const drizzle = createDrizzleInstance(c.env.DB);

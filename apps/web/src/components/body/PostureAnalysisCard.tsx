@@ -74,8 +74,8 @@ export function PostureAnalysisCard({
           <h4 className="text-slate-300 text-sm font-medium mb-3">Detected Issues</h4>
           <div className="space-y-2">
             {assessment.issues.map((issue, index) => {
-              const info = POSTURE_ISSUE_LABELS[issue.type];
-              const styles = SEVERITY_STYLES[issue.severity];
+              const info = POSTURE_ISSUE_LABELS[issue.type] || { label: issue.type, description: '' };
+              const styles = SEVERITY_STYLES[issue.severity] || { bg: 'rgba(100,100,100,0.2)', border: 'rgba(100,100,100,0.3)', text: 'rgba(200,200,200,1)' };
               return (
                 <div
                   key={index}

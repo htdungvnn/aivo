@@ -2,7 +2,7 @@
  * API service for form analysis videos
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from 'expo-secure-store';
 import type {
   FormAnalysisVideo,
   FormAnalysisReport,
@@ -15,14 +15,14 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
  * Get authentication token
  */
 async function getToken(): Promise<string | null> {
-  return await AsyncStorage.getItem("aivo_token");
+  return await SecureStore.getItemAsync('aivo_token');
 }
 
 /**
  * Get user ID
  */
 async function getUserId(): Promise<string | null> {
-  return await AsyncStorage.getItem("aivo_user_id");
+  return await SecureStore.getItemAsync('aivo_user_id');
 }
 
 /**

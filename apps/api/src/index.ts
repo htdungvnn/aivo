@@ -28,6 +28,7 @@ import { InfographicRouter } from "./routes/infographic";
 import { MetabolicRouter } from "./routes/metabolic";
 import { postureRouter } from "./routes/posture";
 import { AdminTestRouter } from "./routes/admin-test";
+import { DigitalTwinRouter } from "./routes/digital-twin";
 
 // Temporarily disabled - WIP with type errors
 // import { formRouter } from "./routes/form-analyze";
@@ -169,6 +170,7 @@ app.route("/api/infographic", InfographicRouter());
 // app.route("/api/live-workout", LiveWorkoutRouter());
 app.route("/api/metabolic", MetabolicRouter());
 app.route("/api/posture", postureRouter());
+app.route("/api/digital-twin", DigitalTwinRouter());
 // Admin test data endpoint (development only)
 if (process.env.NODE_ENV !== "production") {
   app.route("/api/admin/test", AdminTestRouter());

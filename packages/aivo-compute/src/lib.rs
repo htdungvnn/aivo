@@ -3231,6 +3231,111 @@ struct ScenarioResults {
     worst_case: ScenarioProjection,
 }
 
+// ============================================
+// AVATAR MORPH TYPES - For Digital Twin Visualization
+// ============================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BodyComposition {
+    weight_kg: f64,
+    body_fat_percentage: f64,
+    muscle_mass_kg: f64,
+    height_cm: f64,
+    age_years: u32,
+    gender: Gender,
+    timestamp: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProjectedMetrics {
+    days_ahead: i32,
+    weight_kg: f64,
+    body_fat_percentage: f64,
+    muscle_mass_kg: f64,
+    confidence: f64,
+    lower_bound: ProjectionBounds,
+    upper_bound: ProjectionBounds,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProjectionBounds {
+    weight_kg: f64,
+    body_fat_percentage: f64,
+    muscle_mass_kg: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct MorphTargets {
+    body_scale: f64,
+    fat_distribution: Vec<FatRegionWeight>,
+    muscle_development: Vec<MuscleDevelopmentWeight>,
+    skin_tightness: f64,
+    posture_adjustment: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct FatRegionWeight {
+    region: FatRegion,
+    intensity: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct MuscleDevelopmentWeight {
+    muscle_group: MuscleGroup,
+    development_factor: f64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+enum Gender {
+    Male,
+    Female,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Somatotype {
+    Endomorph,
+    Mesomorph,
+    Ectomorph,
+    Mixed,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum FatRegion {
+    Face,
+    Neck,
+    Chest,
+    Abdomen,
+    Flanks,
+    LowerBack,
+    Hips,
+    Thighs,
+    Calves,
+    Arms,
+    Shoulders,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum MuscleGroup {
+    Chest,
+    Back,
+    Shoulders,
+    Biceps,
+    Triceps,
+    Forearms,
+    Abs,
+    Obliques,
+    Quadriceps,
+    Hamstrings,
+    Glutes,
+    Calves,
+    Neck,
+}
+
 #[wasm_bindgen]
 impl MetabolicTwin {
     /// Generate a full metabolic twin simulation
@@ -3550,6 +3655,230 @@ fn generate_recommendations(
     }
 
     recommendations
+}
+
+// ============================================
+// AVATAR MORPHER - 2.5D/3D VISUALIZATION
+// Generates morph targets for time-travel avatar feature
+// ============================================
+
+#[wasm_bindgen]
+pub struct AvatarMorpher;
+
+/// Sex-specific fat distribution patterns (Healey & Smith, 2021)
+static FAT_DISTRIBUTION_MALE: [(&str, f64); 10] = [
+    ("face", 0.02), ("neck", 0.03), ("chest", 0.12), ("abdomen", 0.35),
+    ("flanks", 0.12), ("lower_back", 0.08), ("shoulders", 0.03),
+    ("arms", 0.06), ("thighs", 0.10), ("calves", 0.03),
+];
+
+static FAT_DISTRIBUTION_FEMALE: [(&str, f64); 10] = [
+    ("face", 0.025), ("neck", 0.025), ("chest", 0.07), ("abdomen", 0.20),
+    ("flanks", 0.10), ("lower_back", 0.08), ("shoulders", 0.03),
+    ("arms", 0.06), ("hips", 0.20), ("thighs", 0.18),
+];
+
+#[wasm_bindgen]
+impl AvatarMorpher {
+    #[wasm_bindgen(js_name = "generateMorphTargets")]
+    pub fn generate_morph_targets(
+        current_json: &str,
+        projected_json: &str,
+    ) -> Result<String, JsValue> {
+        let current: BodyComposition = serde_json::from_str(current_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid current JSON: {}", e)))?;
+
+        let projected: ProjectedMetrics = serde_json::from_str(projected_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid projected JSON: {}", e)))?;
+
+        let morph = calculate_morph_targets(&current, &projected)
+            .map_err(|e| JsValue::from_str(&format!("Morph error: {}", e)))?;
+
+        serde_json::to_string(&morph)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+    }
+
+    #[wasm_bindgen(js_name = "classifySomatotype")]
+    pub fn classify_somatotype(
+        weight_kg: f64,
+        height_cm: f64,
+        body_fat_pct: f64,
+        muscle_mass_kg: f64,
+        age_years: u32,
+        gender: &str,
+    ) -> Result<String, JsValue> {
+        let gender_enum: Gender = match gender {
+            "male" => Gender::Male,
+            "female" => Gender::Female,
+            _ => Gender::Other,
+        };
+
+        let composition = BodyComposition {
+            weight_kg,
+            body_fat_percentage: body_fat_pct,
+            muscle_mass_kg,
+            height_cm,
+            age_years,
+            gender: gender_enum,
+            timestamp: now_ms() as f64,
+        };
+
+        let (somatotype, confidence) = calculate_somatotype(&composition)
+            .map_err(|e| JsValue::from_str(&format!("Somatotype error: {}", e)))?;
+
+        #[derive(Serialize)]
+        struct SomatotypeResult {
+            somatotype: Somatotype,
+            confidence: f64,
+        }
+
+        let result = SomatotypeResult { somatotype, confidence };
+
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+    }
+
+    #[wasm_bindgen(js_name = "adjustProjectionForAdherence")]
+    pub fn adjust_projection_for_adherence(
+        projection_json: &str,
+        adherence_factor: f64,
+    ) -> Result<String, JsValue> {
+        let mut projection: ProjectedMetrics = serde_json::from_str(projection_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid projection JSON: {}", e)))?;
+
+        let baseline_weight = projection.weight_kg * 0.95;
+        projection.weight_kg = baseline_weight * (1.0 - adherence_factor) + projection.weight_kg * adherence_factor;
+        projection.confidence *= adherence_factor;
+
+        serde_json::to_string(&projection)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+    }
+}
+
+fn calculate_morph_targets(
+    current: &BodyComposition,
+    projected: &ProjectedMetrics,
+) -> Result<MorphTargets, String> {
+    let weight_change_pct = (projected.weight_kg - current.weight_kg) / current.weight_kg;
+    let bf_change_pct = projected.body_fat_percentage - current.body_fat_percentage;
+    let muscle_change_pct = (projected.muscle_mass_kg - current.muscle_mass_kg) / current.muscle_mass_kg;
+
+    let body_scale = (1.0 + weight_change_pct).powf(1.0/3.0);
+    let fat_distribution = compute_fat_distribution(bf_change_pct, matches!(current.gender, Gender::Male));
+    let muscle_development = compute_muscle_development(muscle_change_pct);
+    let skin_tightness = (1.0 - bf_change_pct.max(0.0) * 3.0).max(0.3).min(1.0);
+    let posture_adjustment = if weight_change_pct > 0.2 { 0.1 } else if weight_change_pct < -0.15 { -0.05 } else { 0.0 };
+
+    Ok(MorphTargets {
+        body_scale,
+        fat_distribution,
+        muscle_development,
+        skin_tightness,
+        posture_adjustment,
+    })
+}
+
+fn compute_fat_distribution(bf_change: f64, is_male: bool) -> Vec<FatRegionWeight> {
+    let distribution = if is_male { FAT_DISTRIBUTION_MALE } else { FAT_DISTRIBUTION_FEMALE };
+    let abs_change = bf_change.abs();
+    let gain = bf_change > 0.0;
+
+    distribution.iter()
+        .map(|(region, base_pct)| {
+            let intensity = if gain { base_pct * abs_change * 10.0 } else { abs_change * 0.8 };
+            FatRegionWeight {
+                region: match *region {
+                    "face" => FatRegion::Face,
+                    "neck" => FatRegion::Neck,
+                    "chest" => FatRegion::Chest,
+                    "abdomen" => FatRegion::Abdomen,
+                    "flanks" => FatRegion::Flanks,
+                    "lower_back" => FatRegion::LowerBack,
+                    "hips" => FatRegion::Hips,
+                    "thighs" => FatRegion::Thighs,
+                    "arms" => FatRegion::Arms,
+                    "shoulders" => FatRegion::Shoulders,
+                    _ => FatRegion::Abdomen,
+                },
+                intensity: intensity.max(0.0).min(1.0),
+            }
+        })
+        .collect()
+}
+
+fn compute_muscle_development(muscle_change: f64) -> Vec<MuscleDevelopmentWeight> {
+    static MUSCLE_GROUPS: [(&str, f64); 10] = [
+        ("chest", 0.15), ("back", 0.15), ("shoulders", 0.10), ("biceps", 0.10),
+        ("triceps", 0.08), ("abs", 0.12), ("quadriceps", 0.12),
+        ("hamstrings", 0.08), ("glutes", 0.07), ("calves", 0.03),
+    ];
+
+    let is_gain = muscle_change > 0.0;
+    let abs_change = muscle_change.abs();
+
+    MUSCLE_GROUPS.iter()
+        .map(|(group, base_pct)| {
+            let development_factor = if is_gain {
+                base_pct * abs_change * 5.0 + 1.0
+            } else {
+                (1.0 - base_pct * abs_change * 3.0).max(0.5)
+            };
+            MuscleDevelopmentWeight {
+                muscle_group: match *group {
+                    "chest" => MuscleGroup::Chest,
+                    "back" => MuscleGroup::Back,
+                    "shoulders" => MuscleGroup::Shoulders,
+                    "biceps" => MuscleGroup::Biceps,
+                    "triceps" => MuscleGroup::Triceps,
+                    "forearms" => MuscleGroup::Forearms,
+                    "abs" => MuscleGroup::Abs,
+                    "obliques" => MuscleGroup::Obliques,
+                    "quadriceps" => MuscleGroup::Quadriceps,
+                    "hamstrings" => MuscleGroup::Hamstrings,
+                    "glutes" => MuscleGroup::Glutes,
+                    "calves" => MuscleGroup::Calves,
+                    "neck" => MuscleGroup::Neck,
+                    _ => MuscleGroup::Chest,
+                },
+                development_factor: development_factor.max(0.0).min(2.0),
+            }
+        })
+        .collect()
+}
+
+fn calculate_somatotype(composition: &BodyComposition) -> Result<(Somatotype, f64), String> {
+    let weight_for_height = composition.weight_kg / (composition.height_cm / 100.0).powi(2);
+    let bf = composition.body_fat_percentage;
+    let muscle_ratio = composition.muscle_mass_kg / composition.weight_kg;
+
+    let endomorphy = (bf * 0.4 + (weight_for_height - 18.5).max(0.0) * 0.6).min(7.0);
+    let mesomorphy = (muscle_ratio * 10.0 + bf * 0.3).min(7.0);
+    let ectomorphy = if weight_for_height < 18.5 {
+        (18.5 - weight_for_height) * 1.5
+    } else {
+        0.0
+    };
+
+    let scores = [endomorphy, mesomorphy, ectomorphy];
+    let max_val = scores.iter().copied().reduce(f64::max).unwrap();
+    let min_val = scores.iter().copied().reduce(f64::min).unwrap();
+
+    if max_val - min_val < 0.5 {
+        Ok((Somatotype::Mixed, 0.7))
+    } else if endomorphy >= mesomorphy && endomorphy >= ectomorphy {
+        Ok((Somatotype::Endomorph, (endomorphy / (endomorphy + mesomorphy + ectomorphy)).min(0.95)))
+    } else if mesomorphy >= endomorphy && mesomorphy >= ectomorphy {
+        Ok((Somatotype::Mesomorph, (mesomorphy / (endomorphy + mesomorphy + ectomorphy)).min(0.95)))
+    } else {
+        Ok((Somatotype::Ectomorph, (ectomorphy / (endomorphy + mesomorphy + ectomorphy)).min(0.95)))
+    }
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
 }
 
 /// Live workout adjustment module for real-time AI-powered intensity adjustments

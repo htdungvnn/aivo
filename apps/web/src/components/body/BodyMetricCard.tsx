@@ -80,10 +80,10 @@ export function BodyMetricCard({
         {unit && <span className="text-slate-400 text-sm">{unit}</span>}
       </div>
 
-      {change !== undefined && (
+      {change !== undefined && change !== 0 && (
         <div className={`flex items-center gap-1 mt-2 text-sm ${getChangeColor()}`}>
           {getChangeArrow()}
-          <span>{Math.abs(change).toFixed(1)} {unit}</span>
+          <span>{change > 0 ? '+' : ''}{Math.abs(change).toFixed(1)} {unit}</span>
           <span className="text-slate-500 text-xs ml-1">{changeLabel}</span>
         </div>
       )}

@@ -24,6 +24,7 @@ import { authenticate, getUserFromContext, type AuthUser } from "../middleware/a
 interface EnvWithR2 {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
+  R2_PUBLIC_URL: string;
   BODY_INSIGHTS_CACHE: KVNamespace;
   OPENAI_API_KEY?: string;
 }
@@ -82,7 +83,7 @@ export const BodyRouter = () => {
       }
 
       const filename = imageFile.name || `body-photo-${Date.now()}.jpg`;
-      const { url, key } = await uploadImage(c.env.R2_BUCKET, {
+      const { key } = await uploadImage(c.env.R2_BUCKET, {
         userId,
         image: buffer,
         filename,
@@ -93,10 +94,14 @@ export const BodyRouter = () => {
         },
       });
 
+      // Construct the public URL using R2_PUBLIC_URL
+      const baseUrl = c.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
+      const imageUrl = `${baseUrl}/${key}`;
+
       return c.json({
         success: true,
         data: {
-          imageUrl: url,
+          imageUrl,
           key,
           userId,
           uploadedAt: new Date().toISOString(),

@@ -818,6 +818,85 @@ export const setRpeLogs = sqliteTable("set_rpe_logs", {
   index("idx_rpe_logs_timestamp").on(sql`desc ${table.timestamp}`),
 ]);
 
+
+// ============================================
+// BIOMETRIC DIGITAL TWIN - AVATAR & PROJECTIONS
+// ============================================
+
+// Body avatar models - stores user's current avatar configuration and morph targets
+export const bodyAvatarModels = sqliteTable("body_avatar_models", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+
+  // Current body composition snapshot
+  currentWeight: real("current_weight"),
+  currentBodyFatPct: real("current_body_fat_pct"),
+  currentMuscleMass: real("current_muscle_mass"),
+  heightCm: real("height_cm"),
+  ageYears: integer("age_years"),
+  gender: text("gender"),
+
+  // Somatotype classification
+  somatotype: text("somatotype"), // "endomorph", "mesomorph", "ectomorph", "mixed"
+  somatotypeConfidence: real("somatotype_confidence"),
+
+  // Morph targets for current body state (JSON)
+  morphTargetsJson: text("morph_targets_json"),
+
+  // Avatar rendering preferences
+  avatarStyle: text("avatar_style").default("realistic"), // "realistic", "stylized", "abstract"
+  skinTone: text("skin_tone"),
+  showMuscleDefinitions: integer("show_muscle_definitions").default(1),
+}, (table) => [
+  index('idx_avatar_user_id').on(table.userId),
+  unique('unique_avatar_user').on(table.userId),
+]);
+
+// Body projections - stores digital twin projection results
+export const bodyProjections = sqliteTable("body_projections", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull(),
+
+  // Projection parameters
+  timeHorizonDays: integer("time_horizon_days").notNull(),
+  adherenceFactor: real("adherence_factor"), // 0.0-1.0 user's expected adherence
+
+  // Base projection (without adherence adjustment)
+  baseProjectionJson: text("base_projection_json"),
+
+  // Adjusted projection (with adherence factor applied)
+  adjustedProjectionJson: text("adjusted_projection_json"),
+
+  // Projected body composition at target date
+  projectedWeight: real("projected_weight"),
+  projectedBodyFatPct: real("projected_body_fat_pct"),
+  projectedMuscleMass: real("projected_muscle_mass"),
+  confidence: real("confidence"), // 0-1
+
+  // Scenario bounds
+  bestCaseWeight: real("best_case_weight"),
+  worstCaseWeight: real("worst_case_weight"),
+  scenarioSpread: real("scenario_spread"), // kg variance
+
+  // Morph targets for the projected state (for avatar animation)
+  morphTargetsJson: text("morph_targets_json"),
+
+  // AI-generated narrative explaining the projection
+  narrative: text("narrative"),
+
+  // Metadata
+  generatedBy: text("generated_by").default("wasm"), // "wasm", "cached", "manual"
+  cacheKey: text("cache_key"), // For reusing projections with same inputs
+  expiresAt: integer("expires_at"), // Cached projections expire after 24h
+}, (table) => [
+  index('idx_projection_user_created').on(table.userId, sql`desc ${table.createdAt}`),
+  index('idx_projection_cache_key').on(table.cacheKey),
+  index('idx_projection_expires').on(table.expiresAt),
+]);
+
 // Export schema object for Drizzle
 export const schema = {
   users,
@@ -866,4 +945,6 @@ export const schema = {
   liveWorkoutSessions,
   setRpeLogs,
   sleepLogs,
+  bodyAvatarModels,
+  bodyProjections,
 };

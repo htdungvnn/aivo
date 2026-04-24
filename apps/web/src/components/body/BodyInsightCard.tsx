@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { BodyHeatmap } from "./BodyHeatmap";
 import { BodyMetricCard } from "./BodyMetricCard";
-import type { MetricDataPoint } from "./BodyMetricsChart";
 import { BodyMetricChart } from "./BodyMetricsChart";
+import { PostureAnalysisCard } from "./PostureAnalysisCard";
+import type { MetricDataPoint } from "./BodyMetricsChart";
 import type { HealthScoreResult, BodyMetric, BodyHeatmapData } from "@aivo/shared-types";
 
 // Use types from shared-types directly
@@ -34,9 +35,11 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
       });
       if (metricsRes.ok) {
         const metricsData = await metricsRes.json();
-        setMetrics(metricsData.data || []);
-        if (metricsData.data?.[0]) {
-          setLatestMetric(metricsData.data[0]);
+        const metricsList = metricsData.data || [];
+        setMetrics(metricsList);
+        // Get the most recent metric (assumes array is sorted by timestamp ascending)
+        if (metricsList.length > 0) {
+          setLatestMetric(metricsList[metricsList.length - 1]);
         }
       }
 
@@ -62,11 +65,8 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
         }
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to load body insights");
-      }
+      // Generic error message for user display
+      setError("Failed to load body insights");
     } finally {
       setLoading(false);
     }
@@ -182,7 +182,7 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-2xl font-bold text-white">{Math.round(healthScore.score)}</span>
-                  <span className="text-xs text-slate-400 uppercase">{healthScore.category}</span>
+                  <span className="text-xs text-slate-400 uppercase">{healthScore.category.toUpperCase()}</span>
                 </div>
               </div>
             </div>
@@ -305,6 +305,9 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
           </ul>
         </div>
       )}
+
+      {/* Posture Analysis */}
+      {!compact && <PostureAnalysisCard />}
     </div>
   );
 }

@@ -1,41 +1,53 @@
 import { uploadFormVideo, getFormVideoStatus, getFormVideoResult, listUserFormVideos } from '../services/form-analysis-api';
 
-// Mock AsyncStorage
-const mockSetItem = jest.fn();
-const mockGetItem = jest.fn();
-
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: (...args: any[]) => mockSetItem(...args),
-  getItem: (...args: any[]) => mockGetItem(...args),
+// Mock expo-secure-store
+jest.mock('expo-secure-store', () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+  clearAsync: jest.fn(),
 }));
+
+import * as SecureStore from 'expo-secure-store';
 
 // Mock fetch
 global.fetch = jest.fn();
 
 describe('FormAnalysisAPI', () => {
   const API_URL = 'http://localhost:8787';
-  const mockToken = 'test-token';
   const mockUserId = 'user-123';
+
+  const getItemAsync = SecureStore.getItemAsync as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetItem.mockResolvedValue(mockToken);
-    mockGetItem.mockImplementation((key: string) => {
-      if (key === 'aivo_user_id') {return Promise.resolve(mockUserId);}
-      return Promise.resolve(null);
+    // Default implementation based on key
+    getItemAsync.mockImplementation(async (key: string) => {
+      if (key === 'aivo_token') return 'test-token';
+      if (key === 'aivo_user_id') return 'user-123';
+      return null;
     });
   });
 
   describe('uploadFormVideo', () => {
     it('uploads video successfully', async () => {
-      const mockResponse = { ok: true, json: jest.fn().mockResolvedValue({ data: { videoId: 'vid-123', status: 'pending', videoUrl: 'https://...' } }) };
+      const mockBlob = { size: 1000, type: 'video/mp4' };
+      const mockResponse = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({ data: { videoId: 'vid-123', status: 'pending', videoUrl: 'https://...' } }),
+        blob: jest.fn().mockResolvedValue(mockBlob),
+      };
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
       const result = await uploadFormVideo('file:///video.mp4', 'video.mp4', 'squat');
 
       expect(result).toEqual({ videoId: 'vid-123', status: 'pending', videoUrl: 'https://...' });
-      expect(mockGetItem).toHaveBeenCalledWith('aivo_token');
-      expect(mockGetItem).toHaveBeenCalledWith('aivo_user_id');
+      expect(getItemAsync).toHaveBeenCalledWith('aivo_token');
+      expect(getItemAsync).toHaveBeenCalledWith('aivo_user_id');
       expect(global.fetch).toHaveBeenCalledWith(API_URL + '/api/form/upload', expect.objectContaining({
         method: 'POST',
         headers: { 'X-User-Id': mockUserId },
@@ -43,14 +55,16 @@ describe('FormAnalysisAPI', () => {
     });
 
     it('throws when not authenticated', async () => {
-      mockGetItem.mockResolvedValueOnce(null); // token
+      // Override token to return null
+      getItemAsync.mockResolvedValueOnce(null);
 
       await expect(uploadFormVideo('file:///video.mp4', 'video.mp4', 'squat'))
         .rejects.toThrow('Not authenticated');
     });
 
     it('throws on upload failure', async () => {
-      const mockResponse = { ok: false, json: jest.fn().mockResolvedValue({ error: 'File too large' }) };
+      const mockBlob = { size: 1000, type: 'video/mp4' };
+      const mockResponse = { ok: false, json: jest.fn().mockResolvedValue({ error: 'File too large' }), blob: jest.fn().mockResolvedValue(mockBlob) };
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
       await expect(uploadFormVideo('file:///video.mp4', 'video.mp4', 'squat'))
@@ -72,7 +86,7 @@ describe('FormAnalysisAPI', () => {
     });
 
     it('throws when not authenticated', async () => {
-      mockGetItem.mockResolvedValueOnce(null);
+      getItemAsync.mockResolvedValueOnce(null);
       await expect(getFormVideoStatus('vid-123')).rejects.toThrow('Not authenticated');
     });
   });
@@ -102,7 +116,7 @@ describe('FormAnalysisAPI', () => {
     });
 
     it('throws when not authenticated', async () => {
-      mockGetItem.mockResolvedValueOnce(null);
+      getItemAsync.mockResolvedValueOnce(null);
       await expect(getFormVideoResult('vid-123')).rejects.toThrow('Not authenticated');
     });
   });
@@ -123,7 +137,7 @@ describe('FormAnalysisAPI', () => {
     });
 
     it('throws when not authenticated', async () => {
-      mockGetItem.mockResolvedValueOnce(null);
+      getItemAsync.mockResolvedValueOnce(null);
       await expect(listUserFormVideos()).rejects.toThrow('Not authenticated');
     });
   });

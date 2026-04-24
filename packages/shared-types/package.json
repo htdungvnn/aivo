@@ -19,5 +19,13 @@
   "devDependencies": {
     "@aivo/jest-config": "workspace:*",
     "typescript": "5.4.5"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(ts|tsx)$": ["ts-jest", {
+        "useESM": true,
+        "tsconfig": "<rootDir>/tsconfig.json"
+      }]
+    }
   }
 }

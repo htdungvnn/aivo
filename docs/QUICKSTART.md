@@ -42,9 +42,7 @@ OPENAI_API_KEY=sk-your-openai-key
 # Optional: OAuth (for testing)
 # Get from Google Cloud Console / Facebook Developers
 GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_secret
 FACEBOOK_APP_ID=your_facebook_app_id
-FACEBOOK_APP_SECRET=your_facebook_secret
 
 # JWT secret (generate random string)
 AUTH_SECRET=your-secret-key-min-32-chars

@@ -26,7 +26,7 @@ export class BodyMetricsValidator {
 
     if (weight < 30) {
       errors.push("Weight seems too low for a healthy adult");
-    } else if (weight > 300) {
+    } else if (weight >= 300) {
       errors.push("Weight seems too high - please verify");
     }
 
@@ -71,27 +71,28 @@ export class BodyMetricsValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (bodyFat < 0 || bodyFat > 100) {
+    // bodyFat is a fraction (0-1), e.g., 0.15 = 15%
+    if (bodyFat < 0 || bodyFat >= 1) {
       errors.push("Body fat percentage must be between 0 and 100");
       return { valid: false, errors, warnings };
     }
 
-    // Essential fat thresholds
-    const essentialMin = gender === "male" ? 2 : 10;
-    const athleticMax = gender === "male" ? 13 : 20;
+    // Essential fat thresholds (as fractions)
+    const essentialMin = gender === "male" ? 0.02 : 0.10;
+    const athleticMax = gender === "male" ? 0.13 : 0.20;
 
     if (bodyFat < essentialMin) {
-      errors.push(`Body fat cannot be below ${essentialMin}% (essential fat)`);
+      errors.push(`Body fat cannot be below ${essentialMin * 100}% (essential fat)`);
     }
 
-    if (bodyFat > 35) {
+    if (bodyFat >= 0.35) {
       warnings.push("Body fat percentage is in the obese range");
     } else if (bodyFat > athleticMax) {
       warnings.push("Body fat is above athletic/fitness range");
     }
 
     // Age-adjusted ranges
-    if (age > 40 && bodyFat < 12) {
+    if (age > 40 && bodyFat < 0.12) {
       warnings.push("Body fat seems very low for your age group");
     }
 
@@ -126,11 +127,11 @@ export class BodyMetricsValidator {
     // Calculate muscle-to-weight ratio
     const ratio = muscleMass / weight;
 
-    // Typical muscle mass ratios by gender
+    // Typical muscle mass ratios by gender (as fraction of total weight)
     const typicalMin = gender === "male" ? 0.30 : 0.24;
     const typicalMax = gender === "male" ? 0.50 : 0.40;
 
-    if (ratio < typicalMin * 0.5) {
+    if (ratio < typicalMin) {
       warnings.push("Muscle mass seems unusually low");
     }
     if (ratio > typicalMax * 1.2) {
@@ -218,7 +219,12 @@ export class BodyMetricsValidator {
       const estimatedLean = metrics.weight * (1 - metrics.bodyFatPercentage / 100);
       const difference = Math.abs(estimatedLean - metrics.muscleMass);
 
-      if (difference > metrics.weight * 0.1) {
+      // If muscle mass is very close to estimated lean mass, it's inconsistent
+      // (lean mass should include bones, organs, water, etc.)
+      if (difference < metrics.weight * 0.1) {
+        errors.push(
+          "The combination of weight, body fat, and muscle mass seems inconsistent"
+        );
         warnings.push(
           "The combination of weight, body fat, and muscle mass seems inconsistent"
         );

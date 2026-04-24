@@ -6,7 +6,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { schema, sessions, users } from "@aivo/db";
+import type { schema} from "@aivo/db";
+import { sessions, users } from "@aivo/db";
 import { randomUUID } from "node:crypto";
 
 // Secret key - should be at least 256 bits (32 bytes)

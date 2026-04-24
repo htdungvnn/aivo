@@ -5,6 +5,8 @@ import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const MODULE_START_TIME = Date.now();
 
 // Env type for health router (matches AppEnv in index.ts)
@@ -65,11 +67,6 @@ interface CacheDetails {
 interface StorageDetails {
   connected: boolean;
   bucket?: string;
-}
-
-// Type for D1 exec result
-interface D1ExecResult {
-  results: Array<{ name: string }>;
 }
 
 const createHealthCheck = () => {

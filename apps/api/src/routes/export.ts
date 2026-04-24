@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
@@ -63,16 +64,6 @@ const ExportQuerySchema = z.object({
 const toDate = (timestamp: number | null | undefined): Date | undefined => {
   if (timestamp === null || timestamp === undefined) { return undefined; }
   return new Date(timestamp * 1000);
-};
-
-// Helper: Parse JSON string safely
-const parseJson = <T>(str: string | null | undefined, fallback: T): T => {
-  if (str === null || str === undefined) { return fallback; }
-  try {
-    return JSON.parse(str) as T;
-  } catch {
-    return fallback;
-  }
 };
 
 // Helper: Convert integer flag to boolean

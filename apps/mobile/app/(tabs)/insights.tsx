@@ -15,8 +15,9 @@ import { useMetrics } from "@/contexts/MetricsContext";
 import RecoveryDashboard from "@/components/biometric/RecoveryDashboard";
 import { launchImageLibraryAsync, MediaTypeOptions, launchCameraAsync } from "expo-image-picker";
 import { BodyMetricChart, HealthScoreGauge, MuscleBalanceChart } from "@/components/body/BodyMetricChart";
-import { PostureAnalysisCard } from "@/components/body/PostureAnalysisCard";
+import PostureAnalysisCard from "@/components/body/PostureAnalysisCard";
 import { uploadBodyImage, analyzeImage } from "../services/metrics-api";
+import DigitalTwinScreen from "@/screens/DigitalTwinScreen";
 import {
   Camera,
   Upload,
@@ -27,10 +28,11 @@ import {
   Scale,
   Target,
   Bed,
+  User,
 } from "lucide-react-native";
 
 type MainTab = "body" | "recovery";
-type BodyTab = "overview" | "upload" | "trends";
+type BodyTab = "overview" | "upload" | "trends" | "digital-twin";
 
 export default function InsightsScreen() {
   const { user } = useAuth();
@@ -452,6 +454,9 @@ export default function InsightsScreen() {
             </View>
           </View>
         );
+
+      case "digital-twin":
+        return <DigitalTwinScreen />;
     }
   };
 
@@ -496,6 +501,7 @@ export default function InsightsScreen() {
               { key: "overview", label: "Overview", icon: Activity },
               { key: "upload", label: "Upload", icon: Upload },
               { key: "trends", label: "Trends", icon: TrendingUp },
+              { key: "digital-twin", label: "Twin", icon: User },
             ].map((tab) => (
               <TouchableOpacity
                 key={tab.key}

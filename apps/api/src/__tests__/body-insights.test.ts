@@ -1,6 +1,5 @@
 /// <reference types="jest" />
-/// <reference types="jest" />
-import { describe, it, expect, beforeEach, afterEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDrizzleInstance } from '@aivo/db';
@@ -9,20 +8,20 @@ import { validateBodyMetrics } from '../services/validation';
 // Mock environment
 const mockEnv = {
   DB: {
-    execute: vi.fn(),
-    executeSql: vi.fn(),
-    batch: vi.fn(),
-    query: vi.fn(),
-    migrate: vi.fn(),
-    raw: vi.fn(),
-    _connect: vi.fn(),
-    _dispose: vi.fn(),
-    drizzle: vi.fn(),
+    execute: jest.fn(),
+    executeSql: jest.fn(),
+    batch: jest.fn(),
+    query: jest.fn(),
+    migrate: jest.fn(),
+    raw: jest.fn(),
+    _connect: jest.fn(),
+    _dispose: jest.fn(),
+    drizzle: jest.fn(),
   },
   BODY_INSIGHTS_CACHE: {
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+    get: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
   },
   OPENAI_API_KEY: 'test-openai-key',
   AUTH_SECRET: 'test-secret',
@@ -244,7 +243,7 @@ describe('Body Heatmap Vector Data', () => {
 
 describe('Cache Operations', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should store and retrieve from KV cache', async () => {
@@ -252,8 +251,8 @@ describe('Cache Operations', () => {
     const key = 'test-key';
 
     // Mock KV operations
-    mockEnv.BODY_INSIGHTS_CACHE.get = vi.fn().mockResolvedValue(JSON.stringify(mockData));
-    mockEnv.BODY_INSIGHTS_CACHE.put = vi.fn().mockResolvedValue(undefined);
+    mockEnv.BODY_INSIGHTS_CACHE.get = jest.fn().mockResolvedValue(JSON.stringify(mockData));
+    mockEnv.BODY_INSIGHTS_CACHE.put = jest.fn().mockResolvedValue(undefined);
 
     const cached = await mockEnv.BODY_INSIGHTS_CACHE.get(key);
     expect(cached).toBe(JSON.stringify(mockData));
@@ -263,7 +262,7 @@ describe('Cache Operations', () => {
   });
 
   it('should handle cache miss', async () => {
-    mockEnv.BODY_INSIGHTS_CACHE.get = vi.fn().mockResolvedValue(null);
+    mockEnv.BODY_INSIGHTS_CACHE.get = jest.fn().mockResolvedValue(null);
 
     const cached = await mockEnv.BODY_INSIGHTS_CACHE.get('nonexistent');
     expect(cached).toBeNull();

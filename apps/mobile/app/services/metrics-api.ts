@@ -2,7 +2,7 @@
  * API service for body metrics and insights
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from 'expo-secure-store';
 import type { BodyMetric, HealthScoreResult, VisionAnalysis, BodyHeatmapData } from "@aivo/shared-types";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
@@ -18,7 +18,14 @@ export interface AnalysisResult extends VisionAnalysis {
  * Get authentication token
  */
 async function getToken(): Promise<string | null> {
-  return await AsyncStorage.getItem("aivo_token");
+  return await SecureStore.getItemAsync('aivo_token');
+}
+
+/**
+ * Get user ID
+ */
+async function getUserId(): Promise<string | null> {
+  return await SecureStore.getItemAsync('aivo_user_id');
 }
 
 /**
@@ -30,7 +37,7 @@ export async function fetchBodyMetrics(limit: number = 30): Promise<BodyMetric[]
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -59,7 +66,7 @@ export async function createBodyMetric(metric: Partial<BodyMetric>): Promise<Bod
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -94,7 +101,7 @@ export async function fetchHeatmaps(limit: number = 10): Promise<BodyHeatmapData
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -123,7 +130,7 @@ export async function uploadBodyImage(imageUri: string, fileName: string): Promi
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -165,7 +172,7 @@ export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -201,7 +208,7 @@ export async function fetchHealthScore(): Promise<HealthScoreResult> {
     throw new Error("Not authenticated");
   }
 
-  const userId = await AsyncStorage.getItem("aivo_user_id");
+  const userId = await getUserId();
   if (!userId) {
     throw new Error("User ID not found");
   }
@@ -223,10 +230,10 @@ export async function fetchHealthScore(): Promise<HealthScoreResult> {
 }
 
 /**
- * Convert Unix timestamp to date string for charts
+ * Convert Unix timestamp (seconds) to date string for charts
  */
 export function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
+  const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 

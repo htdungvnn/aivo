@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { validateWeight } from '../src/services/validation';
 
 describe('R2 Storage Service', () => {
@@ -103,7 +103,7 @@ describe('R2 Storage Service', () => {
 
   describe('Error Handling', () => {
     it('should handle upload failures', async () => {
-      const mockUpload = vi.fn().mockRejectedValue(new Error('Upload failed'));
+      const mockUpload = jest.fn().mockRejectedValue(new Error('Upload failed'));
 
       try {
         await mockUpload();

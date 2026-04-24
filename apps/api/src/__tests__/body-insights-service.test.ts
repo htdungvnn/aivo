@@ -6,7 +6,7 @@ import {
   invalidateBodyCache,
   validateImage,
   CACHE_TTL,
-} from '../body-insights';
+} from '../services/body-insights';
 
 describe('Body Insights Service', () => {
   describe('Cache Key Generation', () => {
@@ -19,7 +19,7 @@ describe('Body Insights Service', () => {
     });
 
     it('handles empty params', () => {
-      expect(getCacheKey('user123', 'health-score', '')).toBe('body:user123:health-score:');
+      expect(getCacheKey('user123', 'health-score', '')).toBe('body:user123:health-score');
     });
   });
 
@@ -153,7 +153,8 @@ describe('Body Insights Service', () => {
     });
 
     it('handles buffer with only JPEG magic bytes', () => {
-      const partialJpeg = Buffer.from([0xff, 0xd8, 0xff]);
+      // JPEG magic: FF D8 FF E0 (or FF E1 etc) - need at least 4 bytes
+      const partialJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
       const result = validateImage(partialJpeg);
 
       expect(result.valid).toBe(true);

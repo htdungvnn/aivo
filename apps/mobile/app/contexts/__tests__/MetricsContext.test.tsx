@@ -1,35 +1,27 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen, act, waitFor } from '@testing-library/react-native';
+import '@testing-library/jest-native';
 import { MetricsProvider, useMetrics } from '../MetricsContext';
-
-// Mock AsyncStorage
-const mockStorage: Record<string, string> = {};
-const AsyncStorageMock = {
-  getItem: async (key: string): Promise<string | null> => {
-    return mockStorage[key] || null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    mockStorage[key] = value;
-  },
-  removeItem: async (key: string): Promise<void> => {
-    delete mockStorage[key];
-  },
-  clear: async (): Promise<void> => {
-    Object.keys(mockStorage).forEach((key) => {
-      delete mockStorage[key];
-    });
-  },
-};
-
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: AsyncStorageMock.getItem,
-  setItemAsync: AsyncStorageMock.setItem,
-  deleteItemAsync: AsyncStorageMock.removeItem,
-}));
+import * as SecureStore from 'expo-secure-store';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 // Mock fetch
 global.fetch = jest.fn();
+
+jest.mock('expo-secure-store', () => {
+  const storage: Record<string, string> = {};
+  return {
+    getItem: async (key: string): Promise<string | null> => storage[key] || null,
+    setItem: async (key: string, value: string): Promise<void> => { storage[key] = value; },
+    removeItem: async (key: string): Promise<void> => { delete storage[key]; },
+    clear: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
+    // Async-suffixed versions for the actual code
+    getItemAsync: async (key: string): Promise<string | null> => storage[key] || null,
+    setItemAsync: async (key: string, value: string): Promise<void> => { storage[key] = value; },
+    deleteItemAsync: async (key: string): Promise<void> => { delete storage[key]; },
+    clearAsync: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
+  };
+});
 
 // Test component that uses the context
 function TestComponent() {
@@ -45,28 +37,34 @@ function TestComponent() {
   } = useMetrics();
 
   return (
-    <div>
-      <div data-testid="loading">{loading.toString()}</div>
-      <div data-testid="error">{error || 'no-error'}</div>
-      <div data-testid="metrics-count">{metrics.length}</div>
-      <div data-testid="latest-metric">{latestMetric ? JSON.stringify(latestMetric) : 'none'}</div>
-      <div data-testid="health-score">{healthScore ? JSON.stringify(healthScore) : 'none'}</div>
-      <button data-testid="refresh" onClick={refreshMetrics}>Refresh</button>
-      <button
-        data-testid="add-metric"
-        onClick={async () => {
+    <View>
+      <Text testID="loading">{loading.toString()}</Text>
+      <Text testID="error">{error || 'no-error'}</Text>
+      <Text testID="metrics-count">{metrics.length}</Text>
+      <Text testID="latest-metric">{latestMetric ? JSON.stringify(latestMetric) : 'none'}</Text>
+      <Text testID="health-score">{healthScore ? JSON.stringify(healthScore) : 'none'}</Text>
+      <TouchableOpacity testID="refresh" onPress={refreshMetrics}>
+        <Text>Refresh</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        testID="add-metric"
+        onPress={async () => {
           const result = await addMetric({ weight: 75 });
           return result;
         }}
-      >Add Metric</button>
-      <button
-        data-testid="add-optimistic"
-        onClick={async () => {
+      >
+        <Text>Add Metric</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        testID="add-optimistic"
+        onPress={async () => {
           const result = await addMetricOptimistic({ weight: 80 });
           return result;
         }}
-      >Add Optimistic</button>
-    </div>
+      >
+        <Text>Add Optimistic</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -105,15 +103,15 @@ describe('MetricsContext', () => {
   };
 
   beforeEach(async () => {
-    await AsyncStorageMock.clear();
+    await SecureStore.clear();
     jest.clearAllMocks();
     (fetch as jest.Mock).mockClear();
   });
 
   describe('Initialization', () => {
     it('loads cached data on mount', async () => {
-      await AsyncStorageMock.setItem('aivo_metrics_cache', JSON.stringify(mockMetricsResponse.data));
-      await AsyncStorageMock.setItem('aivo_health_score_cache', JSON.stringify(mockHealthScoreResponse.data));
+      await SecureStore.setItem('aivo_metrics_cache', JSON.stringify(mockMetricsResponse.data));
+      await SecureStore.setItem('aivo_health_score_cache', JSON.stringify(mockHealthScoreResponse.data));
 
       render(
         <MetricsProvider>
@@ -154,8 +152,8 @@ describe('MetricsContext', () => {
   describe('refreshMetrics', () => {
     beforeEach(async () => {
       // Setup token and user ID
-      await AsyncStorageMock.setItem('aivo_token', mockToken);
-      await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+      await SecureStore.setItem('aivo_token', mockToken);
+      await SecureStore.setItem('aivo_user_id', mockUserId);
     });
 
     it('fetches metrics and health score', async () => {
@@ -203,10 +201,10 @@ describe('MetricsContext', () => {
       );
 
       await act(async () => {
-        (await AsyncStorageMock.getItem('aivo_metrics_cache'));
+        (await SecureStore.getItem('aivo_metrics_cache'));
       });
 
-      expect(AsyncStorageMock.getItem).toHaveBeenCalledWith('aivo_metrics_cache');
+      expect(SecureStore.getItem).toHaveBeenCalledWith('aivo_metrics_cache');
     });
 
     it('handles fetch errors', async () => {
@@ -231,8 +229,8 @@ describe('MetricsContext', () => {
 
   describe('addMetric', () => {
     beforeEach(async () => {
-      await AsyncStorageMock.setItem('aivo_token', mockToken);
-      await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+      await SecureStore.setItem('aivo_token', mockToken);
+      await SecureStore.setItem('aivo_user_id', mockUserId);
     });
 
     it('adds new metric successfully', async () => {
@@ -280,7 +278,7 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        expect(AsyncStorageMock.removeItem).toHaveBeenCalledWith('aivo_metrics_cache');
+        expect(SecureStore.removeItem).toHaveBeenCalledWith('aivo_metrics_cache');
       });
     });
 
@@ -310,8 +308,8 @@ describe('MetricsContext', () => {
 
   describe('addMetricOptimistic', () => {
     beforeEach(async () => {
-      await AsyncStorageMock.setItem('aivo_token', mockToken);
-      await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+      await SecureStore.setItem('aivo_token', mockToken);
+      await SecureStore.setItem('aivo_user_id', mockUserId);
     });
 
     it('adds metric optimistically', async () => {
@@ -403,8 +401,8 @@ describe('MetricsContext', () => {
 
   describe('State Management', () => {
     it('updates latestMetric when metrics change', async () => {
-      await AsyncStorageMock.setItem('aivo_token', mockToken);
-      await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+      await SecureStore.setItem('aivo_token', mockToken);
+      await SecureStore.setItem('aivo_user_id', mockUserId);
 
       (fetch as jest.Mock).mockImplementation((url) => {
         if (url.includes('/api/body/metrics')) {
@@ -430,8 +428,8 @@ describe('MetricsContext', () => {
     });
 
     it('tracks optimistic update in state', async () => {
-      await AsyncStorageMock.setItem('aivo_token', mockToken);
-      await AsyncStorageMock.setItem('aivo_user_id', mockUserId);
+      await SecureStore.setItem('aivo_token', mockToken);
+      await SecureStore.setItem('aivo_user_id', mockUserId);
 
       (fetch as jest.Mock).mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
 

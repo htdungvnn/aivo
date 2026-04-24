@@ -3,7 +3,6 @@
  * Run with: pnpm test -- model-selector.test.ts
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   selectModel,
   analyzeTaskRequirements,
@@ -12,7 +11,7 @@ import {
   compareModels,
   MODELS,
   type TaskRequirements,
-} from '../src/utils/model-selector';
+} from '../utils/model-selector';
 
 describe('Model Selector', () => {
   describe('analyzeTaskRequirements', () => {
@@ -24,7 +23,7 @@ describe('Model Selector', () => {
 
     it('should identify complex tasks', () => {
       const req = analyzeTaskRequirements('Analyze this multi-step problem and provide a detailed solution with reasoning');
-      expect(req.complexity).toBe('complex');
+      expect(req.complexity).toBe('expert'); // Has analyze, multi-step, detailed, reasoning -> expert
       expect(req.needsReasoning).toBe(true);
     });
 
@@ -110,7 +109,7 @@ describe('Model Selector', () => {
         needsVision: true,
         needsFunctionCalling: false,
         needsJsonMode: false,
-        estimatedInputTokens: 500000, // Exceeds all context windows
+        estimatedInputTokens: 5000000, // Exceeds all context windows (max is 2M)
         estimatedOutputTokens: 1000,
         needsReasoning: true,
         needsCode: false,

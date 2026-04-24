@@ -1,18 +1,19 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { BodyMetricChart, MuscleBalanceChart, HealthScoreGauge } from './BodyMetricChart';
+import { render, screen } from '@testing-library/react-native';
+import '@testing-library/jest-native';
+import { BodyMetricChart, MuscleBalanceChart, HealthScoreGauge } from '../BodyMetricChart';
+import { View, Text } from 'react-native';
 
 // Mock Victory Native
-vi.mock('victory-native', () => ({
-  VictoryChart: ({ children }: any) => <div data-testid="victory-chart">{children}</div>,
-  VictoryLine: ({ data }: any) => <div data-testid="victory-line" data-count={data.length} />,
-  VictoryArea: ({ data }: any) => <div data-testid="victory-area" data-count={data.length} />,
-  VictoryBar: ({ data }: any) => <div data-testid="victory-bar" data-count={data.length} />,
+jest.mock('victory-native', () => ({
+  VictoryChart: ({ children }: any) => <View testID="victory-chart">{children}</View>,
+  VictoryLine: ({ data }: any) => <View testID="victory-line" />,
+  VictoryArea: ({ data }: any) => <View testID="victory-area" />,
+  VictoryBar: ({ data }: any) => <View testID="victory-bar" />,
   VictoryAxis: ({ dependentAxis, tickFormat }: any) => (
-    <div data-testid="victory-axis" data-dependent={dependentAxis} data-format={tickFormat?.toString()} />
+    <View testID="victory-axis" />
   ),
-  VictoryTooltip: ({ children }: any) => <div data-testid="victory-tooltip">{children}</div>,
+  VictoryTooltip: ({ children }: any) => <View testID="victory-tooltip">{children}</View>,
   VictoryTheme: {
     material: {},
   },

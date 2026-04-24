@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
 
@@ -55,8 +55,8 @@ export interface LiveWorkoutSession {
 }
 
 async function getAuthHeaders(): Promise<Headers> {
-  const token = await AsyncStorage.getItem(TOKEN_KEY);
-  const userId = await AsyncStorage.getItem(USER_ID_KEY);
+  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  const userId = await SecureStore.getItemAsync(USER_ID_KEY);
 
   const headers = new Headers({
     "Content-Type": "application/json",

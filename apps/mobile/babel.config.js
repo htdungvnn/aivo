@@ -1,10 +1,6 @@
 export default function (api) {
-  api.cache(true);
+  const isTest = api.env('test');
   return {
-    presets: ["babel-preset-expo"],
-    plugins: [
-      "react-native-reanimated/plugin",
-      "nativewind/babel",
-    ],
+    presets: ['expo'],
   };
 }

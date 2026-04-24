@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
 const TOKEN_KEY = "aivo.auth.token";
@@ -114,14 +114,8 @@ export interface RecoveryScoreResult {
   warnings: string[];
 }
 
-type ApiResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
 async function getToken(): Promise<string | null> {
-  return await AsyncStorage.getItem(TOKEN_KEY);
+  return await SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 async function fetchApi<T>(
@@ -150,7 +144,9 @@ async function fetchApi<T>(
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const json = await response.json() as Promise<{ data?: T } & T>;
+  // Unwrap data envelope if present
+  return json.data !== undefined ? json.data : (json as T);
 }
 
 /**
@@ -259,4 +255,25 @@ export async function generateAndGetRecoveryScore(): Promise<RecoveryScoreResult
   } catch {
     return null;
   }
+}
+
+/**
+ * Get sleep history with pagination
+ */
+export async function getSleepHistory(
+  limit: number = 30,
+  offset: number = 0
+): Promise<SleepLog[]> {
+  return await fetchApi<SleepLog[]>(
+    `/api/biometric/sleep/history?limit=${limit}&offset=${offset}`
+  );
+}
+
+/**
+ * Dismiss a correlation finding
+ */
+export async function dismissCorrelation(id: string): Promise<void> {
+  await fetchApi<void>(`/api/biometric/correlations/${id}/dismiss`, {
+    method: "PATCH",
+  });
 }

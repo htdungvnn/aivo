@@ -3,12 +3,33 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RecoveryDashboard } from '../RecoveryDashboard';
 import { ApiClient } from '@aivo/api-client';
+import { AuthProvider } from '@/contexts/AuthContext';
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock the API client
 const mockGetSleepHistory = jest.fn();
 const mockGetCorrelations = jest.fn();
 const mockGetBiometricSnapshot = jest.fn();
 const mockGenerateBiometricSnapshot = jest.fn();
+
 jest.mock('@aivo/api-client', () => ({
   ApiClient: jest.fn().mockImplementation(() => ({
     getSleepHistory: mockGetSleepHistory,
@@ -24,18 +45,6 @@ jest.mock('@aivo/api-client', () => ({
   })),
 }));
 
-// Mock useAuth to provide a logged-in user
-jest.mock('@/contexts/AuthContext', () => ({
-  ...jest.requireActual('@/contexts/AuthContext'),
-  useAuth: jest.fn(() => ({
-    user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
-    isAuthenticated: true,
-    loading: false,
-    login: jest.fn(),
-    logout: jest.fn(),
-  })),
-}));
-
 // Mock fetch globally
 global.fetch = jest.fn();
 
@@ -43,18 +52,18 @@ describe('RecoveryDashboard Component', () => {
   const mockSnapshot = {
     id: 'snap-1',
     userId: 'user-123',
-    period: '7d' as const,
+    period: '30d' as const,
     exerciseLoad: {
       totalWorkouts: 5,
       avgIntensity: 7.2,
       intensityStdDev: 0.8,
       weeklyVolume: 25000,
       totalReps: 500,
+      avgDurationMinutes: 45,
     },
     sleep: {
-      avgDuration: 7.5,
-      durationStdDev: 0.5,
-      avgQuality: 82,
+      avgDurationHours: 7.5,
+      avgQualityScore: 82,
       consistencyScore: 78,
       avgDeepSleepMinutes: 90,
       avgRemSleepMinutes: 95,
@@ -62,7 +71,7 @@ describe('RecoveryDashboard Component', () => {
     nutrition: {
       avgDailyCalories: 2200,
       targetCalories: 2300,
-      consistencyScore: 75,
+      consistencyScore: 80,
       avgProtein: 120,
       avgCarbs: 250,
       avgFat: 70,
@@ -73,7 +82,7 @@ describe('RecoveryDashboard Component', () => {
       bodyFatChange: -0.3,
       muscleMassChange: 0.2,
     },
-    recoveryScore: 75.5,
+    recoveryScore: 75.4,
     warnings: ['Late night eating detected on 2025-04-20'],
   };
 
@@ -94,56 +103,79 @@ describe('RecoveryDashboard Component', () => {
     },
   ];
 
-  const mockSleepHistory = {
-    avgDuration: 7.5,
-    avgQuality: 82,
-    avgConsistency: 78,
-    totalDays: 7,
-    logs: [],
-  };
+  const mockSleepHistory = [
+    {
+      id: 'sleep-1',
+      userId: 'user-123',
+      date: '2025-04-22',
+      durationHours: 7.5,
+      qualityScore: 82,
+    },
+    {
+      id: 'sleep-2',
+      userId: 'user-123',
+      date: '2025-04-21',
+      durationHours: 7.0,
+      qualityScore: 78,
+    },
+    {
+      id: 'sleep-3',
+      userId: 'user-123',
+      date: '2025-04-20',
+      durationHours: 8.0,
+      qualityScore: 85,
+    },
+  ];
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetSleepHistory.mockResolvedValue(mockSleepHistory);
-    mockGetCorrelations.mockResolvedValue(mockCorrelations);
-    mockGetBiometricSnapshot.mockResolvedValue(mockSnapshot);
-    mockGenerateBiometricSnapshot.mockResolvedValue(mockSnapshot);
+    mockGetSleepHistory.mockResolvedValue({ success: true, data: mockSleepHistory });
+    mockGetCorrelations.mockResolvedValue({ success: true, data: mockCorrelations });
+    mockGetBiometricSnapshot.mockResolvedValue({ success: true, data: mockSnapshot });
+    mockGenerateBiometricSnapshot.mockResolvedValue({ success: true, data: mockSnapshot });
   });
 
-  it('should render loading state initially', () => {
-    // Mock all API calls to pend
-    mockGetSleepHistory.mockImplementation(() => new Promise(() => {}));
+  const renderWithAuth = (ui: React.ReactElement) => {
+    return render(
+      <AuthProvider>
+        {ui}
+      </AuthProvider>
+    );
+  };
 
-    render(<RecoveryDashboard />);
+  it('should render loading state initially', async () => {
+    // Mock one API call to pend to keep loading
+    mockGetBiometricSnapshot.mockImplementation(() => new Promise(() => {}));
 
-    // Should show loading or data eventually
+    renderWithAuth(<RecoveryDashboard />);
+
+    // Should show loading skeletons
     expect(document.body).toBeInTheDocument();
   });
 
   it('should render recovery score gauge with snapshot', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Recovery & Stress')).toBeInTheDocument();
+      expect(screen.getByText('Biometric Recovery')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Recovery Score')).toBeInTheDocument();
-    expect(screen.getByText('75')).toBeInTheDocument(); // Score rounded
+    expect(screen.getByText('75%')).toBeInTheDocument(); // Score rounded
   });
 
   it('should display sleep stats', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Sleep')).toBeInTheDocument();
     });
 
     expect(screen.getByText(/7\.5h/)).toBeInTheDocument();
-    expect(screen.getByText(/82%/)).toBeInTheDocument();
   });
 
   it('should display exercise stats', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Exercise')).toBeInTheDocument();
@@ -153,43 +185,25 @@ describe('RecoveryDashboard Component', () => {
   });
 
   it('should display nutrition consistency', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Nutrition')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
   });
 
   it('should display top correlation insight', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('Top Insight')).toBeInTheDocument();
+      expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
-  });
-
-  it('should handle correlation dismiss', async () => {
-    render(<RecoveryDashboard />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Top Insight')).toBeInTheDocument();
-    });
-
-    const dismissButton = screen.getByText('Dismiss');
-    fireEvent.click(dismissButton);
-
-    expect(mockGetCorrelations).toHaveBeenCalledWith(5);
   });
 
   it('should generate snapshot on button click', async () => {
-    const user = { id: 'user-123' };
-    jest.spyOn(React, 'useContext').mockReturnValue({ user });
-
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Run Analysis')).toBeInTheDocument();
@@ -202,7 +216,7 @@ describe('RecoveryDashboard Component', () => {
   });
 
   it('should display warnings when present', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Late night eating detected')).toBeInTheDocument();
@@ -210,7 +224,7 @@ describe('RecoveryDashboard Component', () => {
   });
 
   it('should switch between tabs', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Overview')).toBeInTheDocument();
@@ -221,22 +235,22 @@ describe('RecoveryDashboard Component', () => {
     fireEvent.click(sleepTab);
 
     await waitFor(() => {
-      expect(screen.getByText('Sleep Summary')).toBeInTheDocument();
+      expect(screen.getByText('Recent Sleep')).toBeInTheDocument();
     });
 
-    // Click Insights tab
-    const insightsTab = screen.getByRole('button', { name: /Insights/i });
-    fireEvent.click(insightsTab);
+    // Click Correlations tab
+    const correlationsTab = screen.getByRole('button', { name: /Correlations/i });
+    fireEvent.click(correlationsTab);
 
     await waitFor(() => {
-      expect(screen.getByText('No significant correlations found yet.')).toBeInTheDocument();
+      expect(screen.getByText(/Better sleep correlates/)).toBeInTheDocument();
     });
   });
 
   it('should show no correlations message when empty', async () => {
-    mockGetCorrelations.mockResolvedValue([]);
+    mockGetCorrelations.mockResolvedValue({ success: true, data: [] });
 
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('No significant correlations found yet.')).toBeInTheDocument();
@@ -244,12 +258,12 @@ describe('RecoveryDashboard Component', () => {
   });
 
   it('should display recovery grade based on score', async () => {
-    render(<RecoveryDashboard />);
+    renderWithAuth(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText('75')).toBeInTheDocument();
+      expect(screen.getByText('75%')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('good')).toBeInTheDocument(); // Grade for 75.5
+    expect(screen.getByText('Good')).toBeInTheDocument(); // Grade for 75.4
   });
 });

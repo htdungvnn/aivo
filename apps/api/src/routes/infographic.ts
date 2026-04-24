@@ -8,6 +8,8 @@
  * - GET  /api/infographic/templates - List available templates
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";

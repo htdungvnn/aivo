@@ -1,31 +1,34 @@
 /// <reference types="jest" />
-import { describe, it, expect, beforeEach, vi, afterEach } from '@jest/globals';
-import { Hono } from 'hono';
-import { jwtVerify, sign } from 'jose';
-import { z } from 'zod';
 
-// Mock database
+// Mock database - must be defined before jest.mock that references it
 const mockDb = {
   users: {
-    findFirst: vi.fn(),
-    upsert: vi.fn(),
+    findFirst: jest.fn(),
+    upsert: jest.fn(),
   },
   sessions: {
-    findFirst: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    delete: jest.fn(),
   },
 };
 
-vi.mock('../src/services/db', () => ({
+// Mock jose before any imports
+jest.mock('jose', () => ({
+  jwtVerify: jest.fn(),
+  sign: jest.fn(),
+  Secret: 'mock-secret',
+}));
+
+// Mock database service
+jest.mock('../services/db', () => ({
   db: mockDb,
 }));
 
-vi.mock('jose', () => ({
-  jwtVerify: vi.fn(),
-  sign: vi.fn(),
-  Secret: 'mock-secret',
-}));
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { Hono } from 'hono';
+import { jwtVerify, sign } from 'jose';
+import { z } from 'zod';
 
 describe('Authentication API', () => {
   const mockEnv = {
@@ -33,7 +36,7 @@ describe('Authentication API', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('POST /api/auth/google', () => {
@@ -211,7 +214,7 @@ describe('Authentication API', () => {
         id: 'facebook-123',
       };
 
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      (global as any).fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: async () => mockFbUser,
       });
@@ -297,7 +300,7 @@ describe('Authentication API', () => {
     it('handles Facebook API errors', async () => {
       const app = new Hono();
 
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      (global as any).fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 400,
         json: async () => ({ error: { message: 'Invalid token' } }),
@@ -353,6 +356,7 @@ describe('Authentication API', () => {
       });
 
       const request = new Request('http://localhost:8787/api/auth/verify', {
+        method: 'POST',
         headers: { 'Authorization': 'Bearer valid-token' },
       });
 
@@ -382,6 +386,7 @@ describe('Authentication API', () => {
       });
 
       const request = new Request('http://localhost:8787/api/auth/verify', {
+        method: 'POST',
         headers: { 'Authorization': 'Bearer expired-token' },
       });
 
@@ -415,6 +420,7 @@ describe('Authentication API', () => {
       });
 
       const request = new Request('http://localhost:8787/api/auth/logout', {
+        method: 'POST',
         headers: { 'Authorization': 'Bearer token-to-invalidate' },
       });
 

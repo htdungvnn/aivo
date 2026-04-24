@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 interface EnvWithR2 {
   DB: D1Database;
 }
