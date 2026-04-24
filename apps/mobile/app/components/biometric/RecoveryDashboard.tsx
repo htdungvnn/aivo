@@ -128,7 +128,7 @@ export default function RecoveryDashboard() {
             <Text className="text-slate-400 text-xs">Sleep</Text>
           </View>
           <Text className="text-white font-bold text-lg">
-            {sleepSummary?.avgDuration.toFixed(1) || "--"}h
+            {sleepSummary?.avgDuration?.toFixed(1) || "--"}h
           </Text>
           <Text className="text-slate-500 text-xs">
             {sleepSummary?.avgQuality ? `${sleepSummary.avgQuality.toFixed(0)}% quality` : "No data"}
@@ -221,7 +221,7 @@ export default function RecoveryDashboard() {
             <View className="flex-row justify-between text-sm mb-1">
               <Text className="text-slate-400">Avg Duration</Text>
               <Text className="text-white">
-                {sleepSummary?.avgDuration.toFixed(1) || "--"}h
+                {sleepSummary?.avgDuration?.toFixed(1) || "--"}h
               </Text>
             </View>
             <View className="h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -250,7 +250,7 @@ export default function RecoveryDashboard() {
           <View>
             <View className="flex-row justify-between text-sm mb-1">
               <Text className="text-slate-400">Consistency</Text>
-              <Text className="text-white">{sleepSummary?.avgConsistency.toFixed(0) || "--"}%</Text>
+              <Text className="text-white">{sleepSummary?.avgConsistency?.toFixed(0) || "--"}%</Text>
             </View>
             <View className="h-2 bg-slate-800 rounded-full overflow-hidden">
               <View

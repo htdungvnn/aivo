@@ -68,7 +68,14 @@ async function fetchApi<T>(
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const json = await response.json();
+
+  // Unwrap data envelope if present (API returns { data: T })
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data as T;
+  }
+
+  return json as T;
 }
 
 /**

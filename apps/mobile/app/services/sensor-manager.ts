@@ -31,8 +31,8 @@ export interface SensorStatus {
 class SensorManager {
   private healthClient: HealthKitClient | GoogleFitClient | null = null;
   private isCollecting = false;
-  private collectionInterval: NodeJS.Timeout | null = null;
-  private uploadInterval: NodeJS.Timeout | null = null;
+  private collectionInterval: ReturnType<typeof setInterval> | null = null;
+  private uploadInterval: ReturnType<typeof setInterval> | null = null;
   private readingsQueue: BiometricReading[] = [];
   private statusListeners: Array<(status: SensorStatus) => void> = [];
 

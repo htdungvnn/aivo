@@ -6,6 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -25,17 +26,19 @@ export default function RootLayout({
     <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <body className={inter.className}>
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              forcedTheme="dark"
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster richColors />
-            </ThemeProvider>
-          </AuthProvider>
+          <LocaleProvider>
+            <AuthProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                forcedTheme="dark"
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster richColors />
+              </ThemeProvider>
+            </AuthProvider>
+          </LocaleProvider>
         </GoogleOAuthProvider>
       </body>
     </html>

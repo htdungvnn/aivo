@@ -5,6 +5,10 @@ import Svg, { G, Path, Defs, LinearGradient, Stop } from "react-native-svg";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const AVATAR_SIZE = SCREEN_WIDTH * 0.6;
 
+// Color constants
+const MUSCLE_STROKE_COLOR = '#8B4513';
+const COLOR_TRANSPARENT = 'transparent';
+
 // Define body region paths (simplified 2D silhouette)
 const BODY_PATHS = {
   head: "M 50 10 C 45 10, 40 15, 40 20 C 40 25, 45 30, 50 30 C 55 30, 60 25, 60 20 C 60 15, 55 10, 50 10",
@@ -19,7 +23,7 @@ const BODY_PATHS = {
 interface MorphTargets {
   body_scale: number;
   fat_distribution: Array<{ region: string; intensity: number }>;
-  muscle_development: Array< { muscle_group: string; development_factor: number }>;
+  muscle_development: Array<{ muscle_group: string; development_factor: number }>;
   skin_tightness: number;
   posture_adjustment: number;
 }
@@ -80,7 +84,7 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
       return {};
     }
     const strokeWidth = Math.min(2, (factor - 1) * 2);
-    return { stroke: styles.muscleStrokeColor, strokeWidth };
+    return { stroke: MUSCLE_STROKE_COLOR, strokeWidth };
   };
 
   // Render a body path with applied morphing
@@ -120,10 +124,7 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
         </Defs>
 
         <G
-          transform={`translate(${morphTargets.posture_adjustment * 10}, 0)`}
-          rotation={morphTargets.posture_adjustment * 5}
-          originX={50}
-          originY={60}
+          transform={`translate(${morphTargets.posture_adjustment * 10}, 0) rotate(${morphTargets.posture_adjustment * 5}, 50, 60)`}
         >
           {/* Render body parts in order (back to front) */}
           {/* Torso */}
@@ -173,7 +174,7 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
   );
 };
 
-const COLOR_TRANSPARENT = 'transparent';
+export default AvatarViewer2D;
 
 const styles = StyleSheet.create({
   container: {
@@ -182,5 +183,3 @@ const styles = StyleSheet.create({
     backgroundColor: COLOR_TRANSPARENT,
   },
 });
-
-export default AvatarViewer2D;

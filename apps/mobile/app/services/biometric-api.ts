@@ -144,9 +144,14 @@ async function fetchApi<T>(
     return undefined as T;
   }
 
-  const json = (await response.json()) as T | { data: T };
-  // Unwrap data envelope if present
-  return 'data' in json ? json.data : (json as T);
+  const json = await response.json();
+
+  // Unwrap data envelope if present (API returns { data: T })
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data as T;
+  }
+
+  return json as T;
 }
 
 /**
