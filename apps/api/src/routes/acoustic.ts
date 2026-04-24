@@ -1,0 +1,205 @@
+import { Hono, Context } from 'hono';
+import { cors } from 'hono/cors';
+import { z } from 'zod';
+import { AcousticMyography } from '@aivo/compute';
+
+export const AcousticRouter = () => {
+  const router = new Hono();
+
+  router.use('/*', cors({
+    origin: ['http://localhost:3000', 'http://localhost:8080'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['POST', 'GET', 'OPTIONS'],
+    exposeHeaders: ['X-RateLimit-Remaining'],
+  }));
+
+  const ProcessChunkSchema = z.object({
+    pcmData: z.array(z.number()).min(1).max(10000),
+    timestamp: z.number().optional(),
+    sessionId: z.string().optional(),
+  });
+
+  const CalibrateSchema = z.object({
+    pcmData: z.array(z.number()).min(4000).max(20000),
+  });
+
+  const SessionStartSchema = z.object({
+    userId: z.string(),
+    exerciseName: z.string(),
+    muscleGroup: z.enum(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'core', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'forearms', 'neck']),
+    workoutId: z.string().optional(),
+    baselineId: z.string().optional(),
+  });
+
+  function generateId(): string {
+    return crypto.randomUUID();
+  }
+
+  function now(): number {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  function invokeWasm(functionName: 'processAudioChunk' | 'calibrateBaseline' | 'calculateFatigueScore' | 'isExerciseSignal' | 'getRecommendedConfig' | 'recommendedSampleRate' | 'recommendedChunkDurationMs', args: [Int16Array, bigint?] | [string, string?] | [Int16Array?] | []): any {
+    switch (functionName) {
+      case 'processAudioChunk':
+        return AcousticMyography.processAudioChunk(args[0] as Int16Array, (args[1] ?? BigInt(0)) as bigint);
+      case 'calibrateBaseline':
+        return AcousticMyography.calibrateBaseline(args[0] as Int16Array);
+      case 'calculateFatigueScore':
+        return AcousticMyography.calculateFatigueScore(args[0] as string, (args[1] ?? '') as string);
+      case 'isExerciseSignal':
+        return AcousticMyography.isExerciseSignal(args[0] as Int16Array);
+      case 'getRecommendedConfig':
+        return AcousticMyography.getRecommendedConfig();
+      case 'recommendedSampleRate':
+        return AcousticMyography.recommendedSampleRate();
+      case 'recommendedChunkDurationMs':
+        return AcousticMyography.recommendedChunkDurationMs();
+      default:
+        throw new Error(`Unknown WASM function: ${functionName}`);
+    }
+  }
+
+  router.post('/process-chunk', async (ctx: Context) => {
+    try {
+      const body = await ctx.req.json();
+      const validated = ProcessChunkSchema.parse(body);
+
+      for (const sample of validated.pcmData) {
+        if (sample < -32768 || sample > 32767) {
+          return ctx.json({ success: false, error: 'PCM samples must be 16-bit signed integers' }, 400);
+        }
+      }
+
+      const pcmData = new Int16Array(validated.pcmData);
+      const timestamp = validated.timestamp !== undefined ? BigInt(validated.timestamp) : BigInt(0);
+      const resultJson = invokeWasm('processAudioChunk', [pcmData, timestamp]);
+      const features = JSON.parse(resultJson);
+
+      return ctx.json({ success: true, data: features });
+    } catch (error) {
+      console.error('Process chunk error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.post('/calibrate', async (ctx: Context) => {
+    try {
+      const body = await ctx.req.json();
+      const validated = CalibrateSchema.parse(body);
+      const pcmData = new Int16Array(validated.pcmData);
+      const baselineJson = invokeWasm('calibrateBaseline', [pcmData]);
+      const baseline = JSON.parse(baselineJson);
+      return ctx.json({ success: true, data: baseline });
+    } catch (error) {
+      console.error('Calibrate error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.post('/calculate-fatigue', async (ctx: Context) => {
+    try {
+      const body = await ctx.req.json();
+      const featuresJson = z.string().parse(body.features);
+      const baselineJson = z.string().optional().parse(body.baseline);
+      const resultJson = invokeWasm('calculateFatigueScore', [featuresJson, baselineJson || '']);
+      const result = JSON.parse(resultJson);
+      return ctx.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Calculate fatigue error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.post('/sessions/start', async (ctx: Context) => {
+    try {
+      const body = await ctx.req.json();
+      const { userId, exerciseName, muscleGroup, workoutId, baselineId } = SessionStartSchema.parse(body);
+      const sessionId = generateId();
+      const timestamp = now();
+      return ctx.json({ success: true, data: { sessionId, startTime: timestamp, message: 'Acoustic session started' } });
+    } catch (error) {
+      console.error('Start session error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.post('/sessions/:id/end', async (ctx: Context) => {
+    try {
+      const sessionId = ctx.req.param('id');
+      const endTime = now();
+      return ctx.json({ success: true, data: { sessionId, endTime, message: 'Session ended' } });
+    } catch (error) {
+      console.error('End session error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.get('/sessions/:id/trend', async (ctx: Context) => {
+    try {
+      const sessionId = ctx.req.param('id');
+      return ctx.json({ success: true, data: { sessionId, trend: [], message: 'Trend data would be calculated from chunk features' } });
+    } catch (error) {
+      console.error('Get trend error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.get('/baselines/:userId/:muscleGroup', async (ctx: Context) => {
+    try {
+      const { userId, muscleGroup } = ctx.req.param();
+      return ctx.json({ success: true, data: null, message: 'Baseline query would be executed here' });
+    } catch (error) {
+      console.error('Get baseline error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.post('/analyze-exercise', async (ctx: Context) => {
+    try {
+      const body = await ctx.req.json();
+      const pcmData = new Int16Array(body.pcmData || []);
+      const isExercise = invokeWasm('isExerciseSignal', [pcmData]);
+      return ctx.json({ success: true, data: { isExercise: Boolean(isExercise) } });
+    } catch (error) {
+      console.error('Analyze exercise error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.get('/config', async (ctx: Context) => {
+    try {
+      const configJson = invokeWasm('getRecommendedConfig', []);
+      const config = JSON.parse(configJson);
+      return ctx.json({ success: true, data: config });
+    } catch (error) {
+      console.error('Get config error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  router.get('/insights/:exerciseName', async (ctx: Context) => {
+    try {
+      const exerciseName = ctx.req.param('exerciseName');
+      return ctx.json({
+        success: true,
+        data: {
+          exercise: exerciseName,
+          avgFatigue: null,
+          peakFatigue: null,
+          recommendations: [
+            'Calibrate baseline before first use',
+            'Monitor fatigue trends over time',
+            'Rest when fatigue exceeds 70',
+          ],
+          warning: 'Historical data not yet implemented',
+        },
+      });
+    } catch (error) {
+      console.error('Get insights error:', error);
+      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+    }
+  });
+
+  return router;
+};
