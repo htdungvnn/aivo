@@ -1,0 +1,22 @@
+// Manual mock for react-native-svg
+module.exports = {
+  Svg: 'Svg',
+  G: 'G',
+  Path: 'Path',
+  Circle: 'Circle',
+  Rect: 'Rect',
+  Line: 'Line',
+  Text: 'SvgText',
+  TSpan: 'TSpan',
+  Defs: 'Defs',
+  LinearGradient: 'LinearGradient',
+  Stop: 'Stop',
+  ClipPath: 'ClipPath',
+  Use: 'Use',
+  Symbol: 'Symbol',
+  Image: 'SvgImage',
+  Pattern: 'Pattern',
+  Polyline: 'Polyline',
+  Polygon: 'Polygon',
+  Ellipse: 'Ellipse',
+};
