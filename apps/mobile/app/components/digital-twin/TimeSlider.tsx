@@ -4,10 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface TimeSliderProps {
   selectedWeeks: number;
@@ -46,7 +43,6 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({
         <Text style={styles.value}>{selectedWeeks} weeks</Text>
       </View>
 
-      {/* Custom slider track with buttons */}
       <View style={styles.sliderContainer}>
         <View style={styles.track}>
           <View
@@ -80,7 +76,6 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({
         </View>
       </View>
 
-      {/* Preset labels */}
       <View style={styles.presetsContainer}>
         <Text style={styles.presetLabel}>Short term</Text>
         <Text style={styles.presetLabel}>Long term</Text>
@@ -88,6 +83,15 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({
     </View>
   );
 };
+
+const COLOR_PRIMARY = '#007AFF';
+const COLOR_PRIMARY_TEXT = '#fff';
+const COLOR_TEXT_PRIMARY = '#1a1a1a';
+const COLOR_TEXT_SECONDARY = '#666';
+const COLOR_TEXT_TERTIARY = '#999';
+const COLOR_BG_BUTTON = '#f5f5f5';
+const COLOR_BORDER = '#e0e0e0';
+const COLOR_TRACK = '#e0e0e0';
 
 const styles = StyleSheet.create({
   container: {
@@ -103,26 +107,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1a1a1a",
+    color: COLOR_TEXT_PRIMARY,
   },
   value: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#007AFF",
+    color: COLOR_PRIMARY,
   },
   sliderContainer: {
     marginBottom: 8,
   },
   track: {
     height: 6,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: COLOR_TRACK,
     borderRadius: 3,
     marginBottom: 12,
     overflow: "hidden",
   },
   trackFill: {
     height: "100%",
-    backgroundColor: "#007AFF",
+    backgroundColor: COLOR_PRIMARY,
     borderRadius: 3,
   },
   buttonsContainer: {
@@ -133,21 +137,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLOR_BG_BUTTON,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: COLOR_BORDER,
   },
   weekButtonSelected: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: COLOR_PRIMARY,
+    borderColor: COLOR_PRIMARY,
   },
   weekButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#666",
+    color: COLOR_TEXT_SECONDARY,
   },
   weekButtonTextSelected: {
-    color: "#fff",
+    color: COLOR_PRIMARY_TEXT,
   },
   presetsContainer: {
     flexDirection: "row",
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
   },
   presetLabel: {
     fontSize: 12,
-    color: "#999",
+    color: COLOR_TEXT_TERTIARY,
   },
 });
 

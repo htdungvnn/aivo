@@ -334,7 +334,7 @@ export async function sendMonthlyReport(drizzle, user, year, month, config = def
         return { success: true };
     }
     catch (error) {
-        console.error(`Failed to send monthly report to ${user.email}:`, error);  
+        console.error(`Failed to send monthly report to ${user.email}:`, error); // eslint-disable-line no-console
         return { success: false, error: String(error) };
     }
 }

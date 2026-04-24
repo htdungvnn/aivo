@@ -7,6 +7,30 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+const COLORS = {
+  primary: '#007AFF',
+  primaryText: '#fff',
+  textPrimary: '#1a1a1a',
+  textSecondary: '#666',
+  textTertiary: '#999',
+  bgButton: '#f5f5f5',
+  border: '#e0e0e0',
+  thumbBorder: '#007AFF',
+  shadow: '#000',
+  success: '#34C759',
+  warning: '#FF9500',
+  danger: '#FF3B30',
+  gray: '#8E8E93',
+};
+
+const ADHERENCE_LEVELS = [
+  { threshold: 0.9, label: "Excellent", color: COLORS.success },
+  { threshold: 0.75, label: "Good", color: COLORS.warning },
+  { threshold: 0.5, label: "Moderate", color: COLORS.warning },
+  { threshold: 0.25, label: "Low", color: COLORS.danger },
+  { threshold: 0, label: "Very Low", color: COLORS.gray },
+];
+
 interface AdherenceAdjusterProps {
   initialValue?: number;
   onChange: (adherence: number) => void;
@@ -25,31 +49,23 @@ export const AdherenceAdjuster: React.FC<AdherenceAdjusterProps> = ({
   const [value, setValue] = useState(initialValue);
 
   const handleChange = useCallback((newValue: number) => {
-    // Snap to step
     const steppedValue = Math.round(newValue / step) * step;
     const clampedValue = Math.max(min, Math.min(max, steppedValue));
     setValue(clampedValue);
     onChange(clampedValue);
   }, [min, max, step, onChange]);
 
-  // Get adherence level description
   const getAdherenceLevel = (adherence: number): { label: string; color: string } => {
-    if (adherence >= 0.9) {
-      return { label: "Excellent", color: "#34C759" };
-    } else if (adherence >= 0.75) {
-      return { label: "Good", color: "#5AC8FA" };
-    } else if (adherence >= 0.5) {
-      return { label: "Moderate", color: "#FF9500" };
-    } else if (adherence >= 0.25) {
-      return { label: "Low", color: "#FF3B30" };
-    } else {
-      return { label: "Very Low", color: "#8E8E93" };
+    for (const level of ADHERENCE_LEVELS) {
+      if (adherence >= level.threshold) {
+        return { label: level.label, color: level.color };
+      }
     }
+    return { label: "Very Low", color: COLORS.gray };
   };
 
   const levelInfo = getAdherenceLevel(value);
 
-  // Preset buttons
   const presets = [
     { label: "100%", value: 1.0 },
     { label: "80%", value: 0.8 },
@@ -76,8 +92,8 @@ export const AdherenceAdjuster: React.FC<AdherenceAdjusterProps> = ({
           step={step}
           value={value}
           onValueChange={handleChange}
-          minimumTrackTintColor="#007AFF"
-          maximumTrackTintColor="#e0e0e0"
+          minimumTrackTintColor={COLORS.primary}
+          maximumTrackTintColor={COLORS.border}
           thumbStyle={styles.thumb}
         />
         <View style={styles.valueIndicator}>
@@ -131,7 +147,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1a1a1a",
+    color: COLORS.textPrimary,
   },
   badge: {
     paddingHorizontal: 12,
@@ -154,10 +170,10 @@ const styles = StyleSheet.create({
   thumb: {
     width: 24,
     height: 24,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.primaryText,
     borderWidth: 2,
-    borderColor: "#007AFF",
-    shadowColor: "#000",
+    borderColor: COLORS.thumbBorder,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -171,7 +187,7 @@ const styles = StyleSheet.create({
   valueText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#007AFF",
+    color: COLORS.primary,
   },
   presetsContainer: {
     flexDirection: "row",
@@ -182,28 +198,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLORS.bgButton,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: COLORS.border,
   },
   presetButtonSelected: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   presetText: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#666",
+    color: COLORS.textSecondary,
   },
   presetTextSelected: {
-    color: "#fff",
+    color: COLORS.primaryText,
   },
   helpTextContainer: {
     marginTop: 4,
   },
   helpText: {
     fontSize: 12,
-    color: "#666",
+    color: COLORS.textSecondary,
     lineHeight: 16,
   },
 });

@@ -1,11 +1,22 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import type { HealthScoreResult } from '@aivo/shared-types';
 
 interface BodyInsightCardProps {
-  insight: any;
+  insight?: HealthScoreResult;
   onPress?: () => void;
 }
 
-export default function BodyInsightCard({ insight, onPress }: BodyInsightCardProps) {
-  return <View />;
+export default function BodyInsightCard(_props: BodyInsightCardProps) {
+  return (
+    <View style={styles.container}>
+      <Text>Body Insights</Text>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+  },
+});

@@ -177,8 +177,7 @@ export const DigitalTwinRouter = () => {
           morphTargets: morphTargets,
         },
       });
-    } catch (error) {
-      console.error("Digital twin calibrate error:", error);
+    } catch (_error) {
       return c.json(
         { success: false, error: "Failed to calibrate avatar model" },
         500
@@ -338,8 +337,7 @@ export const DigitalTwinRouter = () => {
           },
         },
       });
-    } catch (error) {
-      console.error("Digital twin project error:", error);
+    } catch (_error) {
       return c.json(
         { success: false, error: "Failed to generate projection" },
         500
@@ -389,8 +387,7 @@ export const DigitalTwinRouter = () => {
           createdAt: projection.createdAt,
         },
       });
-    } catch (error) {
-      console.error("Digital twin get projection error:", error);
+    } catch (_error) {
       return c.json(
         { success: false, error: "Failed to retrieve projection" },
         500
@@ -445,8 +442,7 @@ export const DigitalTwinRouter = () => {
           updatedAt: avatarModel.updatedAt,
         },
       });
-    } catch (error) {
-      console.error("Digital twin get avatar error:", error);
+    } catch (_error) {
       return c.json(
         { success: false, error: "Failed to retrieve avatar model" },
         500
@@ -516,8 +512,7 @@ Keep it concise and motivating.
       });
 
       return response.content.trim();
-    } catch (error) {
-      console.error("AI narrative generation failed, falling back to heuristic:", error);
+    } catch {
       // Fall through to heuristic
     }
   }

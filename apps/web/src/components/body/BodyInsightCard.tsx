@@ -64,7 +64,7 @@ export function BodyInsightCard({ apiUrl, compact = false }: BodyInsightCardProp
           setHealthScore(scoreData.data);
         }
       }
-    } catch (err: unknown) {
+    } catch {
       // Generic error message for user display
       setError("Failed to load body insights");
     } finally {

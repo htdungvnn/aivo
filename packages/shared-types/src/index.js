@@ -546,7 +546,7 @@ export function getWorstSeverity(issues) {
     return "minor";
 }
 // ============================================
-// SECTION 20: ADAPTIVE PLANNER - RE-PLANNING TYPES
+// SECTION 22: ADAPTIVE PLANNER - RE-PLANNING TYPES
 // ============================================
 // Re-export all adaptive planner types from the separate module
 export * from "./adaptive-planner";

@@ -13,6 +13,20 @@ import AvatarViewer2D from "./AvatarViewer2D";
 import TimeSlider from "./TimeSlider";
 import AdherenceAdjuster from "./AdherenceAdjuster";
 
+const COLORS = {
+  primary: '#007AFF',
+  background: '#f8f9fa',
+  white: '#fff',
+  textPrimary: '#1a1a1a',
+  textSecondary: '#666',
+  textTertiary: '#999',
+  border: '#e0e0e0',
+  success: '#34C759',
+  warning: '#FF9500',
+  shadow: '#000',
+  primaryTransparent: '#007AFF20',
+};
+
 // API types
 interface MorphTargets {
   body_scale: number;
@@ -51,6 +65,13 @@ interface AvatarModel {
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 
+// Helper to get auth token (implement based on your auth system)
+async function getAuthToken(): Promise<string> {
+  // In a real app, retrieve from AsyncStorage or secure storage
+  const token = ""; // TODO: Implement token retrieval
+  return token;
+}
+
 export const DigitalTwinScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,32 +79,6 @@ export const DigitalTwinScreen: React.FC = () => {
   const [projection, setProjection] = useState<ProjectionData | null>(null);
   const [selectedWeeks, setSelectedWeeks] = useState(8);
   const [adherence, setAdherence] = useState(1.0);
-
-  // Fetch user's avatar model on mount
-  const fetchAvatarModel = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/digital-twin/avatar-model`, {
-        headers: {
-          Authorization: `Bearer ${await getAuthToken()}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // No avatar model yet - trigger calibration
-          await calibrateAvatar();
-          return;
-        }
-        throw new Error("Failed to fetch avatar model");
-      }
-
-      const data = await response.json();
-      setAvatarModel(data.data);
-    } catch (error) {
-      console.error("Fetch avatar error:", error);
-      Alert.alert("Error", "Failed to load avatar model");
-    }
-  }, []);
 
   // Calibrate avatar from latest metrics
   const calibrateAvatar = useCallback(async () => {
@@ -117,13 +112,37 @@ export const DigitalTwinScreen: React.FC = () => {
         avatarStyle: "realistic",
         showMuscleDefinitions: true,
       });
-    } catch (error) {
-      console.error("Calibrate error:", error);
+    } catch {
       Alert.alert("Calibration Failed", "Could not calibrate avatar. Please ensure you have body metrics recorded.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Fetch user's avatar model on mount
+  const fetchAvatarModel = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/digital-twin/avatar-model`, {
+        headers: {
+          Authorization: `Bearer ${await getAuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No avatar model yet - trigger calibration
+          await calibrateAvatar();
+          return;
+        }
+        throw new Error("Failed to fetch avatar model");
+      }
+
+      const data = await response.json();
+      setAvatarModel(data.data);
+    } catch {
+      Alert.alert("Error", "Failed to load avatar model");
+    }
+  }, [calibrateAvatar]);
 
   // Generate projection with current settings
   const generateProjection = useCallback(async () => {
@@ -152,8 +171,7 @@ export const DigitalTwinScreen: React.FC = () => {
 
       const data = await response.json();
       setProjection(data.data);
-    } catch (error) {
-      console.error("Projection error:", error);
+    } catch {
       Alert.alert("Error", "Failed to generate projection");
     } finally {
       setLoading(false);
@@ -265,7 +283,7 @@ export const DigitalTwinScreen: React.FC = () => {
             </View>
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>Confidence</Text>
-              <Text style={[styles.statValue, { color: projection.confidence > 0.7 ? "#34C759" : "#FF9500" }]}>
+              <Text style={[styles.statValue, { color: projection.confidence > 0.7 ? COLORS.success : COLORS.warning }]}>
                 {Math.round(projection.confidence * 100)}%
               </Text>
             </View>
@@ -291,17 +309,10 @@ export const DigitalTwinScreen: React.FC = () => {
   );
 };
 
-// Helper to get auth token (implement based on your auth system)
-async function getAuthToken(): Promise<string> {
-  // In a real app, retrieve from AsyncStorage or secure storage
-  const token = ""; // TODO: Implement token retrieval
-  return token;
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -314,34 +325,34 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: COLORS.textSecondary,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: COLORS.border,
   },
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1a1a1a",
+    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   avatarContainer: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     paddingVertical: 32,
     marginBottom: 16,
   },
   avatar: {
-    shadowColor: "#000",
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -349,7 +360,7 @@ const styles = StyleSheet.create({
   },
   somatotypeBadge: {
     alignSelf: "center",
-    backgroundColor: "#007AFF20",
+    backgroundColor: COLORS.primaryTransparent,
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 16,
@@ -358,23 +369,23 @@ const styles = StyleSheet.create({
   somatotypeText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#007AFF",
+    color: COLORS.primary,
     textTransform: "capitalize",
   },
   controlPanel: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
-    shadowColor: "#000",
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   statsContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 12,
@@ -385,19 +396,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: COLORS.border,
   },
   statLabel: {
     fontSize: 15,
-    color: "#666",
+    color: COLORS.textSecondary,
   },
   statValue: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1a1a1a",
+    color: COLORS.textPrimary,
   },
   narrativeContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 12,
@@ -406,13 +417,13 @@ const styles = StyleSheet.create({
   narrativeLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#666",
+    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   narrativeText: {
     fontSize: 15,
     lineHeight: 22,
-    color: "#1a1a1a",
+    color: COLORS.textPrimary,
   },
   actionContainer: {
     paddingHorizontal: 20,
@@ -420,7 +431,7 @@ const styles = StyleSheet.create({
   },
   actionHint: {
     fontSize: 13,
-    color: "#999",
+    color: COLORS.textTertiary,
     textAlign: "center",
     fontStyle: "italic",
   },

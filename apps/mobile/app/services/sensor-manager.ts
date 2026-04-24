@@ -5,9 +5,9 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
-import * as Health from 'expo-health';
 import { Platform } from 'react-native';
-import { createClient, HealthKitClient, GoogleFitClient } from 'expo-health';
+import { createClient } from 'expo-health';
+import type { HealthKitClient, GoogleFitClient } from 'expo-health';
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
 const TOKEN_KEY = "aivo.auth.token";
@@ -86,7 +86,6 @@ class SensorManager {
   async requestPermissions(): Promise<boolean> {
     try {
       if (!this.healthClient) {
-        console.warn('Health client not available on this platform');
         return false;
       }
 
@@ -106,8 +105,7 @@ class SensorManager {
       this.notifyStatusListeners({ ...(await this.getStatus()) });
 
       return granted;
-    } catch (error) {
-      console.error('Permission request failed:', error);
+    } catch {
       return false;
     }
   }
@@ -140,12 +138,10 @@ class SensorManager {
    */
   startBackgroundCollection(): void {
     if (this.isCollecting) {
-      console.log('Sensor collection already running');
       return;
     }
 
     this.isCollecting = true;
-    console.log('Starting sensor background collection');
 
     // Collect immediately on start
     void this.collectSnapshot();
@@ -174,7 +170,6 @@ class SensorManager {
       this.uploadInterval = null;
     }
     this.isCollecting = false;
-    console.log('Stopped sensor collection');
   }
 
   /**
@@ -189,7 +184,6 @@ class SensorManager {
     const fifteenMinAgo = now - 15 * 60 * 1000;
 
     try {
-      // Collect HRV (last 5 min average)
       const hrvData = await this.healthClient.getSamples('HeartRateVariabilitySDNN', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
@@ -206,9 +200,8 @@ class SensorManager {
         });
       }
 
-      // Collect Heart Rate (for resting calculation)
       const hrData = await this.healthClient.getSamples('HeartRate', {
-        startDate: new Date(now - 60 * 60 * 1000), // last hour
+        startDate: new Date(now - 60 * 60 * 1000),
         endDate: new Date(now),
       });
 
@@ -222,7 +215,6 @@ class SensorManager {
           source: Platform.OS === 'ios' ? 'apple_health' : 'google_fit',
         });
 
-        // Calculate resting HR (10th percentile)
         const sorted = [...hrData].sort((a, b) => a.value - b.value);
         const restingHR = sorted[Math.floor(sorted.length * 0.1)]?.value || avgHR;
         this.addReading({
@@ -234,7 +226,6 @@ class SensorManager {
         });
       }
 
-      // Collect Steps (last 15 min)
       const stepsData = await this.healthClient.getSamples('StepCount', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
@@ -251,7 +242,6 @@ class SensorManager {
         });
       }
 
-      // Collect Active Energy (for active minutes estimation)
       const energyData = await this.healthClient.getSamples('ActiveEnergyBurned', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
@@ -259,7 +249,6 @@ class SensorManager {
 
       if (energyData && energyData.length > 0) {
         const totalEnergy = energyData.reduce((sum, s) => sum + s.value, 0);
-        // Rough estimate: 5 MET-minutes per kcal
         const activeMinutes = Math.round(totalEnergy / 5);
         this.addReading({
           timestamp: now,
@@ -269,17 +258,13 @@ class SensorManager {
           source: Platform.OS === 'ios' ? 'apple_health' : 'google_fit',
         });
       }
-    } catch (error) {
-      console.error('Error collecting sensor snapshot:', error);
+    } catch {
+      // Silently ignore collection errors
     }
   }
 
-  /**
-   * Add reading to queue
-   */
   private addReading(reading: BiometricReading): void {
     this.readingsQueue.push(reading);
-    console.log('Added sensor reading:', reading.type, reading.value);
   }
 
   /**
@@ -296,7 +281,6 @@ class SensorManager {
     try {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       if (!token) {
-        console.warn('No auth token, cannot upload sensor readings');
         this.readingsQueue.unshift(...readings); // Put back in queue
         return;
       }
@@ -311,15 +295,12 @@ class SensorManager {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-        console.error('Failed to upload readings:', error);
-        // Put readings back in queue for retry
+        await response.json().catch(() => ({ error: 'Upload failed' }));
         this.readingsQueue.unshift(...readings);
       } else {
-        console.log(`Uploaded ${readings.length} sensor readings`);
+        // Successfully uploaded
       }
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch {
       this.readingsQueue.unshift(...readings);
     }
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useAcousticRecording, StartSessionOptions } from '../../hooks/useAcousticRecording';
+import type { StartSessionOptions } from '../../hooks/useAcousticRecording';
+import { useAcousticRecording } from '../../hooks/useAcousticRecording';
 import type { MuscleGroup, FatigueResult, AcousticFeatures } from '@aivo/shared-types';
 
 interface AcousticFatigueMonitorProps {
@@ -12,7 +13,6 @@ interface AcousticFatigueMonitorProps {
 }
 
 export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
-  userId,
   muscleGroup,
   exerciseName = 'exercise',
   onFatigueChange,
@@ -20,15 +20,12 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
 }) => {
   const {
     isRecording,
-    isProcessing,
     currentFatigue,
     sessionStats,
     error,
     startSession,
     stopSession,
-    calibrateBaseline,
     getBaseline,
-    saveBaseline,
   } = useAcousticRecording();
 
   const [hasBaseline, setHasBaseline] = useState(false);
@@ -57,7 +54,7 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
   /**
    * Start calibration (baseline measurement)
    */
-  const handleCalibrate = async () => {
+  const handleCalibrate = () => {
     Alert.alert(
       'Calibrate Baseline',
       'Sit quietly and relax. We\'ll record 5 seconds of resting muscle activity to establish your baseline.',
@@ -65,7 +62,7 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Start',
-          onPress: async () => {
+          onPress: () => {
             setIsCalibrating(true);
             setCalibrationProgress(0);
 
@@ -83,12 +80,7 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
             }, 500);
 
             // Simulate calibration completion
-            setTimeout(async () => {
-              // This would be replaced with actual calibration
-              // const pcmData = await record5Seconds();
-              // const baseline = await calibrateBaseline(pcmData);
-              // await saveBaseline(muscleGroup, baseline);
-
+            setTimeout(() => {
               setIsCalibrating(false);
               setHasBaseline(true);
               Alert.alert('Success', 'Baseline calibrated successfully!');
@@ -99,10 +91,7 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
     );
   };
 
-  /**
-   * Start monitoring session
-   */
-  const handleStartSession = async () => {
+  const handleStartSession = () => {
     if (!hasBaseline) {
       Alert.alert(
         'Baseline Required',
@@ -115,39 +104,48 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
     const options: StartSessionOptions = {
       muscleGroup,
       exerciseName,
-      onFatigue: (fatigue: FatigueResult) => {
-        console.log(`Fatigue update: ${fatigue.fatigueLevel}% (${fatigue.fatigueCategory})`);
+      onFatigue: (_fatigue: FatigueResult) => {
+        // Handle fatigue updates silently
       },
-      onChunk: (features: AcousticFeatures) => {
-        console.log(`Chunk processed: median freq = ${features.medianFrequency}Hz`);
+      onChunk: (_features: AcousticFeatures) => {
+        // Handle chunk processing silently
       },
     };
 
-    await startSession(options);
+    startSession(options);
   };
 
   /**
    * Stop monitoring session
    */
-  const handleStopSession = async () => {
-    const session = await stopSession();
-    if (session) {
-      Alert.alert(
-        'Session Complete',
-        `Average fatigue: ${session.avgFatigueLevel?.toFixed(1)}%\nPeak fatigue: ${session.peakFatigueLevel?.toFixed(1)}%`
-      );
-    }
+  const handleStopSession = () => {
+    stopSession().then((session) => {
+      if (session) {
+        Alert.alert(
+          'Session Complete',
+          `Average fatigue: ${session.avgFatigueLevel?.toFixed(1)}%\nPeak fatigue: ${session.peakFatigueLevel?.toFixed(1)}%`
+        );
+      }
+    });
   };
 
   /**
    * Get color for fatigue level
    */
   const getFatigueColor = (level: number): string => {
-    if (level < 30) return '#22c55e'; // green
-    if (level < 50) return '#3b82f6'; // blue
-    if (level < 70) return '#f59e0b'; // amber
-    if (level < 85) return '#f97316'; // orange
-    return '#ef4444'; // red
+    if (level < 30) {
+      return styles.colorGreen;
+    }
+    if (level < 50) {
+      return styles.colorBlue;
+    }
+    if (level < 70) {
+      return styles.colorAmber;
+    }
+    if (level < 85) {
+      return styles.colorOrange;
+    }
+    return styles.colorRed;
   };
 
   /**
@@ -286,7 +284,7 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
 
       {/* Baseline status */}
       <View style={styles.statusRow}>
-        <View style={[styles.statusDot, { backgroundColor: hasBaseline ? '#22c55e' : '#ef4444' }]} />
+        <View style={[styles.statusDot, hasBaseline ? styles.statusDotGreen : styles.statusDotRed]} />
         <Text style={styles.statusText}>
           {hasBaseline ? 'Baseline calibrated' : 'Baseline required'}
         </Text>
@@ -301,13 +299,33 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
   );
 };
 
+// Color constants
+const COLORS = {
+  green: '#22c55e',
+  blue: '#3b82f6',
+  amber: '#f59e0b',
+  orange: '#f97316',
+  red: '#ef4444',
+  gray: '#9ca3af',
+  darkGray: '#6b7280',
+  black: '#000000',
+  bgDark: '#1a1a1a',
+  bgCard: '#1f2937',
+  border: '#374151',
+  white: '#fff',
+  blueLight: '#dbeafe',
+  blueAccent: '#3b82f6',
+  redTransparent: 'rgba(239, 68, 68, 0.2)',
+  blueTransparent: 'rgba(59, 130, 246, 0.2)',
+} as const;
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bgDark,
     borderRadius: 16,
     padding: 20,
     margin: 16,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -320,45 +338,45 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLORS.white,
   },
   subtitle: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.gray,
     marginTop: 4,
     textTransform: 'capitalize',
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: COLORS.redTransparent,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   errorText: {
-    color: '#ef4444',
+    color: COLORS.red,
     fontSize: 14,
   },
   fatigueDisplay: {
     alignItems: 'center',
     paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    borderBottomColor: COLORS.border,
     marginBottom: 16,
   },
   fatigueLabel: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.gray,
     marginBottom: 8,
   },
   fatigueValueContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#1f2937',
+    backgroundColor: COLORS.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: '#374151',
+    borderColor: COLORS.border,
   },
   fatigueValue: {
     fontSize: 36,
@@ -372,16 +390,16 @@ const styles = StyleSheet.create({
   },
   categoryDescription: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.gray,
     marginTop: 4,
   },
   shiftText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.darkGray,
     marginTop: 8,
   },
   recommendationBox: {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: COLORS.blueTransparent,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -389,16 +407,16 @@ const styles = StyleSheet.create({
   },
   recommendationLabel: {
     fontSize: 12,
-    color: '#3b82f6',
+    color: COLORS.blueAccent,
     fontWeight: '600',
     marginBottom: 4,
   },
   recommendationText: {
     fontSize: 14,
-    color: '#dbeafe',
+    color: COLORS.blueLight,
   },
   statsContainer: {
-    backgroundColor: '#1f2937',
+    backgroundColor: COLORS.bgCard,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -406,7 +424,7 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.white,
     marginBottom: 8,
   },
   statsRow: {
@@ -415,26 +433,26 @@ const styles = StyleSheet.create({
   },
   stat: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.gray,
   },
   progressContainer: {
     marginBottom: 16,
   },
   progressText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.gray,
     marginBottom: 8,
     textAlign: 'center',
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#374151',
+    backgroundColor: COLORS.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#3b82f6',
+    backgroundColor: COLORS.blueAccent,
     borderRadius: 4,
   },
   buttonContainer: {
@@ -447,19 +465,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: COLORS.blueAccent,
   },
   startButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: COLORS.green,
   },
   stopButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: COLORS.red,
   },
   buttonDisabled: {
-    backgroundColor: '#6b7280',
+    backgroundColor: COLORS.darkGray,
   },
   buttonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -475,13 +493,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 8,
   },
+  statusDotGreen: {
+    backgroundColor: COLORS.green,
+  },
+  statusDotRed: {
+    backgroundColor: COLORS.red,
+  },
   statusText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.gray,
   },
   disclaimer: {
     fontSize: 11,
-    color: '#6b7280',
+    color: COLORS.darkGray,
     textAlign: 'center',
     lineHeight: 16,
   },

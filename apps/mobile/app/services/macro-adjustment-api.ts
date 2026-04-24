@@ -3,7 +3,7 @@
  * Handles adaptive macro sessions, adjustment polling, and feedback
  */
 
-import { createApiClient, type ApiResponse } from '@aivo/api-client';
+import type { ApiResponse } from '@aivo/api-client';
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";

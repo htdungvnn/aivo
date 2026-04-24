@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import '@testing-library/react-native';
-import SleepLogForm from '../SleepLogForm';
 import { Alert } from 'react-native';
 
 // Mock expo-secure-store before biometric-api is imported
@@ -24,8 +23,6 @@ jest.mock('expo-secure-store', () => ({
   clearAsync: async () => {},
 }));
 
-import * as biometricApi from '@/services/biometric-api';
-
 // Mock the API
 jest.mock('@/services/biometric-api', () => ({
   createSleepLog: jest.fn(),
@@ -33,6 +30,13 @@ jest.mock('@/services/biometric-api', () => ({
 
 // Mock fetch globally
 global.fetch = jest.fn();
+
+// Import component AFTER mocks are set up
+import SleepLogForm from '../SleepLogForm';
+import * as biometricApi from '@/services/biometric-api';
+
+// Debug: check if SleepLogForm is defined
+console.log('SleepLogForm import:', SleepLogForm);
 
 describe('SleepLogForm', () => {
   const mockOnSuccess = jest.fn();

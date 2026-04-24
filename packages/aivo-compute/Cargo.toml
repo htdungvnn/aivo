@@ -18,6 +18,7 @@ chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.24", default-features = false, features = ["jpeg", "png", "webp"] }
 base64 = "0.21"
 regex = "1.10"
+getrandom = { version = "0.2", features = ["js"] }
 
 # DSP and signal processing for acoustic myography
 rustfft = "6.2"

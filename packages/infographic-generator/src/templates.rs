@@ -640,7 +640,7 @@ mod tests {
 
     #[test]
     fn test_get_template_by_id() {
-        let palette = crate::colors::generate_palette("vibrant", 0);
+        let _palette = crate::colors::generate_palette("vibrant", 0);
         let template = get_template_by_id("weekly_summary", 1080, 1080, "vibrant");
         assert!(template.is_some());
         let t = template.unwrap();

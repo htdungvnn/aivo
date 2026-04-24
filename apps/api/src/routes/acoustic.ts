@@ -1,4 +1,5 @@
-import { Hono, Context } from 'hono';
+import type { Context } from 'hono';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
 import { AcousticMyography } from '@aivo/compute';
@@ -39,7 +40,7 @@ export const AcousticRouter = () => {
     return Math.floor(Date.now() / 1000);
   }
 
-  function invokeWasm(functionName: 'processAudioChunk' | 'calibrateBaseline' | 'calculateFatigueScore' | 'isExerciseSignal' | 'getRecommendedConfig' | 'recommendedSampleRate' | 'recommendedChunkDurationMs', args: [Int16Array, bigint?] | [string, string?] | [Int16Array?] | []): any {
+  function invokeWasm(functionName: 'processAudioChunk' | 'calibrateBaseline' | 'calculateFatigueScore' | 'isExerciseSignal' | 'getRecommendedConfig' | 'recommendedSampleRate' | 'recommendedChunkDurationMs', args: [Int16Array, bigint?] | [string, string?] | [Int16Array?] | []): string {
     switch (functionName) {
       case 'processAudioChunk':
         return AcousticMyography.processAudioChunk(args[0] as Int16Array, (args[1] ?? BigInt(0)) as bigint);
@@ -78,7 +79,6 @@ export const AcousticRouter = () => {
 
       return ctx.json({ success: true, data: features });
     } catch (error) {
-      console.error('Process chunk error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -92,7 +92,6 @@ export const AcousticRouter = () => {
       const baseline = JSON.parse(baselineJson);
       return ctx.json({ success: true, data: baseline });
     } catch (error) {
-      console.error('Calibrate error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -106,7 +105,6 @@ export const AcousticRouter = () => {
       const result = JSON.parse(resultJson);
       return ctx.json({ success: true, data: result });
     } catch (error) {
-      console.error('Calculate fatigue error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -114,12 +112,11 @@ export const AcousticRouter = () => {
   router.post('/sessions/start', async (ctx: Context) => {
     try {
       const body = await ctx.req.json();
-      const { userId, exerciseName, muscleGroup, workoutId, baselineId } = SessionStartSchema.parse(body);
+      SessionStartSchema.parse(body);
       const sessionId = generateId();
       const timestamp = now();
       return ctx.json({ success: true, data: { sessionId, startTime: timestamp, message: 'Acoustic session started' } });
     } catch (error) {
-      console.error('Start session error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -130,7 +127,6 @@ export const AcousticRouter = () => {
       const endTime = now();
       return ctx.json({ success: true, data: { sessionId, endTime, message: 'Session ended' } });
     } catch (error) {
-      console.error('End session error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -140,17 +136,6 @@ export const AcousticRouter = () => {
       const sessionId = ctx.req.param('id');
       return ctx.json({ success: true, data: { sessionId, trend: [], message: 'Trend data would be calculated from chunk features' } });
     } catch (error) {
-      console.error('Get trend error:', error);
-      return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
-    }
-  });
-
-  router.get('/baselines/:userId/:muscleGroup', async (ctx: Context) => {
-    try {
-      const { userId, muscleGroup } = ctx.req.param();
-      return ctx.json({ success: true, data: null, message: 'Baseline query would be executed here' });
-    } catch (error) {
-      console.error('Get baseline error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -162,7 +147,6 @@ export const AcousticRouter = () => {
       const isExercise = invokeWasm('isExerciseSignal', [pcmData]);
       return ctx.json({ success: true, data: { isExercise: Boolean(isExercise) } });
     } catch (error) {
-      console.error('Analyze exercise error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -173,7 +157,6 @@ export const AcousticRouter = () => {
       const config = JSON.parse(configJson);
       return ctx.json({ success: true, data: config });
     } catch (error) {
-      console.error('Get config error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });
@@ -196,7 +179,6 @@ export const AcousticRouter = () => {
         },
       });
     } catch (error) {
-      console.error('Get insights error:', error);
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
     }
   });

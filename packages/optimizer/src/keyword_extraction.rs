@@ -6,6 +6,7 @@ use std::collections::HashSet;
 /// Predefined health domain keywords (English)
 /// These are the most common terms in fitness/health conversations
 /// Optimized for size: ~2KB total for all lists
+#[allow(dead_code)]
 const HEALTH_KEYWORDS: &[&str] = &[
     // Exercises
     "pushup", "squat", "lunge", "plank", "burpee", "jump", "run", "walk", "cycle", "swim",

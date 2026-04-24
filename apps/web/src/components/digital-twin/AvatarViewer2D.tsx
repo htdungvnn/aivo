@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { SVGProps } from "react";
+import type { SVGProps } from "react";
 
 interface MorphTargets {
   body_scale: number;
@@ -65,7 +65,9 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
   // Calculate fat transform for a region
   const getFatTransform = (regionName: string) => {
     const intensity = fatIntensityMap[regionName] || 0;
-    if (intensity <= 0) return {};
+    if (intensity <= 0) {
+      return {};
+    }
     const widthScale = 1 + intensity * 0.3;
     const yOffset = intensity * 5;
     return { scaleX: widthScale, translateY: yOffset };
@@ -74,7 +76,9 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
   // Calculate muscle stroke style
   const getMuscleStyle = (muscleGroup: string) => {
     const factor = muscleFactorMap[muscleGroup] || 1.0;
-    if (!showMuscleDefinitions || factor <= 1.1) return {};
+    if (!showMuscleDefinitions || factor <= 1.1) {
+      return {};
+    }
     const strokeWidth = Math.min(2, (factor - 1) * 2);
     return { stroke: "#8b5a2b", strokeWidth, fill: "none" };
   };

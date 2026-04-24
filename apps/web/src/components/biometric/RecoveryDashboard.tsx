@@ -200,7 +200,9 @@ export function RecoveryDashboard() {
   const [activeTab, setActiveTab] = useState<"overview" | "correlations" | "sleep">("overview");
 
   const apiClient = useMemo(() => {
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
     return createApiClient({
       baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787/api",
       tokenProvider: async () => localStorage.getItem("aivo_token") || "",
@@ -209,9 +211,13 @@ export function RecoveryDashboard() {
   }, [user]);
 
   const loadData = useCallback(async (showRefresh = false) => {
-    if (!apiClient) {return;}
+    if (!apiClient) {
+      return;
+    }
 
-    if (!showRefresh) {setLoading(true);}
+    if (!showRefresh) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -251,7 +257,9 @@ export function RecoveryDashboard() {
   }, [isAuthenticated, apiClient, loadData]);
 
   const handleGenerateSnapshot = async () => {
-    if (!apiClient) {return;}
+    if (!apiClient) {
+      return;
+    }
     setRefreshing(true);
     try {
       const result = await apiClient.generateBiometricSnapshot({ period: "30d" });

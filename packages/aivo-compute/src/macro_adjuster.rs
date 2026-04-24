@@ -454,6 +454,7 @@ impl MacroAdjuster {
 }
 
 /// Helper: calculate standard deviation
+#[allow(dead_code)]
 fn calculate_std_dev(values: &[f64]) -> f64 {
     if values.len() < 2 {
         return 0.0;

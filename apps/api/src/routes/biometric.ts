@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm";
 import { schema } from "@aivo/db/schema";
 import {
   getCachedBiometricData,
-  setCachedBiometricData,
   getBiometricCacheKey,
   storeSensorReadings,
   type BiometricReading,
@@ -77,7 +76,6 @@ export const BiometricRouter = () => {
       if (error instanceof z.ZodError) {
         return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
       }
-      console.error("Create sleep log error:", error);
       return c.json({ success: false, error: "Failed to create sleep log" }, 500);
     }
   });
@@ -121,7 +119,6 @@ export const BiometricRouter = () => {
       if (error instanceof z.ZodError) {
         return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
       }
-      console.error("Update sleep log error:", error);
       return c.json({ success: false, error: "Failed to update sleep log" }, 500);
     }
   });
@@ -189,7 +186,6 @@ export const BiometricRouter = () => {
       if (error instanceof z.ZodError) {
         return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
       }
-      console.error("Generate snapshot error:", error);
       return c.json({ success: false, error: "Failed to generate snapshot" }, 500);
     }
   });
@@ -210,7 +206,7 @@ export const BiometricRouter = () => {
 
     // Check cache first
     const cacheKey = getBiometricCacheKey(userId, `snapshot:${period}`);
-    const cached = await getCachedBiometricData<typeof import("../services/biometric").BiometricSnapshot>(
+    const cached = await getCachedBiometricData<BiometricSnapshot>(
       c.env.BIOMETRIC_CACHE,
       cacheKey
     );
@@ -342,7 +338,6 @@ export const BiometricRouter = () => {
       if (error instanceof z.ZodError) {
         return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
       }
-      console.error("Set macro targets error:", error);
       return c.json({ success: false, error: "Failed to set macro targets" }, 500);
     }
   });
@@ -382,7 +377,6 @@ export const BiometricRouter = () => {
       if (error instanceof z.ZodError) {
         return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
       }
-      console.error("Store sensor readings error:", error);
       return c.json({ success: false, error: "Failed to store sensor readings" }, 500);
     }
   });

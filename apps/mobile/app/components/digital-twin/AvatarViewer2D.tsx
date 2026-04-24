@@ -16,38 +16,6 @@ const BODY_PATHS = {
   rightLeg: "M 70 120 C 75 125, 80 140, 80 165 C 80 190, 75 195, 70 195 L 60 195 C 55 195, 52 190, 52 165 C 52 140, 55 125, 60 120 Z",
 };
 
-// Region mapping for fat distribution
-const FAT_REGION_MAP = {
-  face: { path: BODY_PATHS.head, scaleAxis: "y" },
-  neck: { path: BODY_PATHS.neck, scaleAxis: "y" },
-  chest: { path: BODY_PATHS.torso, region: "upper" },
-  abdomen: { path: BODY_PATHS.torso, region: "middle" },
-  flanks: { path: BODY_PATHS.torso, region: "sides" },
-  lower_back: { path: BODY_PATHS.torso, region: "lower" },
-  hips: { path: BODY_PATHS.torso, region: "lower" },
-  thighs: { path: BODY_PATHS.leftLeg, region: "full" },
-  calves: { path: BODY_PATHS.leftLeg, region: "lower" },
-  arms: { path: BODY_PATHS.leftArm, region: "full" },
-  shoulders: { path: BODY_PATHS.torso, region: "upper" },
-};
-
-// Region mapping for muscle development
-const MUSCLE_MAP = {
-  chest: { paths: [BODY_PATHS.torso], focus: "upper" },
-  back: { paths: [BODY_PATHS.torso], focus: "back" },
-  shoulders: { paths: [BODY_PATHS.torso, BODY_PATHS.leftArm, BODY_PATHS.rightArm], focus: "upper" },
-  biceps: { paths: [BODY_PATHS.leftArm, BODY_PATHS.rightArm], focus: "upper" },
-  triceps: { paths: [BODY_PATHS.leftArm, BODY_PATHS.rightArm], focus: "lower" },
-  forearms: { paths: [BODY_PATHS.leftArm, BODY_PATHS.rightArm], focus: "lower" },
-  abs: { paths: [BODY_PATHS.torso], focus: "upper" },
-  obliques: { paths: [BODY_PATHS.torso], focus: "sides" },
-  quadriceps: { paths: [BODY_PATHS.leftLeg, BODY_PATHS.rightLeg], focus: "upper" },
-  hamstrings: { paths: [BODY_PATHS.leftLeg, BODY_PATHS.rightLeg], focus: "back" },
-  glutes: { paths: [BODY_PATHS.leftLeg, BODY_PATHS.rightLeg], focus: "upper" },
-  calves: { paths: [BODY_PATHS.leftLeg, BODY_PATHS.rightLeg], focus: "lower" },
-  neck: { paths: [BODY_PATHS.neck], focus: "full" },
-};
-
 interface MorphTargets {
   body_scale: number;
   fat_distribution: Array<{ region: string; intensity: number }>;
@@ -96,9 +64,10 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
   // Calculate region-specific transforms
   const getFatTransform = (regionName: string) => {
     const intensity = fatIntensityMap[regionName] || 0;
-    if (intensity <= 0) {return {};}
+    if (intensity <= 0) {
+      return {};
+    }
 
-    // Fat adds width, particularly in certain directions
     const widthScale = 1 + intensity * 0.3;
     const yOffset = intensity * 5;
 
@@ -107,10 +76,11 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
 
   const getMuscleDefinition = (muscleGroup: string) => {
     const factor = muscleFactorMap[muscleGroup] || 1.0;
-    if (!showMuscleDefinitions || factor <= 1.0) {return {};}
-    // Increased contrast/sharpness for defined muscles
+    if (!showMuscleDefinitions || factor <= 1.0) {
+      return {};
+    }
     const strokeWidth = Math.min(2, (factor - 1) * 2);
-    return { stroke: "#8b5a2b", strokeWidth };
+    return { stroke: styles.muscleStrokeColor, strokeWidth };
   };
 
   // Render a body path with applied morphing
@@ -203,11 +173,13 @@ export const AvatarViewer2D: React.FC<AvatarViewer2DProps> = ({
   );
 };
 
+const COLOR_TRANSPARENT = 'transparent';
+
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    backgroundColor: COLOR_TRANSPARENT,
   },
 });
 

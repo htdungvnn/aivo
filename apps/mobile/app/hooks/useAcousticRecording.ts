@@ -32,10 +32,6 @@ export interface UseAcousticRecordingReturn {
   calibrateBaseline: (audioData: Int16Array) => Promise<BaselineData>;
   saveBaseline: (muscleGroup: MuscleGroup, baseline: BaselineData) => Promise<void>;
   getBaseline: (muscleGroup: MuscleGroup) => Promise<BaselineData | null>;
-
-  // Events
-  onFatigueUpdate?: (fatigue: FatigueResult) => void;
-  onChunkProcessed?: (features: AcousticFeatures) => void;
 }
 
 export interface StartSessionOptions {
@@ -57,7 +53,6 @@ export interface SessionStats {
 
 const DEFAULT_SAMPLE_RATE = 8000;
 const CHUNK_DURATION_MS = 500;
-const CHUNK_SIZE = Math.floor(DEFAULT_SAMPLE_RATE * CHUNK_DURATION_MS / 1000);
 
 export function useAcousticRecording(): UseAcousticRecordingReturn {
   const [isRecording, setIsRecording] = useState(false);
@@ -67,9 +62,6 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [onFatigueUpdate, setOnFatigueUpdate] = useState<(f: FatigueResult) => void>(() => {});
-  const [onChunkProcessed, setOnChunkProcessed] = useState<(f: AcousticFeatures) => void>(() => {});
-
   // Refs for audio recording
   const recordingRef = useRef<Audio.Recording | null>(null);
   const sessionStartTimeRef = useRef<number>(0);
@@ -77,7 +69,6 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
   const chunkCounterRef = useRef<number>(0);
   const validChunksRef = useRef<number>(0);
   const fatigueSamplesRef = useRef<number[]>([]);
-  const baselineRef = useRef<BaselineData | null>(null);
 
   // Store callbacks from options
   const onFatigueRef = useRef<((f: FatigueResult) => void) | null>(null);
@@ -85,9 +76,9 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
 
   // Initialize WASM module
   useEffect(() => {
-    AcousticMyography.init()
-      .then(() => console.log('AcousticMyography initialized'))
-      .catch((err) => console.error('Failed to initialize AcousticMyography:', err));
+    AcousticMyography.init().catch(() => {
+      // Silent fail - WASM init errors handled at usage time
+    });
   }, []);
 
   /**
@@ -97,8 +88,7 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
     try {
       const { status } = await Audio.requestPermissionsAsync();
       return status === 'granted';
-    } catch (err) {
-      console.error('Microphone permission error:', err);
+    } catch {
       return false;
     }
   }, []);
@@ -109,15 +99,34 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
   const configureAudio = useCallback(async (): Promise<void> => {
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: true,
-      interruptionModeIOS: 1, // DoNotMix
-      interruptionModeAndroid: 1, // DoNotMix
+      interruptionModeIOS: 1,
+      interruptionModeAndroid: 1,
       staysActiveInBackground: false,
-      // IMPORTANT: Use 8kHz sample rate for muscle sound analysis
-      // iOS supports: 8000, 16000, 22050, 44100
-      // We use 8000 because muscle sounds are 20-200Hz and Nyquist is sufficient
-      // Note: sampleRate in AudioMode may not be supported, it's set in RecordingOptions
     });
   }, []);
+
+  /**
+   * Processing loop - called periodically to process audio chunks
+   */
+  const startProcessingLoop = useCallback(() => {
+    const processInterval = setInterval(() => {
+      if (!recordingRef.current || !isRecording) {
+        clearInterval(processInterval);
+        return;
+      }
+
+      recordingRef.current.getStatusAsync().then((status) => {
+        if (status.isRecording !== true) {
+          clearInterval(processInterval);
+          return;
+        }
+
+        // Production implementation would process audio chunks here
+      }).catch(() => {
+        // Silently ignore processing errors
+      });
+    }, CHUNK_DURATION_MS);
+  }, [isRecording]);
 
   /**
    * Start a new acoustic monitoring session
@@ -136,15 +145,9 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       // Load baseline if provided
       if (options.baselineId) {
         // TODO: Load baseline from storage
-        // baselineRef.current = await getBaselineFromStorage(options.baselineId);
       }
 
       const recordingOptions = Audio.RecordingOptionsPresets.HIGH_QUALITY;
-      // For production, you would customize these for 8kHz mono PCM:
-      // recordingOptions.android.sampleRate = DEFAULT_SAMPLE_RATE;
-      // recordingOptions.ios.sampleRate = DEFAULT_SAMPLE_RATE;
-      // recordingOptions.android.numberOfChannels = 1;
-      // recordingOptions.ios.numberOfChannels = 1;
 
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(recordingOptions);
@@ -167,52 +170,15 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       });
 
       // Store callbacks
-      onFatigueRef.current = options.onFatigue || onFatigueUpdate;
-      onChunkRef.current = options.onChunk || onChunkProcessed;
+      onFatigueRef.current = options.onFatigue || null;
+      onChunkRef.current = options.onChunk || null;
 
       // Start processing loop
       startProcessingLoop();
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      setError(`Failed to start recording: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch {
+      setError('Failed to start recording');
     }
-  }, [requestPermission, configureAudio, onFatigueUpdate, onChunkProcessed]);
-
-  /**
-   * Processing loop - called periodically to process audio chunks
-   */
-  const startProcessingLoop = useCallback(() => {
-    const processInterval = setInterval(async () => {
-      if (!recordingRef.current || !isRecording) {
-        clearInterval(processInterval);
-        return;
-      }
-
-      try {
-        // Get audio status to check if recording is still active
-        const status = await recordingRef.current.getStatusAsync();
-        if (status.isRecording !== true) {
-          clearInterval(processInterval);
-          return;
-        }
-
-        // Note: Expo AV doesn't provide direct PCM access in real-time
-        // For production, we would need to:
-        // 1. Use a custom audio module with native code to access raw PCM
-        // 2. Or periodically save to file and read chunks
-        // 3. Or use expo-audio with Audio.Recording and read from URI
-
-        // This is a simplified implementation that shows the processing flow
-        // In production, you'd implement a native module or use a different approach
-
-        // For now, we'll simulate chunk processing since Expo AV doesn't expose PCM directly
-        // The actual implementation would require custom native code or a different library
-
-      } catch (err) {
-        console.error('Processing loop error:', err);
-      }
-    }, CHUNK_DURATION_MS);
-  }, [isRecording]);
+  }, [requestPermission, configureAudio, startProcessingLoop]);
 
   /**
    * Process an audio chunk (call this with PCM data from native module)
@@ -293,7 +259,6 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
     const storageKey = `baseline_${muscleGroup}`;
     const data = JSON.stringify(baseline);
 
-    // Use new FileSystem API with Paths.document
     const filePath = `${FileSystem.Paths.document.uri}${storageKey}.json`;
     await FileSystem.writeAsStringAsync(filePath, data);
   }, []);
@@ -326,7 +291,6 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       setIsRecording(false);
 
       const endTime = Date.now();
-      const duration = endTime - sessionStartTimeRef.current;
 
       // Calculate session aggregates
       const avgFatigue = fatigueSamplesRef.current.length > 0
@@ -342,7 +306,7 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
 
       const session: AcousticSession = {
         id: sessionId,
-        userId: '', // Would be populated from auth context
+        userId: '',
         exerciseName: sessionOptionsRef.current?.exerciseName || '',
         muscleGroup: sessionOptionsRef.current?.muscleGroup || 'core',
         startTime: sessionStartTimeRef.current,
@@ -353,7 +317,7 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
         peakFatigueLevel: peakFatigue,
         fatigueTrend: trend,
         metadata: {
-          deviceType: 'iphone', // Would detect platform
+          deviceType: 'iphone',
           sampleRate: DEFAULT_SAMPLE_RATE,
         },
         createdAt: Date.now(),
@@ -365,9 +329,8 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       fatigueSamplesRef.current = [];
 
       return session;
-    } catch (err) {
-      console.error('Failed to stop session:', err);
-      setError(`Failed to stop session: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch {
+      setError('Failed to stop session');
       return null;
     }
   }, [sessionId, isRecording]);
@@ -386,8 +349,6 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
     calibrateBaseline,
     saveBaseline,
     getBaseline,
-    onFatigueUpdate,
-    onChunkProcessed,
   };
 }
 
@@ -395,9 +356,10 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
  * Determine fatigue trend from samples
  */
 function determineFatigueTrend(samples: number[]): 'improving' | 'stable' | 'declining' {
-  if (samples.length < 3) return 'stable';
+  if (samples.length < 3) {
+    return 'stable';
+  }
 
-  // Simple linear regression on last 10 samples or all if less
   const recent = samples.slice(-10);
   const n = recent.length;
   const sumX = recent.reduce((sum, _, i) => sum + i, 0);
@@ -407,7 +369,11 @@ function determineFatigueTrend(samples: number[]): 'improving' | 'stable' | 'dec
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
-  if (slope > 5) return 'declining'; // Fatigue increasing
-  if (slope < -5) return 'improving'; // Fatigue decreasing
+  if (slope > 5) {
+    return 'declining';
+  }
+  if (slope < -5) {
+    return 'improving';
+  }
   return 'stable';
 }

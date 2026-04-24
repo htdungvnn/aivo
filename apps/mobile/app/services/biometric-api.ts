@@ -144,9 +144,9 @@ async function fetchApi<T>(
     return undefined as T;
   }
 
-  const json = await response.json() as Promise<{ data?: T } & T>;
+  const json = (await response.json()) as T | { data: T };
   // Unwrap data envelope if present
-  return json.data !== undefined ? json.data : (json as T);
+  return 'data' in json ? json.data : (json as T);
 }
 
 /**

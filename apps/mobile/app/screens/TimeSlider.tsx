@@ -1,6 +1,11 @@
 import React from 'react';
 import { View } from 'react-native';
 
-export default function TimeSlider(props: any) {
+interface TimeSliderProps {
+  // Props will be defined based on actual usage
+  [key: string]: unknown;
+}
+
+export default function TimeSlider(_props: TimeSliderProps) {
   return <View />;
 }

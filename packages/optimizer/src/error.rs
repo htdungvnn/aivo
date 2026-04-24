@@ -12,6 +12,8 @@ pub enum OptimizerError {
 }
 
 impl OptimizerError {
+    /// Convert error to static string for WASM interop
+    #[allow(dead_code)]
     fn as_str(&self) -> &'static str {
         match self {
             Self::InvalidInput(_) => "INVALID_INPUT",
@@ -62,6 +64,7 @@ extern "C" {
 
 /// Helper to log errors without panicking
 #[inline]
+#[allow(dead_code)]
 fn log_error(error: &OptimizerError) {
     console_error(&format!("[AivoOptimizer] {}: {}", error.as_str(), error));
 }

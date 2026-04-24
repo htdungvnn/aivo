@@ -4,7 +4,7 @@
  */
 
 import type { D1Database } from "@cloudflare/workers-types";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { schema } from "@aivo/db/schema";
 import { FitnessCalculator } from "@aivo/compute";
 
@@ -443,7 +443,6 @@ export async function analyzeCorrelations(
   }
 
   // Parse JSON fields
-  const exerciseLoad = JSON.parse(snapshot.exerciseLoad || "{}");
   const sleep = JSON.parse(snapshot.sleep || "{}");
   const nutrition = JSON.parse(snapshot.nutrition || "{}");
 

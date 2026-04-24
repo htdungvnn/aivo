@@ -26,18 +26,18 @@ pub struct FrequencyBand {
 /// Band-pass filter state using IIR (Butterworth-inspired)
 #[derive(Clone)]
 struct BandpassFilter {
-    sample_rate: f64,
-    low_cutoff: f64,
-    high_cutoff: f64,
+    _sample_rate: f64,
+    _low_cutoff: f64,
+    _high_cutoff: f64,
     // State for biquad filter (2nd order)
     x1: f64, x2: f64, x3: f64,
     y1: f64, y2: f64, y3: f64,
 }
 
 impl BandpassFilter {
-    fn new(sample_rate: f64, low_cutoff: f64, high_cutoff: f64) -> Self {
-        let _omega1 = 2.0 * PI * low_cutoff / sample_rate;
-        let _omega2 = 2.0 * PI * high_cutoff / sample_rate;
+    fn new(sample_rate: f64, _low_cutoff: f64, _high_cutoff: f64) -> Self {
+        let _omega1 = 2.0 * PI * _low_cutoff / sample_rate;
+        let _omega2 = 2.0 * PI * _high_cutoff / sample_rate;
 
         // Simplified Butterworth coefficients for bandpass
         let _bw = _omega2 - _omega1;
@@ -51,9 +51,9 @@ impl BandpassFilter {
         let _a2 = 1.0 - (_center / 2.0).sin();
 
         Self {
-            sample_rate,
-            low_cutoff,
-            high_cutoff,
+            _sample_rate: sample_rate,
+            _low_cutoff: _low_cutoff,
+            _high_cutoff: _high_cutoff,
             x1: 0.0, x2: 0.0, x3: 0.0,
             y1: 0.0, y2: 0.0, y3: 0.0,
         }
@@ -77,6 +77,7 @@ impl BandpassFilter {
         output
     }
 
+    #[allow(dead_code)]
     fn reset(&mut self) {
         self.x1 = 0.0; self.x2 = 0.0; self.x3 = 0.0;
         self.y1 = 0.0; self.y2 = 0.0; self.y3 = 0.0;
@@ -84,6 +85,7 @@ impl BandpassFilter {
 }
 
 /// FFT-based spectral analyzer
+#[allow(dead_code)]
 struct SpectralAnalyzer {
     fft_size: usize,
     sample_rate: f64,
@@ -91,6 +93,7 @@ struct SpectralAnalyzer {
 }
 
 impl SpectralAnalyzer {
+    #[allow(dead_code)]
     fn new(fft_size: usize, sample_rate: f64) -> Self {
         let mut window = vec![0.0; fft_size];
         let sum: f64 = (0..fft_size)
@@ -108,6 +111,7 @@ impl SpectralAnalyzer {
         }
     }
 
+    #[allow(dead_code)]
     fn analyze(&mut self, samples: &[f64]) -> Option<Spectrum> {
         if samples.len() != self.fft_size {
             return None;
@@ -179,6 +183,7 @@ pub struct BandEnergy {
 }
 
 /// Acoustic analyzer state
+#[allow(dead_code)]
 pub struct AcousticMyographyState {
     config: AudioConfig,
     bandpass: BandpassFilter,
