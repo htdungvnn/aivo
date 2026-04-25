@@ -17,7 +17,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/xlsx": "^0.0.36",
-    "typescript": "^5.0.0",
+    "typescript": "^6.0.3",
     "vitest": "^1.0.0"
   }
 }

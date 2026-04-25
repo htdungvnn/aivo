@@ -32,8 +32,7 @@
       "outputs": ["tsconfig.tsbuildinfo", "*.tsbuildinfo"]
     },
     "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**", "junit.xml"]
+      "dependsOn": ["^build"]
     },
     "clean": {
       "cache": false,

@@ -83,30 +83,34 @@ describe('Body Insights Service', () => {
     let mockKV: { put: jest.Mock };
 
     beforeEach(() => {
-      mockKV = { put: jest.fn() };
+      mockKV = { put: jest.fn().mockResolvedValue(undefined) };
     });
 
-    it('logs cache invalidation request', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
+    it('invalidates cache by setting version key', async () => {
       await invalidateBodyCache(mockKV, 'user123');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Cache invalidation requested for user user123'
+      expect(mockKV.put).toHaveBeenCalledWith(
+        'body:user123:version',
+        expect.any(String)
       );
-
-      consoleSpy.mockRestore();
     });
 
-    it('handles invalidation errors', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      // invalidateBodyCache doesn't actually call put in current implementation
+    it('uses timestamp-based version', async () => {
+      const before = Date.now();
       await invalidateBodyCache(mockKV, 'user123');
+      const after = Date.now();
 
-      expect(consoleSpy).not.toHaveBeenCalled();
+      const versionArg = mockKV.put.mock.calls[0][1];
+      const version = parseInt(versionArg, 10);
+      expect(version).toBeGreaterThanOrEqual(before);
+      expect(version).toBeLessThanOrEqual(after);
+    });
 
-      consoleSpy.mockRestore();
+    it('handles invalidation errors gracefully', async () => {
+      mockKV.put.mockRejectedValue(new Error('KV error'));
+
+      // Should not throw
+      await expect(invalidateBodyCache(mockKV, 'user123')).resolves.not.toThrow();
     });
   });
 

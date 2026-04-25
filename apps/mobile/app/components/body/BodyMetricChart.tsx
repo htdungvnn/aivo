@@ -43,9 +43,19 @@ const CHART_COLORS = {
   textSecondary: COLORS.text.secondary,
 };
 
+interface BodyMetricChartDataPoint {
+  value: number;
+  date: string;
+}
+
+interface BodyMetricChartProps {
+  data: BodyMetricChartDataPoint[];
+  metric: keyof typeof METRIC_COLORS;
+  height?: number;
+  color?: string;
+}
+
 export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetricChartProps) {
-  const chartColor = color || METRIC_COLORS[metric];
-  const unit = METRIC_UNITS[metric];
 
   if (data.length === 0) {
     return (
@@ -55,15 +65,19 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
     );
   }
 
-  const values = data.map((d) => d.value);
+  const values = data.map((d: BodyMetricChartDataPoint) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
 
+  // Determine chart color and unit based on metric type
+  const chartColor = color || METRIC_COLORS[metric];
+  const unit = METRIC_UNITS[metric];
+
   return (
     <View style={[styles.container, { height }]} testID="body-metric-chart">
       <View style={styles.chartRow} testID="chart-row">
-        {data.slice(-7).map((point, idx) => {
+        {data.slice(-7).map((point: BodyMetricChartDataPoint, idx: number) => {
           const barHeight = ((point.value - min) / range) * 100;
           return (
             <View key={idx} style={styles.barContainer}>

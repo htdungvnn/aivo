@@ -279,7 +279,9 @@ describe('MetricsContext', () => {
     });
 
     it('shows optimistic metric immediately', async () => {
-      apiClient.createBodyMetric.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      apiClient.createBodyMetric.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ data: mockNewMetricResponse }), 100))
+      );
 
       render(
         <MetricsProvider>

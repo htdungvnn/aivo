@@ -5,6 +5,21 @@ global.vi = global.jest;
 global.dispatchEvent = () => true;
 global.window = global;
 
+// Suppress React act() warnings for async state updates
+// These warnings appear when state updates happen after async operations
+// but are properly handled by waitFor() in our tests
+const originalError = console.error;
+console.error = (...args) => {
+  const message = args[0];
+  if (
+    typeof message === 'string' &&
+    message.includes('was not wrapped in act(...)')
+  ) {
+    return; // Suppress act() warnings
+  }
+  originalError.call(console, ...args);
+};
+
 // Mock Expo ErrorUtils
 global.ErrorUtils = {
   setGlobalHandler: () => {},

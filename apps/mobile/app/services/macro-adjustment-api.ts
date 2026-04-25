@@ -3,7 +3,6 @@
  * Handles adaptive macro sessions, adjustment polling, and feedback
  */
 
-import type { ApiResponse } from '@aivo/api-client';
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
@@ -81,7 +80,7 @@ async function fetchApi<T>(
 /**
  * Start a macro adjustment session
  */
-export async function startMacroAdjustmentSession(): Promise<ApiResponse<MacroAdjustmentSession>> {
+export async function startMacroAdjustmentSession(): Promise<MacroAdjustmentSession> {
   return await fetchApi<MacroAdjustmentSession>("/api/macro-adjustment/session/start", {
     method: "POST",
   });
@@ -96,7 +95,7 @@ export async function checkMacroAdjustment(
     dailyCaloriesConsumed?: number;
     // Additional context can be added
   }
-): Promise<ApiResponse<{ hasAdjustment: boolean } & MacroAdjustment>> {
+): Promise<{ hasAdjustment: boolean } & MacroAdjustment> {
   return await fetchApi(`/api/macro-adjustment/check`, {
     method: "POST",
     body: JSON.stringify({
@@ -111,7 +110,7 @@ export async function checkMacroAdjustment(
  */
 export async function acceptMacroAdjustment(
   logId: string
-): Promise<ApiResponse<{ success: boolean }>> {
+): Promise<{ success: boolean }> {
   return await fetchApi(`/api/macro-adjustment/adjustment/${logId}/accept`, {
     method: "POST",
   });
@@ -122,7 +121,7 @@ export async function acceptMacroAdjustment(
  */
 export async function dismissMacroAdjustment(
   logId: string
-): Promise<ApiResponse<{ success: boolean }>> {
+): Promise<{ success: boolean }> {
   return await fetchApi(`/api/macro-adjustment/adjustment/${logId}/dismiss`, {
     method: "PATCH",
   });
@@ -133,7 +132,7 @@ export async function dismissMacroAdjustment(
  */
 export async function endMacroAdjustmentSession(
   sessionId: string
-): Promise<ApiResponse<{ success: boolean }>> {
+): Promise<{ success: boolean }> {
   return await fetchApi(`/api/macro-adjustment/session/${sessionId}/end`, {
     method: "POST",
   });
@@ -142,7 +141,7 @@ export async function endMacroAdjustmentSession(
 /**
  * Get macro targets (uses biometric endpoint)
  */
-export async function getMacroTargets(): Promise<ApiResponse<MacroTargets>> {
+export async function getMacroTargets(): Promise<MacroTargets> {
   return await fetchApi<MacroTargets>("/api/biometric/nutrition/targets");
 }
 
@@ -151,7 +150,7 @@ export async function getMacroTargets(): Promise<ApiResponse<MacroTargets>> {
  */
 export async function setMacroTargets(
   targets: Partial<MacroTargets>
-): Promise<ApiResponse<MacroTargets>> {
+): Promise<MacroTargets> {
   return await fetchApi<MacroTargets>("/api/biometric/nutrition/targets", {
     method: "POST",
     body: JSON.stringify(targets),

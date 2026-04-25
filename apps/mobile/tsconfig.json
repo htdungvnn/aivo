@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./app/*"],
       "@aivo/shared-types": ["../../packages/shared-types/src"],
-      "@aivo/compute": ["../../packages/aivo-compute/pkg"]
+      "@aivo/compute": ["../../packages/aivo-compute/pkg"],
+      "expo-health": ["./app/types/expo-health"]
     }
   },
   "include": [

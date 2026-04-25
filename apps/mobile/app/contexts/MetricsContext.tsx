@@ -39,14 +39,14 @@ interface MetricsContextType extends MetricsState {
 const MetricsContext = createContext<MetricsContextType | undefined>(undefined);
 
 export function MetricsProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<MetricsState>({
+  const [state, setState] = useState<MetricsState>(() => ({
     metrics: [],
     latestMetric: null,
     healthScore: null,
     loading: true,
     error: null,
     optimisticUpdate: null,
-  });
+  }));
 
   const loadCachedData = useCallback(async () => {
     try {

@@ -6,9 +6,10 @@
 
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import type { HealthClient } from 'expo-health';
 
 // Dynamically import expo-health only on native platforms
-let healthClient: { createClient: (options: { clientOptions: { bundleIdentifier?: string; packageName?: string } }) => { authorize: (permissions: string[]) => Promise<Record<string, string>>; getAuthStatusForPermissions: (permissions: string[]) => Promise<Record<string, string>>; getSamples: (type: string, options: { startDate: Date; endDate: Date }) => Array<{ value: number }> } } | null = null;
+let healthClient: HealthClient | null = null;
 
 if (Platform.OS === 'ios' || Platform.OS === 'android') {
   try {
@@ -186,7 +187,7 @@ class SensorManager {
       });
 
       if (hrvData && hrvData.length > 0) {
-        const avgHRV = hrvData.reduce((sum, s) => sum + s.value, 0) / hrvData.length;
+        const avgHRV = hrvData.reduce((sum: number, s: { value: number }) => sum + s.value, 0) / hrvData.length;
         this.addReading({
           timestamp: now,
           type: 'hrv',
@@ -202,7 +203,7 @@ class SensorManager {
       });
 
       if (hrData && hrData.length > 0) {
-        const avgHR = hrData.reduce((sum, s) => sum + s.value, 0) / hrData.length;
+        const avgHR = hrData.reduce((sum: number, s: { value: number }) => sum + s.value, 0) / hrData.length;
         this.addReading({
           timestamp: now,
           type: 'heart_rate',
@@ -228,7 +229,7 @@ class SensorManager {
       });
 
       if (stepsData && stepsData.length > 0) {
-        const steps = stepsData.reduce((sum, s) => sum + Math.round(s.value), 0);
+        const steps = stepsData.reduce((sum: number, s: { value: number }) => sum + Math.round(s.value), 0);
         this.addReading({
           timestamp: now,
           type: 'steps',
@@ -244,7 +245,7 @@ class SensorManager {
       });
 
       if (energyData && energyData.length > 0) {
-        const totalEnergy = energyData.reduce((sum, s) => sum + s.value, 0);
+        const totalEnergy = energyData.reduce((sum: number, s: { value: number }) => sum + s.value, 0);
         const activeMinutes = Math.round(totalEnergy / 5);
         this.addReading({
           timestamp: now,

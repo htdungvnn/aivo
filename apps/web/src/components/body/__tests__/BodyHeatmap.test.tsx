@@ -4,14 +4,34 @@ import '@testing-library/jest-dom';
 import { BodyHeatmap } from '../BodyHeatmap';
 
 // Mock framer-motion to avoid animation issues in tests
-jest.mock('framer-motion', () => ({
-  motion: {
-    ellipse: ({ children, ...props }: unknown) => <ellipse {...props}>{children}</ellipse>,
-    g: ({ children, ...props }: unknown) => <g {...props}>{children}</g>,
-    text: ({ children, ...props }: unknown) => <text {...props}>{children}</text>,
-  },
-  AnimatePresence: ({ children }: unknown) => <>{children}</>,
-}));
+jest.mock('framer-motion', () => {
+  // Create a mock component that filters out framer-motion specific props
+  const ellipseMock = ({ children, initial, animate, exit, whileHover, transition, ...props }: unknown) => {
+    return <ellipse {...(props as Record<string, unknown>)}>{children}</ellipse>;
+  };
+
+  const gMock = ({ children, initial, animate, exit, whileHover, transition, ...props }: unknown) => {
+    return <g {...(props as Record<string, unknown>)}>{children}</g>;
+  };
+
+  const textMock = ({ children, initial, animate, exit, whileHover, transition, ...props }: unknown) => {
+    return <text {...(props as Record<string, unknown>)}>{children}</text>;
+  };
+
+  const rectMock = ({ children, initial, animate, exit, whileHover, transition, ...props }: unknown) => {
+    return <rect {...(props as Record<string, unknown>)}>{children}</rect>;
+  };
+
+  return {
+    motion: {
+      ellipse: ellipseMock,
+      g: gMock,
+      text: textMock,
+      rect: rectMock,
+    },
+    AnimatePresence: ({ children }: unknown) => <>{children}</>,
+  };
+});
 
 describe('BodyHeatmap Component', () => {
   const mockVectorData = [

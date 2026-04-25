@@ -208,8 +208,9 @@ export default function InsightsScreen() {
     setError(null);
   }, []);
 
-  // Prepare chart data
-  const weightData = metrics
+  // Prepare chart data - ensure metrics is always an array
+  const safeMetrics = Array.isArray(metrics) ? metrics : [];
+  const weightData = safeMetrics
     .filter((m) => m.weight)
     .map((m) => ({
       date: new Date(m.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -217,7 +218,7 @@ export default function InsightsScreen() {
     }))
     .reverse();
 
-  const bodyFatData = metrics
+  const bodyFatData = safeMetrics
     .filter((m) => m.bodyFatPercentage)
     .map((m) => ({
       date: new Date(m.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -225,7 +226,7 @@ export default function InsightsScreen() {
     }))
     .reverse();
 
-  const muscleData = metrics
+  const muscleData = safeMetrics
     .filter((m) => m.muscleMass)
     .map((m) => ({
       date: new Date(m.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),

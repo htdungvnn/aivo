@@ -3,9 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  Slider,
   TouchableOpacity,
 } from "react-native";
+import Slider from "@react-native-community/slider";
 
 const COLORS = {
   primary: '#007AFF',
@@ -94,7 +94,7 @@ export const AdherenceAdjuster: React.FC<AdherenceAdjusterProps> = ({
           onValueChange={handleChange}
           minimumTrackTintColor={COLORS.primary}
           maximumTrackTintColor={COLORS.border}
-          thumbStyle={styles.thumb}
+          thumbTintColor={COLORS.primaryText}
         />
         <View style={styles.valueIndicator}>
           <Text style={styles.valueText}>{Math.round(value * 100)}%</Text>
@@ -166,18 +166,6 @@ const styles = StyleSheet.create({
   slider: {
     flex: 1,
     height: 40,
-  },
-  thumb: {
-    width: 24,
-    height: 24,
-    backgroundColor: COLORS.primaryText,
-    borderWidth: 2,
-    borderColor: COLORS.thumbBorder,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
   },
   valueIndicator: {
     width: 50,

@@ -134,18 +134,18 @@ export const AcousticFatigueMonitor: React.FC<AcousticFatigueMonitorProps> = ({
    */
   const getFatigueColor = (level: number): string => {
     if (level < 30) {
-      return styles.colorGreen;
+      return COLORS.green;
     }
     if (level < 50) {
-      return styles.colorBlue;
+      return COLORS.blue;
     }
     if (level < 70) {
-      return styles.colorAmber;
+      return COLORS.amber;
     }
     if (level < 85) {
-      return styles.colorOrange;
+      return COLORS.orange;
     }
-    return styles.colorRed;
+    return COLORS.red;
   };
 
   /**

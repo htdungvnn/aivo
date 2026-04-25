@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react-native';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react-native';
 
 // Mock lucide-react-native with explicit factory to ensure it's applied
 jest.mock('lucide-react-native', () => {
@@ -141,7 +141,9 @@ describe('Insights Screen (Mobile)', () => {
       navigateToUploadTab();
 
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       expect(mockLaunch).toHaveBeenCalledWith({
         mediaTypes: 'Images',
@@ -183,7 +185,9 @@ describe('Insights Screen (Mobile)', () => {
       navigateToUploadTab();
 
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       await waitFor(() => {
         expect(HapticsMock.impactAsync).toHaveBeenCalledWith(HapticsMock.ImpactFeedbackStyle.Light);
@@ -205,7 +209,9 @@ describe('Insights Screen (Mobile)', () => {
       navigateToUploadTab();
 
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       expect(HapticsMock.impactAsync).not.toHaveBeenCalled();
     });
@@ -229,7 +235,9 @@ describe('Insights Screen (Mobile)', () => {
 
       // Select an image
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       // Wait for image to be selected and then press Upload Photo
       await waitFor(() => {
@@ -237,7 +245,9 @@ describe('Insights Screen (Mobile)', () => {
       });
 
       const uploadPhotoButton = screen.getByText('Upload Photo');
-      fireEvent.press(uploadPhotoButton);
+      await act(async () => {
+        fireEvent.press(uploadPhotoButton);
+      });
 
       await waitFor(() => {
         expect(HapticsMock.notificationAsync).toHaveBeenCalledWith(HapticsMock.NotificationFeedbackType.Error);
@@ -309,7 +319,9 @@ describe('Insights Screen (Mobile)', () => {
 
       // Select an image
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       // Wait for the analysis button to appear
       await waitFor(() => {
@@ -318,7 +330,9 @@ describe('Insights Screen (Mobile)', () => {
 
       // Now press "Run AI Analysis"
       const analyzeButton = screen.getByText('Run AI Analysis');
-      fireEvent.press(analyzeButton);
+      await act(async () => {
+        fireEvent.press(analyzeButton);
+      });
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
@@ -398,7 +412,9 @@ describe('Insights Screen (Mobile)', () => {
 
       // Select an image
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       // Wait for the analysis button to appear
       await waitFor(() => {
@@ -407,7 +423,9 @@ describe('Insights Screen (Mobile)', () => {
 
       // Press "Run AI Analysis"
       const analyzeButton = screen.getByText('Run AI Analysis');
-      fireEvent.press(analyzeButton);
+      await act(async () => {
+        fireEvent.press(analyzeButton);
+      });
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
@@ -477,7 +495,9 @@ describe('Insights Screen (Mobile)', () => {
       navigateToUploadTab();
 
       const chooseGalleryButton = screen.getByText('Choose from Gallery');
-      fireEvent.press(chooseGalleryButton);
+      await act(async () => {
+        fireEvent.press(chooseGalleryButton);
+      });
 
       // Wait for the analysis button to appear
       await waitFor(() => {
@@ -485,7 +505,9 @@ describe('Insights Screen (Mobile)', () => {
       });
 
       const analyzeButton = screen.getByText('Run AI Analysis');
-      fireEvent.press(analyzeButton);
+      await act(async () => {
+        fireEvent.press(analyzeButton);
+      });
 
       await waitFor(() => {
         expect(HapticsMock.notificationAsync).toHaveBeenCalledWith(
@@ -549,7 +571,9 @@ describe('Insights Screen (Mobile)', () => {
       );
 
       const trendsTab = screen.getByText('Trends');
-      fireEvent.press(trendsTab);
+      await act(async () => {
+        fireEvent.press(trendsTab);
+      });
 
       expect(screen.getByText('Trends')).toBeOnTheScreen();
     });
