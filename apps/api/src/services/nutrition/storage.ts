@@ -4,7 +4,7 @@
  */
 
 import { and, eq } from "drizzle-orm";
-import { createDrizzleInstance } from "@aivo/db";
+import type { createDrizzleInstance } from "@aivo/db";
 import { schema } from "@aivo/db/schema";
 import type { StoredNutritionConsult } from "@aivo/shared-types";
 

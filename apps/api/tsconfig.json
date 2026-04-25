@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
