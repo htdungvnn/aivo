@@ -88,7 +88,7 @@ cp .env/.env.example .env/.env.base
 vim .env/.env.base
 ```
 
-See [`.env/VARIABLES.md`](./env/VARIABLES.md) for complete variable reference.
+See [`.env/VARIABLES.md`](./VARIABLES.md) for complete variable reference.
 
 **Minimum required for local development:**
 ```bash
@@ -256,7 +256,7 @@ Set environment variables in Cloudflare Dashboard (or via wrangler.toml `[vars]`
 - `ALLOWED_ORIGINS` - Your production domains (comma-separated)
 - `R2_PUBLIC_URL` - Your production R2 public URL
 
-### Web (Next.js)
+### Web Application (Next.js)
 
 #### Vercel (Recommended)
 
@@ -287,7 +287,69 @@ wrangler pages deploy . --project-name aivo-web
 - `NEXT_PUBLIC_R2_PUBLIC_URL`
 - `NEXT_PUBLIC_APP_URL`
 
-### Mobile (Expo)
+**Configuration Files for Cloudflare Pages:**
+
+| File | Purpose |
+|------|---------|
+| `_routes` | Pages routing rules (SPA fallback, API proxy) |
+| `_routes.json` | Routes manifest for Pages build |
+| `pages.config.toml` | Pages build configuration |
+| `next.config.cloudflare.js` | Next.js config optimized for Pages |
+| `.env.production.local` | Production environment variables template |
+
+**Key Configuration:**
+
+`next.config.cloudflare.js` key settings:
+- `output: 'standalone'` - Bundles all dependencies
+- `transpilePackages` - Includes workspace packages
+- `images.remotePatterns` - Allows R2.dev image hosting
+- Webpack fallbacks for Node.js modules
+
+`pages.config.toml` build settings:
+- `command = "pnpm run build:pages"`
+- `output_directory = ".next/standalone"`
+- Security headers configured
+- Static asset caching (1 year for immutable assets)
+
+`_routes` routing rules:
+- `/*` → `/index.html` (SPA fallback)
+- `/api/*` → Proxy to API worker
+- Static assets served directly
+- Health check endpoint
+
+**R2 Bucket Setup for Pages:**
+
+1. Create R2 bucket: `wrangler r2 bucket create aivo-images`
+2. Enable public access or use signed URLs
+3. Set `NEXT_PUBLIC_R2_PUBLIC_URL` to your bucket URL
+4. Configure CORS on the bucket for your domain
+
+**Troubleshooting Cloudflare Pages:**
+
+- Build fails: Clean and rebuild (see Troubleshooting section)
+- Routing issues: Ensure `_routes` file is at project root
+- Environment variables: Use `NEXT_PUBLIC_` prefix for client-side vars
+- OAuth not working: Verify client IDs and redirect URIs
+- Images not loading: Check R2 bucket public access and `remotePatterns`
+
+**Why Cloudflare Pages for AIVO?**
+- Unified with Cloudflare Workers API
+- Same account/billing
+- Edge network integration
+- Cost-effective for high traffic
+
+#### Comparison: Vercel vs Cloudflare Pages
+
+| Feature | Vercel | Cloudflare Pages |
+|---------|--------|------------------|
+| Image Optimization | Built-in, excellent | Built-in, good |
+| Edge Functions | Edge Config | Workers (more flexible) |
+| Free Tier | 100GB bandwidth/month | unlimited requests, 500 builds/month |
+| Build Speed | Fast | Fast |
+| Analytics | Excellent | Good |
+| Pricing | $20/mo Pro | $5/mo (Workers paid plan) |
+
+### Mobile Application (Expo)
 
 #### EAS Build (Recommended)
 
@@ -307,6 +369,23 @@ eas submit --platform ios
 
 # Google Play Store
 eas submit --platform android
+```
+
+**OAuth Deep Linking Configuration:**
+
+In `apps/mobile/app.json`:
+```json
+{
+  "expo": {
+    "scheme": "aivo",
+    "ios": {
+      "bundleIdentifier": "com.yourcompany.aivo"
+    },
+    "android": {
+      "package": "com.yourcompany.aivo"
+    }
+  }
+}
 ```
 
 ---
@@ -380,104 +459,369 @@ ls drizzle/migrations/
 
 ## Troubleshooting
 
-### Common Issues
+### Build Errors
 
-#### WASM Build Fails
+#### "cannot find module" or "file not found"
 
+**Problem:** TypeScript can't resolve imports.
+
+**Solution:**
 ```bash
-# Ensure Rust is installed
-rustc --version
-
 # Clean and rebuild
-cd packages/aivo-compute
 pnpm run clean
 pnpm run build
+
+# Check import paths are correct
+# Memory service imports use .ts extension:
+import { Something } from "./module.ts";
 ```
 
-#### Wrangler Build Fails
+#### "Failed to resolve: @aivo/db"
 
+**Problem:** Package not built or linked.
+
+**Solution:**
 ```bash
-# Check wrangler version
-wrangler --version  # Should be ^4.x
+# Build db package first
+cd packages/db
+pnpm build
 
-# Clear Wrangler cache
-rm -rf .wrangler
-
-# Rebuild
-cd apps/api
+# Or rebuild all
 pnpm run build
 ```
 
-#### D1 Database Connection Fails
+#### Rust/WASM Build Fails
+
+**Problem:** `wasm-pack` or Rust toolchain issues.
+
+**Solution:**
+```bash
+# Verify Rust installation
+rustc --version  # Should be 1.70+
+cargo --version
+
+# Verify wasm-pack
+wasm-pack --version
+
+# Reinstall if needed
+rustup update
+cargo install wasm-pack
+
+# Clean and rebuild compute package
+cd packages/aivo-compute
+cargo clean
+pnpm run build
+```
+
+#### "Target `wasm32-unknown-unknown` not installed"
+
+**Solution:**
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+### Runtime Errors
+
+#### "OpenAI error: rate limit"
+
+**Problem:** Too many API calls.
+
+**Solution:**
+- Add retry logic with exponential backoff
+- Cache embeddings aggressively
+- Batch requests where possible
+- Upgrade OpenAI plan if needed
+
+#### "Memory service not available"
+
+**Problem:** OpenAI API key missing or invalid.
+
+**Solution:**
+- Verify `OPENAI_API_KEY` is set in environment
+- Check API key is valid and has credits
+- Ensure no trailing spaces in key
+
+### Database Issues
+
+#### "no such table: memoryNodes"
+
+**Problem:** Migrations not applied.
+
+**Solution:**
+```bash
+cd packages/db
+pnpm run migrate:local  # Development
+# OR
+pnpm run migrate:remote # Production
+```
+
+#### D1 Connection Fails
+
+**Problem:** Database binding misconfigured.
+
+**Solution:**
 
 1. Verify database exists:
    ```bash
    wrangler d1 database list
    ```
 
-2. Check `wrangler.toml` has correct `database_id`
-3. Ensure database binding name matches (`DB`)
+2. Check `wrangler.toml`:
+   ```toml
+   [[d1_databases]]
+   binding = "DB"
+   database_name = "aivo-db"
+   database_id = "your-db-id"
+   ```
 
-#### Missing KV Namespace
+3. Ensure binding name matches in code:
+   ```typescript
+   interface Env {
+     DB: D1Database;  // Binding name must match wrangler.toml
+   }
+   ```
 
-If you see KV namespace errors, verify bindings in `wrangler.toml`:
+#### Migrations Won't Apply
+
+**Problem:** Migration SQL errors.
+
+**Solution:**
 ```bash
-wrangler kv:namespace list
+# Check migration file syntax
+cat packages/db/drizzle/migrations/0000_*.sql
+
+# Apply with verbose output
+wrangler d1 migrations apply aivo-db --local --verbose
+
+# Rollback and reapply
+wrangler d1 migrations apply aivo-db --local --rollback
 ```
 
-Create missing namespaces:
-```bash
-wrangler kv:namespace create BODY_INSIGHTS_CACHE
-wrangler kv:namespace create BIOMETRIC_CACHE
-wrangler kv:namespace create LEADERBOARD_CACHE
-wrangler kv:namespace create RATE_LIMIT_KV
-```
+### OAuth Issues
 
-#### Mobile Build Fails
+#### Google OAuth "redirect_uri_mismatch"
 
+**Problem:** OAuth client not configured for localhost.
+
+**Solution:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Edit OAuth 2.0 Client
+3. Add authorized JavaScript origin:
+   ```
+   http://localhost:3000   (Web)
+   ```
+4. Add authorized redirect URI:
+   ```
+   http://localhost:3000/login
+   ```
+
+For mobile, add package name and SHA-1 fingerprint.
+
+#### Facebook OAuth "App Not Setup"
+
+**Problem:** Facebook app in development mode.
+
+**Solution:**
+1. Go to [Facebook Developers](https://developers.facebook.com/apps)
+2. Switch app to "Live" mode
+3. Or add test users in "Roles" section
+
+#### JWT Verification Fails
+
+**Problem:** `AUTH_SECRET` mismatch or token expired.
+
+**Solution:**
+- Ensure `AUTH_SECRET` is same across all deployments
+- Use a strong random key (32+ chars)
+- Tokens expire after 7 days by default (refresh by re-login)
+
+### Frontend Issues
+
+#### "Failed to fetch" or CORS errors
+
+**Problem:** API URL incorrect or CORS blocking.
+
+**Solution:**
+
+1. Verify `NEXT_PUBLIC_API_URL` / `EXPO_PUBLIC_API_URL` is correct
+2. For web, CORS headers should be set by API
+
+#### Chat not showing memories
+
+**Problem:** Memory service not returning context.
+
+**Solution:**
+1. Check API logs for memory errors
+2. Verify `OPENAI_API_KEY` is set
+3. Ensure user has memories stored:
+   ```sql
+   SELECT COUNT(*) FROM memoryNodes WHERE userId = 'user-123';
+   ```
+4. Test with `processConversationTurn` first to populate memories
+
+#### Mobile app crashes on startup
+
+**Problem:** Native module not linked.
+
+**Solution:**
 ```bash
-# Clear Expo cache
 cd apps/mobile
-pnpm exec expo start --clear
+pnpm exec expo install -s  # Install all deps
+pnpm exec expo start -c    # Clear cache
+```
 
-# Check EAS credentials
-eas credentials
+If using custom native modules:
+```bash
+pnpm exec expo prebuild
+```
+
+### Deployment Issues
+
+#### Wrangler build fails
+
+**Problem:** Missing bindings or config.
+
+**Solution:**
+```bash
+# Verify wrangler.toml
+cat apps/api/wrangler.toml
+
+# Should have:
+# [vars]
+# OPENAI_API_KEY = "..."
+#
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "aivo-db"
+# database_id = "..."
+```
+
+#### Migration fails on production
+
+**Problem:** SQL syntax error or constraint violation.
+
+**Solution:**
+1. Check migration is idempotent (can run multiple times)
+2. Test migration locally first:
+   ```bash
+   wrangler d1 migrations apply aivo-db --remote
+   ```
+3. Backup database before applying:
+   ```bash
+   wrangler d1 export aivo-db --output backup.sql
+   ```
+
+#### Web build fails on Vercel
+
+**Problem:** Missing environment variables.
+
+**Solution:**
+1. Check Vercel Environment Variables dashboard
+2. Ensure `NEXT_PUBLIC_` prefix for client-exposed vars
+3. Redeploy after adding vars
+
+### TypeScript Errors
+
+#### "Property 'xxx' does not exist on type 'DrizzleD1Database'"
+
+**Problem:** Using wrong Drizzle import.
+
+**Solution:**
+```typescript
+// Correct import from @aivo/db
+import { createDrizzleInstance } from "@aivo/db";
+
+// Not this:
+import { drizzle } from "drizzle-orm/d1"; // Wrong, use createDrizzleInstance
+
+const db = createDrizzleInstance(env.DB);
+```
+
+#### "Cannot find module '@aivo/memory-service'"
+
+**Problem:** Package not built.
+
+**Solution:**
+```bash
+cd packages/memory-service
+pnpm build
 ```
 
 ### Debug Commands
 
+#### View API Logs (Cloudflare)
+
 ```bash
-# Type check all
-pnpm run type-check
-
-# Lint all
-pnpm run lint
-
-# Test WASM
-cd packages/aivo-compute
-pnpm run test
-
-# View API logs
 cd apps/api
 pnpm exec wrangler tail
-
-# Database studio (local)
-cd packages/db
-pnpm run studio
 ```
 
-### Getting Help
+#### Check Database Locally
 
-- Cloudflare Workers: https://developers.cloudflare.com/workers/
-- Drizzle ORM: https://orm.drizzle.team/
-- Next.js: https://nextjs.org/docs
-- Expo: https://docs.expo.dev/
+```bash
+cd packages/db
+pnpm run studio  # Opens Drizzle Studio at http://localhost:4983
+```
+
+#### Test OpenAI Connection
+
+```bash
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer $OPENAI_API_KEY"
+```
+
+#### Inspect WASM
+
+```bash
+cd packages/aivo-compute
+wasm-objdump -x pkg/aivo_compute_bg.wasm | head -50
+```
+
+### Common Quick Fixes
+
+| Symptom | Likely Fix |
+|---------|-----------|
+| "module not found" | `pnpm run build` all packages |
+| Port conflict | `kill -9 $(lsof -t -i:8788)` |
+| Stale cache | `pnpm store prune && rm -rf node_modules/.cache` |
+| WASM not loading | Ensure HTTPS or localhost |
+| DB locked | Delete `.wrangler/state/d1` and restart |
+| Auth failing | Verify `AUTH_SECRET` and re-login |
 
 ---
 
-## Deployment Checklist
+## CI/CD Integration
 
-Use this checklist before each production deployment:
+### GitHub Actions Example
+
+```yaml
+name: Deploy AIVO
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - run: pnpm install
+      - run: pnpm run build
+      - run: cd packages/db && pnpm run migrate:remote
+      - run: cd apps/api && pnpm run deploy
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+```
+
+---
+
+## Deployment Checklists
 
 ### Pre-Deployment
 
@@ -514,38 +858,63 @@ Use this checklist before each production deployment:
 
 ---
 
-## CI/CD Integration
+## Environment Variables Summary
 
-Example GitHub Actions workflow (`.github/workflows/deploy.yml`):
+### API (Cloudflare Workers)
+Set via `wrangler secret put`:
+- `AUTH_SECRET` (required)
+- `OPENAI_API_KEY` (optional)
+- `GOOGLE_CLIENT_ID` (optional)
+- `FACEBOOK_APP_ID` (optional)
 
-```yaml
-name: Deploy AIVO
+Set in `wrangler.toml` [vars]:
+- `ALLOWED_ORIGINS` - Allowed CORS origins
+- `R2_PUBLIC_URL` - R2 public URL
 
-on:
-  push:
-    branches: [main]
+### Web (Next.js) - `.env.local`
+```
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
+NEXT_PUBLIC_FACEBOOK_CLIENT_ID=...
+NEXT_PUBLIC_API_URL=https://api.your-domain.com
+NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.r2.dev
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+```
 
-jobs:
-  deploy-api:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-      - run: pnpm install
-      - run: pnpm run build
-      - run: cd packages/db && pnpm run migrate:remote
-      - run: cd apps/api && pnpm run deploy
-      env:
-        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+### Mobile (Expo) - `.env`
+```
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=...
+EXPO_PUBLIC_FACEBOOK_CLIENT_ID=...
+EXPO_PUBLIC_API_URL=https://api.your-domain.com
+EXPO_PUBLIC_R2_PUBLIC_URL=https://your-bucket.r2.dev
+EXPO_PUBLIC_SCHEME=aivo
 ```
 
 ---
 
-**Last Updated:** 2026-04-24
-**Version:** 1.1.0
-**Package Manager:** pnpm 9+
+## Production Configuration
+
+### OAuth Provider Setup
+
+#### Google Cloud Console
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create OAuth 2.0 Client ID
+3. Add authorized JavaScript origins:
+   - `http://localhost:3000` (dev)
+   - `https://your-domain.com` (prod)
+4. Add authorized redirect URIs:
+   - `http://localhost:3000/login` (dev)
+   - `https://your-domain.com/login` (prod)
+5. Copy Client ID to environment variables
+
+#### Facebook Developers
+1. Go to https://developers.facebook.com/apps
+2. Create new app with "Consumer" type
+3. Add "Facebook Login" product
+4. Configure OAuth redirect URIs
+5. Copy App ID to environment variables
 
 ---
+
+**Last Updated:** 2026-04-25
+**Version:** 2.0.0 (Consolidated)
+**Package Manager:** pnpm 9+

@@ -30,6 +30,7 @@ DEPLOY_API="${DEPLOY_API:-true}"
 SKIP_TESTS="${SKIP_TESTS:-false}"
 SKIP_BUILD="${SKIP_BUILD:-false}"
 DRY_RUN="${DRY_RUN:-false}"
+QUICK_MODE="${QUICK_MODE:-false}"
 
 # Required environment variables for production
 REQUIRED_ENV_VARS=(
@@ -349,6 +350,16 @@ main() {
   # Parse command line arguments
   while [[ $# -gt 0 ]]; do
     case $1 in
+      --quick|--skip-checks)
+        QUICK_MODE=true
+        SKIP_TESTS=true
+        shift
+        ;;
+      --quick|--skip-checks)
+        QUICK_MODE=true
+        SKIP_TESTS=true
+        shift
+        ;;
       --skip-tests)
         SKIP_TESTS=true
         shift
@@ -377,13 +388,14 @@ main() {
         echo "Usage: $0 [OPTIONS]"
         echo ""
         echo "Options:"
-        echo "  --skip-tests      Skip running tests"
-        echo "  --skip-build      Skip build steps (only deploy)"
-        echo "  --dry-run         Show what would be done without doing it"
-        echo "  --local           Deploy to local development environment"
-        echo "  --no-web          Skip web build/deploy"
-        echo "  --no-api          Skip API build/deploy"
-        echo "  -h, --help        Show this help message"
+        echo "  --quick, --skip-checks  Skip type-check, lint, and tests (fast deploy)"
+        echo "  --skip-tests            Skip running tests only"
+        echo "  --skip-build           Skip build steps (only deploy)"
+        echo "  --dry-run              Show what would be done without doing it"
+        echo "  --local                Deploy to local development environment"
+        echo "  --no-web               Skip web build/deploy"
+        echo "  --no-api               Skip API build/deploy"
+        echo "  -h, --help             Show this help message"
         echo ""
         echo "Environment variables:"
         echo "  ENVIRONMENT       production|local (default: production)"
@@ -414,8 +426,14 @@ main() {
     check_prerequisites || exit 1
     check_environment_vars || exit 1
 
-    type_check
-    lint
+    # Skip type-check and lint in quick mode
+    if [ "$QUICK_MODE" = "false" ]; then
+      type_check
+      lint
+    else
+      log_info "Quick mode: skipping type-check and lint"
+    fi
+
     run_tests
 
     clean_builds

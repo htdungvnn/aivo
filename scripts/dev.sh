@@ -37,6 +37,38 @@ if ! command -v tmux &> /dev/null; then
 fi
 
 SESSION_NAME="aivo-dev"
+VIBE_MODE=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --vibe)
+      VIBE_MODE=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --vibe      Include Claude Code helper (fix_claude.sh) in background"
+      echo "  -h, --help  Show this help message"
+      echo ""
+      echo "Starts all development services (API, Web, Mobile) in a tmux session."
+      echo ""
+      echo "Session windows:"
+      echo "  0: API (Cloudflare Workers Dev)"
+      echo "  1: Web (Next.js)"
+      echo "  2: Mobile (Expo)"
+      echo "  3: Logs (wrangler tail)"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
 
 print_header "AIVO Development Environment"
 
@@ -76,6 +108,14 @@ tmux send-keys -t "$SESSION_NAME:3" "pnpm exec wrangler tail" C-m
 # Layout: horizontal split for api and vertical split for others
 tmux select-layout -t "$SESSION_NAME:0" even-horizontal
 tmux select-layout -t "$SESSION_NAME" tiled
+
+# Start fix_claude helper in background if --vibe flag is set
+if [ "$VIBE_MODE" = true ]; then
+  print_info "Starting Claude helper (fix_claude.sh) in background..."
+  tmux new-window -t "$SESSION_NAME" -n "claude"
+  tmux send-keys -t "$SESSION_NAME:4" "cd $PROJECT_ROOT && echo 'Claude helper running... Press Ctrl+B then D to detach.'" C-m
+  tmux send-keys -t "$SESSION_NAME:4" "$SCRIPT_DIR/fix_claude.sh &" C-m
+fi
 
 print_success "Development environment started!"
 echo ""

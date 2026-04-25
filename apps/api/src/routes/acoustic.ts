@@ -40,7 +40,7 @@ export const AcousticRouter = () => {
     return Math.floor(Date.now() / 1000);
   }
 
-  function invokeWasm(functionName: 'processAudioChunk' | 'calibrateBaseline' | 'calculateFatigueScore' | 'isExerciseSignal' | 'getRecommendedConfig' | 'recommendedSampleRate' | 'recommendedChunkDurationMs', args: [Int16Array, bigint?] | [string, string?] | [Int16Array?] | []): string {
+  function invokeWasmString(functionName: 'processAudioChunk' | 'calibrateBaseline' | 'calculateFatigueScore' | 'getRecommendedConfig', args: [Int16Array, bigint?] | [string, string?] | [Int16Array?] | []): string {
     switch (functionName) {
       case 'processAudioChunk':
         return AcousticMyography.processAudioChunk(args[0] as Int16Array, (args[1] ?? BigInt(0)) as bigint);
@@ -48,10 +48,17 @@ export const AcousticRouter = () => {
         return AcousticMyography.calibrateBaseline(args[0] as Int16Array);
       case 'calculateFatigueScore':
         return AcousticMyography.calculateFatigueScore(args[0] as string, (args[1] ?? '') as string);
-      case 'isExerciseSignal':
-        return AcousticMyography.isExerciseSignal(args[0] as Int16Array);
       case 'getRecommendedConfig':
         return AcousticMyography.getRecommendedConfig();
+      default:
+        throw new Error(`Unknown WASM function: ${functionName}`);
+    }
+  }
+
+  function invokeWasmPrimitive(functionName: 'isExerciseSignal' | 'recommendedSampleRate' | 'recommendedChunkDurationMs', args: [Int16Array?] | []): boolean | number {
+    switch (functionName) {
+      case 'isExerciseSignal':
+        return AcousticMyography.isExerciseSignal(args[0] as Int16Array);
       case 'recommendedSampleRate':
         return AcousticMyography.recommendedSampleRate();
       case 'recommendedChunkDurationMs':
@@ -74,7 +81,7 @@ export const AcousticRouter = () => {
 
       const pcmData = new Int16Array(validated.pcmData);
       const timestamp = validated.timestamp !== undefined ? BigInt(validated.timestamp) : BigInt(0);
-      const resultJson = invokeWasm('processAudioChunk', [pcmData, timestamp]);
+      const resultJson = invokeWasmString('processAudioChunk', [pcmData, timestamp]);
       const features = JSON.parse(resultJson);
 
       return ctx.json({ success: true, data: features });
@@ -88,7 +95,7 @@ export const AcousticRouter = () => {
       const body = await ctx.req.json();
       const validated = CalibrateSchema.parse(body);
       const pcmData = new Int16Array(validated.pcmData);
-      const baselineJson = invokeWasm('calibrateBaseline', [pcmData]);
+      const baselineJson = invokeWasmString('calibrateBaseline', [pcmData]);
       const baseline = JSON.parse(baselineJson);
       return ctx.json({ success: true, data: baseline });
     } catch (error) {
@@ -101,7 +108,7 @@ export const AcousticRouter = () => {
       const body = await ctx.req.json();
       const featuresJson = z.string().parse(body.features);
       const baselineJson = z.string().optional().parse(body.baseline);
-      const resultJson = invokeWasm('calculateFatigueScore', [featuresJson, baselineJson || '']);
+      const resultJson = invokeWasmString('calculateFatigueScore', [featuresJson, baselineJson || '']);
       const result = JSON.parse(resultJson);
       return ctx.json({ success: true, data: result });
     } catch (error) {
@@ -144,7 +151,7 @@ export const AcousticRouter = () => {
     try {
       const body = await ctx.req.json();
       const pcmData = new Int16Array(body.pcmData || []);
-      const isExercise = invokeWasm('isExerciseSignal', [pcmData]);
+      const isExercise = invokeWasmPrimitive('isExerciseSignal', [pcmData]);
       return ctx.json({ success: true, data: { isExercise: Boolean(isExercise) } });
     } catch (error) {
       return ctx.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500);
@@ -153,7 +160,7 @@ export const AcousticRouter = () => {
 
   router.get('/config', async (ctx: Context) => {
     try {
-      const configJson = invokeWasm('getRecommendedConfig', []);
+      const configJson = invokeWasmString('getRecommendedConfig', []);
       const config = JSON.parse(configJson);
       return ctx.json({ success: true, data: config });
     } catch (error) {

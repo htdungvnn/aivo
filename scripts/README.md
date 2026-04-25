@@ -1,75 +1,151 @@
 # AIVO Deployment Scripts
 
-This directory contains scripts for deploying and managing the AIVO platform.
+This directory contains optimized scripts for deploying and managing the AIVO platform.
 
 ## Quick Start
 
 ### One-Command Setup (Development)
 
 ```bash
-# 1. Install dependencies and setup database
-./scripts/setup-dev.sh
+# 1. Full setup (env + validate + dev dependencies)
+./scripts/setup.sh all
 
-# 2. Create environment files
-./scripts/setup-env.sh
-
-# 3. Generate secrets
-./scripts/generate-secrets.sh
-
-# 4. Validate configuration
-./scripts/validate-env.sh
-
-# 5. Start all services
+# 2. Start all services
 ./scripts/dev.sh
 ```
 
 ### One-Command Deploy (Production)
+
 ```bash
+# Full deployment with all checks
 ./scripts/deploy.sh
+
+# Fast deployment (skip type-check, lint, tests)
+./scripts/deploy.sh --quick
 ```
 
-### Local Development
-```bash
-# Setup everything
-./scripts/setup-dev.sh
+## Consolidated Commands
 
+| Command | Description | Flags |
+|---------|-------------|-------|
+| `setup.sh` | Environment setup | `env`, `validate`, `dev`, `all`, `secrets` |
+| `dev.sh` | Start development services | `--vibe` |
+| `deploy.sh` | Deploy to production | `--quick`, `--skip-tests`, `--dry-run`, `--local`, `--no-web`, `--no-api` |
+| `health.sh` | Health check | `--local` |
+| `migrate.sh` | Database migrations | `--remote` |
+| `generate-secrets.sh` | Generate secure secrets | - |
+| `deploy-web-pages.sh` | Deploy web to Cloudflare Pages | - |
+| `fix_claude.sh` | Claude CLI retry wrapper | - |
+
+## Backwards Compatibility
+
+All original script names continue to work as thin wrappers:
+
+```bash
+# These all work identically:
+./scripts/setup.sh env        == ./scripts/setup-env.sh
+./scripts/setup.sh validate   == ./scripts/validate-env.sh
+./scripts/setup.sh dev        == ./scripts/setup-dev.sh
+./scripts/deploy.sh --quick   == ./scripts/quick-deploy.sh
+./scripts/dev.sh --vibe       == ./scripts/vibe_start.sh
+./scripts/health.sh --local   == ./scripts/health-check.sh
+```
+
+## Command Reference
+
+### setup.sh - Environment Setup
+
+```bash
+# Create .env files from templates
+./scripts/setup.sh env
+
+# Validate environment configuration
+./scripts/setup.sh validate
+
+# Set up local development (deps, WASM, database)
+./scripts/setup.sh dev
+
+# Generate secrets (same as generate-secrets.sh)
+./scripts/setup.sh secrets
+
+# Run full setup flow
+./scripts/setup.sh all
+```
+
+### dev.sh - Development Services
+
+```bash
 # Start all services in tmux
 ./scripts/dev.sh
+
+# Start with Claude helper (fix_claude.sh auto-retry)
+./scripts/dev.sh --vibe
 ```
 
-## Available Scripts
+When attached to tmux session:
+- Windows: `api` (port 8787), `web` (port 3000), `mobile` (Expo), `logs`, `claude` (if --vibe)
+- Switch windows: `Ctrl+B` then `0,1,2,3,4`
+- Detach: `Ctrl+B` then `D`
 
-| Script | Description | Usage |
-|--------|-------------|-------|
-| `deploy.sh` | Full production deployment (API + DB) | `./scripts/deploy.sh` |
-| `deploy-web-pages.sh` | Deploy web app to Cloudflare Pages | `./scripts/deploy-web-pages.sh` |
-| `quick-deploy.sh` | Fast deployment without type-check/lint | `./scripts/quick-deploy.sh` |
-| `migrate.sh` | Database migration generator and applier | `./scripts/migrate.sh [--remote]` |
-| `health.sh` | Health check for deployed services | `./scripts/health.sh` |
-| `setup-dev.sh` | Initial local development setup (deps, DB) | `./scripts/setup-dev.sh` |
-| `setup-env.sh` | Create .env files from templates | `./scripts/setup-env.sh` |
-| `validate-env.sh` | Validate environment configuration | `./scripts/validate-env.sh` |
-| `generate-secrets.sh` | Generate secure secrets for deployment | `./scripts/generate-secrets.sh` |
-| `dev.sh` | Start all dev services in tmux | `./scripts/dev.sh` |
+### deploy.sh - Production Deployment
+
+```bash
+# Full deployment with all checks
+./scripts/deploy.sh
+
+# Fast deployment (skip type-check, lint, tests)
+./scripts/deploy.sh --quick
+
+# Skip tests only
+./scripts/deploy.sh --skip-tests
+
+# Dry run (show what would happen)
+./scripts/deploy.sh --dry-run
+
+# Local development deployment
+./scripts/deploy.sh --local
+
+# Deploy API only
+./scripts/deploy.sh --no-web
+
+# Deploy web only
+./scripts/deploy.sh --no-api
+```
+
+### health.sh - Health Checks
+
+```bash
+# Production health check (curl endpoints)
+./scripts/health.sh
+
+# Local development health check (ports, processes, build artifacts)
+./scripts/health.sh --local
+```
+
+### migrate.sh - Database Migrations
+
+```bash
+# Generate and optionally apply migrations
+./scripts/migrate.sh
+
+# Apply to remote/production database
+./scripts/migrate.sh --remote
+```
 
 ## Environment Setup
 
-### Development Environment
+### Initial Development Setup
 
 1. **Create environment files**:
    ```bash
-   ./scripts/setup-env.sh
+   ./scripts/setup.sh env
    ```
-   This creates `.env` files from templates in:
-   - `apps/api/.env`
-   - `apps/web/.env.local`
-   - `apps/mobile/.env`
 
 2. **Generate secrets**:
    ```bash
-   ./scripts/generate-secrets.sh
+   ./scripts/setup.sh secrets
+   # or: ./scripts/generate-secrets.sh
    ```
-   Generates `AUTH_SECRET` and other secure values.
 
 3. **Edit `.env` files** with your actual credentials:
    - `AUTH_SECRET` (from generate-secrets.sh)
@@ -77,16 +153,24 @@ This directory contains scripts for deploying and managing the AIVO platform.
    - `FACEBOOK_APP_ID` (from Facebook Developers)
    - `OPENAI_API_KEY` (optional, for AI features)
 
-4. **Validate**:
+4. **Validate configuration**:
    ```bash
-   ./scripts/validate-env.sh
+   ./scripts/setup.sh validate
    ```
 
-### Production Environment
+5. **Install dependencies and setup database**:
+   ```bash
+   ./scripts/setup.sh dev
+   ```
 
-For production deployment on Cloudflare Workers:
+6. **Start development**:
+   ```bash
+   ./scripts/dev.sh
+   ```
 
-1. **Set Cloudflare secrets** (not in wrangler.toml):
+### Production Deployment
+
+1. **Set Cloudflare secrets**:
    ```bash
    cd apps/api
    wrangler secret put AUTH_SECRET
@@ -95,103 +179,16 @@ For production deployment on Cloudflare Workers:
    wrangler secret put FACEBOOK_APP_ID
    ```
 
-2. **Configure wrangler.toml** with actual resource IDs:
+2. **Configure `wrangler.toml`** with actual resource IDs:
    - `database_id` for D1
    - `id` for each KV namespace
    - `bucket_name` for R2
    - `R2_PUBLIC_URL` in `[vars]`
 
-3. **OAuth redirect URIs** must point to production domain:
-   - Google: `https://your-domain.com/login`
-   - Facebook: `https://your-domain.com/login`
-
-See [../docs/PRODUCTION_DEPLOYMENT.md](../docs/PRODUCTION_DEPLOYMENT.md) for complete production setup.
-
-### Web Deployment (Cloudflare Pages)
-
-1. **Prepare production environment**:
+3. **Deploy**:
    ```bash
-   cp apps/web/.env.production.local.example apps/web/.env.production.local
-   # Edit with your production values
+   ./scripts/deploy.sh
    ```
-
-2. **Deploy**:
-   ```bash
-   ./scripts/deploy-web-pages.sh
-   ```
-
-3. **Configure custom domain** in Cloudflare Dashboard → Pages
-
-4. **Update OAuth redirect URIs** with your production domain
-
-See [../docs/CLOUDFLARE_PAGES_DEPLOYMENT.md](../docs/CLOUDFLARE_PAGES_DEPLOYMENT.md) for detailed guide.
-
-### Full Deployment
-```bash
-# Production deploy (full checks)
-./scripts/deploy.sh
-
-# Dry run (see what would happen)
-./scripts/deploy.sh --dry-run
-
-# Skip tests
-./scripts/deploy.sh --skip-tests
-
-# Deploy API only
-./scripts/deploy.sh --no-web
-
-# Local deployment
-./scripts/deploy.sh --local
-```
-
-### Environment Variables (Production)
-
-Before deploying, set these variables:
-
-```bash
-export CLOUDFLARE_API_TOKEN="your_api_token"
-export CLOUDFLARE_ACCOUNT_ID="your_account_id"
-export AUTH_SECRET="random_secret_string"
-export API_URL="https://api.aivo.yourdomain.com"
-```
-
-### Using pnpm scripts
-
-You can also run these via pnpm:
-
-```json
-{
-  "scripts": {
-    "deploy": "./scripts/deploy.sh",
-    "deploy:quick": "./scripts/quick-deploy.sh",
-    "dev": "./scripts/dev.sh",
-    "migrate": "./scripts/migrate.sh",
-    "health": "./scripts/health.sh"
-  }
-}
-```
-
-Then:
-```bash
-pnpm run deploy
-pnpm run dev
-```
-
-## Deployment Flow
-
-1. **Check Prerequisites** - Verify Rust, Node, pnpm, wrangler installed
-2. **Environment Check** - Ensure required env vars for production
-3. **Type Check & Lint** - Run TypeScript and ESLint checks
-4. **Tests** - Run test suite (can skip with `--skip-tests`)
-5. **Clean** - Remove previous build artifacts
-6. **Install** - Install dependencies
-7. **Build WASM** - Compile Rust to WebAssembly
-8. **Generate Migrations** - Create Drizzle migrations from schema
-9. **Build API** - Bundle Cloudflare Workers
-10. **Build Web** - Build Next.js app
-11. **Apply Migrations** - Run D1 migrations
-12. **Deploy API** - Deploy to Cloudflare Workers
-13. **Health Check** - Verify services are running
 
 ## Individual Package Commands
 
@@ -200,30 +197,30 @@ pnpm run dev
 cd apps/api
 pnpm run build      # Build
 pnpm run deploy     # Deploy
-pnpm exec wrangler tail # View logs
+pnpm exec wrangler tail  # View logs
 ```
 
 ### Web (Next.js - Cloudflare Pages)
 ```bash
 cd apps/web
-pnpm run build:pages      # Build for Pages
-wrangler pages deploy .   # Deploy to Pages
+pnpm run build:pages   # Build for Pages
+wrangler pages deploy .  # Deploy to Pages
 ```
 
 ### Database
 ```bash
 cd packages/db
 pnpm exec drizzle-kit generate   # Generate migrations
-pnpm run migrate:local      # Apply to local DB
-pnpm run migrate:remote     # Apply to production DB
-pnpm run studio             # Open Drizzle Studio
+pnpm run migrate:local          # Apply to local DB
+pnpm run migrate:remote         # Apply to production DB
+pnpm run studio                 # Open Drizzle Studio
 ```
 
 ### WASM Compute
 ```bash
 cd packages/aivo-compute
-pnpm run build     # Build WASM
-pnpm run test      # Run tests
+pnpm run build   # Build WASM
+pnpm run test    # Run tests
 ```
 
 ## Troubleshooting
@@ -257,8 +254,11 @@ cd apps/api && pnpm exec wrangler tail
 # Database queries (local)
 cd packages/db && pnpm run studio
 
-# Health check
+# Health check (production)
 ./scripts/health.sh
+
+# Health check (local)
+./scripts/health.sh --local
 ```
 
 ## Rollback
@@ -278,9 +278,8 @@ vercel rollback <deployment-url>
 
 ## CI/CD Integration
 
-These scripts can be used in GitHub Actions, GitLab CI, etc.
+These scripts work well in CI/CD pipelines:
 
-Example:
 ```yaml
 - name: Deploy AIVO
   run: |
@@ -290,3 +289,21 @@ Example:
     CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 ```
+
+## Script Consolidation Summary
+
+**Before**: 14 separate scripts with overlapping functionality
+**After**: 4 consolidated scripts + 6 thin wrappers + 4 standalone utilities
+
+| Original Scripts | Consolidated Into |
+|-----------------|-------------------|
+| `health.sh` + `health-check.sh` | `health.sh` (`--local` flag) |
+| `deploy.sh` + `quick-deploy.sh` | `deploy.sh` (`--quick` flag) |
+| `setup-dev.sh` + `setup-env.sh` + `validate-env.sh` | `setup.sh` (`env`, `validate`, `dev`, `all` subcommands) |
+| `dev.sh` + `vibe_start.sh` | `dev.sh` (`--vibe` flag) |
+
+**Benefits**:
+- Single source of truth for each domain
+- Discoverable options via `--help`
+- Backwards compatible (old script names still work)
+- Easier maintenance and documentation

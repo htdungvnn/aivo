@@ -18,15 +18,11 @@
     "build:wasm": {
       "dependsOn": ["^build"],
       "outputs": ["pkg/**", "*.wasm", "target/**/release/**"],
-      "cache": true,
-      "cacheOptions": {
-        "files": ["**/Cargo.toml", "**/Cargo.lock"]
-      }
+      "cache": true
     },
     "dev": {
       "cache": false,
-      "persistent": true,
-      "watch": ["**/src/**"]
+      "persistent": true
     },
     "lint": {
       "dependsOn": ["^build"]

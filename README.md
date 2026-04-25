@@ -16,7 +16,9 @@ High-performance fitness platform and AI-native conversational platform.
 - **Database**: Cloudflare D1 with Drizzle ORM
 - **Auth**: Google & Facebook OAuth (passwordless login)
 
-## Prerequisites
+## Quick Start
+
+### 1. Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 18
 - [pnpm](https://pnpm.io/) >= 9
@@ -25,9 +27,7 @@ High-performance fitness platform and AI-native conversational platform.
 - [Cloudflare Wrangler](https://developers.cloudflare.com/workers/wrangler/) CLI
 - [Expo CLI](https://docs.expo.dev/get-started/installation/) (for mobile development)
 
-## Quick Start
-
-### 1. Clone and Install
+### 2. Clone and Install
 
 ```bash
 git clone <your-repo>
@@ -35,7 +35,7 @@ cd aivo
 pnpm install
 ```
 
-### 2. Set Up Environment Variables
+### 3. Environment Setup
 
 ```bash
 # Run the setup script to create .env files from templates
@@ -50,15 +50,9 @@ Edit the created `.env` files with your actual credentials:
 - Get OAuth client IDs from Google Cloud Console and Facebook Developers
 - (Optional) Add OpenAI API key for AI features
 
-See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complete setup instructions.
+See [`.env/ENVIRONMENT.md`](./.env/ENVIRONMENT.md) for complete environment variable reference.
 
-### 3. Build WASM Compute Package
-
-```bash
-pnpm run build:wasm
-```
-
-### 4. Start Development Services
+### 4. Start Development
 
 Using Turborepo (runs all services):
 
@@ -82,6 +76,26 @@ cd apps/api && pnpm exec wrangler dev
 cd packages/db && pnpm exec drizzle-kit studio
 ```
 
+---
+
+## Documentation
+
+| Topic | Guide |
+|-------|-------|
+| **Getting Started** | [QUICKSTART.md](./docs/QUICKSTART.md) |
+| **Environment Variables** | [.env/ENVIRONMENT.md](./.env/ENVIRONMENT.md) |
+| **Architecture** | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
+| **API Reference** | [API.md](./docs/API.md) |
+| **Database Schema** | [DATABASE.md](./docs/DATABASE.md) |
+| **Compute Engine** | [COMPUTE.md](./docs/COMPUTE.md) |
+| **Memory Service** | [MEMORY_SERVICE.md](./docs/MEMORY_SERVICE.md) |
+| **Frontend Apps** | [FRONTEND.md](./docs/FRONTEND.md) |
+| **Deployment** | [DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
+| **Testing** | [TESTING.md](./docs/TESTING.md) |
+| **Troubleshooting** | [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) |
+
+---
+
 ## Project Structure
 
 ```
@@ -100,6 +114,8 @@ aivo/
 └── turbo.json             # Turborepo pipeline config
 ```
 
+---
+
 ## Available Scripts
 
 ### Root Level
@@ -117,6 +133,8 @@ pnpm run build:wasm   # Build WASM package only
 ### Package-Specific
 
 See individual `package.json` files in each package for specific scripts.
+
+---
 
 ## Database Setup
 
@@ -140,9 +158,11 @@ pnpm exec drizzle-kit generate
 # Local development
 pnpm exec wrangler d1 migrations apply aivo-db --local
 
-# Production
-pnpm exec wrangler d1 migrations apply aivo-db
+# Production (via deploy script)
+./scripts/deploy.sh
 ```
+
+---
 
 ## Building for Production
 
@@ -158,117 +178,63 @@ pnpm run build:wasm
 pnpm run build
 ```
 
-### 3. Deploy API
+### 3. Deploy
 
+**API (Cloudflare Workers):**
 ```bash
 cd apps/api
 pnpm exec wrangler deploy
 ```
 
-## Key Technologies
+**Web (Cloudflare Pages):**
+```bash
+./scripts/deploy-web-pages.sh
+```
 
-| Component | Technology | Version |
-|-----------|------------|---------|
-| Web UI | Next.js | 15.2+ |
-| Mobile | Expo | 54.0+ |
-| Mobile UI | NativeWind | 4.x |
-| API Framework | Hono | 4.7+ |
-| Database | Cloudflare D1 | - |
-| ORM | Drizzle | 0.40+ |
-| Compute | Rust WASM | stable |
-| Package Manager | pnpm | 9+ |
-| Build System | Turborepo | 2.3+ |
-| Linting | ESLint | 10.x |
-| TypeScript | 5.x (strict mode) |
+**Mobile (Expo EAS):**
+```bash
+cd apps/mobile
+eas build --platform all
+```
+
+See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment guide.
+
+---
 
 ## Development Guidelines
 
 1. **Shared Types**: Always update `packages/shared-types` when changing interfaces
 2. **WASM Changes**: Run `pnpm run build:wasm` after any Rust modifications
 3. **Database**: Use Drizzle migrations for all schema changes
-4. **Type Safety**: All TypeScript should be in strict mode
+4. **Type Safety**: All TypeScript code must pass strict type checking
 5. **Workers**: No Node.js standard library in Cloudflare Workers
 
-## API Endpoints
-
-### Authentication (Google/Facebook OAuth Only)
-- `POST /api/auth/google` - Google OAuth callback
-- `POST /api/auth/facebook` - Facebook OAuth callback
-- `POST /api/auth/verify` - Verify JWT token
-- `POST /api/auth/logout` - Invalidate session
-
-### Health
-- `GET /health` - Service health check
-
-### Users
-- `GET /users` - List users
-- `GET /users/:id` - Get user by ID
-
-### Workouts
-- `GET /workouts?userId=` - List workouts
-- `POST /workouts` - Create workout
-
-### AI Coach
-- `POST /ai/chat` - Send chat message
-- `GET /ai/history/:userId` - Get conversation history
-
-### Calculations (WASM)
-- `POST /calc/bmi` - Calculate BMI
-- `POST /calc/calories` - Calculate TDEE and targets
-- `POST /calc/one-rep-max` - Calculate 1RM
+---
 
 ## OAuth Setup
 
 ### Google Cloud Console
+
 1. Go to https://console.cloud.google.com/apis/credentials
 2. Create OAuth 2.0 Client ID
 3. Add authorized JavaScript origins and redirect URIs
 4. Copy Client ID to environment variables
 
 ### Facebook Developers
+
 1. Go to https://developers.facebook.com/apps
 2. Create app with "Consumer" type
 3. Add "Facebook Login" product
 4. Configure OAuth redirect URIs
 5. Copy App ID to environment variables
 
-See `.claude/CLAUDE.md` for detailed authentication documentation.
-
-## Deployment
-
-### Web Application (Cloudflare Pages)
-
-```bash
-# Deploy web app to Cloudflare Pages
-./scripts/deploy-web-pages.sh
-
-# Or manually
-cd apps/web
-pnpm run build:pages
-wrangler pages deploy . --project-name aivo-web
-```
-
-See [docs/CLOUDFLARE_PAGES_DEPLOYMENT.md](./docs/CLOUDFLARE_PAGES_DEPLOYMENT.md) for detailed web deployment instructions.
-
-### API (Cloudflare Workers)
-
-```bash
-# Deploy API to Cloudflare Workers
-./scripts/deploy.sh
-
-# Or manually
-cd apps/api
-pnpm run build
-pnpm run deploy
-```
-
-See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complete production deployment guide.
+---
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch
-3. Run `pnpm run type-check` and `pnpm run lint`
+3. Run `pnpm run type-check && pnpm run lint`
 4. Commit your changes (follow conventional commits)
 5. Push to the branch
 6. Open a Pull Request
@@ -279,7 +245,9 @@ See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for complet
 - ESLint rules are enforced across all packages
 - Import statements must use `import type` for type-only imports
 - Enums used as values must use regular `import` (not `import type`)
-- Console statements are allowed in production code for logging
+- Console statements are allowed for logging
+
+---
 
 ## License
 
@@ -287,8 +255,6 @@ MIT
 
 ---
 
-**Version:** 1.0.1  
-**Last Updated:** 2026-04-22  
+**Version:** 2.0.0
+**Last Updated:** 2026-04-25
 **Maintained by:** AIVO Team
-
-

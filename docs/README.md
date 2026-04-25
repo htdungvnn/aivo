@@ -33,22 +33,17 @@ Welcome to AIVO - the AI-native fitness coaching platform.
 - Token optimization
 - Correlation analysis
 
-### Complete Feature Catalog
-
-- **[All Features](./FEATURES.md)** - Comprehensive list of all 50+ features across API, Web, Mobile, and packages
-
 ## Frontend Applications
 
-- **[Web App](./FRONTEND.md)** - Next.js dashboard and chat
-- **Mobile App** - Expo React Native (iOS/Android)
+- **[Frontend Guide](./FRONTEND.md)** - Web (Next.js) and Mobile (Expo) applications
 - OAuth integration (Google + Facebook)
 - Responsive design (Tailwind / NativeWind)
+- Complete feature list for both platforms
 
 ## Operations
 
-- **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to Cloudflare Workers and app stores
-- **[Testing Guide](./TESTING.md)** - Unit, integration, and E2E tests
-- **[Mock Data Guide](./MOCK_DATA.md)** - Admin test data for UI/UX testing
+- **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to Cloudflare Workers, Vercel, Cloudflare Pages, and app stores
+- **[Testing Guide](./TESTING.md)** - Unit, integration, and E2E tests (includes mock data)
 - **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## Package Reference
@@ -125,6 +120,6 @@ FACEBOOK_APP_ID=...
 
 ---
 
-**Version:** 1.1.0  
-**Last Updated:** 2026-04-22  
+**Version:** 2.0.0
+**Last Updated:** 2026-04-25
 **Maintained by:** AIVO Team

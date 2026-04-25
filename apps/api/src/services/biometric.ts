@@ -3,10 +3,8 @@
  * Handles sleep logs, biometric snapshots, correlation analysis, and recovery scores
  */
 
-import type { D1Database } from "@cloudflare/workers-types";
-import { createDrizzleInstance } from "@aivo/db";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { eq, and, gte, sql } from "drizzle-orm";
+import type { DrizzleD1Database } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { schema } from "@aivo/db/schema";
 import { FitnessCalculator } from "@aivo/compute";
 

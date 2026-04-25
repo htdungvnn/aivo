@@ -17,6 +17,46 @@ AIVO uses multiple testing frameworks across packages:
 
 ---
 
+## Running Tests
+
+### All Packages
+
+```bash
+# Run all tests
+pnpm run test
+
+# Type check all
+pnpm run type-check
+
+# Lint all
+pnpm run lint
+
+# Coverage report
+pnpm run coverage
+```
+
+### Package-Specific
+
+```bash
+# Memory service
+cd packages/memory-service
+pnpm test
+
+# API
+cd apps/api
+pnpm test
+
+# Web
+cd apps/web
+pnpm test
+
+# Mobile
+cd apps/mobile
+pnpm test
+```
+
+---
+
 ## Memory Service Tests
 
 The memory-service package has 48 unit tests covering:
@@ -40,15 +80,6 @@ The memory-service package has 48 unit tests covering:
 - `cosineSimilarity()` - 8 tests (correct calculation, edge cases)
 - `scoreMemories()` - 4 tests (recency boost, confidence boost, priority boost)
 - `MemorySearcher` - 8 tests (caching, embedding errors, truncation, config)
-
-### Running Memory Service Tests
-
-```bash
-cd packages/memory-service
-pnpm test          # Run once
-pnpm test --watch  # Watch mode
-pnpm test --coverage  # With coverage report
-```
 
 ---
 
@@ -154,7 +185,7 @@ pnpm run seed
 4. Start API in test mode
 
 ```bash
-# Combined script
+# Combined script (if exists)
 ./scripts/test-integration.sh
 ```
 
@@ -166,7 +197,7 @@ Tests that memory extraction and retrieval work end-to-end:
 // Example (conceptual)
 test("process conversation and retrieve memories", async () => {
   const service = new MemoryService({ openaiApiKey: TEST_KEY, db: testDb });
-  
+
   // Process conversation
   await service.processConversationTurn(
     "user-123",
@@ -174,13 +205,170 @@ test("process conversation and retrieve memories", async () => {
     "I recommend seeing a physio",
     "conv-123"
   );
-  
+
   // Retrieve memories
   const memories = await service.getMemories("user-123", {});
   expect(memories).toContain(expect.objectContaining({
     content: expect.stringContaining("knee pain"),
   }));
 });
+```
+
+---
+
+## Mock Data for Testing
+
+The mock data system provides a complete fake dataset for UI/UX and API testing.
+
+### Admin User Profile
+
+- **Email**: `admin@aivo.ai`
+- **User ID**: `admin-user-001`
+- **Profile**: 28yo male, 180cm, 82.5kg, intermediate fitness level
+- **Workout History**: 4 weeks of completed workouts (4 days/week upper/lower split)
+- **Body Metrics**: 30 days of daily measurements with trends
+- **Gamification**: Level 12, 2850 points, 7-day streak
+- **Memories**: 8 extracted memory nodes with relationships
+- **Conversations**: 15 chat messages with AI coach
+- **Goals**: 3 active fitness goals
+- **Nutrition**: Food logs and daily summaries
+- **Sleep**: 30 days of sleep tracking
+- **Badges**: 3 earned badges
+
+### Quick Setup
+
+```bash
+# Navigate to db package
+cd packages/db
+
+# Apply migrations to local D1 database
+pnpm exec wrangler d1 migrations apply aivo-db --local
+
+# Seed with mock data
+pnpm run seed:mock
+```
+
+Expected output:
+```
+🌱 Starting database seeding...
+
+📝 Inserting admin user...
+   ✅ Created user: admin@aivo.ai
+📝 Inserting OAuth session...
+   ✅ Created session for provider: google
+📝 Inserting gamification profile...
+   ✅ Profile: Level 12, 2850 points
+📝 Inserting 31 body metrics records...
+   ✅ Body metrics history populated (31 days)
+...
+✅ Database seeding completed successfully!
+
+📊 Summary:
+   - User: admin@aivo.ai
+   - Workouts: 16 completed
+   - Memories: 8 stored
+   - Conversations: 15 messages
+   - Gamification: Level 12, 2850 points
+   - Streak: 7 days current, 21 days best
+```
+
+### Admin API Endpoints (Dev Only)
+
+Available at `/api/admin/test/*` when `NODE_ENV !== "production"`:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health-check` | API health status |
+| `GET /stats` | Dashboard overview statistics |
+| `GET /user/:userId` | Detailed user profile with all related data |
+| `GET /workouts` | All workouts (filterable by type) |
+| `GET /conversations` | Chat history |
+| `GET /memories` | Memory nodes (filterable by type/confidence) |
+| `GET /body-metrics` | Body measurement history |
+| `GET /recovery` | Recovery and fatigue data |
+| `GET /gamification` | Points, badges, streaks |
+| `GET /ai-activity` | AI interactions summary |
+
+#### Example Usage
+
+```bash
+# Get user profile with everything
+curl http://localhost:8787/api/admin/test/user/admin-user-001
+
+# Get workout history
+curl "http://localhost:8787/api/admin/test/workouts?limit=20"
+
+# Get memory analytics
+curl "http://localhost:8787/api/admin/test/memories?minConfidence=0.8"
+
+# Get recovery trends
+curl http://localhost:8787/api/admin/test/recovery
+```
+
+### Data Characteristics
+
+#### Workout Pattern
+- 4 days/week (Mon, Tue, Thu, Fri)
+- Upper/Lower split
+- Progressive overload (weights increase over weeks)
+- Heavy deadlift day on Friday
+
+#### Body Metrics Trends
+- Weight: starts at 83kg, trending down to ~81kg
+- Body fat: 18.5% → 15% over 30 days
+- Muscle mass: slowly increasing
+- BMI: 25.4 → 24.7
+
+#### Recovery Patterns
+- Recovery score higher on non-workout days (90+)
+- Lower recovery on heavy workout days (70-80)
+- Sleep quality: consistent 7-8 hours
+- Soreness pattern matches workout schedule (legs sore after lower days)
+
+#### Memory Types Distributed
+- fact: 3 (profile info, injury history, goal)
+- preference: 1 (morning workout preference)
+- event: 1 (PR achievement)
+- constraint: 1 (4 days/week limitation)
+- emotional: 1 (motivation pattern)
+- entity: 1 (gym location)
+
+### Testing Scenarios
+
+1. **Dashboard Overview** - Use `/stats` endpoint to test dashboard cards
+2. **Profile Page** - Use `/user/:userId` to test complete profile view
+3. **Workout History** - Use `/workouts` to test workout list and filters
+4. **AI Chat Integration** - Use `/conversations` to test chat history display
+5. **Analytics Charts** - Use `/body-metrics` and `/recovery` for chart data
+6. **Gamification** - Use `/gamification` to test widgets and badges
+
+### Resetting Data
+
+To reset the mock data:
+
+```bash
+# Clear all tables for the admin user
+# Or delete the local database and reapply migrations:
+
+cd packages/db
+rm -rf .wrangler/state  # Clears local D1 database
+pnpm exec wrangler d1 migrations apply aivo-db --local
+pnpm run seed:mock
+```
+
+### Extending Mock Data
+
+Add new data to `packages/db/src/__tests__/mock-data.ts`:
+
+```typescript
+// Add to mockData object
+mockData.newTable = [
+  {
+    id: generateId(),
+    userId: adminUser.id,
+    // ... your fields
+  },
+];
 ```
 
 ---
@@ -222,7 +410,7 @@ cd packages/memory-service
 pnpm test --coverage --coverageReporters=lcov
 ```
 
-Coverage thresholds:
+Coverage targets:
 
 | Package | Target |
 |---------|--------|
@@ -230,117 +418,6 @@ Coverage thresholds:
 | `@aivo/api` | 80% |
 | `@aivo/web` | 75% |
 | `@aivo/mobile` | 70% |
-
----
-
-## Type Checking
-
-```bash
-# All packages
-pnpm run type-check
-
-# Watch mode (individual)
-cd packages/memory-service
-pnpm type-check --watch
-```
-
----
-
-## Linting
-
-```bash
-# All packages
-pnpm run lint
-
-# Auto-fix
-pnpm run lint:fix
-```
-
-Uses ESLint with:
-- `@typescript-eslint/recommended`
-- `prettier` integration
-- Package-specific rules
-
----
-
-## Performance Testing
-
-### API Benchmarks
-
-```bash
-cd apps/api
-pnpm run bench
-```
-
-Tests:
-- Chat endpoint latency (p50, p95, p99)
-- Memory retrieval time
-- Database query performance
-
-Sample output:
-
-```
-Chat endpoint (with memory):
-  mean: 1450ms
-  p50: 1380ms
-  p95: 2100ms
-  p99: 3200ms
-```
-
----
-
-## Mocking
-
-### OpenAI API
-
-All OpenAI calls are mocked in tests:
-
-```typescript
-jest.mock("openai", () => ({
-  OpenAI: jest.fn().mockImplementation(() => ({
-    chat: { completions: { create: jest.fn() } },
-    embeddings: { create: jest.fn() },
-  })),
-}));
-```
-
-### Database
-
-In-memory SQLite for tests:
-
-```typescript
-const db = await drizzle(
-  new SQLite(DATABASE_PATH),
-  { schema }
-);
-```
-
----
-
-## CI/CD Pipeline
-
-GitHub Actions (`.github/workflows/`):
-
-### `test.yml`
-
-```yaml
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-      - run: pnpm install
-      - run: pnpm run type-check
-      - run: pnpm run lint
-      - run: pnpm run test
-      - run: pnpm run build
-```
-
-### `e2e.yml`
-
-Runs E2E tests on staging environment.
 
 ---
 
@@ -386,7 +463,7 @@ async function seed() {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   });
-  
+
   // Create routine
   await db.insert(workoutRoutines).values({ /* ... */ });
 }
@@ -422,5 +499,6 @@ wrangler d1 migrations apply aivo-db --local
 
 ---
 
-**Last Updated:** 2026-04-22  
+**Last Updated:** 2026-04-25
 **Testing Framework:** Jest 29, Vitest (planned)
+**Coverage Tool:** Istanbul/NYC

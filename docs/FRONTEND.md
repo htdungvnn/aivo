@@ -30,6 +30,11 @@ apps/web/
 │   │   ├── profile/      # User profile
 │   │   └── layout.tsx    # Root layout
 │   ├── components/       # Reusable UI components
+│   │   ├── body/         # Body metrics components
+│   │   ├── chat/         # Chat interface
+│   │   ├── common/       # Button, Card, Input, Modal
+│   │   ├── workouts/     # Workout and routine components
+│   │   └── ...
 │   ├── lib/              # Utilities, API clients
 │   └── styles/           # Global styles
 ├── public/               # Static assets
@@ -41,27 +46,50 @@ apps/web/
 1. **OAuth Login**
    - Google Sign-In via `@react-oauth/google`
    - Redirect flow exchanges code for JWT
+   - Secure token storage (localStorage)
 
 2. **Dashboard**
    - Current routine display
    - Today's workout card
-   - Body metrics chart
-   - Quick actions
+   - Body metrics chart (weight, body fat)
+   - Quick action buttons
+   - Recent achievements
 
-3. **Chat Interface**
-   - AI coach conversation
+3. **AI Chat**
+   - Real-time conversation with AI coach
    - Memory-aware responses
-   - Message history
+   - Message history with scroll
+   - Typing indicators
+   - Error handling
 
 4. **Progress Tracking**
-   - Weight/body fat charts
+   - Weight/body fat charts (Recharts)
    - Personal records
-   - Body photos (upload & comparison)
+   - Body photo comparison
+   - Trend indicators
+   - Muscle activation charts
 
 5. **Routine Management**
-   - Create/edit routines
-   - Exercise library
+   - Create/edit weekly routines
+   - Exercise library search
    - Template selection
+   - Drag-and-drop ordering
+
+6. **Form Analysis**
+   - Video upload with preview
+   - Processing status tracking
+   - Results display with scores
+   - Correction drills
+
+7. **Infographic Generation**
+   - Template selection
+   - Theme customization
+   - Share/download options
+
+8. **Responsive Design**
+   - Mobile-first Tailwind CSS
+   - Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
+   - Tablet and desktop adaptations
 
 ### Setup
 
@@ -78,13 +106,16 @@ Visit `http://localhost:3000`
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8787
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-NEXT_PUBLIC_OAUTH_GOOGLE_CLIENT_ID=your_google_client_id
+NEXT_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_app_id
+NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.r2.dev
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### Build
 
 ```bash
-pnpm run build        # Production build
+pnpm run build        # Production build for Vercel/Node
+pnpm run build:pages  # Production build for Cloudflare Pages
 pnpm start            # Start production server
 ```
 
@@ -105,9 +136,14 @@ apps/mobile/
 │   ├── login/          # OAuth flow
 │   └── _layout.tsx     # Root layout
 ├── components/         # Reusable components
+│   ├── common/        # Button, Card, Input
+│   ├── chat/          # Chat bubbles
+│   ├── workouts/      # Workout tracking
+│   └── ...
 ├── hooks/              # Custom hooks
 ├── lib/                # API client, storage
-└── assets/             # Images, fonts
+├── assets/             # Images, fonts
+└── app.json            # Expo configuration
 ```
 
 ### Key Features
@@ -116,22 +152,26 @@ apps/mobile/
    - Google Sign-In via `expo-auth-session`
    - Facebook Login via native SDK
    - Deep linking for callback
+   - Secure token storage (expo-secure-store)
 
 2. **Dashboard**
    - Today's workout overview
    - Body metrics summary
    - Quick workout logging
+   - Streak display
 
 3. **AI Chat**
    - Full chat interface
+   - Message bubbles
+   - Memory context display
    - Voice input (optional)
-   - Memory-aware responses
 
 4. **Workout Tracking**
    - Timer & set tracking
-   - Exercise logging
+   - Exercise logging with RPE
    - Rest timers
    - Progress photos
+   - Offline support
 
 5. **Notifications**
    - Push notifications for workouts
@@ -141,7 +181,13 @@ apps/mobile/
 6. **Offline Support**
    - Cached routines
    - Queued sync
-   - Local storage
+   - Local storage fallback
+
+7. **Native Features**
+   - Camera access for photos
+   - Haptic feedback
+   - Deep linking
+   - Share sheet
 
 ### Setup
 
@@ -161,6 +207,7 @@ EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 EXPO_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_app_id
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_web_client_id  # For web auth flow
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_client_id   # iOS native
+EXPO_PUBLIC_SCHEME=aivo
 ```
 
 ### Build
@@ -187,7 +234,7 @@ eas submit --platform android
 
 ## Shared Components
 
-Both apps share design principles:
+Both apps share design principles and component patterns.
 
 ### Design System
 
@@ -213,6 +260,9 @@ Located in `apps/web/src/components/`:
 - `ExerciseItem.tsx` - Exercise in routine
 - `MetricChart.tsx` - Chart for body metrics
 - `ChatInterface.tsx` - AI conversation UI
+- `RoutineEditor.tsx` - Routine creation/editing
+- `PhotoUploader.tsx` - Body photo upload
+- `InfographicPreview.tsx` - Shareable card preview
 
 ### UI Components (Mobile)
 
@@ -230,12 +280,14 @@ Located in `apps/mobile/components/`:
 
 ## API Client
 
-Both apps use a shared API client pattern:
+Both apps use a shared API client pattern with proper authentication.
 
-### Web
+### Web Pattern
 
 ```typescript
 // apps/web/src/lib/api.ts
+import axios from 'axios';
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -249,20 +301,14 @@ api.interceptors.request.use(config => {
   }
   return config;
 });
+
+export const apiClient = api;
 ```
 
-### Mobile
+### Mobile Pattern
 
 ```typescript
 // apps/mobile/lib/api.ts
-import { createClient } from 'react-native-supabase';
-
-const client = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-// Or custom fetch with token
 export const api = async (endpoint: string, options: RequestInit = {}) => {
   const token = await SecureStore.getItemAsync('aivo_jwt');
   const response = await fetch(
@@ -422,36 +468,6 @@ pnpm exec expo start --clear  # For debugging
 
 ---
 
-## CI/CD
-
-### Web (Vercel)
-
-Connect GitHub repo to Vercel for automatic deployments on `main` branch.
-
-Environment variables set in Vercel dashboard.
-
-### Mobile (EAS)
-
-`.eas/build-profile.json`:
-
-```json
-{
-  "production": {
-    "distribution": "store",
-    "ios": { "simulator": false },
-    "android": { "gradleCommand": ":app:bundle" }
-  }
-}
-```
-
-Auto-deploy on tag push:
-
-```bash
-eas update --branch production
-```
-
----
-
 ## Future Enhancements
 
 - [ ] Progressive Web App (PWA) support for web
@@ -463,6 +479,6 @@ eas update --branch production
 
 ---
 
-**Last Updated:** 2026-04-22  
-**Web Version:** 1.0.0  
+**Last Updated:** 2026-04-25
+**Web Version:** 1.0.0
 **Mobile Version:** 1.0.0

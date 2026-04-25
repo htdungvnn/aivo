@@ -105,7 +105,6 @@ export async function invalidateBodyCache(
   userId: string
 ): Promise<void> {
   try {
-    console.log(`Cache invalidation requested for user ${userId}`);
     const version = Date.now().toString();
     await kv.put(`body:${userId}:version`, version);
   } catch {
