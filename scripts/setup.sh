@@ -363,6 +363,92 @@ cmd_secrets() {
   print_success "Secret generation complete!"
 }
 
+# Subcommand: migrate - Database migration helper
+cmd_migrate() {
+  local APPLY="false"
+  local REMOTE="false"
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --apply)
+        APPLY="true"
+        shift
+        ;;
+      --remote)
+        REMOTE="true"
+        shift
+        ;;
+      -h|--help)
+        echo "Usage: $0 migrate [OPTIONS]"
+        echo ""
+        echo "Options:"
+        echo "  --apply     Apply migrations after generating"
+        echo "  --remote    Apply to remote/production database (with --apply)"
+        echo "  -h, --help  Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  $0 migrate           # Generate migrations only"
+        echo "  $0 migrate --apply   # Generate and apply to local DB"
+        echo "  $0 migrate --apply --remote  # Generate and apply to production"
+        exit 0
+        ;;
+      *)
+        print_error "Unknown option: $1"
+        echo "Use --help for usage information"
+        exit 1
+        ;;
+    esac
+  done
+
+  print_header "AIVO Database Migration"
+  cd "$PROJECT_ROOT/packages/db"
+
+  # Generate migrations from schema changes
+  print_info "Generating migrations from schema..."
+  if pnpm exec drizzle-kit generate; then
+    print_success "Migrations generated"
+  else
+    print_error "Failed to generate migrations"
+    exit 1
+  fi
+
+  # List generated migrations
+  echo ""
+  print_info "Generated migrations:"
+  ls -la drizzle/migrations/ 2>/dev/null || echo "No migration files found"
+  echo ""
+
+  # Apply if requested
+  if [ "$APPLY" = "true" ]; then
+    if [ "$REMOTE" = "true" ]; then
+      print_info "Applying migrations to remote (production) database..."
+      if pnpm run migrate:remote; then
+        print_success "Remote migrations applied"
+      else
+        print_error "Failed to apply remote migrations"
+        exit 1
+      fi
+    else
+      print_info "Applying migrations to local database..."
+      if pnpm run migrate:local; then
+        print_success "Local migrations applied"
+      else
+        print_error "Failed to apply local migrations"
+        exit 1
+      fi
+    fi
+  else
+    print_info "Migrations generated but not applied."
+    echo ""
+    echo "To apply later:"
+    echo "  Local:  cd $PROJECT_ROOT/packages/db && pnpm run migrate:local"
+    echo "  Remote: cd $PROJECT_ROOT/packages/db && pnpm run migrate:remote"
+  fi
+
+  print_success "Migration completed!"
+}
+
 # Subcommand: all - Run full setup
 cmd_all() {
   print_header "AIVO Full Setup"
@@ -403,18 +489,21 @@ cmd_help() {
   echo "  validate   Validate environment configuration"
   echo "  dev        Set up local development (deps, DB, WASM)"
   echo "  secrets    Generate secure secrets"
+  echo "  migrate    Database migration helper"
   echo "  all        Run full setup (env -> validate -> dev)"
   echo "  help       Show this help message"
   echo ""
   echo "Examples:"
-  echo "  $0 env         # Create .env files only"
-  echo "  $0 all         # Complete setup flow"
-  echo "  $0 dev         # Only local dev setup"
+  echo "  $0 env              # Create .env files only"
+  echo "  $0 migrate --apply  # Generate and apply migrations"
+  echo "  $0 all              # Complete setup flow"
   echo ""
   echo "For backwards compatibility, you can still use:"
   echo "  ./scripts/setup-env.sh"
   echo "  ./scripts/validate-env.sh"
   echo "  ./scripts/setup-dev.sh"
+  echo "  ./scripts/migrate.sh"
+  echo "  ./scripts/generate-secrets.sh"
 }
 
 # Main - dispatch to subcommand
@@ -433,6 +522,9 @@ main() {
       ;;
     secrets|secret)
       cmd_secrets
+      ;;
+    migrate|migrations)
+      cmd_migrate
       ;;
     all)
       cmd_all

@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+env:
+  PNPM_HOME: ~/.pnpm
+  CARGO_HOME: ~/.cargo
+  RUSTUP_HOME: ~/.rustup
+
 jobs:
-  deploy:
-    name: Deploy to Cloudflare Workers
+  build-deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -18,11 +23,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 9
+          run_install: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -32,6 +46,40 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PNPM_HOME }}/store
+            ~/.local/share/pnpm/store
+            node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('**/turbo.json', '**/package.json') }}
+
+      - name: Cache Next.js
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('apps/web/package.json', 'apps/web/tsconfig.json') }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -40,6 +88,19 @@ jobs:
 
       - name: Build API
         run: pnpm --filter @aivo/api run build
+
+      - name: Verify build
+        run: |
+          # Check API dist exists
+          if [ ! -d "apps/api/dist" ]; then
+            echo "Error: API dist not found"
+            exit 1
+          fi
+          # Check WASM files exist
+          test -f packages/aivo-compute/pkg/aivo_compute.js
+          test -f packages/aivo-compute/pkg/aivo_compute_bg.wasm
+          test -f packages/aivo-compute/pkg/aivo_compute.d.ts
+          echo "All build artifacts verified"
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

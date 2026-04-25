@@ -26,30 +26,14 @@ This directory contains optimized scripts for deploying and managing the AIVO pl
 
 ## Consolidated Commands
 
-| Command | Description | Flags |
-|---------|-------------|-------|
-| `setup.sh` | Environment setup | `env`, `validate`, `dev`, `all`, `secrets` |
+| Command | Description | Usage |
+|---------|-------------|------|
+| `setup.sh` | Complete environment setup | `env`, `validate`, `dev`, `secrets`, `migrate`, `all` |
 | `dev.sh` | Start development services | `--vibe` |
 | `deploy.sh` | Deploy to production | `--quick`, `--skip-tests`, `--dry-run`, `--local`, `--no-web`, `--no-api` |
 | `health.sh` | Health check | `--local` |
-| `migrate.sh` | Database migrations | `--remote` |
-| `generate-secrets.sh` | Generate secure secrets | - |
-| `deploy-web-pages.sh` | Deploy web to Cloudflare Pages | - |
-| `fix_claude.sh` | Claude CLI retry wrapper | - |
-
-## Backwards Compatibility
-
-All original script names continue to work as thin wrappers:
-
-```bash
-# These all work identically:
-./scripts/setup.sh env        == ./scripts/setup-env.sh
-./scripts/setup.sh validate   == ./scripts/validate-env.sh
-./scripts/setup.sh dev        == ./scripts/setup-dev.sh
-./scripts/deploy.sh --quick   == ./scripts/quick-deploy.sh
-./scripts/dev.sh --vibe       == ./scripts/vibe_start.sh
-./scripts/health.sh --local   == ./scripts/health-check.sh
-```
+| `deploy-web-pages.sh` | Deploy web to Cloudflare Pages | standalone |
+| `fix_claude.sh` | Claude CLI retry wrapper | utility |
 
 ## Command Reference
 
@@ -65,7 +49,7 @@ All original script names continue to work as thin wrappers:
 # Set up local development (deps, WASM, database)
 ./scripts/setup.sh dev
 
-# Generate secrets (same as generate-secrets.sh)
+# Generate secrets
 ./scripts/setup.sh secrets
 
 # Run full setup flow
@@ -122,14 +106,17 @@ When attached to tmux session:
 ./scripts/health.sh --local
 ```
 
-### migrate.sh - Database Migrations
+### migrate - Database Migrations
 
 ```bash
-# Generate and optionally apply migrations
-./scripts/migrate.sh
+# Generate migrations
+./scripts/setup.sh migrate
 
-# Apply to remote/production database
-./scripts/migrate.sh --remote
+# Generate and apply to local database
+./scripts/setup.sh migrate --apply
+
+# Generate and apply to remote/production database
+./scripts/setup.sh migrate --apply --remote
 ```
 
 ## Environment Setup
@@ -144,11 +131,10 @@ When attached to tmux session:
 2. **Generate secrets**:
    ```bash
    ./scripts/setup.sh secrets
-   # or: ./scripts/generate-secrets.sh
    ```
 
 3. **Edit `.env` files** with your actual credentials:
-   - `AUTH_SECRET` (from generate-secrets.sh)
+   - `AUTH_SECRET` (from setup.sh secrets)
    - `GOOGLE_CLIENT_ID` (from Google Cloud Console)
    - `FACEBOOK_APP_ID` (from Facebook Developers)
    - `OPENAI_API_KEY` (optional, for AI features)
@@ -292,18 +278,20 @@ These scripts work well in CI/CD pipelines:
 
 ## Script Consolidation Summary
 
-**Before**: 14 separate scripts with overlapping functionality
-**After**: 4 consolidated scripts + 6 thin wrappers + 4 standalone utilities
+**Before**: 13 shell scripts (14 total files) with overlapping functionality
+**After**: 6 shell scripts (7 total files)
 
 | Original Scripts | Consolidated Into |
 |-----------------|-------------------|
 | `health.sh` + `health-check.sh` | `health.sh` (`--local` flag) |
 | `deploy.sh` + `quick-deploy.sh` | `deploy.sh` (`--quick` flag) |
-| `setup-dev.sh` + `setup-env.sh` + `validate-env.sh` | `setup.sh` (`env`, `validate`, `dev`, `all` subcommands) |
+| `setup-dev.sh` + `setup-env.sh` + `validate-env.sh` | `setup.sh` (subcommands) |
 | `dev.sh` + `vibe_start.sh` | `dev.sh` (`--vibe` flag) |
+| `migrate.sh` | `setup.sh migrate` |
+| `generate-secrets.sh` | `setup.sh secrets` |
 
 **Benefits**:
 - Single source of truth for each domain
 - Discoverable options via `--help`
-- Backwards compatible (old script names still work)
-- Easier maintenance and documentation
+- **54% fewer scripts** (13 → 6)
+- All functionality accessible through 4 main entry points

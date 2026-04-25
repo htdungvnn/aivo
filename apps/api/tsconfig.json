@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["@cloudflare/workers-types"],
-    "baseUrl": "./",
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
