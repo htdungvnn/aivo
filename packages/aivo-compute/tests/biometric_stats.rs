@@ -368,7 +368,7 @@ mod biometric_stats {
     fn test_significance_threshold_small_n() {
         // With n < 10, need |r| > 0.7 for significance
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]; // n=9
-        let y = x.clone(); // Perfect correlation
+        let _y = x.clone(); // Perfect correlation
 
         let significant = CorrelationAnalyzer::is_significant(1.0, 9);
         assert!(significant, "Perfect correlation with n=9 should be significant");
@@ -378,7 +378,7 @@ mod biometric_stats {
     fn test_significance_threshold_medium_n() {
         // With n >= 10, need |r| > 0.5 for significance
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]; // n=10
-        let y = x.clone();
+        let _y = x.clone();
 
         let significant = CorrelationAnalyzer::is_significant(0.6, 10);
         assert!(significant, "r=0.6 with n=10 should be significant");

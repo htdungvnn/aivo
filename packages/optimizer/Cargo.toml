@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Content optimization module for LLM token cost reduction - minification, semantic pruning, keyword extraction, and token counting"
 license = "MIT"
+repository = "https://github.com/htdungvnn/aivo"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

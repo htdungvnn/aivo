@@ -35,7 +35,7 @@ jest.mock('recharts', () => {
   const React = require('react');
 
   // Filter out Recharts-specific props that shouldn't be passed to DOM/SVG elements
-  const filterRechartsProps = (props) => {
+  const filterRechartsProps = (props: any) => {
     const {
       // Chart layout props
       vertical, horizontal, barSize, dataKey, yAxisId, xAxisId,

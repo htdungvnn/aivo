@@ -1,6 +1,5 @@
 // Must be first
 jest.mock('lucide-react-native', () => {
-  console.log('[test] lucide-react-native mock called');
   return {
     Activity: () => null,
     Bed: () => null,
@@ -23,10 +22,6 @@ import { Activity, User, TrendingUp, Upload } from 'lucide-react-native';
 
 describe('Direct import test', () => {
   it('should have icons defined', () => {
-    console.log('Activity:', Activity);
-    console.log('User:', User);
-    console.log('TrendingUp:', TrendingUp);
-    console.log('Upload:', Upload);
     expect(typeof Activity).toBe('function');
     expect(typeof User).toBe('function');
     expect(typeof TrendingUp).toBe('function');

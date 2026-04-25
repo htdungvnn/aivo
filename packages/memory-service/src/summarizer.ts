@@ -3,8 +3,6 @@
  * Uses OpenAI API with structured JSON response format
  */
 
-/* eslint-disable no-console */
-
 import { OpenAI } from "openai";
 import type {
   ExtractedFact,
@@ -136,8 +134,6 @@ export class ConversationSummarizer {
     conversation: Message[],
     existingMemories: MemoryNode[] = []
   ): Promise<ExtractedFact[]> {
-    const startTime = Date.now();
-
     // Build the extraction prompt
     const prompt = this.buildExtractionPrompt(conversation, existingMemories);
 
@@ -156,7 +152,6 @@ export class ConversationSummarizer {
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        console.warn("No content in OpenAI response");
         return [];
       }
 
@@ -200,14 +195,8 @@ export class ConversationSummarizer {
         return dedupResult.uniqueFacts;
       }
 
-      const processingTime = Date.now() - startTime;
-      console.log(
-        `[Memory] Extracted ${limitedFacts.length} facts in ${processingTime}ms for user ${userId}`
-      );
-
       return limitedFacts;
-    } catch (error: unknown) {
-      console.error("Fact extraction failed:", error instanceof Error ? error.message : String(error));
+    } catch (_error: unknown) {
       return [];
     }
   }
@@ -364,8 +353,7 @@ Extract any new facts from this conversation that aren't already captured in the
       this.embeddingCache.set(cacheKey, embedding);
 
       return embedding;
-    } catch (error) {
-      console.error("Failed to get embedding:", error);
+    } catch (_error) {
       // Return zero vector as fallback (not ideal but prevents crashes)
       return new Array(1536).fill(0);
     }

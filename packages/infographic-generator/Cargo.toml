@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "SVG/PNG infographic generator for fitness social proof"
 license = "MIT"
+repository = "https://github.com/htdungvnn/aivo"
 
 [lib]
 crate-type = ["cdylib"]

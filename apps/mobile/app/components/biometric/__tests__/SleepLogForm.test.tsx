@@ -35,9 +35,6 @@ global.fetch = jest.fn();
 import SleepLogForm from '../SleepLogForm';
 import * as biometricApi from '@/services/biometric-api';
 
-// Debug: check if SleepLogForm is defined
-console.log('SleepLogForm import:', SleepLogForm);
-
 describe('SleepLogForm', () => {
   const mockOnSuccess = jest.fn();
 

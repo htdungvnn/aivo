@@ -1,7 +1,6 @@
 function MockIcon() {
   return null;
 }
-console.log('[manual mock] lucide-react-native loaded');
 module.exports = {
   Activity: MockIcon,
   Bed: MockIcon,

@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
+    "outDir": "./dist",
     "paths": {
       "@aivo/shared-types": ["../shared-types/src"]
     }

@@ -11,7 +11,8 @@
         "dist/**",
         ".expo/**",
         "android/**/build/**",
-        "ios/**/build/**"
+        "ios/**/build/**",
+        "pkg/**"
       ],
       "cache": true
     },

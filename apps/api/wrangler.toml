@@ -3,6 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2025-04-24"
 compatibility_flags = ["nodejs_compat"]
 
+[alias]
+"@aivo/email-reporter" = "../../packages/email-reporter/src"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "aivo-db"

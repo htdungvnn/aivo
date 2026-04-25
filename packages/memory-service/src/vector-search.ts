@@ -3,8 +3,6 @@
  * Supports hybrid scoring: semantic similarity + recency + confidence
  */
 
-/* eslint-disable no-console */
-
 import { OpenAI } from "openai";
 import type { MemoryNode, MemoryQuery } from "./types.ts";
 import { isMemoryQuery, isHealthCritical, MemoryType } from "./types.ts";
@@ -255,8 +253,7 @@ export class MemorySearcher {
       });
 
       return embedding;
-    } catch (error) {
-      console.error("Failed to generate embedding:", error);
+    } catch (_error) {
       return new Array(1536).fill(0);
     }
   }
@@ -283,12 +280,8 @@ export class MemorySearcher {
    * Update lastAccessed timestamps for retrieved memories
    * This helps with recency scoring and access analytics
    */
-  private async updateAccessTimes(memoryIds: string[]): Promise<void> {
+  private async updateAccessTimes(_memoryIds: string[]): Promise<void> {
     // This would update the database - implementation depends on your DB layer
-    // For now, we'll just log
-    if (memoryIds.length > 0) {
-      console.log(`[Memory] Accessed ${memoryIds.length} memories`);
-    }
   }
 
   /**

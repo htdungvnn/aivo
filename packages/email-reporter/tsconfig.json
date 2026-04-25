@@ -3,8 +3,13 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "types": ["node"],
+    "noEmit": true,
+    "declaration": true,
+    "declarationMap": true,
+    "baseUrl": ".",
     "paths": {
-      "@aivo/shared-types": ["../shared-types/src"]
+      "@aivo/shared-types": ["../shared-types/src"],
+      "@aivo/db": ["../db/src"]
     }
   },
   "include": ["src/**/*.ts"],

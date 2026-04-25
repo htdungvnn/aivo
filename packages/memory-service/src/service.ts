@@ -4,7 +4,6 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-console */
 
 import { OpenAI } from "openai";
 import {
@@ -207,10 +206,6 @@ export class MemoryService {
 
     // 10. Update compressed contexts periodically
     await this.updateCompressedContext(userId);
-
-    console.log(
-      `[Memory] Processed turn for ${userId}: ${extractedFacts.length} facts, ${insertedNodes.length} nodes, ${edgesCreated} edges`
-    );
 
     return {
       factsExtracted: extractedFacts.length,
@@ -448,8 +443,7 @@ export class MemoryService {
         .run();
 
       return result.changes > 0;
-    } catch (error) {
-      console.error("Failed to delete memory:", error);
+    } catch (_error) {
       return false;
     }
   }
@@ -490,8 +484,7 @@ export class MemoryService {
         .run();
 
       return result.changes > 0;
-    } catch (error) {
-      console.error("Failed to verify memory:", error);
+    } catch (_error) {
       return false;
     }
   }
@@ -507,8 +500,7 @@ export class MemoryService {
       });
 
       return response.data[0].embedding;
-    } catch (error) {
-      console.error("Failed to generate embedding:", error);
+    } catch (_error) {
       return new Array(1536).fill(0);
     }
   }
@@ -549,8 +541,7 @@ export class MemoryService {
       });
 
       return allMessages;
-    } catch (error) {
-      console.error("Failed to fetch recent turns:", error);
+    } catch (_error) {
       return [];
     }
   }
@@ -784,8 +775,6 @@ export class MemoryService {
         .delete()
         .where(inArray(memoryNodes.id, ids))
         .run();
-
-      console.log(`[Memory] Pruned ${ids.length} old memories for ${userId}`);
     }
   }
 
@@ -847,8 +836,7 @@ export class MemoryService {
         .run();
 
       return result.changes;
-    } catch (error) {
-      console.error("Failed to clear user memories:", error);
+    } catch (_error) {
       return 0;
     }
   }
