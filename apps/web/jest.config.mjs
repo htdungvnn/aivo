@@ -5,7 +5,7 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export default {
+const config = {
   ...base,
   roots: ['<rootDir>', '<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
@@ -24,8 +24,16 @@ export default {
   },
   transform: {
     '^.+\\.(ts|tsx|js|jsx)$': ['babel-jest', {
-      babelrc: false,
-      configFile: `${__dirname}/babel.config.js`,
+      presets: [
+        ['@babel/preset-env', { targets: { node: 'current' } }],
+        '@babel/preset-typescript',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+      ],
+      plugins: [
+        ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }],
+      ],
     }],
   },
 };
+
+export default config;

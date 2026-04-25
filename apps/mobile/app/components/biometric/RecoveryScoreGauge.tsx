@@ -22,12 +22,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  backgroundCircle: {
-    borderRadius: 50,
-  },
-  progressCircle: {
-    borderRadius: 50,
-  },
   centerContent: {
     position: "absolute",
     justifyContent: "center",

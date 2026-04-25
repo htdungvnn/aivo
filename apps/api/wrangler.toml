@@ -1,12 +1,12 @@
 name = "aivo-api"
 main = "src/index.ts"
-compatibility_date = "2025-04-20"
+compatibility_date = "2025-04-24"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "aivo-db"
-database_id = "aivo-db"
+database_id = "c262737b-ab5f-4973-841a-7c75ef0dcb20" # Đảm bảo ID này chính xác
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
@@ -26,21 +26,24 @@ id = "c09a3fb62443492389f1675371e1c4d8"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "aivo-rate-limit"
-preview_id = "aivo-rate-limit-preview"
+id = "cecb209e86dc4b36b3661e6b8d595b74" # Sử dụng ID thực tế thay vì tên "aivo-rate-limit"
 
 [triggers]
-crons = ["0 0 * * *", "0 9 1 * *"]  # Daily at midnight + monthly on 1st
+crons = ["0 0 * * *", "0 9 1 * *"]
 
 [vars]
-# Secrets should be set via: wrangler secret put <NAME>
-# Required secrets:
-# - AUTH_SECRET: Generate with: openssl rand -base64 32
-# - OPENAI_API_KEY: Your OpenAI API key
-# - GOOGLE_CLIENT_ID: Google OAuth client ID
-# - FACEBOOK_APP_ID: Facebook app ID
-R2_PUBLIC_URL = "https://312b98fff6f54aa11ae59cb06d30015a.r2.cloudflarestorage.com/aivo-images"  # Set to your R2 public URL in production
+# Môi trường production
+NODE_ENV = "production"
+# Cho phép web gọi API và API tự gọi chính nó
+ALLOWED_ORIGINS = "https://aivo.website,https://api.aivo.website,http://localhost:3000"
+# URL public của R2
+R2_PUBLIC_URL = "https://312b98fff6f54aa11ae59cb06d30015a.r2.cloudflarestorage.com/aivo-images"
+# Cho phép truy cập Swagger docs công khai (chỉ dùng trong production nếu cần)
+PUBLIC_SWAGGER = "false"
 
 [[routes]]
-pattern = "/api/*"
-zone_name = "aivo"
+# Custom domain route - pattern should be just the hostname (no path/wildcard)
+pattern = "api.aivo.website"
+custom_domain = true
+zone_name = "aivo.website"
+

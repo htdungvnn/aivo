@@ -42,7 +42,7 @@ export async function fetchBodyMetrics(limit: number = 30): Promise<BodyMetric[]
     throw new Error("User ID not found");
   }
 
-  const response = await fetch(`${API_URL}/api/body/metrics?userId=${userId}&limit=${limit}`, {
+  const response = await fetch(`${API_URL}/body/metrics?userId=${userId}&limit=${limit}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -71,7 +71,7 @@ export async function createBodyMetric(metric: Partial<BodyMetric>): Promise<Bod
     throw new Error("User ID not found");
   }
 
-  const response = await fetch(`${API_URL}/api/body/metrics`, {
+  const response = await fetch(`${API_URL}/body/metrics`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export async function fetchHeatmaps(limit: number = 10): Promise<BodyHeatmapData
     throw new Error("User ID not found");
   }
 
-  const response = await fetch(`${API_URL}/api/body/heatmaps?userId=${userId}&limit=${limit}`, {
+  const response = await fetch(`${API_URL}/body/heatmaps?userId=${userId}&limit=${limit}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -147,7 +147,7 @@ export async function uploadBodyImage(imageUri: string, fileName: string): Promi
     name: fileName,
   });
 
-  const uploadResponse = await fetch(`${API_URL}/api/body/upload`, {
+  const uploadResponse = await fetch(`${API_URL}/body/upload`, {
     method: "POST",
     headers: {
       "X-User-Id": userId,
@@ -177,7 +177,7 @@ export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
     throw new Error("User ID not found");
   }
 
-  const response = await fetch(`${API_URL}/api/body/vision/analyze`, {
+  const response = await fetch(`${API_URL}/body/vision/analyze`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -213,7 +213,7 @@ export async function fetchHealthScore(): Promise<HealthScoreResult> {
     throw new Error("User ID not found");
   }
 
-  const response = await fetch(`${API_URL}/api/body/health-score`, {
+  const response = await fetch(`${API_URL}/body/health-score`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "X-User-Id": userId,

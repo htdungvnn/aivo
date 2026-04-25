@@ -60,7 +60,7 @@ See [`.env/VARIABLES.md`](./env/VARIABLES.md) for complete variable reference.
 
 ```bash
 cd packages/db
-pnpmx wrangler d1 migrations apply aivo-db --local
+pnpm exec wrangler d1 migrations apply aivo-db --local
 ```
 
 Or use the convenience script:
@@ -104,7 +104,7 @@ Open three terminal windows:
 
 ```bash
 cd apps/api
-pnpmx wrangler dev
+pnpm exec wrangler dev
 # Running on http://localhost:8787
 ```
 
@@ -120,7 +120,7 @@ pnpm run dev
 
 ```bash
 cd apps/mobile
-pnpmx expo start
+pnpm exec expo start
 # Opens Expo DevTools
 # Press 'i' for iOS simulator, 'a' for Android emulator
 ```

@@ -39,7 +39,7 @@ main() {
   log_info "Generating migrations from schema..."
   cd "$PROJECT_ROOT/packages/db"
 
-  if pnpmx drizzle-kit generate; then
+  if pnpm exec drizzle-kit generate; then
     log_success "Migrations generated"
   else
     log_error "Failed to generate migrations"

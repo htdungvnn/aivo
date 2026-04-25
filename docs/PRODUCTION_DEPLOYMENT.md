@@ -143,6 +143,7 @@ wrangler secret put AUTH_SECRET
 wrangler secret put OPENAI_API_KEY
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put FACEBOOK_APP_ID
+
 ```
 
 ## 4. OAuth Provider Configuration
@@ -262,7 +263,7 @@ curl https://api.your-domain.com/health
 
 # View logs
 cd apps/api
-pnpmx wrangler tail
+pnpm exec wrangler tail
 ```
 
 ## 8. Database Migrations
@@ -332,14 +333,14 @@ EXPO_PUBLIC_SCHEME=aivo
 ### Logs
 ```bash
 cd apps/api
-pnpmx wrangler tail --format json
+pnpm exec wrangler tail --format json
 ```
 
 ### Database
 ```bash
 # D1 Studio (local)
 cd packages/db
-pnpmx drizzle-kit studio
+pnpm exec drizzle-kit studio
 
 # Production: Use Cloudflare dashboard or wrangler CLI
 wrangler d1 execute aivo-db --command "SELECT COUNT(*) FROM users"

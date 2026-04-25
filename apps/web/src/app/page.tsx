@@ -7,6 +7,28 @@ import { MuscleDashboard } from "@/components/body/MuscleActivationChart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Bot,
+  Brain,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Cloud,
+  Database,
+  Dumbbell,
+  GitGraph,
+  Globe,
+  Quote,
+  Server,
+  Shield,
+  Star,
+  Zap,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 60 },
@@ -1021,25 +1043,6 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
-
-      {/* Custom CSS for animations */}
-      <style jsx global>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-        }
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float-delayed 5s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-      `}</style>
     </div>
   );
 }

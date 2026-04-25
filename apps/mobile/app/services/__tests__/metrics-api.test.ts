@@ -116,7 +116,7 @@ describe('Metrics API Service', () => {
       await fetchBodyMetrics();
 
       expect(fetch).toHaveBeenCalledWith(
-        `${mockApiUrl}/api/body/metrics?userId=${mockUserId}&limit=30`,
+        `${mockApiUrl}/body/metrics?userId=${mockUserId}&limit=30`,
         { headers: { Authorization: `Bearer ${mockToken}` } }
       );
     });
@@ -172,7 +172,7 @@ describe('Metrics API Service', () => {
       await createBodyMetric(newMetric);
 
       expect(fetch).toHaveBeenCalledWith(
-        `${mockApiUrl}/api/body/metrics`,
+        `${mockApiUrl}/body/metrics`,
         {
           method: 'POST',
           headers: {
@@ -225,7 +225,7 @@ describe('Metrics API Service', () => {
       await fetchHeatmaps();
 
       expect(fetch).toHaveBeenCalledWith(
-        `${mockApiUrl}/api/body/heatmaps?userId=${mockUserId}&limit=10`,
+        `${mockApiUrl}/body/heatmaps?userId=${mockUserId}&limit=10`,
         { headers: { Authorization: `Bearer ${mockToken}` } }
       );
     });
@@ -275,7 +275,7 @@ describe('Metrics API Service', () => {
       await uploadBodyImage('file:///photo.jpg', 'photo.jpg');
 
       const [, options] = fetch.mock.calls.find((call: any) =>
-        call[0].includes('/api/body/upload')
+        call[0].includes('/body/upload')
       );
 
       expect(options.body).toBeInstanceOf(FormData);
@@ -285,7 +285,7 @@ describe('Metrics API Service', () => {
       await uploadBodyImage('file:///photo.jpg', 'photo.jpg');
 
       const [, options] = fetch.mock.calls.find((call: any) =>
-        call[0].includes('/api/body/upload')
+        call[0].includes('/body/upload')
       );
 
       expect(options.headers['X-User-Id']).toBe(mockUserId);
@@ -311,7 +311,7 @@ describe('Metrics API Service', () => {
       await analyzeImage('https://bucket.r2.dev/image.jpg');
 
       expect(fetch).toHaveBeenCalledWith(
-        `${mockApiUrl}/api/body/vision/analyze`,
+        `${mockApiUrl}/body/vision/analyze`,
         {
           method: 'POST',
           headers: {
@@ -355,7 +355,7 @@ describe('Metrics API Service', () => {
       await fetchHealthScore();
 
       expect(fetch).toHaveBeenCalledWith(
-        `${mockApiUrl}/api/body/health-score`,
+        `${mockApiUrl}/body/health-score`,
         {
           headers: {
             Authorization: `Bearer ${mockToken}`,

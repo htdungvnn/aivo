@@ -24,7 +24,7 @@ const staggerContainer = {
 };
 
 export function PricingSection() {
-  const { t, language } = useLocale();
+  const { t, language, translations } = useLocale();
   const isVn = language === "vi";
 
   const plans = ["free", "pro", "enterprise"];
@@ -41,6 +41,11 @@ export function PricingSection() {
         <span className="text-gray-400 text-lg">{period}</span>
       </>
     );
+  };
+
+  const getPlanData = (plan: string) => {
+    const langTranslations = translations[language] as Record<string, unknown>;
+    return (langTranslations.pricing as Record<string, { name: string; price: string; description: string; features: string[] }>)[plan];
   };
 
   return (
@@ -74,7 +79,7 @@ export function PricingSection() {
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
         >
           {plans.map((plan) => {
-            const planData = t(`pricing.${plan}`);
+            const planData = getPlanData(plan);
             const isPro = plan === "pro";
             const isEnterprise = plan === "enterprise";
 

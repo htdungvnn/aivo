@@ -385,6 +385,71 @@ impl FitnessCalculator {
     weight_kg - fat_mass
   }
 
+  /// Calculate Recovery Score from biometric factors
+  /// Returns score 0-100 (higher = better recovery)
+  /// Factors are weighted averages:
+  /// - Sleep quality: 30% (0-100 scale)
+  /// - Sleep duration: 25% (optimal 7-9h)
+  /// - Exercise intensity: 20% (consistency is better)
+  /// - Nutrition consistency: 15% (0-100 scale)
+  /// - Hydration: 10% (placeholder, 0-100 scale)
+  #[wasm_bindgen(js_name = "calculateRecoveryScore")]
+  pub fn calculate_recovery_score(
+    sleep_quality: f64,       // 0-100 scale
+    sleep_duration: f64,      // hours
+    exercise_intensity: f64,  // 0-10 scale or coefficient of variation
+    nutrition_consistency: f64, // 0-100 scale
+    hydration: f64,           // 0-100 scale (placeholder)
+  ) -> f64 {
+    // Clamp inputs to valid ranges
+    let sleep_quality = sleep_quality.max(0.0).min(100.0);
+    let sleep_duration = sleep_duration.max(0.0).min(24.0);
+    let exercise_intensity = exercise_intensity.max(0.0).min(10.0);
+    let nutrition_consistency = nutrition_consistency.max(0.0).min(100.0);
+    let hydration = hydration.max(0.0).min(100.0);
+
+    // Sleep duration score: optimal 7-9 hours
+    let duration_score = if sleep_duration >= 7.0 && sleep_duration <= 9.0 {
+      100.0
+    } else if sleep_duration >= 6.0 && sleep_duration < 7.0 {
+      80.0
+    } else if sleep_duration > 9.0 && sleep_duration <= 10.0 {
+      90.0
+    } else if sleep_duration >= 5.0 {
+      60.0
+    } else if sleep_duration > 0.0 {
+      40.0
+    } else {
+      0.0
+    };
+
+    // Exercise intensity: lower variation is better for recovery
+    // intensity is expected as coefficient of variation (0-1 scale) or 0-10 rating
+    // Convert 0-10 to 0-1 for CV interpretation
+    let intensity_cv = exercise_intensity.min(10.0) / 10.0;
+    let exercise_score = if intensity_cv <= 0.2 {
+      100.0  // Very consistent - excellent recovery
+    } else if intensity_cv <= 0.4 {
+      90.0
+    } else if intensity_cv <= 0.6 {
+      70.0
+    } else if intensity_cv <= 0.8 {
+      50.0
+    } else {
+      30.0  // High variation - poor recovery
+    };
+
+    // Calculate weighted total
+    let total_score =
+      sleep_quality * 0.30 +
+      duration_score * 0.25 +
+      exercise_score * 0.20 +
+      nutrition_consistency * 0.15 +
+      hydration * 0.10;
+
+    total_score.round()
+  }
+
   /// Calculate muscle balance score from muscle development data
   /// Returns score 0-100 where 100 is perfectly balanced
   #[wasm_bindgen(js_name = "calculateMuscleBalanceScore")]

@@ -81,13 +81,13 @@ pnpm run clean
 cd apps/web && pnpm run dev
 
 # Mobile (Expo)
-cd apps/mobile && pnpmx expo start
+cd apps/mobile && pnpm exec expo start
 
 # API (Cloudflare Workers)
-cd apps/api && pnpmx wrangler dev
+cd apps/api && pnpm exec wrangler dev
 
 # Database
-cd packages/db && pnpmx drizzle-kit studio
+cd packages/db && pnpm exec drizzle-kit studio
 ```
 
 ## 8. ARCHITECTURAL DECISIONS

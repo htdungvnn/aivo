@@ -38,17 +38,17 @@ describe('RecoveryScoreGauge Component', () => {
 
   describe('Size Variants', () => {
     it('should render with small size', () => {
-      const { container } = render(<RecoveryScoreGauge score={75} size="sm" />);
+      const { UNSAFE_root: container } = render(<RecoveryScoreGauge score={75} size="sm" />);
       expect(container).toBeOnTheScreen();
     });
 
     it('should render with medium size (default)', () => {
-      const { container } = render(<RecoveryScoreGauge score={75} size="md" />);
+      const { UNSAFE_root: container } = render(<RecoveryScoreGauge score={75} size="md" />);
       expect(container).toBeOnTheScreen();
     });
 
     it('should render with large size', () => {
-      const { container } = render(<RecoveryScoreGauge score={75} size="lg" />);
+      const { UNSAFE_root: container } = render(<RecoveryScoreGauge score={75} size="lg" />);
       expect(container).toBeOnTheScreen();
     });
   });

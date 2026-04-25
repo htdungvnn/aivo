@@ -55,7 +55,7 @@ tmux new-session -d -s "$SESSION_NAME" -n "api"
 
 # API window
 tmux send-keys -t "$SESSION_NAME:0" "cd apps/api" C-m
-tmux send-keys -t "$SESSION_NAME:0" "pnpmx wrangler dev --local" C-m
+tmux send-keys -t "$SESSION_NAME:0" "pnpm exec wrangler dev --local" C-m
 
 # Create web window
 tmux new-window -t "$SESSION_NAME" -n "web"
@@ -65,13 +65,13 @@ tmux send-keys -t "$SESSION_NAME:1" "pnpm run dev" C-m
 # Create mobile window
 tmux new-window -t "$SESSION_NAME" -n "mobile"
 tmux send-keys -t "$SESSION_NAME:2" "cd apps/mobile" C-m
-tmux send-keys -t "$SESSION_NAME:2" "pnpmx expo start" C-m
+tmux send-keys -t "$SESSION_NAME:2" "pnpm exec expo start" C-m
 
 # Create logs window
 tmux new-window -t "$SESSION_NAME" -n "logs"
 tmux send-keys -t "$SESSION_NAME:3" "cd apps/api" C-m
 tmux send-keys -t "$SESSION_NAME:3" "echo 'API logs will appear here. Press Ctrl+B then D to detach.'" C-m
-tmux send-keys -t "$SESSION_NAME:3" "pnpmx wrangler tail" C-m
+tmux send-keys -t "$SESSION_NAME:3" "pnpm exec wrangler tail" C-m
 
 # Layout: horizontal split for api and vertical split for others
 tmux select-layout -t "$SESSION_NAME:0" even-horizontal

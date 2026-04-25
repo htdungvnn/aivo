@@ -1,18 +1,27 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import colors from "@/theme/colors";
 
-export interface MetricDataPoint {
-  date: string;
-  value: number;
-}
-
-interface BodyMetricChartProps {
-  data: MetricDataPoint[];
-  metric: "weight" | "bodyFat" | "muscleMass" | "bmi";
-  height?: number;
-  color?: string;
-}
+// Inline color definitions to avoid import scope issues
+const COLORS = {
+  success: "#22c55e",
+  warning: "#FF9500",
+  error: "#EF4444",
+  brand: {
+    primary: "#007AFF",
+  },
+  background: {
+    tertiary: "#1f2937",
+  },
+  border: {
+    primary: "#374151",
+  },
+  text: {
+    primary: "#ffffff",
+    secondary: "#9ca3af",
+    tertiary: "#6b7280",
+  },
+  transparent: "transparent",
+};
 
 const METRIC_COLORS = {
   weight: "#22c55e",
@@ -30,8 +39,8 @@ const METRIC_UNITS: Record<string, string> = {
 
 const CHART_COLORS = {
   background: "rgba(15, 23, 42, 0.5)",
-  border: colors.border.primary,
-  textSecondary: colors.text.secondary,
+  border: COLORS.border.primary,
+  textSecondary: COLORS.text.secondary,
 };
 
 export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetricChartProps) {
@@ -40,7 +49,7 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
 
   if (data.length === 0) {
     return (
-      <View style={[styles.container, { height }]}>
+      <View style={[styles.container, { height }]} testID="body-metric-chart">
         <Text style={styles.noDataText}>No data available</Text>
       </View>
     );
@@ -52,8 +61,8 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
   const range = max - min || 1;
 
   return (
-    <View style={[styles.container, { height }]}>
-      <View style={styles.chartRow}>
+    <View style={[styles.container, { height }]} testID="body-metric-chart">
+      <View style={styles.chartRow} testID="chart-row">
         {data.slice(-7).map((point, idx) => {
           const barHeight = ((point.value - min) / range) * 100;
           return (
@@ -66,8 +75,9 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
                     backgroundColor: chartColor,
                   },
                 ]}
+                testID="bar"
               />
-              <Text style={styles.barLabel} numberOfLines={1}>
+              <Text style={styles.barLabel} numberOfLines={1} testID="bar-label">
                 {point.date.split(" ")[0]}
               </Text>
             </View>
@@ -75,10 +85,10 @@ export function BodyMetricChart({ data, metric, height = 200, color }: BodyMetri
         })}
       </View>
       <View style={styles.rangeRow}>
-        <Text style={styles.rangeLabel}>
+        <Text style={styles.rangeLabel} testID="range-min">
           {min.toFixed(1)}{unit}
         </Text>
-        <Text style={styles.rangeLabel}>
+        <Text style={styles.rangeLabel} testID="range-max">
           {max.toFixed(1)}{unit}
         </Text>
       </View>
@@ -101,21 +111,22 @@ interface MuscleBalanceChartProps {
 export function MuscleBalanceChart({ data, height = 250 }: MuscleBalanceChartProps) {
   if (data.length === 0) {
     return (
-      <View style={[styles.container, { height }]}>
+      <View style={[styles.container, { height }]} testID="muscle-balance-chart">
         <Text style={styles.noDataText}>No muscle data available</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View style={[styles.container, { height }]} testID="muscle-balance-chart">
       <View style={styles.muscleList}>
         {data.map((item, idx) => (
           <View key={idx} style={styles.muscleRow}>
             <Text style={styles.muscleName}>{item.muscle}</Text>
             <View style={styles.muscleBarContainer}>
               <View
-                style={[styles.muscleBar, { width: `${item.current}%`, backgroundColor: colors.success }]}
+                style={[styles.muscleBar, { width: `${item.current}%`, backgroundColor: COLORS.success }]}
+                testID="muscle-bar"
               />
             </View>
             <Text style={styles.muscleValue}>{item.current}%</Text>
@@ -136,15 +147,15 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
   const categoryColor = (() => {
     switch (category) {
       case "excellent":
-        return colors.success;
+        return COLORS.success;
       case "good":
-        return colors.brand.primary;
+        return COLORS.brand.primary;
       case "fair":
-        return colors.warning;
+        return COLORS.warning;
       case "poor":
-        return colors.error;
+        return COLORS.error;
       default:
-        return colors.text.tertiary;
+        return COLORS.text.tertiary;
     }
   })();
 
@@ -152,7 +163,7 @@ export function HealthScoreGauge({ score, category }: HealthScoreGaugeProps) {
   const borderWidth = strokeWidth / 2;
 
   return (
-    <View style={styles.gaugeContainer}>
+    <View style={styles.gaugeContainer} testID="health-score-gauge">
       <View style={styles.gaugeSvgContainer}>
         {/* Background circle */}
         <View style={[styles.gaugeCircle, { borderColor: CHART_COLORS.border, borderWidth }]} />
@@ -206,7 +217,7 @@ const styles = StyleSheet.create({
   },
   barLabel: {
     fontSize: 8,
-    color: colors.text.tertiary,
+    color: COLORS.text.tertiary,
   },
   rangeRow: {
     flexDirection: "row",
@@ -215,7 +226,7 @@ const styles = StyleSheet.create({
   },
   rangeLabel: {
     fontSize: 12,
-    color: colors.text.secondary,
+    color: COLORS.text.secondary,
   },
   muscleList: {
     gap: 8,
@@ -227,14 +238,14 @@ const styles = StyleSheet.create({
   },
   muscleName: {
     fontSize: 12,
-    color: colors.text.secondary,
+    color: COLORS.text.secondary,
     width: 64,
     textTransform: "capitalize",
   },
   muscleBarContainer: {
     flex: 1,
     height: 12,
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 6,
     overflow: "hidden",
   },
@@ -244,7 +255,7 @@ const styles = StyleSheet.create({
   },
   muscleValue: {
     fontSize: 12,
-    color: colors.text.primary,
+    color: COLORS.text.primary,
     width: 32,
     textAlign: "right",
   },
@@ -261,8 +272,8 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 6,
     borderColor: CHART_COLORS.border,
-    borderTopColor: colors.transparent,
-    borderRightColor: colors.transparent,
+    borderTopColor: COLORS.transparent,
+    borderRightColor: COLORS.transparent,
     transform: [{ rotate: "-45deg" }],
   },
   gaugeCircle: {
@@ -275,8 +286,8 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 6,
-    borderTopColor: colors.transparent,
-    borderRightColor: colors.transparent,
+    borderTopColor: COLORS.transparent,
+    borderRightColor: COLORS.transparent,
     transform: [{ rotate: "-45deg" }],
   },
   gaugeCenter: {
@@ -287,7 +298,7 @@ const styles = StyleSheet.create({
   gaugeScore: {
     fontSize: 28,
     fontWeight: "bold",
-    color: colors.text.primary,
+    color: COLORS.text.primary,
   },
   gaugeCategory: {
     fontSize: 10,

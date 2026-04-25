@@ -410,7 +410,7 @@ Database migrations are managed by Drizzle Kit.
 
 ```bash
 cd packages/db
-pnpmx drizzle-kit generate
+pnpm exec drizzle-kit generate
 ```
 
 ### Apply Migration (Local)

@@ -8,6 +8,11 @@ dist/
 .wrangler/
 .pkg/
 
+# Package build outputs (TypeScript compiled JS)
+packages/*/dist/
+packages/*/src/**/*.js
+!packages/*/src/**/*.ts
+
 # Rust
 pkg/
 target/

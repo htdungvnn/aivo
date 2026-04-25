@@ -70,7 +70,7 @@ The mock data is available through admin-only API endpoints (development only):
 
 #### Base URL
 ```
-http://localhost:8788/api/admin/test/*
+http://localhost:8787/api/admin/test/*
 ```
 
 #### Available Endpoints
@@ -98,7 +98,7 @@ const adminToken = "dev-admin-token";
 const adminUserId = "admin-user-001";
 
 // Fetch admin dashboard data
-const response = await fetch("http://localhost:8788/api/admin/test/stats", {
+const response = await fetch("http://localhost:8787/api/admin/test/stats", {
   headers: {
     "Authorization": `Bearer ${adminToken}`,
     "X-User-Id": adminUserId,
@@ -114,7 +114,7 @@ console.log(data);
 ### Get User Profile with Everything
 
 ```bash
-curl http://localhost:8788/api/admin/test/user/admin-user-001
+curl http://localhost:8787/api/admin/test/user/admin-user-001
 ```
 
 Response includes:
@@ -129,19 +129,19 @@ Response includes:
 ### Get Workout History
 
 ```bash
-curl "http://localhost:8788/api/admin/test/workouts?limit=20"
+curl "http://localhost:8787/api/admin/test/workouts?limit=20"
 ```
 
 ### Get Memory Analytics
 
 ```bash
-curl "http://localhost:8788/api/admin/test/memories?minConfidence=0.8"
+curl "http://localhost:8787/api/admin/test/memories?minConfidence=0.8"
 ```
 
 ### Get Recovery Trends
 
 ```bash
-curl http://localhost:8788/api/admin/test/recovery
+curl http://localhost:8787/api/admin/test/recovery
 ```
 
 Returns 30 days of recovery scores, fatigue levels, sleep quality.
@@ -272,7 +272,7 @@ pnpm run seed:mock
 ```
 
 ### Port conflicts
-Ensure Wrangler is running on port 8788:
+Ensure Wrangler is running on port 8787:
 ```bash
-pnpm exec wrangler dev --port 8788
+pnpm exec wrangler dev --port 8787
 ```

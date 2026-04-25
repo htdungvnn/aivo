@@ -4,27 +4,34 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 
 type Language = "en" | "vi";
 
-interface Translations {
-  [key: string]: string | { [key: string]: string };
-}
+type TranslationValue = string | number | boolean | null | TranslationValue[] | { [key: string]: TranslationValue };
 
 interface LocaleContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
-  translations: Translations;
+  translations: Record<Language, Record<string, TranslationValue>>;
 }
 
-import enTranslations from "./en.json" with { type: "json" };
-import viTranslations from "./vi.json" with { type: "json" };
+import enTranslations from "../locales/en.json" with { type: "json" };
+import viTranslations from "../locales/vi.json" with { type: "json" };
 
-const translations: Record<Language, Translations> = {
-  en: enTranslations,
-  vi: viTranslations,
+// Cast JSON imports to the proper type with nested support
+const enTyped = enTranslations as unknown as Record<string, TranslationValue>;
+const viTyped = viTranslations as unknown as Record<string, TranslationValue>;
+
+const translations: Record<Language, Record<string, TranslationValue>> = {
+  en: enTyped,
+  vi: viTyped,
 };
 
 function getNestedValue(obj: Record<string, unknown>, path: string): string {
-  return path.split(".").reduce((current, key) => current?.[key], obj) || path;
+  return path.split(".").reduce((current: unknown, key: string) => {
+    if (current && typeof current === "object") {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj) as string | undefined || path;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);

@@ -71,6 +71,8 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       // Silently ignore cache load errors
+    } finally {
+      setState((prev) => ({ ...prev, loading: false }));
     }
   }, []);
 

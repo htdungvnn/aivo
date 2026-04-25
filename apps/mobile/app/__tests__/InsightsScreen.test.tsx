@@ -259,7 +259,7 @@ describe('Insights Screen (Mobile)', () => {
       require('expo-image-picker').launchImageLibraryAsync = mockLaunch;
 
       (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/vision/analyze')) {
+        if (url.includes('/body/vision/analyze')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
@@ -301,7 +301,7 @@ describe('Insights Screen (Mobile)', () => {
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/body/vision/analyze'),
+          expect.stringContaining('/body/vision/analyze'),
           expect.objectContaining({ method: 'POST' })
         );
       });
@@ -315,7 +315,7 @@ describe('Insights Screen (Mobile)', () => {
       require('expo-image-picker').launchImageLibraryAsync = mockLaunch;
 
       (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/vision/analyze')) {
+        if (url.includes('/body/vision/analyze')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
@@ -331,7 +331,7 @@ describe('Insights Screen (Mobile)', () => {
             }),
           });
         }
-        if (url.includes('/api/body/metrics')) {
+        if (url.includes('/body/metrics')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
@@ -368,7 +368,7 @@ describe('Insights Screen (Mobile)', () => {
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/body/metrics'),
+          expect.stringContaining('/body/metrics'),
           expect.objectContaining({
             method: 'POST',
             body: expect.stringContaining('bodyFatPercentage'),
@@ -488,7 +488,7 @@ describe('Insights Screen (Mobile)', () => {
   describe('BodyInsightCard Integration', () => {
     it('renders BodyInsightCard with correct props', async () => {
       (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/metrics')) {
+        if (url.includes('/body/metrics')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
@@ -498,7 +498,7 @@ describe('Insights Screen (Mobile)', () => {
             }),
           });
         }
-        if (url.includes('/api/body/health-score')) {
+        if (url.includes('/body/health-score')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({
@@ -506,7 +506,7 @@ describe('Insights Screen (Mobile)', () => {
             }),
           });
         }
-        if (url.includes('/api/body/heatmaps')) {
+        if (url.includes('/body/heatmaps')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({

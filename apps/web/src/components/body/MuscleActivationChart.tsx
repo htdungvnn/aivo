@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  type MouseHandlerDataParam,
 } from "recharts";
 
 // Mock data for landing page preview
@@ -26,6 +27,20 @@ export const mockMuscleActivationData = [
   { muscle: "Calves", activation: 65, max: 100, color: "#6366f1" },
   { muscle: "Glutes", activation: 80, max: 100, color: "#8b5cf6" },
 ];
+
+interface MuscleData {
+  muscle: string;
+  activation: number;
+  max: number;
+  color: string;
+}
+
+// Extended type for recharts click event - extends MouseHandlerDataParam with our payload shape
+type ChartClickData = MouseHandlerDataParam & {
+  activePayload?: Array<{
+    payload: MuscleData;
+  }>;
+};
 
 export const mockBodyRadarData = [
   { axis: "Core", value: 94, fullMark: 100 },
@@ -45,7 +60,7 @@ export const mockTimeSeriesData = [
 ];
 
 interface MuscleActivationChartProps {
-  data?: typeof mockMuscleActivationData;
+  data?: Array<{ muscle: string; activation: number; max: number; color: string }>;
   height?: number;
   showLegend?: boolean;
   onBarClick?: (data: { muscle: string; activation: number }) => void;
@@ -59,7 +74,7 @@ export function MuscleActivationChart({
 }: MuscleActivationChartProps) {
   interface CustomTooltipProps {
     active?: boolean;
-    payload?: Array<{ value: number; payload: { muscle: string; activation: number } }>;
+    payload?: Array<{ value: number; payload: { muscle: string; activation: number; color: string } }>;
   }
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
@@ -93,7 +108,7 @@ export function MuscleActivationChart({
           data={data}
           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
           layout="vertical"
-          onClick={(data) => {
+          onClick={(data: ChartClickData) => {
             if (data && data.activePayload && onBarClick) {
               const payload = data.activePayload[0].payload;
               onBarClick({ muscle: payload.muscle, activation: payload.activation });
@@ -270,7 +285,7 @@ export function ActivationTimeSeries({
               borderRadius: "0.5rem",
             }}
             labelStyle={{ color: "#e2e8f0" }}
-            formatter={(value: number, name: string) => [`${value}%`, name]}
+            formatter={(value, name) => [`${value}%`, name]}
           />
           <Legend />
           <Bar dataKey="core" name="Core" fill={colors.core} radius={[4, 4, 0, 0]} />

@@ -354,7 +354,7 @@ function verifyToken(token: string) {
 
 | Environment | API URL | DB | OpenAI |
 |-------------|---------|----|--------|
-| Development | localhost:8788 | Local D1 | Dev key |
+| Development | localhost:8787 | Local D1 | Dev key |
 | Staging | staging-api.aivo.ai | D1 staging | Prod key |
 | Production | api.aivo.ai | D1 prod | Prod key |
 

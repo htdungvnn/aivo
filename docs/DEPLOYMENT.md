@@ -118,13 +118,13 @@ Start all services:
 
 ```bash
 # Terminal 1: Start API (Cloudflare Workers Dev)
-cd apps/api && pnpmx wrangler dev
+cd apps/api && pnpm exec wrangler dev
 
 # Terminal 2: Start Web (Next.js)
 cd apps/web && pnpm run dev
 
 # Terminal 3: Start Mobile (Expo)
-cd apps/mobile && pnpmx expo start
+cd apps/mobile && pnpm exec expo start
 ```
 
 ---
@@ -135,7 +135,7 @@ cd apps/mobile && pnpmx expo start
 
 ```bash
 cd packages/db
-pnpmx drizzle-kit generate
+pnpm exec drizzle-kit generate
 ```
 
 This creates migration files in `packages/db/drizzle/migrations/`.
@@ -293,8 +293,8 @@ wrangler pages deploy . --project-name aivo-web
 
 ```bash
 cd apps/mobile
-pnpmx eas build --platform ios --profile production
-pnpmx eas build --platform android --profile production
+eas build --platform ios --profile production
+eas build --platform android --profile production
 ```
 
 Configure environment variables in `eas.json` build profiles.
@@ -303,10 +303,10 @@ Configure environment variables in `eas.json` build profiles.
 
 ```bash
 # iOS App Store
-pnpmx eas submit --platform ios
+eas submit --platform ios
 
 # Google Play Store
-pnpmx eas submit --platform android
+eas submit --platform android
 ```
 
 ---
@@ -348,8 +348,8 @@ pnpmx eas submit --platform android
 
 ```bash
 cd apps/api
-pnpmx wrangler deployments list
-pnpmx wrangler rollback <deployment-id>
+pnpm exec wrangler deployments list
+pnpm exec wrangler rollback <deployment-id>
 ```
 
 ### Web Rollback
@@ -438,10 +438,10 @@ wrangler kv:namespace create RATE_LIMIT_KV
 ```bash
 # Clear Expo cache
 cd apps/mobile
-pnpmx expo start --clear
+pnpm exec expo start --clear
 
 # Check EAS credentials
-pnpmx eas credentials
+eas credentials
 ```
 
 ### Debug Commands
@@ -459,7 +459,7 @@ pnpm run test
 
 # View API logs
 cd apps/api
-pnpmx wrangler tail
+pnpm exec wrangler tail
 
 # Database studio (local)
 cd packages/db

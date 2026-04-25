@@ -1,28 +1,51 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env*.local"],
+  "globalDependencies": ["**/.env*.local", "**/tsconfig*.json"],
+  "globalEnv": ["NODE_ENV", "CI", "TURBO_TELEMETRY_DISABLED"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".expo/**"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        ".expo/**",
+        "android/**/build/**",
+        "ios/**/build/**"
+      ],
+      "cache": true
     },
     "build:wasm": {
       "dependsOn": ["^build"],
-      "outputs": ["pkg/**", "*.wasm"]
+      "outputs": ["pkg/**", "*.wasm", "target/**/release/**"],
+      "cache": true,
+      "cacheOptions": {
+        "files": ["**/Cargo.toml", "**/Cargo.lock"]
+      }
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "watch": ["**/src/**"]
     },
-    "lint": {},
-    "type-check": {
+    "lint": {
       "dependsOn": ["^build"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": ["tsconfig.tsbuildinfo", "*.tsbuildinfo"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**", "junit.xml"]
     },
     "clean": {
-      "cache": false
+      "cache": false,
+      "dependsOn": []
+    },
+    "generate": {
+      "cache": false,
+      "persistent": false
     }
   }
 }

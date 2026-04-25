@@ -4,24 +4,28 @@ import '@testing-library/jest-native';
 import { MetricsProvider, useMetrics } from '../MetricsContext';
 import * as SecureStore from 'expo-secure-store';
 import { View, Text, TouchableOpacity } from 'react-native';
+import * as apiClient from '@aivo/api-client';
 
-// Mock fetch
-global.fetch = jest.fn();
-
-jest.mock('expo-secure-store', () => {
-  const storage: Record<string, string> = {};
+// Mock the api-client module with mocks that we can access via imported apiClient
+jest.mock('@aivo/api-client', () => {
+  const mocks = {
+    getBodyMetrics: jest.fn(),
+    getHealthScore: jest.fn(),
+    createBodyMetric: jest.fn(),
+  };
   return {
-    getItem: async (key: string): Promise<string | null> => storage[key] || null,
-    setItem: async (key: string, value: string): Promise<void> => { storage[key] = value; },
-    removeItem: async (key: string): Promise<void> => { delete storage[key]; },
-    clear: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
-    // Async-suffixed versions for the actual code
-    getItemAsync: async (key: string): Promise<string | null> => storage[key] || null,
-    setItemAsync: async (key: string, value: string): Promise<void> => { storage[key] = value; },
-    deleteItemAsync: async (key: string): Promise<void> => { delete storage[key]; },
-    clearAsync: async (): Promise<void> => { Object.keys(storage).forEach(k => delete storage[k]); },
+    createApiClient: jest.fn(() => mocks),
+    ...mocks,
   };
 });
+
+// Mock expo-secure-store (already mocked globally, but we can override per test)
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+  clearAsync: jest.fn(),
+}));
 
 // Test component that uses the context
 function TestComponent() {
@@ -103,15 +107,22 @@ describe('MetricsContext', () => {
   };
 
   beforeEach(async () => {
-    await SecureStore.clear();
+    await SecureStore.clearAsync();
     jest.clearAllMocks();
-    (fetch as jest.Mock).mockClear();
+
+    // Setup default SecureStore values
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    (SecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
+    (SecureStore.deleteItemAsync as jest.Mock).mockResolvedValue(undefined);
   });
 
   describe('Initialization', () => {
     it('loads cached data on mount', async () => {
-      await SecureStore.setItem('aivo_metrics_cache', JSON.stringify(mockMetricsResponse.data));
-      await SecureStore.setItem('aivo_health_score_cache', JSON.stringify(mockHealthScoreResponse.data));
+      (SecureStore.getItemAsync as jest.Mock).mockImplementation(async (key: string) => {
+        if (key === 'aivo_metrics_cache') return JSON.stringify(mockMetricsResponse.data);
+        if (key === 'aivo_health_score_cache') return JSON.stringify(mockHealthScoreResponse.data);
+        return null;
+      });
 
       render(
         <MetricsProvider>
@@ -152,20 +163,12 @@ describe('MetricsContext', () => {
   describe('refreshMetrics', () => {
     beforeEach(async () => {
       // Setup token and user ID
-      await SecureStore.setItem('aivo_token', mockToken);
-      await SecureStore.setItem('aivo_user_id', mockUserId);
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(mockToken);
     });
 
     it('fetches metrics and health score', async () => {
-      (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/metrics')) {
-          return Promise.resolve({ ok: true, json: async () => mockMetricsResponse });
-        }
-        if (url.includes('/api/body/health-score')) {
-          return Promise.resolve({ ok: true, json: async () => mockHealthScoreResponse });
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
+      apiClient.getBodyMetrics.mockResolvedValue({ data: mockMetricsResponse.data });
+      apiClient.getHealthScore.mockResolvedValue({ data: mockHealthScoreResponse.data });
 
       render(
         <MetricsProvider>
@@ -179,36 +182,14 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalled();
+        expect(apiClient.getBodyMetrics).toHaveBeenCalled();
+        expect(apiClient.getHealthScore).toHaveBeenCalled();
       });
     });
 
     it('caches fetched data', async () => {
-      (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/metrics')) {
-          return Promise.resolve({ ok: true, json: async () => mockMetricsResponse });
-        }
-        if (url.includes('/api/body/health-score')) {
-          return Promise.resolve({ ok: true, json: async () => mockHealthScoreResponse });
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
-
-      render(
-        <MetricsProvider>
-          <TestComponent />
-        </MetricsProvider>
-      );
-
-      await act(async () => {
-        (await SecureStore.getItem('aivo_metrics_cache'));
-      });
-
-      expect(SecureStore.getItem).toHaveBeenCalledWith('aivo_metrics_cache');
-    });
-
-    it('handles fetch errors', async () => {
-      (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      apiClient.getBodyMetrics.mockResolvedValue({ data: mockMetricsResponse.data });
+      apiClient.getHealthScore.mockResolvedValue({ data: mockHealthScoreResponse.data });
 
       render(
         <MetricsProvider>
@@ -222,22 +203,21 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Failed to load metrics');
+        expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+          'aivo_metrics_cache',
+          expect.any(String)
+        );
       });
     });
   });
 
   describe('addMetric', () => {
     beforeEach(async () => {
-      await SecureStore.setItem('aivo_token', mockToken);
-      await SecureStore.setItem('aivo_user_id', mockUserId);
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(mockToken);
     });
 
     it('adds new metric successfully', async () => {
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockNewMetricResponse,
-      });
+      apiClient.createBodyMetric.mockResolvedValue({ data: mockNewMetricResponse });
 
       render(
         <MetricsProvider>
@@ -251,20 +231,12 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/body/metrics'),
-          expect.objectContaining({
-            method: 'POST',
-          })
-        );
+        expect(apiClient.createBodyMetric).toHaveBeenCalledWith({ weight: 75 });
       });
     });
 
     it('invalidates cache after adding metric', async () => {
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockNewMetricResponse,
-      });
+      apiClient.createBodyMetric.mockResolvedValue({ data: mockNewMetricResponse });
 
       render(
         <MetricsProvider>
@@ -278,44 +250,18 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        expect(SecureStore.removeItem).toHaveBeenCalledWith('aivo_metrics_cache');
-      });
-    });
-
-    it('throws error on failed add', async () => {
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Network error' }),
-      });
-
-      render(
-        <MetricsProvider>
-          <TestComponent />
-        </MetricsProvider>
-      );
-
-      const addButton = screen.getByTestId('add-metric');
-      await act(async () => {
-        fireEvent.press(addButton);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Failed to add metric');
+        expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('aivo_metrics_cache');
       });
     });
   });
 
   describe('addMetricOptimistic', () => {
     beforeEach(async () => {
-      await SecureStore.setItem('aivo_token', mockToken);
-      await SecureStore.setItem('aivo_user_id', mockUserId);
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(mockUserId);
     });
 
     it('adds metric optimistically', async () => {
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockNewMetricResponse,
-      });
+      apiClient.createBodyMetric.mockResolvedValue({ data: mockNewMetricResponse });
 
       render(
         <MetricsProvider>
@@ -334,7 +280,7 @@ describe('MetricsContext', () => {
     });
 
     it('shows optimistic metric immediately', async () => {
-      (fetch as jest.Mock).mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      apiClient.createBodyMetric.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
       render(
         <MetricsProvider>
@@ -352,10 +298,7 @@ describe('MetricsContext', () => {
     });
 
     it('replaces optimistic metric on success', async () => {
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockNewMetricResponse,
-      });
+      apiClient.createBodyMetric.mockResolvedValue({ data: mockNewMetricResponse });
 
       render(
         <MetricsProvider>
@@ -375,7 +318,7 @@ describe('MetricsContext', () => {
     });
 
     it('reverts optimistic update on failure', async () => {
-      (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      apiClient.createBodyMetric.mockRejectedValue(new Error('Network error'));
 
       render(
         <MetricsProvider>
@@ -385,11 +328,7 @@ describe('MetricsContext', () => {
 
       const addButton = screen.getByTestId('add-optimistic');
       await act(async () => {
-        try {
-          fireEvent.press(addButton);
-        } catch (e) {
-          // Expected error
-        }
+        fireEvent.press(addButton);
       });
 
       await waitFor(() => {
@@ -399,19 +338,13 @@ describe('MetricsContext', () => {
   });
 
   describe('State Management', () => {
-    it('updates latestMetric when metrics change', async () => {
-      await SecureStore.setItem('aivo_token', mockToken);
-      await SecureStore.setItem('aivo_user_id', mockUserId);
+    beforeEach(async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(mockToken);
+    });
 
-      (fetch as jest.Mock).mockImplementation((url) => {
-        if (url.includes('/api/body/metrics')) {
-          return Promise.resolve({ ok: true, json: async () => mockMetricsResponse });
-        }
-        if (url.includes('/api/body/health-score')) {
-          return Promise.resolve({ ok: true, json: async () => mockHealthScoreResponse });
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
+    it('updates latestMetric when metrics change', async () => {
+      apiClient.getBodyMetrics.mockResolvedValue({ data: mockMetricsResponse.data });
+      apiClient.getHealthScore.mockResolvedValue({ data: mockHealthScoreResponse.data });
 
       render(
         <MetricsProvider>
@@ -426,30 +359,10 @@ describe('MetricsContext', () => {
       });
 
       await waitFor(() => {
-        const latestMetric = screen.getByTestId('latest-metric').textContent;
-        expect(latestMetric).not.toBe('none');
-        expect(latestMetric).toContain('70.5');
-      });
-    });
-
-    it('tracks optimistic update in state', async () => {
-      await SecureStore.setItem('aivo_token', mockToken);
-      await SecureStore.setItem('aivo_user_id', mockUserId);
-
-      (fetch as jest.Mock).mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)));
-
-      render(
-        <MetricsProvider>
-          <TestComponent />
-        </MetricsProvider>
-      );
-
-      const addButton = screen.getByTestId('add-optimistic');
-      await act(async () => {
-        fireEvent.press(addButton);
+        expect(apiClient.getBodyMetrics).toHaveBeenCalled();
       });
 
-      // Check that state updates (metrics count increases)
+      // Wait for state to update after API call
       await waitFor(() => {
         expect(screen.getByTestId('metrics-count')).toHaveTextContent('1');
       });

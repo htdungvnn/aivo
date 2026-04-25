@@ -30,7 +30,7 @@ interface R2BucketWithName extends R2Bucket {
 
 interface EnvWithR2 {
   DB: D1Database;
-  R2: R2BucketWithName;
+  R2_BUCKET: R2BucketWithName;
 }
 
 export const formRouter = () => {
@@ -93,7 +93,7 @@ router.post("/upload", async (c: Context) => {
     }
 
     // Upload to R2
-    const r2Bucket = c.env.R2;
+    const r2Bucket = c.env.R2_BUCKET;
     const videoKey = generateR2Key(userId, file.name);
     await r2Bucket.put(videoKey, fileBytes, {
       httpMetadata: {

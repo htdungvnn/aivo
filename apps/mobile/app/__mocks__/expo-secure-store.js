@@ -1,25 +1,13 @@
-// In-memory mock for expo-secure-store
-const store: Record<string, string> = {};
+// Manual mock for expo-secure-store
+const storage = {};
 
 module.exports = {
-  getItem: async (key: string) => store[key] || null,
-  setItem: async (key: string, value: string) => {
-    store[key] = value;
-  },
-  removeItem: async (key: string) => {
-    delete store[key];
-  },
-  clear: async () => {
-    Object.keys(store).forEach((k) => delete store[k]);
-  },
-  getItemAsync: async (key: string) => store[key] || null,
-  setItemAsync: async (key: string, value: string) => {
-    store[key] = value;
-  },
-  deleteItemAsync: async (key: string) => {
-    delete store[key];
-  },
-  clearAsync: async () => {
-    Object.keys(store).forEach((k) => delete store[k]);
-  },
+  getItem: async (key) => storage[key] || null,
+  getItemAsync: async (key) => storage[key] || null,
+  setItem: async (key, value) => { storage[key] = value; },
+  setItemAsync: async (key, value) => { storage[key] = value; },
+  deleteItem: async (key) => { delete storage[key]; },
+  deleteItemAsync: async (key) => { delete storage[key]; },
+  clear: async () => { Object.keys(storage).forEach(k => delete storage[k]); },
+  clearAsync: async () => { Object.keys(storage).forEach(k => delete storage[k]); },
 };

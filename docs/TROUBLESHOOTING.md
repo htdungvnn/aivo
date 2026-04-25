@@ -237,13 +237,13 @@ For mobile, add package name and SHA-1 fingerprint.
 **Solution:**
 ```bash
 cd apps/mobile
-pnpmx expo install -s  # Install all deps
-pnpmx expo start -c    # Clear cache
+pnpm exec expo install -s  # Install all deps
+pnpm exec expo start -c    # Clear cache
 ```
 
 If using custom native modules:
 ```bash
-pnpmx expo prebuild
+pnpm exec expo prebuild
 ```
 
 ---
@@ -386,7 +386,7 @@ pnpm build
 
 ```bash
 cd apps/api
-pnpmx wrangler tail
+pnpm exec wrangler tail
 ```
 
 ### Check Database Locally

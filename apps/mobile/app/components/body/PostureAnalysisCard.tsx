@@ -18,13 +18,13 @@ interface PostureAnalysisCardProps {
 export function PostureAnalysisCard({ assessment, loading = false }: PostureAnalysisCardProps) {
   if (loading) {
     return (
-      <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-        <View className="h-5 bg-slate-800 rounded w-1/3 mb-3" />
-        <View className="h-24 bg-slate-800 rounded mb-3" />
+      <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4" testID="posture-analysis-card">
+        <View className="h-5 bg-slate-800 rounded w-1/3 mb-3" testID="skeleton" />
+        <View className="h-24 bg-slate-800 rounded mb-3" testID="skeleton-chart" />
         <View className="space-y-2">
-          <View className="h-4 bg-slate-800 rounded" />
-          <View className="h-4 bg-slate-800 rounded" />
-          <View className="h-4 bg-slate-800 rounded" />
+          <View className="h-4 bg-slate-800 rounded" testID="skeleton-text" />
+          <View className="h-4 bg-slate-800 rounded" testID="skeleton-text" />
+          <View className="h-4 bg-slate-800 rounded" testID="skeleton-text" />
         </View>
       </View>
     );
@@ -56,10 +56,11 @@ export function PostureAnalysisCard({ assessment, loading = false }: PostureAnal
       </View>
 
       {/* Score bar */}
-      <View className="h-2 bg-slate-800 rounded-full overflow-hidden mb-4">
+      <View className="h-2 bg-slate-800 rounded-full overflow-hidden mb-4" testID="score-bar">
         <View
           className={`h-full ${assessment.score >= 60 ? "bg-emerald-500" : "bg-amber-500"}`}
           style={{ width: `${assessment.score}%` }}
+          testID="score-bar-fill"
         />
       </View>
 
@@ -93,11 +94,11 @@ export function PostureAnalysisCard({ assessment, loading = false }: PostureAnal
 
       {/* Recommendations */}
       {assessment.recommendations.length > 0 && (
-        <View className="bg-slate-800/50 rounded-lg p-3">
+        <View className="bg-slate-800/50 rounded-lg p-3" testID="recommendations">
           <Text className="text-slate-300 text-sm font-medium mb-2">Recommendations</Text>
           {assessment.recommendations.map((rec, index) => (
             <View key={index} className="flex-row items-start gap-2 mb-1">
-              <Text className="text-emerald-400 mt-0.5">✓</Text>
+              <Text className="text-emerald-400 mt-0.5" testID="checkmark">✓</Text>
               <Text className="text-slate-300 text-sm flex-1">{rec}</Text>
             </View>
           ))}

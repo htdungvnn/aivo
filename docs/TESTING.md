@@ -204,7 +204,7 @@ Tests:
 
 ```bash
 cd apps/mobile
-pnpmx detox test -c ios
+detox test -c ios
 ```
 
 ---

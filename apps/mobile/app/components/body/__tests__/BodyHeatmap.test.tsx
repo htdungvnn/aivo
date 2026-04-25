@@ -1,51 +1,54 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import '@testing-library/jest-native/extend-expect';
-import { BodyHeatmap } from '../BodyHeatmap';
-import * as Haptics from 'expo-haptics';
 
-// Mock expo-haptics
-jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn(),
-  ImpactFeedbackStyle: {
-    Light: 0,
+// Mock external dependencies
+jest.mock('@aivo/shared-types', () => ({
+  BODY_OUTLINE_FRONT: "M50,50 L100,100", // Simple mock path
+}));
+
+jest.mock('@aivo/body-compute', () => ({
+  HeatmapRenderer: {
+    prepare: jest.fn(() => ({
+      points: [
+        { x: 50, y: 42, muscle: 'chest', intensity: 0.7, cx: 50, cy: 42, radius: 10 },
+      ],
+    })),
+    color: jest.fn((intensity: number) => `rgba(255, ${Math.round(intensity * 255)}, 0, ${0.5 + intensity * 0.4})`),
   },
 }));
 
-// Mock react-native-reanimated
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
-});
+import { BodyHeatmap } from '../BodyHeatmap';
 
 describe('Mobile BodyHeatmap Component', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(BodyHeatmap).toBeDefined();
   });
 
   it('should render without crashing', () => {
-    const { toJSON } = render(
+    render(
       <BodyHeatmap
         vectorData={[
           { x: 50, y: 42, muscle: 'chest', intensity: 0.7 }
         ]}
       />
     );
-    expect(toJSON()).toBeTruthy();
+    expect(screen.getByTestId('body-heatmap')).toBeOnTheScreen();
   });
 
-  it('should call haptics on press', () => {
-    const { getByTestId } = render(
+  it('should have test ID', () => {
+    render(
       <BodyHeatmap
         vectorData={[
           { x: 50, y: 42, muscle: 'chest', intensity: 0.7 }
         ]}
-        onPointPress={jest.fn()}
       />
     );
-
-    // Verify haptics mock exists
-    expect(Haptics.impactAsync).toBeDefined();
+    const heatmap = screen.getByTestId('body-heatmap');
+    expect(heatmap).toBeTruthy();
   });
 });

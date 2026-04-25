@@ -6,8 +6,24 @@
 
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { createClient } from 'expo-health';
-import type { HealthKitClient, GoogleFitClient } from 'expo-health';
+
+// Dynamically import expo-health only on native platforms
+let healthClient: { createClient: (options: { clientOptions: { bundleIdentifier?: string; packageName?: string } }) => { authorize: (permissions: string[]) => Promise<Record<string, string>>; getAuthStatusForPermissions: (permissions: string[]) => Promise<Record<string, string>>; getSamples: (type: string, options: { startDate: Date; endDate: Date }) => Array<{ value: number }> } } | null = null;
+
+if (Platform.OS === 'ios' || Platform.OS === 'android') {
+  try {
+    const expoHealth = await import('expo-health');
+    healthClient = expoHealth.createClient({
+      clientOptions: Platform.OS === 'ios' ? {
+        bundleIdentifier: 'com.aivo.app',
+      } : {
+        packageName: 'com.aivo.app',
+      },
+    });
+  } catch {
+    // expo-health not available on this platform
+  }
+}
 
 const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
 const TOKEN_KEY = "aivo.auth.token";
@@ -29,7 +45,6 @@ export interface SensorStatus {
 }
 
 class SensorManager {
-  private healthClient: HealthKitClient | GoogleFitClient | null = null;
   private isCollecting = false;
   private collectionInterval: ReturnType<typeof setInterval> | null = null;
   private uploadInterval: ReturnType<typeof setInterval> | null = null;
@@ -37,26 +52,7 @@ class SensorManager {
   private statusListeners: Array<(status: SensorStatus) => void> = [];
 
   constructor() {
-    this.initializeHealthClient();
-  }
-
-  /**
-   * Initialize the health data client based on platform
-   */
-  private async initializeHealthClient(): Promise<void> {
-    if (Platform.OS === 'ios') {
-      this.healthClient = createClient({
-        clientOptions: {
-          bundleIdentifier: 'com.aivo.app',
-        },
-      });
-    } else if (Platform.OS === 'android') {
-      this.healthClient = createClient({
-        clientOptions: {
-          packageName: 'com.aivo.app',
-        },
-      });
-    }
+    // Health client is initialized dynamically at the top of the file
   }
 
   /**
@@ -65,7 +61,7 @@ class SensorManager {
   async getStatus(): Promise<SensorStatus> {
     try {
       const permissionsGranted = await this.checkPermissions();
-      const available = this.healthClient !== null;
+      const available = healthClient !== null;
 
       return {
         available,
@@ -85,7 +81,7 @@ class SensorManager {
    */
   async requestPermissions(): Promise<boolean> {
     try {
-      if (!this.healthClient) {
+      if (!healthClient) {
         return false;
       }
 
@@ -98,7 +94,7 @@ class SensorManager {
         'BasalEnergyBurned',
       ];
 
-      const result = await this.healthClient.authorize(permissions);
+      const result = await healthClient.authorize(permissions);
 
       const granted = permissions.every(p => result[p as keyof typeof result] === 'authorized');
 
@@ -115,11 +111,11 @@ class SensorManager {
    */
   async checkPermissions(): Promise<boolean> {
     try {
-      if (!this.healthClient) {
+      if (!healthClient) {
         return false;
       }
 
-      const status = await this.healthClient.getAuthStatusForPermissions([
+      const status = await healthClient.getAuthStatusForPermissions([
         'HeartRate',
         'HeartRateVariabilitySDNN',
         'SleepAnalysis',
@@ -176,7 +172,7 @@ class SensorManager {
    * Collect a single snapshot of biometric data
    */
   private async collectSnapshot(): Promise<void> {
-    if (!this.healthClient) {
+    if (!healthClient) {
       return;
     }
 
@@ -184,7 +180,7 @@ class SensorManager {
     const fifteenMinAgo = now - 15 * 60 * 1000;
 
     try {
-      const hrvData = await this.healthClient.getSamples('HeartRateVariabilitySDNN', {
+      const hrvData = await healthClient.getSamples('HeartRateVariabilitySDNN', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
       });
@@ -200,7 +196,7 @@ class SensorManager {
         });
       }
 
-      const hrData = await this.healthClient.getSamples('HeartRate', {
+      const hrData = await healthClient.getSamples('HeartRate', {
         startDate: new Date(now - 60 * 60 * 1000),
         endDate: new Date(now),
       });
@@ -226,7 +222,7 @@ class SensorManager {
         });
       }
 
-      const stepsData = await this.healthClient.getSamples('StepCount', {
+      const stepsData = await healthClient.getSamples('StepCount', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
       });
@@ -242,7 +238,7 @@ class SensorManager {
         });
       }
 
-      const energyData = await this.healthClient.getSamples('ActiveEnergyBurned', {
+      const energyData = await healthClient.getSamples('ActiveEnergyBurned', {
         startDate: new Date(fifteenMinAgo),
         endDate: new Date(now),
       });

@@ -20,20 +20,16 @@ import { ExportRouter } from "./routes/export";
 import { MonthlyReportRouter } from "./routes/monthly-reports";
 import { GamificationRouter } from "./routes/gamification";
 import { runCronJob } from "./routes/cron";
-// Temporarily disabled - WIP with type errors
-// import { NutritionRouter } from "./routes/nutrition";
+import { NutritionRouter } from "./routes/nutrition";
 import { InfographicRouter } from "./routes/infographic";
-// Temporarily disabled - WIP with type errors
-// import { LiveWorkoutRouter } from "./routes/live-workout";
+import { liveWorkoutRouter } from "./routes/live-workout";
 import { MetabolicRouter } from "./routes/metabolic";
 import { postureRouter } from "./routes/posture";
 import { AdminTestRouter } from "./routes/admin-test";
 import { DigitalTwinRouter } from "./routes/digital-twin";
 import { BiometricRouter } from "./routes/biometric";
 import { AcousticRouter } from "./routes/acoustic";
-
-// Temporarily disabled - WIP with type errors
-// import { formRouter } from "./routes/form-analyze";
+import { formRouter } from "./routes/form-analyze";
 export interface AppEnv {
   AUTH_SECRET: string;
   DB: D1Database;
@@ -162,31 +158,47 @@ app.route("/calc", CalcRouter());
 app.route("/ai", AIRouter());
 app.route("/body", BodyRouter());
 app.route("/body-photos", BodyPhotosRouter());
-// Temporarily disabled - WIP with type errors
-// app.route("/nutrition", NutritionRouter());
+app.route("/nutrition", NutritionRouter());
 app.route("/api/biometric", BiometricRouter());
 app.route("/api/export", ExportRouter());
 app.route("/api", MonthlyReportRouter());
 app.route("/health", HealthRouter());
 app.route("/api/gamification", GamificationRouter());
 app.route("/api/infographic", InfographicRouter());
-// Temporarily disabled - WIP with type errors
-// app.route("/api/live-workout", LiveWorkoutRouter());
+app.route("/api/live-workout", liveWorkoutRouter());
 app.route("/api/metabolic", MetabolicRouter());
 app.route("/api/posture", postureRouter());
 app.route("/api/digital-twin", DigitalTwinRouter());
 app.route("/api/acoustic", AcousticRouter());
+app.route("/api/form", formRouter);
 // Admin test data endpoint (development only)
 if (process.env.NODE_ENV !== "production") {
   app.route("/api/admin/test", AdminTestRouter());
 }
 
+// Root endpoint - API info
+app.get("/", async (c) => {
+  return c.json({
+    name: "AIVO API",
+    version: "1.0.0",
+    status: "running",
+    endpoints: {
+      health: "/health",
+      docs: process.env.NODE_ENV === "production" && process.env.PUBLIC_SWAGGER !== "true" ? "(protected)" : "/docs",
+      openapi: process.env.NODE_ENV === "production" && process.env.PUBLIC_SWAGGER !== "true" ? "(protected)" : "/openapi.json",
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ============================================
 // PROTECTED SWAGGER UI (Production)
 // ============================================
 app.get("/docs", async (c) => {
-  // In production, require admin authentication or return 404
-  if (process.env.NODE_ENV === "production") {
+  // In production, optionally require authentication for Swagger
+  const publicDocs = process.env.PUBLIC_SWAGGER === "true";
+
+  if (process.env.NODE_ENV === "production" && !publicDocs) {
     const authHeader = c.req.header("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return c.text("Not Found", 404);
@@ -203,9 +215,12 @@ app.get("/docs", async (c) => {
 
 app.get("/openapi.json", async (c) => {
   if (process.env.NODE_ENV === "production") {
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return c.text("Not Found", 404);
+    const publicDocs = process.env.PUBLIC_SWAGGER === "true";
+    if (!publicDocs) {
+      const authHeader = c.req.header("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return c.text("Not Found", 404);
+      }
     }
   }
 

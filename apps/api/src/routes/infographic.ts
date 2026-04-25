@@ -32,7 +32,7 @@ import { authenticate, getUserFromContext, type AuthUser } from "../middleware/a
 
 interface Env {
   DB: D1Database;
-  R2: R2Bucket;
+  R2_BUCKET: R2Bucket;
   OPENAI_API_KEY?: string;
 }
 
@@ -143,7 +143,7 @@ export const InfographicRouter = () => {
       const renderResult = await renderAndUploadInfographic(infographicData, {
         scale: 2.0, // Retina quality
         uploadToR2: true,
-        r2Bucket: c.env.R2 as any,
+        r2Bucket: c.env.R2_BUCKET as any,
       });
 
       if (!renderResult.pngUrl) {
@@ -272,7 +272,7 @@ async function handleDeleteInfographic(c: Context<{ Bindings: Env }>) {
     try {
       const key = extractR2Key(card.shareableImageUrl);
       if (key) {
-        await deleteImage(c.env.R2, key);
+        await deleteImage(c.env.R2_BUCKET, key);
       }
     } catch (error) {
       // eslint-disable-next-line no-console

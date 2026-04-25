@@ -1,21 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
-import '@testing-library/jest-native';
 import { BodyMetricChart, MuscleBalanceChart, HealthScoreGauge } from '../BodyMetricChart';
-import { View, Text } from 'react-native';
-
-// Mock Victory Native
-jest.mock('victory-native', () => ({
-  VictoryChart: ({ children }: any) => React.createElement(View, { testID: 'victory-chart' }, children),
-  VictoryLine: ({ data }: any) => React.createElement(View, { testID: 'victory-line' }),
-  VictoryArea: ({ data }: any) => React.createElement(View, { testID: 'victory-area' }),
-  VictoryBar: ({ data }: any) => React.createElement(View, { testID: 'victory-bar' }),
-  VictoryAxis: ({ dependentAxis, tickFormat }: any) => React.createElement(View, { testID: 'victory-axis' }),
-  VictoryTooltip: ({ children }: any) => React.createElement(View, { testID: 'victory-tooltip' }, children),
-  VictoryTheme: {
-    material: {},
-  },
-}));
 
 describe('Mobile BodyMetricChart Component', () => {
   const mockData = [
@@ -26,15 +11,13 @@ describe('Mobile BodyMetricChart Component', () => {
 
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      const { container } = render(
-        <BodyMetricChart data={mockData} metric="weight" />
-      );
-      expect(container).toBeOnTheScreen();
+      render(<BodyMetricChart data={mockData} metric="weight" />);
+      expect(screen.getByTestId('body-metric-chart')).toBeOnTheScreen();
     });
 
-    it('renders VictoryChart with data', () => {
+    it('renders chart with data', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
+      expect(screen.getByTestId('chart-row')).toBeOnTheScreen();
     });
 
     it('renders empty state with no data', () => {
@@ -43,67 +26,72 @@ describe('Mobile BodyMetricChart Component', () => {
     });
 
     it('renders with custom height', () => {
-      const { container } = render(
-        <BodyMetricChart data={mockData} metric="weight" height={300} />
-      );
-      expect(container.firstChild).toHaveStyle({ height: 300 });
+      render(<BodyMetricChart data={mockData} metric="weight" height={300} />);
+      const chart = screen.getByTestId('body-metric-chart');
+      expect(chart).toHaveStyle({ height: 300 });
     });
 
-    it('renders VictoryArea for area chart', () => {
+    it('renders bar elements for each data point', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-area')).toBeOnTheScreen();
+      const bars = screen.getAllByTestId('bar');
+      expect(bars.length).toBe(Math.min(mockData.length, 7));
+    });
+
+    it('renders date labels for bars', () => {
+      render(<BodyMetricChart data={mockData} metric="weight" />);
+      const janLabels = screen.getAllByText('Jan');
+      expect(janLabels.length).toBe(mockData.length);
     });
   });
 
   describe('Metric Types', () => {
     it('renders weight chart', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
+      expect(screen.getByTestId('body-metric-chart')).toBeOnTheScreen();
     });
 
     it('renders body fat chart', () => {
       render(<BodyMetricChart data={mockData} metric="bodyFat" />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
+      expect(screen.getByTestId('body-metric-chart')).toBeOnTheScreen();
     });
 
     it('renders muscle mass chart', () => {
       render(<BodyMetricChart data={mockData} metric="muscleMass" />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
+      expect(screen.getByTestId('body-metric-chart')).toBeOnTheScreen();
     });
 
     it('renders BMI chart', () => {
       render(<BodyMetricChart data={mockData} metric="bmi" />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
+      expect(screen.getByTestId('body-metric-chart')).toBeOnTheScreen();
     });
   });
 
   describe('Data Processing', () => {
-    it('passes data to Victory components', () => {
+    it('displays min and max values', () => {
       render(<BodyMetricChart data={mockData} metric="weight" />);
-      const area = screen.getByTestId('victory-area');
-      expect(area).toHaveAttribute('data-count', '3');
+      expect(screen.getByTestId('range-min')).toHaveTextContent('70.5');
+      expect(screen.getByTestId('range-max')).toHaveTextContent('71.2');
     });
 
     it('handles single data point', () => {
       const singlePoint = [{ date: 'Jan 15', value: 70.5 }];
       render(<BodyMetricChart data={singlePoint} metric="weight" />);
-      expect(screen.getByTestId('victory-area')).toHaveAttribute('data-count', '1');
+      const bars = screen.getAllByTestId('bar');
+      expect(bars.length).toBe(1);
     });
   });
 
   describe('Styling', () => {
     it('uses default height of 200', () => {
-      const { container } = render(
-        <BodyMetricChart data={mockData} metric="weight" />
-      );
-      expect(container.firstChild).toHaveStyle({ height: 200 });
+      render(<BodyMetricChart data={mockData} metric="weight" />);
+      const chart = screen.getByTestId('body-metric-chart');
+      expect(chart).toHaveStyle({ height: 200 });
     });
 
     it('accepts custom height', () => {
-      const { container } = render(
-        <BodyMetricChart data={mockData} metric="weight" height={350} />
-      );
-      expect(container.firstChild).toHaveStyle({ height: 350 });
+      render(<BodyMetricChart data={mockData} metric="weight" height={350} />);
+      const chart = screen.getByTestId('body-metric-chart');
+      expect(chart).toHaveStyle({ height: 350 });
     });
   });
 });
@@ -117,21 +105,21 @@ describe('Mobile MuscleBalanceChart Component', () => {
 
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      const { container } = render(
-        <MuscleBalanceChart data={mockMuscleData} />
-      );
-      expect(container).toBeOnTheScreen();
+      render(<MuscleBalanceChart data={mockMuscleData} />);
+      expect(screen.getByTestId('muscle-balance-chart')).toBeOnTheScreen();
     });
 
-    it('renders VictoryChart', () => {
+    it('renders muscle bars', () => {
       render(<MuscleBalanceChart data={mockMuscleData} />);
-      expect(screen.getByTestId('victory-chart')).toBeOnTheScreen();
-    });
-
-    it('renders VictoryBar for each muscle', () => {
-      render(<MuscleBalanceChart data={mockMuscleData} />);
-      const bars = screen.getAllByTestId('victory-bar');
+      const bars = screen.getAllByTestId('muscle-bar');
       expect(bars.length).toBe(mockMuscleData.length);
+    });
+
+    it('renders muscle names', () => {
+      render(<MuscleBalanceChart data={mockMuscleData} />);
+      expect(screen.getByText('chest')).toBeOnTheScreen();
+      expect(screen.getByText('back')).toBeOnTheScreen();
+      expect(screen.getByText('legs')).toBeOnTheScreen();
     });
 
     it('renders empty state with no data', () => {
@@ -140,18 +128,18 @@ describe('Mobile MuscleBalanceChart Component', () => {
     });
 
     it('renders with custom height', () => {
-      const { container } = render(
-        <MuscleBalanceChart data={mockMuscleData} height={300} />
-      );
-      expect(container.firstChild).toHaveStyle({ height: 300 });
+      render(<MuscleBalanceChart data={mockMuscleData} height={300} />);
+      const chart = screen.getByTestId('muscle-balance-chart');
+      expect(chart).toHaveStyle({ height: 300 });
     });
   });
 
-  describe('Axes', () => {
-    it('renders axes', () => {
+  describe('Data Display', () => {
+    it('displays muscle percentages', () => {
       render(<MuscleBalanceChart data={mockMuscleData} />);
-      const axes = screen.getAllByTestId('victory-axis');
-      expect(axes.length).toBeGreaterThan(0);
+      expect(screen.getByText('65%')).toBeOnTheScreen();
+      expect(screen.getByText('72%')).toBeOnTheScreen();
+      expect(screen.getByText('85%')).toBeOnTheScreen();
     });
   });
 });
@@ -159,10 +147,8 @@ describe('Mobile MuscleBalanceChart Component', () => {
 describe('Mobile HealthScoreGauge Component', () => {
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      const { container } = render(
-        <HealthScoreGauge score={75} category="good" />
-      );
-      expect(container).toBeOnTheScreen();
+      render(<HealthScoreGauge score={75} category="good" />);
+      expect(screen.getByTestId('health-score-gauge')).toBeOnTheScreen();
     });
 
     it('displays score', () => {
@@ -176,10 +162,8 @@ describe('Mobile HealthScoreGauge Component', () => {
     });
 
     it('renders gauge container', () => {
-      const { container } = render(
-        <HealthScoreGauge score={75} category="fair" />
-      );
-      expect(container.querySelector('.gaugeContainer')).toBeOnTheScreen();
+      render(<HealthScoreGauge score={75} category="fair" />);
+      expect(screen.getByTestId('health-score-gauge')).toBeOnTheScreen();
     });
   });
 
@@ -197,10 +181,10 @@ describe('Mobile HealthScoreGauge Component', () => {
     it('handles all category types', () => {
       const categories: Array<'poor' | 'fair' | 'good' | 'excellent'> = ['poor', 'fair', 'good', 'excellent'];
       categories.forEach((category) => {
-        const { container, unmount } = render(
+        const { unmount } = render(
           <HealthScoreGauge score={50} category={category} />
         );
-        expect(container).toBeOnTheScreen();
+        expect(screen.getByTestId('health-score-gauge')).toBeOnTheScreen();
         unmount();
       });
     });

@@ -269,8 +269,8 @@ Ensure migrations are applied:
 
 ```bash
 cd packages/db
-pnpmx drizzle-kit generate
-pnpmx drizzle-kit migrate
+pnpm exec drizzle-kit generate
+pnpm exec drizzle-kit migrate
 ```
 
 Required tables:

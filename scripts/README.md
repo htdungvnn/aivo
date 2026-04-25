@@ -200,7 +200,7 @@ pnpm run dev
 cd apps/api
 pnpm run build      # Build
 pnpm run deploy     # Deploy
-pnpmx wrangler tail # View logs
+pnpm exec wrangler tail # View logs
 ```
 
 ### Web (Next.js - Cloudflare Pages)
@@ -213,7 +213,7 @@ wrangler pages deploy .   # Deploy to Pages
 ### Database
 ```bash
 cd packages/db
-pnpmx drizzle-kit generate   # Generate migrations
+pnpm exec drizzle-kit generate   # Generate migrations
 pnpm run migrate:local      # Apply to local DB
 pnpm run migrate:remote     # Apply to production DB
 pnpm run studio             # Open Drizzle Studio
@@ -252,7 +252,7 @@ pnpm run test      # Run tests
 
 ```bash
 # API logs
-cd apps/api && pnpmx wrangler tail
+cd apps/api && pnpm exec wrangler tail
 
 # Database queries (local)
 cd packages/db && pnpm run studio
@@ -266,8 +266,8 @@ cd packages/db && pnpm run studio
 ```bash
 # API rollback
 cd apps/api
-pnpmx wrangler deployments list
-pnpmx wrangler rollback <deployment-id>
+pnpm exec wrangler deployments list
+pnpm exec wrangler rollback <deployment-id>
 
 # Web rollback (Vercel)
 vercel rollback <deployment-url>

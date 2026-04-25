@@ -6,7 +6,7 @@ Complete reference for AIVO API endpoints.
 
 ```
 Production: https://api.aivo.yourdomain.com
-Development: http://localhost:8788 (Wrangler dev)
+Development: http://localhost:8787 (Wrangler dev)
 ```
 
 ## Authentication

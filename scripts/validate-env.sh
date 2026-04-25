@@ -8,7 +8,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Colors
 RED='\033[0;31m'
@@ -16,6 +16,17 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
+
+print_header() {
+  echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${CYAN}  $1${NC}"
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+}
+
+print_success() { echo -e "${GREEN}✓ $1${NC}"; }
+print_info() { echo -e "${YELLOW}→ $1${NC}"; }
+print_warning() { echo -e "${YELLOW}⚠ $1${NC}"; }
+print_error() { echo -e "${RED}✗ $1${NC}"; }
 
 errors=0
 warnings=0
@@ -72,8 +83,8 @@ echo ""
 
 # Check OAuth configuration
 echo "Checking OAuth configuration..."
-check_var_in_file "apps/api/.env" "GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_ID (API)"
-check_var_in_file "apps/api/.env" "FACEBOOK_APP_ID" "FACEBOOK_APP_ID (API)"
+check_var_in_file "apps/api/.env" "GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_ID API"
+check_var_in_file "apps/api/.env" "FACEBOOK_APP_ID" "FACEBOOK_APP_ID API"
 check_var_in_file "apps/web/.env.local" "NEXT_PUBLIC_GOOGLE_CLIENT_ID" "NEXT_PUBLIC_GOOGLE_CLIENT_ID"
 check_var_in_file "apps/web/.env.local" "NEXT_PUBLIC_FACEBOOK_CLIENT_ID" "NEXT_PUBLIC_FACEBOOK_CLIENT_ID"
 check_var_in_file "apps/mobile/.env" "EXPO_PUBLIC_GOOGLE_CLIENT_ID" "EXPO_PUBLIC_GOOGLE_CLIENT_ID"

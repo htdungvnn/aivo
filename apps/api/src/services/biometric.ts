@@ -4,9 +4,14 @@
  */
 
 import type { D1Database } from "@cloudflare/workers-types";
-import { eq, and, gte } from "drizzle-orm";
+import { createDrizzleInstance } from "@aivo/db";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { schema } from "@aivo/db/schema";
 import { FitnessCalculator } from "@aivo/compute";
+
+// Drizzle database type
+type DrizzleDB = DrizzleD1Database<typeof schema>;
 
 export interface SleepLogResponse {
   id: string;
@@ -166,7 +171,7 @@ export async function invalidateBiometricCache(
  * Aggregates sleep, workouts, nutrition, and body metrics
  */
 export async function generateBiometricSnapshot(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   period: "7d" | "30d"
 ): Promise<BiometricSnapshot> {
@@ -424,7 +429,7 @@ function calculateNutritionConsistency(
  * Identifies patterns between biometric factors
  */
 export async function analyzeCorrelations(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   snapshotId: string
 ): Promise<CorrelationFinding[]> {
@@ -529,7 +534,7 @@ function calculateCorrelationCoefficient(x: number[], y: number[]): number {
  * Get recovery score with detailed factors
  */
 export async function getRecoveryScore(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   kv: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: { expirationTtl: number }) => Promise<void> }
 ): Promise<RecoveryScoreResult> {
@@ -569,7 +574,7 @@ export async function getRecoveryScore(
  * Create a sleep log entry
  */
 export async function createSleepLog(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   data: {
     date: string;
@@ -632,7 +637,7 @@ export async function createSleepLog(
  * Update an existing sleep log
  */
 export async function updateSleepLog(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   id: string,
   data: Partial<{
@@ -680,7 +685,7 @@ export async function updateSleepLog(
  * Get sleep logs with pagination
  */
 export async function getSleepLogs(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   limit: number = 30,
   offset: number = 0
@@ -697,7 +702,7 @@ export async function getSleepLogs(
  * Get sleep summary statistics
  */
 export async function getSleepSummary(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   period: "7d" | "30d" = "30d"
 ): Promise<{
@@ -743,7 +748,7 @@ export async function getSleepSummary(
  * Get or generate biometric snapshot
  */
 export async function getOrGenerateSnapshot(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   period: "7d" | "30d",
   kv: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: { expirationTtl: number }) => Promise<void> }
@@ -789,7 +794,7 @@ export async function getOrGenerateSnapshot(
  * Get correlation findings for a user
  */
 export async function getCorrelationFindings(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   limit: number = 10,
   includeDismissed: boolean = false
@@ -812,7 +817,7 @@ export async function getCorrelationFindings(
  * Dismiss a correlation finding
  */
 export async function dismissCorrelationFinding(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   findingId: string
 ): Promise<void> {
@@ -831,7 +836,7 @@ export async function dismissCorrelationFinding(
  * Update user's macro targets (persisted overrides)
  */
 export async function upsertUserMacroTargets(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   targets: {
     calories: number;
@@ -879,7 +884,7 @@ export async function upsertUserMacroTargets(
  * Get user's macro targets (override or calculated)
  */
 export async function getUserMacroTargets(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   userProfile?: {
     weight?: number;
@@ -980,7 +985,7 @@ export interface BiometricReading {
  * Aggregates readings by type and creates/updates sensor snapshots
  */
 export async function storeSensorReadings(
-  drizzle: D1Database,
+  drizzle: DrizzleDB,
   userId: string,
   readings: BiometricReading[]
 ): Promise<void> {

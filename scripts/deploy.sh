@@ -200,7 +200,7 @@ build_wasm() {
 build_database() {
   log_header "Building Database Schema"
 
-  run_command "cd packages/db && pnpmx drizzle-kit generate" "Generating Drizzle migrations"
+  run_command "cd packages/db && pnpm exec drizzle-kit generate" "Generating Drizzle migrations"
 
   # Check if migrations were generated
   if ls "$PROJECT_ROOT/packages/db/drizzle/migrations/"*.ts 1> /dev/null 2>&1; then
@@ -332,7 +332,7 @@ print_summary() {
   echo -e "${YELLOW}Next steps:${NC}"
   echo "  1. Deploy web app: cd apps/web && pnpm run deploy"
   echo "  2. Verify API: curl $API_URL/health"
-  echo "  3. Check logs: cd apps/api && pnpmx wrangler tail"
+  echo "  3. Check logs: cd apps/api && pnpm exec wrangler tail"
   echo ""
 }
 

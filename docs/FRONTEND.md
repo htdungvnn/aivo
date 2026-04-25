@@ -76,7 +76,7 @@ Visit `http://localhost:3000`
 ### Environment Variables (`.env.local`)
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8788
+NEXT_PUBLIC_API_URL=http://localhost:8787
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 NEXT_PUBLIC_OAUTH_GOOGLE_CLIENT_ID=your_google_client_id
 ```
@@ -148,7 +148,7 @@ apps/mobile/
 ```bash
 cd apps/mobile
 pnpm install
-pnpmx expo start
+pnpm exec expo start
 ```
 
 Scan QR code with Expo Go app.
@@ -156,7 +156,7 @@ Scan QR code with Expo Go app.
 ### Environment Variables (`.env`)
 
 ```env
-EXPO_PUBLIC_API_URL=http://localhost:8788
+EXPO_PUBLIC_API_URL=http://localhost:8787
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 EXPO_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_app_id
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_web_client_id  # For web auth flow
@@ -167,20 +167,20 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_client_id   # iOS native
 
 **Development:**
 ```bash
-pnpmx expo start
+pnpm exec expo start
 ```
 
 **Production (EAS):**
 ```bash
 # Build for iOS
-pnpmx eas build --platform ios --profile production
+eas build --platform ios --profile production
 
 # Build for Android
-pnpmx eas build --platform android --profile production
+eas build --platform android --profile production
 
 # Submit to stores
-pnpmx eas submit --platform ios
-pnpmx eas submit --platform android
+eas submit --platform ios
+eas submit --platform android
 ```
 
 ---
@@ -367,7 +367,7 @@ pnpm run lint      # ESLint
 ```bash
 cd apps/mobile
 pnpm test          # Jest tests
-pnpmx expo start --clear  # For debugging
+pnpm exec expo start --clear  # For debugging
 ```
 
 ---

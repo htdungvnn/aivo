@@ -73,13 +73,13 @@ Or start individual services:
 cd apps/web && pnpm run dev
 
 # Mobile App
-cd apps/mobile && pnpmx expo start
+cd apps/mobile && pnpm exec expo start
 
 # API (Cloudflare Workers)
-cd apps/api && pnpmx wrangler dev
+cd apps/api && pnpm exec wrangler dev
 
 # Database Studio
-cd packages/db && pnpmx drizzle-kit studio
+cd packages/db && pnpm exec drizzle-kit studio
 ```
 
 ## Project Structure
@@ -124,24 +124,24 @@ See individual `package.json` files in each package for specific scripts.
 
 ```bash
 cd apps/api
-pnpmx wrangler d1 create aivo-db
+pnpm exec wrangler d1 create aivo-db
 ```
 
 ### Create Migration
 
 ```bash
 cd packages/db
-pnpmx drizzle-kit generate
+pnpm exec drizzle-kit generate
 ```
 
 ### Apply Migrations
 
 ```bash
 # Local development
-pnpmx wrangler d1 migrations apply aivo-db --local
+pnpm exec wrangler d1 migrations apply aivo-db --local
 
 # Production
-pnpmx wrangler d1 migrations apply aivo-db
+pnpm exec wrangler d1 migrations apply aivo-db
 ```
 
 ## Building for Production
@@ -162,7 +162,7 @@ pnpm run build
 
 ```bash
 cd apps/api
-pnpmx wrangler deploy
+pnpm exec wrangler deploy
 ```
 
 ## Key Technologies

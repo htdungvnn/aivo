@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Mail,
   Scale,
   FileText,
   AlertTriangle,

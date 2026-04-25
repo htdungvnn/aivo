@@ -80,7 +80,7 @@ export function BodyHeatmap({ vectorData, onPointPress }: BodyHeatmapProps) {
   }, [preparedPoints.points, onPointPress]);
 
   return (
-    <View className="bg-slate-900/50 rounded-xl p-4 items-center">
+    <View className="bg-slate-900/50 rounded-xl p-4 items-center" testID="body-heatmap">
       <Svg width={HEATMAP_SIZE} height={HEATMAP_SIZE * 2} viewBox={viewBox}>
         <Defs>
           <RadialGradient id="bodyGradient" cx="50%" cy="50%" r="50%">
