@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MemorySearcher, createSearcher } from "../vector-search.ts";
 
-// Mock OpenAI
+// Mock OpenAI BEFORE any imports that use it
 const mockOpenAI = {
   embeddings: {
     create: jest.fn(),
   },
 };
 
-// Mock the openai module
+// Mock the openai module - must be at top level before imports
 jest.mock("openai", () => ({
   OpenAI: jest.fn().mockImplementation(() => mockOpenAI),
 }));
+
+import { MemorySearcher, createSearcher } from "../vector-search.ts";
 
 describe("MemorySearcher", () => {
   beforeEach(() => {

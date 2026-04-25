@@ -1,6 +1,4 @@
-import { ConversationSummarizer } from "../summarizer.ts";
-
-// Mock OpenAI
+// Mock OpenAI BEFORE the module uses it
 const mockOpenAI = {
   chat: {
     completions: {
@@ -12,10 +10,12 @@ const mockOpenAI = {
   },
 };
 
-// Mock the openai module
+// Mock the openai module - must be at top level before any imports
 jest.mock("openai", () => ({
   OpenAI: jest.fn().mockImplementation(() => mockOpenAI),
 }));
+
+import { ConversationSummarizer } from "../summarizer.ts";
 
 describe("ConversationSummarizer", () => {
   beforeEach(() => {
