@@ -7,26 +7,10 @@
 
 set -e
 
+# Load common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# Colors
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-print_header() {
-  echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}  $1${NC}"
-  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-}
-
-print_success() { echo -e "${GREEN}✓ $1${NC}"; }
-print_info() { echo -e "${YELLOW}→ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}⚠ $1${NC}"; }
-print_error() { echo -e "${RED}✗ $1${NC}"; }
+source "$SCRIPT_DIR/lib.sh"
 
 # Subcommand: env - Create .env files from templates
 cmd_env() {
@@ -498,12 +482,11 @@ cmd_help() {
   echo "  $0 migrate --apply  # Generate and apply migrations"
   echo "  $0 all              # Complete setup flow"
   echo ""
-  echo "For backwards compatibility, you can still use:"
-  echo "  ./scripts/setup-env.sh"
-  echo "  ./scripts/validate-env.sh"
-  echo "  ./scripts/setup-dev.sh"
-  echo "  ./scripts/migrate.sh"
-  echo "  ./scripts/generate-secrets.sh"
+  echo "Related commands:"
+  echo "  ./scripts/deploy.sh        # Deploy to production"
+  echo "  ./scripts/dev.sh           # Start development"
+  echo "  ./scripts/health.sh        # Health checks"
+  echo "  ./scripts/deploy-web-pages.sh  # Deploy web to Cloudflare Pages"
 }
 
 # Main - dispatch to subcommand

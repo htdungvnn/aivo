@@ -119,7 +119,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     render(<RecoveryDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('gauge-label')).toHaveTextContent('GOOD');
+      expect(screen.getByTestId('gauge-label')).toHaveTextContent('Good');
     });
   });
 

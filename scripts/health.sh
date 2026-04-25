@@ -7,8 +7,10 @@
 
 set -e
 
+# Load common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib.sh"
 
 # Default values
 LOCAL_MODE=false
@@ -46,30 +48,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-print_header() {
-  echo -e "\n${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BLUE}  $1${NC}"
-  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-}
-
-print_success() { echo -e "${GREEN}✓ $1${NC}"; }
-print_info() { echo -e "${YELLOW}→ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}⚠ $1${NC}"; }
-print_error() { echo -e "${RED}✗ $1${NC}"; }
-
+# Helper functions
 check_port() {
   local host=$1
   local port=$2
   local name=$3
 
-  if command -v nc &> /dev/null; then
+  if check_command nc; then
     if nc -z "$host" "$port" 2>/dev/null; then
       print_success "$name is listening on port $port"
       return 0
@@ -77,7 +62,7 @@ check_port() {
       print_error "$name is NOT responding on port $port"
       return 1
     fi
-  elif command -v curl &> /dev/null; then
+  elif check_command curl; then
     if curl -s --connect-timeout 2 "http://$host:$port/health" > /dev/null 2>&1; then
       print_success "$name is responding on port $port"
       return 0
@@ -100,6 +85,22 @@ check_process() {
     return 0
   else
     print_warning "$name process not found (may not be started)"
+    return 1
+  fi
+}
+
+check_service() {
+  local name="$1"
+  local url="$2"
+  local expected_status="${3:-200}"
+
+  echo -n "Checking $name... "
+
+  if curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "$expected_status"; then
+    print_success "OK (HTTP $expected_status)"
+    return 0
+  else
+    print_error "FAILED"
     return 1
   fi
 }
@@ -200,7 +201,7 @@ if [ "$LOCAL_MODE" = true ]; then
   if [ -d ".wrangler" ] || wrangler d1 database list --local 2>/dev/null | grep -q "aivo-db"; then
     print_success "Local D1 database exists"
   else
-    print_warning "Local D1 database may not exist (run: ./scripts/setup-dev.sh)"
+    print_warning "Local D1 database may not exist (run: ./scripts/dev.sh)"
   fi
   echo ""
 
@@ -210,7 +211,7 @@ if [ "$LOCAL_MODE" = true ]; then
   exit 0
 
 else
-  # Production health check (original logic)
+  # Production health check
   echo ""
   print_header "AIVO Health Check"
   echo "API URL:  $API_URL"
@@ -238,9 +239,9 @@ else
     echo ""
     echo "Checking static assets..."
     if curl -s -o /dev/null -w "%{http_code}" "$WEB_URL/_next/static/" | grep -q "200"; then
-      echo -e "${GREEN}✓${NC} Static assets accessible"
+      print_success "Static assets accessible"
     else
-      echo -e "${YELLOW}!${NC} Static assets check skipped"
+      print_info "Static assets check skipped"
     fi
   else
     failed=$((failed + 1))
@@ -249,10 +250,10 @@ else
   # Summary
   print_header "Summary"
   if [ $failed -eq 0 ]; then
-    echo -e "${GREEN}All services are healthy!${NC}"
+    print_success "All services are healthy!"
     exit 0
   else
-    echo -e "${RED}Some services are unhealthy${NC}"
+    print_error "Some services are unhealthy"
     echo ""
     echo "Troubleshooting:"
     echo "  1. Check API logs: cd apps/api && wrangler tail"
@@ -261,20 +262,3 @@ else
     exit 1
   fi
 fi
-
-# Check service function for production mode
-check_service() {
-  local name="$1"
-  local url="$2"
-  local expected_status="${3:-200}"
-
-  echo -n "Checking $name... "
-
-  if curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "$expected_status"; then
-    echo -e "${GREEN}✓ OK${NC} (HTTP $expected_status)"
-    return 0
-  else
-    echo -e "${RED}✗ FAILED${NC}"
-    return 1
-  fi
-}

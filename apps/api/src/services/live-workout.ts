@@ -1,9 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
-import { createDrizzleInstance } from "@aivo/db";
+import { createDrizzleInstance, liveWorkoutSessions, setRpeLogs } from "@aivo/db";
 import {
-  liveWorkoutSessions,
-  setRpeLogs,
   type LiveWorkoutSession,
   type SetRPELog,
   type LiveAdjustmentRequest,

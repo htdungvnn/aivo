@@ -14,9 +14,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "allowImportingTsExtensions": true,
-    "rewriteRelativeImportExtensions": true,
     "isolatedModules": true,
-    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "src/__tests__"]

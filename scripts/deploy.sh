@@ -9,18 +9,12 @@ set -e  # Exit on error
 set -u  # Error on undefined variable
 set -o pipefail  # Pipeline fails on first error
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-BOLD='\033[1m'
-
-# Configuration
+# Load common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib.sh"
+
+# Configuration
 LOG_FILE="$PROJECT_ROOT/deploy-$(date +%Y%m%d-%H%M%S).log"
 
 # Default values
@@ -63,14 +57,6 @@ log_header() {
   echo -e "\n${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${BOLD}${BLUE}  $1${NC}"
   echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n" | tee -a "$LOG_FILE"
-}
-
-check_command() {
-  if command -v "$1" &> /dev/null; then
-    return 0
-  else
-    return 1
-  fi
 }
 
 run_command() {

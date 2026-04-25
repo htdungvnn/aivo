@@ -7,31 +7,14 @@
 
 set -e
 
+# Load common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-print_header() {
-  echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}  $1${NC}"
-  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-}
-
-print_success() {
-  echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_info() {
-  echo -e "${YELLOW}→ $1${NC}"
-}
+source "$SCRIPT_DIR/lib.sh"
 
 # Check if tmux is available
-if ! command -v tmux &> /dev/null; then
-  echo "Error: tmux is not installed"
+if ! check_command tmux; then
+  print_error "tmux is not installed"
   echo "Install with: brew install tmux (macOS) or apt-get install tmux (Linux)"
   exit 1
 fi

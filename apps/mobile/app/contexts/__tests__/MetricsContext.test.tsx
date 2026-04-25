@@ -1,12 +1,4 @@
-import React from 'react';
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react-native';
-import '@testing-library/jest-native';
-import { MetricsProvider, useMetrics } from '../MetricsContext';
-import * as SecureStore from 'expo-secure-store';
-import { View, Text, TouchableOpacity } from 'react-native';
-import * as apiClient from '@aivo/api-client';
-
-// Mock the api-client module with mocks that we can access via imported apiClient
+// Mocks must be hoisted before imports
 jest.mock('@aivo/api-client', () => {
   const mocks = {
     getBodyMetrics: jest.fn(),
@@ -19,13 +11,22 @@ jest.mock('@aivo/api-client', () => {
   };
 });
 
-// Mock expo-secure-store (already mocked globally, but we can override per test)
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn(),
   deleteItemAsync: jest.fn(),
   clearAsync: jest.fn(),
 }));
+
+import React from 'react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react-native';
+import '@testing-library/jest-native';
+import { MetricsProvider, useMetrics } from '../MetricsContext';
+import * as SecureStore from 'expo-secure-store';
+import { View, Text, TouchableOpacity } from 'react-native';
+import * as apiClient from '@aivo/api-client';
+
+console.log('Mocked apiClient:', Object.keys(apiClient));
 
 // Test component that uses the context
 function TestComponent() {

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "strict": true,
     "target": "ES2020",
     "module": "ESNext",
@@ -9,7 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@aivo/shared-types": ["../shared-types/src"]
     }
