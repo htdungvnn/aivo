@@ -3,7 +3,7 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "types": ["node"],
-    "noEmit": true,
+    "outDir": "./dist",
     "declaration": true,
     "declarationMap": true,
     "baseUrl": ".",

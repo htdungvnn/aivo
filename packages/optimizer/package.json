@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build": "wasm-pack build --target worker --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
     "test": "cargo test",
     "clean": "rm -rf pkg target"
