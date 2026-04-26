@@ -10,14 +10,14 @@ import type {
   NutritionConsultResponse,
   NutritionAgentType,
   NutritionConsultContext,
+  ChefAgentRequest,
+  MedicalAgentRequest,
+  BudgetAgentRequest,
 } from "@aivo/shared-types";
 import { invokeChefAgent } from "./chef-agent";
 import { invokeMedicalAgent } from "./medical-agent";
 import { invokeBudgetAgent } from "./budget-agent";
 import type { AgentInvocationResult } from "./types";
-import type { ChefAgentRequest } from "./chef-agent";
-import type { MedicalAgentRequest } from "./medical-agent";
-import type { BudgetAgentRequest } from "./budget-agent";
 
 /**
  * Main orchestration function for nutrition consultations

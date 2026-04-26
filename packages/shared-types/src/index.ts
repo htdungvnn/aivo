@@ -2509,6 +2509,7 @@ export interface NutritionConsultRequest {
   context: NutritionConsultContext;
   preferredAgents?: NutritionAgentType[]; // If empty, orchestrator routes automatically
   maxResponseTimeMs?: number;
+  sessionId?: string; // Optional session tracking for multi-turn conversations
 }
 
 /**
@@ -2590,7 +2591,7 @@ export interface NutritionConsultResponse {
   agentsConsulted: NutritionAgentType[];
   responses: AgentResponse[];
   synthesizedAdvice: string; // Orchestrator's combined recommendation
-  primaryAgent: NutritionAgentType; // Agent that provided the most relevant response
+  primaryAgent?: NutritionAgentType; // Agent that provided the most relevant response (optional if none)
   warnings: string[]; // Consolidated safety warnings
   processingTimeMs: number;
 }
@@ -2808,6 +2809,10 @@ export interface LiveWorkoutSession {
   totalDurationMs?: number;
   earlyExitReason?: string;
   earlyExitSuggestion?: string;
+
+  // Metadata
+  createdAt: number;
+  updatedAt: number;
 }
 
 /**
@@ -2816,6 +2821,7 @@ export interface LiveWorkoutSession {
 export interface SetRPELog {
   id: string;
   sessionId: string;
+  userId: string;
   setNumber: number;
   exerciseName: string;
   weight: number | null; // kg or lbs
@@ -2825,6 +2831,7 @@ export interface SetRPELog {
   restTimeSeconds: number; // rest taken before this set
   timestamp: number; // when set was logged
   notes?: string;
+  createdAt?: number;
 }
 
 /**
@@ -2900,6 +2907,7 @@ export interface LiveAdjustmentResponse {
   shouldEndWorkout?: boolean;
   endWorkoutReason?: string;
   endWorkoutSuggestion?: string;
+  error?: string; // Optional error message when success is false
 }
 
 /**

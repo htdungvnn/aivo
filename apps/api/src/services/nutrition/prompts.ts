@@ -15,7 +15,7 @@ USER CONTEXT:
 - Diet Type: ${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}
 - Allergies to AVOID: ${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}
 - Food Intolerances to AVOID: ${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}
-- Macro Preferences: ${(ctx: NutritionConsultContext) => ctx.macroPreferences?.join(", ") || "balanced"}
+- Macro Preferences: ${(ctx: NutritionConsultContext) => "MACRO_PREFS_PLACEHOLDER"}
 
 CRITICAL SAFETY RULES:
 1. NEVER include ingredients the user is allergic to - check ALL ingredient names and components

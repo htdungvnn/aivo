@@ -35,7 +35,7 @@ let imageProcessorPromise: Promise<ImageProcessorModule> | null = null;
 
 async function getImageProcessor(): Promise<ImageProcessorModule> {
   if (!imageProcessorPromise) {
-    imageProcessorPromise = import("@aivo/compute").then((mod) => mod as ImageProcessorModule).catch((err) => {
+    imageProcessorPromise = import("@aivo/compute").then((mod) => mod as unknown as ImageProcessorModule).catch((err) => {
       // eslint-disable-next-line no-console
       console.error("Failed to load WASM image processor:", err);
       return null;
@@ -157,7 +157,7 @@ const NutritionConsultRequestSchema = z.object({
       z.object({
         name: z.string(),
         quantity: z.number(),
-        unit: z.string().optional(),
+        unit: z.string(),
         expirationDate: z.string().optional(),
         isPerishable: z.boolean().optional().default(false),
       })
@@ -777,11 +777,11 @@ Guidelines:
       });
       const { calories: targetCalories, protein_g: targetProtein, carbs_g: targetCarbs, fat_g: targetFat } =
         calculateMacroTargets({
-          weight: user?.weight,
-          height: user?.height,
-          age: user?.age,
-          gender: user?.gender,
-          goals: user?.goals,
+          weight: user?.weight ?? undefined,
+          height: user?.height ?? undefined,
+          age: user?.age ?? undefined,
+          gender: user?.gender ?? undefined,
+          goals: user?.goals ?? undefined,
         });
 
       return c.json({

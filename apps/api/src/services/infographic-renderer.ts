@@ -18,7 +18,7 @@ import type {
 } from "@aivo/shared-types";
 
 // Import WASM file as URL
-import wasmUrl from "@aivo/infographic-generator/pkg/infographic_generator_bg.wasm";
+import wasmUrl from "@aivo/infographic-generator/infographic_generator_bg.wasm";
 
 // Minimal R2 bucket interface
 interface R2Bucket {

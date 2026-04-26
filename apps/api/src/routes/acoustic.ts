@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
 import init, { AcousticMyography } from '@aivo/compute';
-import wasmUrl from '@aivo/compute/pkg/aivo_compute_bg.wasm';
+import wasmUrl from '@aivo/compute/aivo_compute_bg.wasm';
 
 // Initialize WASM module on startup
 let wasmInitialized = false;

@@ -9,6 +9,17 @@ import { AGENT_SYSTEM_PROMPTS } from "./prompts";
 import type { MedicalAgentRequest, MedicalAgentResponse, SafetyAlert, NutrientWarning, DietaryModification } from "@aivo/shared-types";
 import type { AgentInvocationResult } from "./types";
 
+// Analysis data structure (without agent wrapper fields)
+interface MedicalAnalysis {
+  safetyAlerts: SafetyAlert[];
+  nutrientWarnings: NutrientWarning[];
+  dietaryModifications: DietaryModification[];
+  consultationNeeded: boolean;
+  consultationReason?: string;
+  generalGuidance?: string;
+  confidence: number;
+}
+
 /**
  * Invoke the Medical Agent to analyze nutrition safety
  */
@@ -107,7 +118,7 @@ async function callOpenAI(prompt: string, _context: MedicalAgentRequest["context
 /**
  * Parse medical agent response into structured format
  */
-function parseMedicalResponse(data: unknown): MedicalAgentResponse {
+function parseMedicalResponse(data: unknown): MedicalAnalysis {
   if (typeof data !== "object" || data === null) {
     throw new Error("Invalid medical analysis response");
   }
@@ -138,7 +149,7 @@ function parseMedicalResponse(data: unknown): MedicalAgentResponse {
         currentLevel: String(warn.currentLevel || ""),
         concern: String(warn.concern || ""),
         foodsToLimit: Array.isArray(warn.foodsToLimit) ? warn.foodsToLimit.map(String) : undefined,
-        targetRange: typeof w.targetRange === "string" ? w.targetRange : undefined,
+        targetRange: typeof warn.targetRange === "string" ? warn.targetRange : undefined,
       }))
     : [];
 
@@ -167,7 +178,7 @@ function parseMedicalResponse(data: unknown): MedicalAgentResponse {
 /**
  * Validate that critical alerts are present for high-risk items
  */
-function validateCriticalAlerts(analysis: MedicalAgentResponse): string[] {
+function validateCriticalAlerts(analysis: MedicalAnalysis): string[] {
   const warnings: string[] = [];
 
   // Check for CRITICAL alerts
@@ -226,7 +237,7 @@ function calculateConfidence(
 /**
  * Format medical analysis as readable text
  */
-function formatAnalysisAsText(analysis: MedicalAgentResponse): string {
+function formatAnalysisAsText(analysis: MedicalAnalysis): string {
   let text = "# Medical Nutrition Safety Analysis\n\n";
 
   if (analysis.safetyAlerts.length > 0) {

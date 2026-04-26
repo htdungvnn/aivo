@@ -14,10 +14,30 @@ interface OpenAIChatError {
 
 interface ParsedAnalysis {
   overallScore: number;
-  grade: string;
-  issues: unknown[];
-  corrections: unknown[];
-  summary: unknown;
+  grade: string; // "A" | "B" | "C" | "D" | "F"
+  issues: Array<{
+    type: string;
+    severity: "minor" | "moderate" | "major";
+    confidence: number;
+    timestampMs?: number;
+    description: string;
+    impact: "performance" | "safety" | "both";
+  }>;
+  corrections: Array<{
+    issueType: string;
+    drillName: string;
+    description: string;
+    steps: string[] | string;
+    cues: string[] | string;
+    durationSeconds: number;
+    difficulty: "beginner" | "intermediate" | "advanced";
+    equipment: string[];
+  }>;
+  summary: {
+    strengths: string[];
+    primaryConcern: string;
+    priority: "low" | "medium" | "high";
+  };
 }
 
 // ============================================
@@ -328,7 +348,7 @@ export async function processFormAnalysisJob(
 
     // Call AI analysis
     const startTime = Date.now();
-    const analysisResult = await analyzeFormVideo(video.videoUrl, video.exerciseType, apiKey, signal);
+    const analysisResult = await analyzeFormVideo(video.videoUrl, video.exerciseType as FormExerciseType, apiKey, signal);
     const processingTime = Date.now() - startTime;
 
     // Generate corrections for each issue

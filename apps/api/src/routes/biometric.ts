@@ -300,7 +300,15 @@ export const BiometricRouter = () => {
       },
     });
 
-    const targets = await getUserMacroTargets(drizzle, userId, user || undefined);
+    const normalizedUser = user ? {
+      weight: user.weight ?? undefined,
+      height: user.height ?? undefined,
+      age: user.age ?? undefined,
+      gender: user.gender ?? undefined,
+      goals: user.goals ?? undefined,
+    } : undefined;
+
+    const targets = await getUserMacroTargets(drizzle, userId, normalizedUser);
 
     return c.json({ success: true, data: targets });
   });

@@ -170,7 +170,7 @@ app.route("/api/metabolic", MetabolicRouter());
 app.route("/api/posture", postureRouter());
 app.route("/api/digital-twin", DigitalTwinRouter());
 app.route("/api/acoustic", AcousticRouter());
-app.route("/api/form", formRouter);
+app.route("/api/form", formRouter());
 // Admin test data endpoint (development only)
 if (process.env.NODE_ENV !== "production") {
   app.route("/api/admin/test", AdminTestRouter());

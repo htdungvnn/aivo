@@ -66,7 +66,16 @@ function buildChefPrompt(request: ChefAgentRequest): string {
   const dietType = context.dietType || "omnivore";
   const allergies = (context.allergies || []).join(", ") || "none";
   const intolerances = (context.intolerances || []).join(", ") || "none";
-  const macroPrefs = (context.macroPreferences || []).join(", ") || "balanced";
+
+  // Format macro preferences
+  const macroPrefs = context.macroPreferences
+    ? [
+        context.macroPreferences.proteinGrams ? `protein: ${context.macroPreferences.proteinGrams}g` : null,
+        context.macroPreferences.carbsGrams ? `carbs: ${context.macroPreferences.carbsGrams}g` : null,
+        context.macroPreferences.fatGrams ? `fat: ${context.macroPreferences.fatGrams}g` : null,
+        context.macroPreferences.calorieTarget ? `calories: ${context.macroPreferences.calorieTarget}` : null,
+      ].filter(Boolean).join(", ")
+    : "balanced";
 
   const prompt = AGENT_SYSTEM_PROMPTS.chef
     .replace('${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}', skillLevel)
@@ -74,7 +83,7 @@ function buildChefPrompt(request: ChefAgentRequest): string {
     .replace('${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}', dietType)
     .replace('${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}', allergies)
     .replace('${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}', intolerances)
-    .replace('${(ctx: NutritionConsultContext) => ctx.macroPreferences?.join(", ") || "balanced"}', macroPrefs);
+    .replace('${(ctx: NutritionConsultContext) => "MACRO_PREFS_PLACEHOLDER"}', macroPrefs);
 
   const ingredientsList = (context.availableIngredients || [])
     .map(ing => `- ${ing.name}: ${ing.quantity}${ing.unit || ""}`)

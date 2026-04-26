@@ -6,8 +6,18 @@
  */
 
 import { AGENT_SYSTEM_PROMPTS } from "./prompts";
-import type { BudgetAgentRequest, BudgetAgentResponse, CostAnalysis, SavingsOpportunity, GroceryItem, MealPrepTip } from "@aivo/shared-types";
+import type { BudgetAgentRequest, CostAnalysis, SavingsOpportunity, GroceryItem, MealPrepTip } from "@aivo/shared-types";
 import type { AgentInvocationResult } from "./types";
+
+// Analysis result structure (not full AgentResponse)
+interface BudgetAnalysis {
+  costAnalysis: CostAnalysis;
+  savingsOpportunities: SavingsOpportunity[];
+  groceryList?: GroceryItem[];
+  budgetFriendlyAlternatives?: SavingsOpportunity[];
+  mealPrepTips?: MealPrepTip[];
+  confidence: number;
+}
 
 /**
  * Invoke the Budget Agent for cost optimization analysis
@@ -56,7 +66,18 @@ export async function invokeBudgetAgent(request: BudgetAgentRequest): Promise<Ag
 function buildBudgetPrompt(request: BudgetAgentRequest): string {
   const { query, context } = request;
 
-  const budgetInfo = context.budget ? `Weekly budget: $${context.budget.daily ? context.budget.daily * 7 : context.budget.weekly || context.budget.monthly / 4}` : "Budget not specified - provide general tips";
+  // Calculate weekly budget
+  let weeklyBudget: number | undefined;
+  if (context.budget) {
+    if (context.budget.daily) {
+      weeklyBudget = context.budget.daily * 7;
+    } else if (context.budget.weekly) {
+      weeklyBudget = context.budget.weekly;
+    } else if (context.budget.monthly) {
+      weeklyBudget = context.budget.monthly / 4;
+    }
+  }
+  const budgetInfo = weeklyBudget ? `Weekly budget: $${weeklyBudget.toFixed(0)}` : "Budget not specified - provide general tips";
   const availableList = (context.availableIngredients || []).map(i => i.name).join(", ") || "no specific ingredients";
 
   return `${AGENT_SYSTEM_PROMPTS.budget}
@@ -74,7 +95,7 @@ Please provide a comprehensive budget analysis. Respond ONLY with valid JSON.`;
 /**
  * Call OpenAI API with the prompt
  */
-async function callOpenAI(prompt: string, _context: BudgetAgentRequest["context"]): Promise<BudgetAgentResponse> {
+async function callOpenAI(prompt: string, _context: BudgetAgentRequest["context"]): Promise<BudgetAnalysis> {
   const { openai } = await import("../../utils/openai");
 
   const result = await openai.chat.completions.create({
@@ -93,13 +114,14 @@ async function callOpenAI(prompt: string, _context: BudgetAgentRequest["context"
     throw new Error("No response from AI");
   }
 
-  return JSON.parse(content) as BudgetAgentResponse;
+  const data = JSON.parse(content);
+  return parseBudgetResponse(data);
 }
 
 /**
  * Parse budget agent response into structured format
  */
-function parseBudgetResponse(data: unknown): BudgetAgentResponse {
+function parseBudgetResponse(data: unknown): BudgetAnalysis {
   if (typeof data !== "object" || data === null) {
     throw new Error("Invalid budget analysis response");
   }
@@ -156,7 +178,7 @@ function parseBudgetResponse(data: unknown): BudgetAgentResponse {
     ? resp.budgetFriendlyAlternatives.map((alt: Record<string, unknown>) => ({
         strategy: String(alt.original || ""),
         potentialSavings: typeof alt.potentialSavings === "number" ? alt.potentialSavings : 0,
-        notes: typeof alt.notes === "string" ? alt.notes : alt.alternative,
+        notes: typeof alt.notes === "string" ? alt.notes : typeof alt.alternative === "string" ? alt.alternative : undefined,
       }))
     : [];
 
@@ -179,7 +201,7 @@ function parseBudgetResponse(data: unknown): BudgetAgentResponse {
  * Calculate weekly estimate based on analysis and user budget
  */
 function calculateWeeklyEstimate(
-  analysis: BudgetAgentResponse,
+  analysis: BudgetAnalysis,
   context: BudgetAgentRequest["context"]
 ): { min: number; max: number; notes: string } {
   const baseCost = analysis.costAnalysis.estimatedTotalCost;
@@ -224,7 +246,7 @@ function calculateWeeklyEstimate(
  * Format budget analysis as readable text
  */
 function formatAnalysisAsText(
-  analysis: BudgetAgentResponse,
+  analysis: BudgetAnalysis,
   weeklyEstimate: { min: number; max: number; notes: string }
 ): string {
   let text = "# Budget Nutrition Analysis\n\n";
@@ -252,7 +274,7 @@ function formatAnalysisAsText(
     text += "\n";
   }
 
-  if (analysis.groceryList?.length > 0) {
+  if (analysis.groceryList && analysis.groceryList.length > 0) {
     text += "## 🛒 Grocery List\n\n";
     for (const item of analysis.groceryList) {
       text += `- ${item.quantity} ${item.item}`;
@@ -264,7 +286,7 @@ function formatAnalysisAsText(
     text += "\n";
   }
 
-  if (analysis.budgetFriendlyAlternatives?.length > 0) {
+  if (analysis.budgetFriendlyAlternatives && analysis.budgetFriendlyAlternatives.length > 0) {
     text += "## 🔄 Budget Swaps\n\n";
     for (const alt of analysis.budgetFriendlyAlternatives) {
       text += `- ${alt.strategy}\n`;
@@ -273,7 +295,7 @@ function formatAnalysisAsText(
     text += "\n";
   }
 
-  if (analysis.mealPrepTips?.length > 0) {
+  if (analysis.mealPrepTips && analysis.mealPrepTips.length > 0) {
     text += "## 🥘 Meal Prep Tips\n\n";
     for (const tip of analysis.mealPrepTips) {
       text += `- ${tip}\n`;

@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { D1Database } from "@cloudflare/workers-types";
 import { LiveWorkoutService } from "../services/live-workout";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import type { SetRPELog } from "@aivo/shared-types";
 
 // Validation schemas
 const StartLiveWorkoutSchema = z.object({
@@ -101,7 +102,7 @@ export const liveWorkoutRouter = () => {
 
       const sessionId = c.req.param("id");
       const service = new LiveWorkoutService(c.env.DB);
-      const session = await service.getSession(sessionId, userId);
+      const session = await service.getSession(sessionId!, userId);
 
       if (!session) {
         return c.json({ success: false, error: "Session not found" }, 404);
@@ -139,7 +140,7 @@ export const liveWorkoutRouter = () => {
         userId,
         setNumber: validation.data.setNumber,
         exerciseName: validation.data.exerciseName,
-        weight: validation.data.weight,
+        weight: validation.data.weight ?? null,
         plannedReps: validation.data.plannedReps,
         completedReps: validation.data.completedReps,
         rpe: validation.data.rpe,
@@ -207,7 +208,7 @@ export const liveWorkoutRouter = () => {
 
       const service = new LiveWorkoutService(c.env.DB);
       const session = await service.endSession(
-        sessionId,
+        sessionId!,
         userId,
         body.reason,
         body.suggestion

@@ -47,7 +47,13 @@ export class LiveWorkoutService {
       updatedAt: now,
     };
 
-    await this.drizzle.insert(liveWorkoutSessions).values(session);
+    // Map to DB columns (targetRPE -> targetRpe, hasSpotter -> 0/1)
+    await this.drizzle.insert(liveWorkoutSessions).values({
+      ...session,
+      targetRpe: session.targetRPE,
+      hasSpotter: session.hasSpotter ? 1 : 0,
+    });
+
     return session;
   }
 
@@ -63,13 +69,19 @@ export class LiveWorkoutService {
       return null;
     }
 
-    return session as LiveWorkoutSession;
+    // Map DB row to LiveWorkoutSession interface
+    return {
+      ...session,
+      targetRPE: Number(session.targetRpe),
+      hasSpotter: Boolean(session.hasSpotter),
+    } as LiveWorkoutSession;
   }
 
   async logRPE(log: SetRPELog): Promise<void> {
     const now = Math.floor(Date.now() / 1000 * 1000);
     await this.drizzle.insert(setRpeLogs).values({
       ...log,
+      userId: log.userId,
       createdAt: now,
     });
 
@@ -78,7 +90,7 @@ export class LiveWorkoutService {
       .update(liveWorkoutSessions)
       .set({
         lastActivityAt: log.timestamp,
-        setsCompleted: (log.setNumber).toString(), // Simplified - would need proper increment
+        setsCompleted: log.setNumber, // Keep as number
         updatedAt: now,
       })
       .where(eq(liveWorkoutSessions.id, log.sessionId));
