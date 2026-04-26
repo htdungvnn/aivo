@@ -29,8 +29,7 @@
       "dependsOn": ["^build"]
     },
     "type-check": {
-      "dependsOn": ["^build"],
-      "outputs": ["tsconfig.tsbuildinfo", "*.tsbuildinfo"]
+      "dependsOn": ["^build"]
     },
     "test": {
       "dependsOn": ["^build"]
