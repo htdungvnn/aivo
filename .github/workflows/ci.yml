@@ -43,6 +43,10 @@ jobs:
           rustc --version
           cargo --version
           rustup show
+          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
+
+      - name: Add wasm32 target explicitly (if missing)
+        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -101,6 +105,10 @@ jobs:
           rustc --version
           cargo --version
           rustup show
+          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
+
+      - name: Add wasm32 target explicitly (if missing)
+        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -192,6 +200,10 @@ jobs:
           rustc --version
           cargo --version
           rustup show
+          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
+
+      - name: Add wasm32 target explicitly (if missing)
+        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
 
       - name: Set Rust default toolchain
         run: rustup default stable
