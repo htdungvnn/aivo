@@ -58,7 +58,6 @@ pub use semantic_pruning::{SlidingWindowConfig, ConversationMessage, prune_conve
 pub use token_counter::{TokenConfig, estimate_tokens, count_message_tokens, TokenBudget};
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 /// Optimization configuration combining all optimizers
 #[derive(Debug, Clone, Serialize, Deserialize)]
