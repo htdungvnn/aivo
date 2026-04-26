@@ -54,6 +54,17 @@ jobs:
       - name: Set Rust default toolchain
         run: rustup default stable
 
+      - name: Prepare Rust directories
+        run: |
+          mkdir -p ~/.rustup/downloads
+          chmod -R u+rwX ~/.rustup 2>/dev/null || true
+
+      - name: Add wasm32 target
+        run: |
+          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
+          rustup target add wasm32-unknown-unknown --force
+          rustup target list | grep wasm32-unknown-unknown
+
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
