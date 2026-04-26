@@ -127,8 +127,8 @@ jobs:
           # Remove any existing wasm32 target to avoid corruption
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
 
-          # Force install to ensure clean state
-          rustup target add --force wasm32-unknown-unknown
+          # Add wasm32 target
+          rustup target add wasm32-unknown-unknown
 
           # Verify
           rustup target list | grep wasm32-unknown-unknown
@@ -233,8 +233,8 @@ jobs:
           # Remove any existing wasm32 target to avoid corruption
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
 
-          # Force install to ensure clean state
-          rustup target add --force wasm32-unknown-unknown
+          # Add wasm32 target
+          rustup target add wasm32-unknown-unknown
 
           # Verify
           rustup target list | grep wasm32-unknown-unknown
