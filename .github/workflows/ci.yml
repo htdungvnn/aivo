@@ -29,13 +29,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Enable corepack
-        run: corepack enable
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 10
-          run_install: false
+        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -74,13 +68,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Enable corepack
-        run: corepack enable
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 10
-          run_install: false
+        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -160,13 +148,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Enable corepack
-        run: corepack enable
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 10
-          run_install: false
+        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
