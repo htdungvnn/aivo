@@ -10,12 +10,12 @@ export const CHEF_SYSTEM_PROMPT = `
 You are a professional chef specializing in creating practical, delicious recipes from available ingredients.
 
 USER CONTEXT:
-- Skill Level: ${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}
-- Kitchen Tools: ${(ctx: NutritionConsultContext) => (ctx.kitchenTools || []).join(", ") || "basic"}
-- Diet Type: ${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}
-- Allergies to AVOID: ${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}
-- Food Intolerances to AVOID: ${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}
-- Macro Preferences: ${(ctx: NutritionConsultContext) => "MACRO_PREFS_PLACEHOLDER"}
+- Skill Level: ${(_ctx: NutritionConsultContext) => _ctx.skillLevel || "beginner"}
+- Kitchen Tools: ${(_ctx: NutritionConsultContext) => (_ctx.kitchenTools || []).join(", ") || "basic"}
+- Diet Type: ${(_ctx: NutritionConsultContext) => _ctx.dietType || "omnivore"}
+- Allergies to AVOID: ${(_ctx: NutritionConsultContext) => (_ctx.allergies || []).join(", ") || "none"}
+- Food Intolerances to AVOID: ${(_ctx: NutritionConsultContext) => (_ctx.intolerances || []).join(", ") || "none"}
+- Macro Preferences: ${(_ctx: NutritionConsultContext) => "MACRO_PREFS_PLACEHOLDER"}
 
 CRITICAL SAFETY RULES:
 1. NEVER include ingredients the user is allergic to - check ALL ingredient names and components
@@ -62,10 +62,10 @@ export const MEDICAL_SYSTEM_PROMPT = `
 You are a medical nutrition specialist with expertise in clinical dietetics, drug-nutrient interactions, and condition-specific dietary management.
 
 USER CONTEXT:
-- Medical Conditions: ${(ctx: NutritionConsultContext) => (ctx.medicalConditions || []).join(", ") || "none"}
-- Current Medications: ${(ctx: NutritionConsultContext) => (ctx.medications || []).join(", ") || "none"}
-- Allergies: ${(ctx: NutritionConsultContext) => (ctx.allergies || []).join(", ") || "none"}
-- Food Intolerances: ${(ctx: NutritionConsultContext) => (ctx.intolerances || []).join(", ") || "none"}
+- Medical Conditions: ${(_ctx: NutritionConsultContext) => (_ctx.medicalConditions || []).join(", ") || "none"}
+- Current Medications: ${(_ctx: NutritionConsultContext) => (_ctx.medications || []).join(", ") || "none"}
+- Allergies: ${(_ctx: NutritionConsultContext) => (_ctx.allergies || []).join(", ") || "none"}
+- Food Intolerances: ${(_ctx: NutritionConsultContext) => (_ctx.intolerances || []).join(", ") || "none"}
 
 CRITICAL MEDICAL RESPONSIBILITIES:
 1. Identify potential drug-nutrient interactions for listed medications
@@ -122,10 +122,10 @@ export const BUDGET_SYSTEM_PROMPT = `
 You are a financial nutrition expert specializing in budget-friendly meal planning and grocery cost optimization.
 
 USER CONTEXT:
-- Budget Constraints: ${(ctx: NutritionConsultContext) => ctx.budget ? `$${ctx.budget}/week` : "Not specified"}
-- Dietary Type: ${(ctx: NutritionConsultContext) => ctx.dietType || "omnivore"}
-- Available Ingredients: ${(ctx: NutritionConsultContext) => (ctx.availableIngredients || []).map(i => i.name).join(", ") || "none specified"}
-- Skill Level: ${(ctx: NutritionConsultContext) => ctx.skillLevel || "beginner"}
+- Budget Constraints: ${(_ctx: NutritionConsultContext) => _ctx.budget ? `$${_ctx.budget}/week` : "Not specified"}
+- Dietary Type: ${(_ctx: NutritionConsultContext) => _ctx.dietType || "omnivore"}
+- Available Ingredients: ${(_ctx: NutritionConsultContext) => (_ctx.availableIngredients || []).map(i => i.name).join(", ") || "none specified"}
+- Skill Level: ${(_ctx: NutritionConsultContext) => _ctx.skillLevel || "beginner"}
 
 COST OPTIMIZATION PRINCIPLES:
 1. Prioritize cost-effective protein sources (eggs, legumes, chicken thighs, canned fish)

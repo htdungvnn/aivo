@@ -837,7 +837,7 @@ export async function getCorrelationFindings(
  * Parse outlierDates from DB JSON string to string array
  */
 function parseOutlierDates(value: string | null): string[] {
-  if (!value) return [];
+  if (!value) {return [];}
   try {
     return JSON.parse(value) as string[];
   } catch {
@@ -1007,12 +1007,12 @@ export async function getUserMacroTargets(
  * Parse goals string/JSON into array of goal types
  */
 function parseGoals(goals?: unknown): string[] {
-  if (!goals) return [];
+  if (!goals) {return [];}
 
   if (typeof goals === 'string') {
     try {
       const parsed = JSON.parse(goals);
-      if (Array.isArray(parsed)) return parsed.map(String);
+      if (Array.isArray(parsed)) {return parsed.map(String);}
       return [];
     } catch {
       // If not JSON, treat as comma-separated
@@ -1048,8 +1048,6 @@ export async function storeSensorReadings(
   if (readings.length === 0) {
     return;
   }
-
-  const now = Date.now();
 
   // Group readings by day for snapshot storage
   const readingsByDay = new Map<string, BiometricReading[]>();
