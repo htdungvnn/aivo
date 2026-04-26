@@ -36,6 +36,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          targets: wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
@@ -109,6 +110,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          targets: wasm32-unknown-unknown
           targets: wasm32-unknown-unknown
 
       - name: Verify Rust installation
@@ -215,6 +217,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          targets: wasm32-unknown-unknown
           targets: wasm32-unknown-unknown
 
       - name: Verify Rust installation
