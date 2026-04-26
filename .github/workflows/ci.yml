@@ -54,7 +54,7 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reinstall
 
       - name: Type check all packages
         run: pnpm run type-check
@@ -127,7 +127,7 @@ jobs:
           key: ${{ runner.os }}-next-${{ hashFiles('apps/web/package.json', 'apps/web/tsconfig.json') }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reinstall
 
       - name: Build WASM
         run: pnpm run build:wasm
@@ -198,7 +198,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reinstall
 
       - name: Run tests
         run: pnpm run test
