@@ -36,25 +36,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown
+          # wasm32 target not needed for type-check
 
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
-
-      - name: Add wasm32 target explicitly (with force to handle partial installs)
-        run: |
-          # Remove any existing wasm32 target to avoid corruption
-          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
-
-          # Force install to ensure clean state
-          rustup target add wasm32-unknown-unknown --force
-
-          # Verify
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
