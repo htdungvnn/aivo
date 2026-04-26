@@ -94,11 +94,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build WASM
-        run: pnpm run build:wasm
-
-      - name: Build API
-        run: pnpm --filter @aivo/api run build
+      - name: Build all packages
+        run: pnpm run build
 
       - name: Verify build
         run: |
