@@ -45,6 +45,13 @@ pub use png::*;
 pub use colors::*;
 
 use wasm_bindgen::prelude::*;
+
+/// WASM module entry point - required for proper initialization
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    // Initialize any global state here if needed
+    Ok(())
+}
 use serde::{Deserialize, Serialize};
 
 /// Main WASM entry: Render infographic as SVG string

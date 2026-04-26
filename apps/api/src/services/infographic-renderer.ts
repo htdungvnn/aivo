@@ -5,14 +5,20 @@
  * Handles WASM initialization and provides async rendering interface.
  */
 
-import { render_svg, render_png, build_template, default_config } from "@aivo/infographic-generator";
+import init, {
+  render_svg,
+  render_png,
+  build_template
+} from "@aivo/infographic-generator";
 import type {
   InfographicData,
   InfographicConfig,
   InfographicRenderResult,
   InfographicTemplate,
 } from "@aivo/shared-types";
-// Removed R2_BUCKET import - will use bucket from options
+
+// Import WASM file as URL
+import wasmUrl from "@aivo/infographic-generator/pkg/infographic_generator_bg.wasm";
 
 // Minimal R2 bucket interface
 interface R2Bucket {
@@ -26,18 +32,7 @@ let wasmInitialized = false;
  */
 async function ensureWasmInitialized(): Promise<void> {
   if (!wasmInitialized) {
-    // WASM gets auto-initialized on import in bundler mode
-    // But we can warm it up by calling a simple function
-    try {
-      const config = default_config();
-      if (config) {
-        // eslint-disable-next-line no-console
-        console.log("WASM infographic-generator initialized");
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("WASM initialization warning:", error);
-    }
+    await init(wasmUrl);
     wasmInitialized = true;
   }
 }

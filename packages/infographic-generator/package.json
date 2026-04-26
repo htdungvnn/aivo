@@ -6,7 +6,7 @@
   "types": "pkg/infographic_generator.d.ts",
   "type": "module",
   "scripts": {
-    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build": "wasm-pack build --target web --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
     "test": "wasm-pack test --node",
     "test:browser": "wasm-pack test --chrome --firefox --safari",
@@ -32,5 +32,13 @@
   },
   "files": [
     "pkg"
-  ]
+  ],
+  "exports": {
+    ".": {
+      "types": "./pkg/infographic_generator.d.ts",
+      "import": "./pkg/infographic_generator.js"
+    },
+    "./*.wasm": "./pkg/*.wasm",
+    "./*_bg.js": "./pkg/*_bg.js"
+  }
 }

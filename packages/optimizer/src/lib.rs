@@ -37,6 +37,14 @@
 
 #![cfg_attr(target_arch = "wasm32", allow(dead_code))]
 
+use wasm_bindgen::prelude::*;
+
+/// WASM module entry point - required for proper initialization
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    Ok(())
+}
+
 pub mod error;
 pub mod keyword_extraction;
 pub mod minifier;

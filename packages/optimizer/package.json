@@ -10,10 +10,12 @@
       "types": "./pkg/aivo_optimizer.d.ts",
       "import": "./pkg/aivo_optimizer.js",
       "require": "./pkg/aivo_optimizer.cjs"
-    }
+    },
+    "./*.wasm": "./pkg/*.wasm",
+    "./*_bg.js": "./pkg/*_bg.js"
   },
   "scripts": {
-    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build": "wasm-pack build --target web --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
     "test": "cargo test",
     "clean": "rm -rf pkg target"

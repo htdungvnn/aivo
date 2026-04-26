@@ -11,10 +11,11 @@
       "import": "./pkg/aivo_compute.js",
       "require": "./pkg/aivo_compute.cjs"
     },
-    "./*.wasm": "./pkg/*.wasm"
+    "./*.wasm": "./pkg/*.wasm",
+    "./*_bg.js": "./pkg/*_bg.js"
   },
   "scripts": {
-    "build": "wasm-pack build --target bundler --out-dir pkg",
+    "build": "wasm-pack build --target web --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg",
     "test": "wasm-pack test --node",
     "test:browser": "wasm-pack test --chrome --firefox --safari",

@@ -8,8 +8,8 @@
     "declarationMap": true,
     "baseUrl": ".",
     "paths": {
-      "@aivo/shared-types": ["../shared-types/src"],
-      "@aivo/db": ["../db/src"]
+      "@aivo/shared-types": ["../shared-types/dist"],
+      "@aivo/db": ["../db/dist"]
     }
   },
   "include": ["src/**/*.ts"],

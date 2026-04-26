@@ -2,7 +2,17 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
-import { AcousticMyography } from '@aivo/compute';
+import init, { AcousticMyography } from '@aivo/compute';
+import wasmUrl from '@aivo/compute/pkg/aivo_compute_bg.wasm';
+
+// Initialize WASM module on startup
+let wasmInitialized = false;
+async function ensureWasmInitialized(): Promise<void> {
+  if (!wasmInitialized) {
+    await init(wasmUrl);
+    wasmInitialized = true;
+  }
+}
 
 export const AcousticRouter = () => {
   const router = new Hono();
@@ -70,6 +80,7 @@ export const AcousticRouter = () => {
 
   router.post('/process-chunk', async (ctx: Context) => {
     try {
+      await ensureWasmInitialized();
       const body = await ctx.req.json();
       const validated = ProcessChunkSchema.parse(body);
 
@@ -92,6 +103,7 @@ export const AcousticRouter = () => {
 
   router.post('/calibrate', async (ctx: Context) => {
     try {
+      await ensureWasmInitialized();
       const body = await ctx.req.json();
       const validated = CalibrateSchema.parse(body);
       const pcmData = new Int16Array(validated.pcmData);
@@ -105,6 +117,7 @@ export const AcousticRouter = () => {
 
   router.post('/calculate-fatigue', async (ctx: Context) => {
     try {
+      await ensureWasmInitialized();
       const body = await ctx.req.json();
       const featuresJson = z.string().parse(body.features);
       const baselineJson = z.string().optional().parse(body.baseline);
@@ -149,6 +162,7 @@ export const AcousticRouter = () => {
 
   router.post('/analyze-exercise', async (ctx: Context) => {
     try {
+      await ensureWasmInitialized();
       const body = await ctx.req.json();
       const pcmData = new Int16Array(body.pcmData || []);
       const isExercise = invokeWasmPrimitive('isExerciseSignal', [pcmData]);
@@ -160,6 +174,7 @@ export const AcousticRouter = () => {
 
   router.get('/config', async (ctx: Context) => {
     try {
+      await ensureWasmInitialized();
       const configJson = invokeWasmString('getRecommendedConfig', []);
       const config = JSON.parse(configJson);
       return ctx.json({ success: true, data: config });
