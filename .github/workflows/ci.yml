@@ -47,8 +47,13 @@ jobs:
 
       - name: Add wasm32 target explicitly (with force to handle partial installs)
         run: |
-          # Force install to overwrite any corrupted partial installation
-          rustup target add wasm32-unknown-unknown --force || true
+          # Remove any existing wasm32 target to avoid corruption
+          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
+
+          # Force install to ensure clean state
+          rustup target add wasm32-unknown-unknown --force
+
+          # Verify
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
@@ -112,8 +117,13 @@ jobs:
 
       - name: Add wasm32 target explicitly (with force to handle partial installs)
         run: |
-          # Force install to overwrite any corrupted partial installation
-          rustup target add wasm32-unknown-unknown --force || true
+          # Remove any existing wasm32 target to avoid corruption
+          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
+
+          # Force install to ensure clean state
+          rustup target add wasm32-unknown-unknown --force
+
+          # Verify
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
@@ -139,7 +149,6 @@ jobs:
           path: |
             ${{ env.CARGO_HOME }}/registry
             ${{ env.CARGO_HOME }}/git
-            target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -210,8 +219,13 @@ jobs:
 
       - name: Add wasm32 target explicitly (with force to handle partial installs)
         run: |
-          # Force install to overwrite any corrupted partial installation
-          rustup target add wasm32-unknown-unknown --force || true
+          # Remove any existing wasm32 target to avoid corruption
+          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
+
+          # Force install to ensure clean state
+          rustup target add wasm32-unknown-unknown --force
+
+          # Verify
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
@@ -237,7 +251,6 @@ jobs:
           path: |
             ${{ env.CARGO_HOME }}/registry
             ${{ env.CARGO_HOME }}/git
-            target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
