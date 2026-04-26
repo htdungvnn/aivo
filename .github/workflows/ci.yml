@@ -44,12 +44,6 @@ jobs:
           cargo --version
           rustup show
 
-      - name: Add wasm32 target explicitly (clean install)
-        run: |
-          # Ensure rustup directory structure exists
-          mkdir -p ~/.rustup/downloads
-          chmod -R u+rwX ~/.rustup 2>/dev/null || true
-
           # Clean up any existing wasm32 target to avoid corruption
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
           rm -rf "$CARGO_HOME/registry"/* 2>/dev/null || true
@@ -119,12 +113,6 @@ jobs:
           cargo --version
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
-
-      - name: Add wasm32 target explicitly (with force to handle partial installs)
-        run: |
-          # Ensure rustup directory structure exists
-          mkdir -p ~/.rustup/downloads
-          chmod -R u+rwX ~/.rustup 2>/dev/null || true
 
           # Remove any existing wasm32 target to avoid corruption
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
@@ -226,12 +214,6 @@ jobs:
           cargo --version
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
-
-      - name: Add wasm32 target explicitly (with force to handle partial installs)
-        run: |
-          # Ensure rustup directory structure exists
-          mkdir -p ~/.rustup/downloads
-          chmod -R u+rwX ~/.rustup 2>/dev/null || true
 
           # Remove any existing wasm32 target to avoid corruption
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
