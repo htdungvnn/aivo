@@ -38,6 +38,12 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      - name: Verify Rust installation
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
+
       - name: Set Rust default toolchain
         run: rustup default stable
 
@@ -89,6 +95,12 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
+
+      - name: Verify Rust installation
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -174,6 +186,12 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
+
+      - name: Verify Rust installation
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
 
       - name: Set Rust default toolchain
         run: rustup default stable

@@ -17,6 +17,8 @@ jobs:
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: stable
     environment:
       name: production
       url: https://aivo.your-domain.workers.dev
@@ -42,6 +44,12 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
+
+      - name: Verify Rust installation
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
 
       - name: Set Rust default toolchain
         run: rustup default stable
