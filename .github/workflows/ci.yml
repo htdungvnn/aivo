@@ -45,8 +45,11 @@ jobs:
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
 
-      - name: Add wasm32 target explicitly (if missing)
-        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
+      - name: Add wasm32 target explicitly (with force to handle partial installs)
+        run: |
+          # Force install to overwrite any corrupted partial installation
+          rustup target add wasm32-unknown-unknown --force || true
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -107,8 +110,11 @@ jobs:
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
 
-      - name: Add wasm32 target explicitly (if missing)
-        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
+      - name: Add wasm32 target explicitly (with force to handle partial installs)
+        run: |
+          # Force install to overwrite any corrupted partial installation
+          rustup target add wasm32-unknown-unknown --force || true
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -202,8 +208,11 @@ jobs:
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed"
 
-      - name: Add wasm32 target explicitly (if missing)
-        run: rustup target add wasm32-unknown-unknown || echo "Target already installed"
+      - name: Add wasm32 target explicitly (with force to handle partial installs)
+        run: |
+          # Force install to overwrite any corrupted partial installation
+          rustup target add wasm32-unknown-unknown --force || true
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable

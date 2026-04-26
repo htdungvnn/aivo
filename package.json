@@ -12,7 +12,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "fetch": "pnpm install --force",
-    "build:wasm": "pnpm --filter @aivo/compute run build && pnpm --filter @aivo/optimizer run build",
+    "build:wasm": "pnpm --filter @aivo/compute run build && pnpm --filter @aivo/optimizer run build && pnpm --filter @aivo/infographic-generator run build",
     "build:compute": "pnpm --filter @aivo/compute run build",
     "build:optimizer": "pnpm --filter @aivo/optimizer run build",
     "test": "turbo run test",
