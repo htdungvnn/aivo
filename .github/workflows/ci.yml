@@ -53,8 +53,8 @@ jobs:
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
           rm -rf "$CARGO_HOME/registry"/* 2>/dev/null || true
 
-          # Force install to ensure clean state
-          rustup target add wasm32-unknown-unknown --force
+          # Add wasm32 target with force flag to handle any partial installs
+          rustup target add --force wasm32-unknown-unknown
 
           # Verify
           rustup target list | grep wasm32-unknown-unknown
@@ -128,7 +128,7 @@ jobs:
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
 
           # Force install to ensure clean state
-          rustup target add wasm32-unknown-unknown --force
+          rustup target add --force wasm32-unknown-unknown
 
           # Verify
           rustup target list | grep wasm32-unknown-unknown
@@ -234,7 +234,7 @@ jobs:
           rustup target remove wasm32-unknown-unknown 2>/dev/null || true
 
           # Force install to ensure clean state
-          rustup target add wasm32-unknown-unknown --force
+          rustup target add --force wasm32-unknown-unknown
 
           # Verify
           rustup target list | grep wasm32-unknown-unknown
