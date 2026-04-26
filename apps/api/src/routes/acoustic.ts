@@ -3,14 +3,32 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
 import init, { AcousticMyography } from '@aivo/compute';
-import wasmUrl from '@aivo/compute/aivo_compute_bg.wasm';
+
+// Fetch WASM from assets directory at runtime
+const WASM_PATH = "/aivo_compute_bg.wasm";
 
 // Initialize WASM module on startup
 let wasmInitialized = false;
+let wasmInitPromise: Promise<void> | null = null;
 async function ensureWasmInitialized(): Promise<void> {
   if (!wasmInitialized) {
-    await init(wasmUrl);
-    wasmInitialized = true;
+    if (!wasmInitPromise) {
+      wasmInitPromise = (async () => {
+        try {
+          const response = await fetch(WASM_PATH);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText}`);
+          }
+          const wasmBytes = await response.arrayBuffer();
+          await init(wasmBytes);
+          wasmInitialized = true;
+        } catch (error) {
+          console.error("WASM initialization failed:", error);
+          throw error;
+        }
+      })();
+    }
+    await wasmInitPromise;
   }
 }
 

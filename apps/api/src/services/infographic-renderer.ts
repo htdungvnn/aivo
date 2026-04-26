@@ -17,23 +17,37 @@ import type {
   InfographicTemplate,
 } from "@aivo/shared-types";
 
-// Import WASM file as URL (using ?url to get string URL)
-import wasmUrl from "@aivo/infographic-generator/infographic_generator_bg.wasm?url";
-
-// Minimal R2 bucket interface
-interface R2Bucket {
-  put(key: string, value: string | Uint8Array, options?: { httpMetadata: { contentType: string } }): Promise<void>;
-}
+// We'll fetch the WASM file directly from the assets directory at runtime
+// The WASM file will be uploaded as a static asset
+const WASM_PATH = "/infographic_generator_bg.wasm";
 
 let wasmInitialized = false;
+let wasmInitPromise: Promise<void> | null = null;
 
 /**
  * Initialize WASM module (called once on first use)
  */
 async function ensureWasmInitialized(): Promise<void> {
   if (!wasmInitialized) {
-    await init(wasmUrl);
-    wasmInitialized = true;
+    // Create a shared promise to prevent multiple simultaneous initializations
+    if (!wasmInitPromise) {
+      wasmInitPromise = (async () => {
+        try {
+          // Fetch the WASM file from assets
+          const response = await fetch(WASM_PATH);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText}`);
+          }
+          const wasmBytes = await response.arrayBuffer();
+          await init(wasmBytes);
+          wasmInitialized = true;
+        } catch (error) {
+          console.error("WASM initialization failed:", error);
+          throw error;
+        }
+      })();
+    }
+    await wasmInitPromise;
   }
 }
 
