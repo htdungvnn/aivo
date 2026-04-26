@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build --force",
     "type-check": "tsc --noEmit",
     "test": "tsc --noEmit && echo 'Type check passed - shared types are valid'"
   },

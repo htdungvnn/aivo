@@ -1,15 +1,12 @@
+// WASM asset import types
+// When using `?url` suffix, the import resolves to a string URL
+
+declare module '*.wasm?url' {
+  const value: string;
+  export default value;
+}
+
 declare module '*.wasm' {
-  const src: string;
-  export default src;
-}
-
-// Package-specific WASM imports
-declare module '@aivo/compute/aivo_compute_bg.wasm' {
-  const src: string;
-  export default src;
-}
-
-declare module '@aivo/infographic-generator/infographic_generator_bg.wasm' {
-  const src: string;
-  export default src;
+  const value: WebAssembly.Module;
+  export default value;
 }

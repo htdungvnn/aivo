@@ -4,6 +4,15 @@ compatibility_date = "2025-04-24"
 compatibility_flags = ["nodejs_compat"]
 
 [alias]
+# Workspace packages - point to built outputs
+"@aivo/db" = "../../packages/db/dist"
+"@aivo/db/schema" = "../../packages/db/dist/schema.js"
+"@aivo/compute" = "../../packages/aivo-compute/pkg"
+"@aivo/memory-service" = "../../packages/memory-service/dist"
+"@aivo/infographic-generator" = "../../packages/infographic-generator/pkg"
+"@aivo/shared-types" = "../../packages/shared-types/dist"
+"@aivo/excel-export" = "../../packages/excel-export/dist"
+"@aivo/body-compute" = "../../packages/body-compute/src"
 "@aivo/email-reporter" = "../../packages/email-reporter/src"
 
 [[d1_databases]]
