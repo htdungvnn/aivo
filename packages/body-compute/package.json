@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "type-check": "tsc --noEmit",
-    "test": "tsc --noEmit && echo 'Type check passed - body-compute is valid'"
+    "type-check": "pnpm --filter @aivo/shared-types run build && tsc --noEmit",
+    "test": "pnpm --filter @aivo/shared-types run build && tsc --noEmit && echo 'Type check passed - body-compute is valid'"
   },
   "dependencies": {
     "@aivo/shared-types": "workspace:*"

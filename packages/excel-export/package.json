@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm --filter @aivo/shared-types run build && tsc --noEmit",
     "test": "vitest --passWithNoTests"
   },
   "dependencies": {
