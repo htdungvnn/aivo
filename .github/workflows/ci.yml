@@ -30,6 +30,9 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
@@ -68,13 +71,13 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -146,6 +149,9 @@ jobs:
 
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
