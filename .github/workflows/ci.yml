@@ -6,14 +6,14 @@ on:
   push:
     branches: ["main"]
 
-  # Set up environment variables for caching
-  env:
-    PNPM_HOME: /home/runner/.pnpm
-    CARGO_HOME: /home/runner/.cargo
-    RUSTUP_HOME: /home/runner/.rustup
-    CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
-    # Cache buster: increment when lockfile changes require fresh install
-    CACHE_BUSTER: "v2"
+# Set up environment variables for caching
+env:
+  PNPM_HOME: /home/runner/.pnpm
+  CARGO_HOME: /home/runner/.cargo
+  RUSTUP_HOME: /home/runner/.rustup
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  # Cache buster: increment when lockfile changes require fresh install
+  CACHE_BUSTER: "v2"
 
 jobs:
   type-check-lint:
