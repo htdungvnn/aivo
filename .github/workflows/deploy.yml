@@ -41,6 +41,12 @@ jobs:
 
       - name: Prepare Rust directories
         run: |
+          # Clean up any potentially corrupted wasm32 target from previous runs
+          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
+          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
+          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
+
+          # Prepare directories
           mkdir -p /home/runner/.rustup/downloads
           mkdir -p /home/runner/.cargo/registry/index
           mkdir -p /home/runner/.cargo/registry/cache
@@ -56,7 +62,7 @@ jobs:
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -81,7 +87,6 @@ jobs:
           path: |
             ${{ env.CARGO_HOME }}/registry
             ${{ env.CARGO_HOME }}/git
-            target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
