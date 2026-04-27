@@ -57,12 +57,18 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      - name: Ensure wasm32 target is installed
+        run: |
+          # Explicitly add wasm32 target as a fallback in case the action's target
+          # installation failed due to downloads directory issues
+          rustup target add wasm32-unknown-unknown || true
+          rustup target list | grep wasm32-unknown-unknown
+
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable

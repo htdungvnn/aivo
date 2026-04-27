@@ -9,8 +9,11 @@ on:
 # Set up environment variables for caching
 env:
   PNPM_HOME: ~/.pnpm
-  CARGO_HOME: ~/.cargo
-  RUSTUP_HOME: ~/.rustup
+  CARGO_HOME: ${{ runner.temp }}/cargo
+  RUSTUP_HOME: ${{ runner.temp }}/rustup
+  RUSTUP_DIST_SERVER: https://static.rust-lang.org
+  # Use sparse registry for faster, more reliable downloads
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:
   type-check-lint:
@@ -32,17 +35,20 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
-      - name: Prepare Rust directories
+      - name: Prepare Rust environment
         run: |
-          # Clean up any potentially corrupted wasm32 target from previous runs
-          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
-          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
-          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
+          # Aggressive cleanup of ALL Rust state to prevent corruption
+          rm -rf ${{ runner.temp }}/rustup
+          rm -rf ${{ runner.temp }}/cargo
+          rm -rf /home/runner/.rustup
+          rm -rf /home/runner/.cargo
 
-          # Prepare directories
-          mkdir -p /home/runner/.rustup/downloads
-          mkdir -p /home/runner/.cargo/registry/index
-          mkdir -p /home/runner/.cargo/registry/cache
+          # Create fresh directories with proper permissions
+          mkdir -p ${{ runner.temp }}/rustup
+          mkdir -p ${{ runner.temp }}/cargo/registry/index
+          mkdir -p ${{ runner.temp }}/cargo/registry/cache
+          mkdir -p ${{ runner.temp }}/cargo/git
+          mkdir -p ${{ runner.temp }}/cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -50,12 +56,18 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      - name: Ensure wasm32 target is installed
+        run: |
+          # Explicitly add wasm32 target as a fallback in case the action's target
+          # installation failed due to downloads directory issues
+          rustup target add wasm32-unknown-unknown || true
+          rustup target list | grep wasm32-unknown-unknown
+
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -103,17 +115,20 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
-      - name: Prepare Rust directories
+      - name: Prepare Rust environment
         run: |
-          # Clean up any potentially corrupted wasm32 target from previous runs
-          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
-          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
-          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
+          # Aggressive cleanup of ALL Rust state to prevent corruption
+          rm -rf ${{ runner.temp }}/rustup
+          rm -rf ${{ runner.temp }}/cargo
+          rm -rf /home/runner/.rustup
+          rm -rf /home/runner/.cargo
 
-          # Prepare directories
-          mkdir -p /home/runner/.rustup/downloads
-          mkdir -p /home/runner/.cargo/registry/index
-          mkdir -p /home/runner/.cargo/registry/cache
+          # Create fresh directories with proper permissions
+          mkdir -p ${{ runner.temp }}/rustup
+          mkdir -p ${{ runner.temp }}/cargo/registry/index
+          mkdir -p ${{ runner.temp }}/cargo/registry/cache
+          mkdir -p ${{ runner.temp }}/cargo/git
+          mkdir -p ${{ runner.temp }}/cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -121,12 +136,18 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      - name: Ensure wasm32 target is installed
+        run: |
+          # Explicitly add wasm32 target as a fallback in case the action's target
+          # installation failed due to downloads directory issues
+          rustup target add wasm32-unknown-unknown || true
+          rustup target list | grep wasm32-unknown-unknown
+
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -149,8 +170,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.CARGO_HOME }}/registry
-            ${{ env.CARGO_HOME }}/git
+            ${{ runner.temp }}/cargo/registry
+            ${{ runner.temp }}/cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -206,17 +227,20 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
-      - name: Prepare Rust directories
+      - name: Prepare Rust environment
         run: |
-          # Clean up any potentially corrupted wasm32 target from previous runs
-          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
-          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
-          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
+          # Aggressive cleanup of ALL Rust state to prevent corruption
+          rm -rf ${{ runner.temp }}/rustup
+          rm -rf ${{ runner.temp }}/cargo
+          rm -rf /home/runner/.rustup
+          rm -rf /home/runner/.cargo
 
-          # Prepare directories
-          mkdir -p /home/runner/.rustup/downloads
-          mkdir -p /home/runner/.cargo/registry/index
-          mkdir -p /home/runner/.cargo/registry/cache
+          # Create fresh directories with proper permissions
+          mkdir -p ${{ runner.temp }}/rustup
+          mkdir -p ${{ runner.temp }}/cargo/registry/index
+          mkdir -p ${{ runner.temp }}/cargo/registry/cache
+          mkdir -p ${{ runner.temp }}/cargo/git
+          mkdir -p ${{ runner.temp }}/cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -224,12 +248,18 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
+      - name: Ensure wasm32 target is installed
+        run: |
+          # Explicitly add wasm32 target as a fallback in case the action's target
+          # installation failed due to downloads directory issues
+          rustup target add wasm32-unknown-unknown || true
+          rustup target list | grep wasm32-unknown-unknown
+
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -252,8 +282,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.CARGO_HOME }}/registry
-            ${{ env.CARGO_HOME }}/git
+            ${{ runner.temp }}/cargo/registry
+            ${{ runner.temp }}/cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
