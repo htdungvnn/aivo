@@ -122,9 +122,6 @@ jobs:
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
 
-          # Remove any existing wasm32 target to avoid corruption
-          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
-
       - name: Set Rust default toolchain
         run: rustup default stable
 
@@ -221,9 +218,6 @@ jobs:
           cargo --version
           rustup show
           rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
-
-          # Remove any existing wasm32 target to avoid corruption
-          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
 
       - name: Set Rust default toolchain
         run: rustup default stable
