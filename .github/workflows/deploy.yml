@@ -39,6 +39,12 @@ jobs:
           version: 10.33.0
           run_install: false
 
+      - name: Prepare Rust directories
+        run: |
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
