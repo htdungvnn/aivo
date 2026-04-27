@@ -6,12 +6,14 @@ on:
   push:
     branches: ["main"]
 
-# Set up environment variables for caching
-env:
-  PNPM_HOME: /home/runner/.pnpm
-  CARGO_HOME: /home/runner/.cargo
-  RUSTUP_HOME: /home/runner/.rustup
-  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  # Set up environment variables for caching
+  env:
+    PNPM_HOME: /home/runner/.pnpm
+    CARGO_HOME: /home/runner/.cargo
+    RUSTUP_HOME: /home/runner/.rustup
+    CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+    # Cache buster: increment when lockfile changes require fresh install
+    CACHE_BUSTER: "v2"
 
 jobs:
   type-check-lint:
@@ -63,8 +65,9 @@ jobs:
             ${{ env.PNPM_HOME }}/store
             ~/.local/share/pnpm/store
             node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-
             ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
@@ -126,8 +129,9 @@ jobs:
             ${{ env.PNPM_HOME }}/store
             ~/.local/share/pnpm/store
             node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-
             ${{ runner.os }}-pnpm-
 
       - name: Cache Cargo
@@ -221,8 +225,9 @@ jobs:
             ${{ env.PNPM_HOME }}/store
             ~/.local/share/pnpm/store
             node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-
             ${{ runner.os }}-pnpm-
 
       - name: Cache Cargo
@@ -238,7 +243,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm run test
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
         env:
           CI: true
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            apps/*/coverage
+            packages/*/coverage
+          retention-days: 14
