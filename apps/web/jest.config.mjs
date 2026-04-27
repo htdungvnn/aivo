@@ -11,6 +11,14 @@ const config = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '@testing-library/jest-dom'],
+  coverageThreshold: {
+    global: {
+      branches: 15,
+      functions: 10,
+      lines: 15,
+      statements: 15
+    }
+  },
   moduleNameMapper: {
     ...base.moduleNameMapper,
     // Override @aivo mapping to point to the correct location from apps/web
