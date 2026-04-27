@@ -67,7 +67,7 @@ jobs:
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt/$max_attempts..."
-            if rustup target add wasm32-unknown-unknown --verbose; then
+            if rustup target add wasm32-unknown-unknown; then
               echo "Successfully installed wasm32-unknown-unknown target"
               break
             fi
