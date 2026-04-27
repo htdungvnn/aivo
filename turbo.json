@@ -34,6 +34,9 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "test:coverage": {
+      "dependsOn": ["^build"]
+    },
     "clean": {
       "cache": false,
       "dependsOn": []
