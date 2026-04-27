@@ -38,8 +38,10 @@ jobs:
         with:
           toolchain: stable
           components: rust-src
-          target: wasm32-unknown-unknown
           default: true
+
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
@@ -99,8 +101,10 @@ jobs:
         with:
           toolchain: stable
           components: rust-src
-          target: wasm32-unknown-unknown
           default: true
+
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
@@ -192,8 +196,10 @@ jobs:
         with:
           toolchain: stable
           components: rust-src
-          target: wasm32-unknown-unknown
           default: true
+
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
