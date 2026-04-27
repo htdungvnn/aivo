@@ -100,6 +100,9 @@ jobs:
       - name: Build WASM packages
         run: pnpm run build:wasm
 
+      - name: Build database package
+        run: pnpm --filter @aivo/db build
+
       - name: Copy WASM files to assets
         run: pnpm --filter @aivo/api run copy-wasm
 
