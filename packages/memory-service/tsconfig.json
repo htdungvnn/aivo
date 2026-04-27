@@ -3,6 +3,9 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "outDir": "./dist",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
     "paths": {
       "@aivo/shared-types": ["../shared-types/dist"]
     }
