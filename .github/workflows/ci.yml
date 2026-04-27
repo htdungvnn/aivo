@@ -103,6 +103,12 @@ jobs:
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
+      - name: Prepare Rust directories
+        run: |
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -196,6 +202,12 @@ jobs:
 
       - name: Install pnpm via corepack
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+      - name: Prepare Rust directories
+        run: |
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
