@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
+    "@aivo/jest-config": "workspace:*",
     "@cloudflare/workers-types": "^4.20260421.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.5",
