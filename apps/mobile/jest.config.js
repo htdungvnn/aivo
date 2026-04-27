@@ -13,4 +13,21 @@ export default {
   transformIgnorePatterns: [
     '/node_modules/(?!(.*/)?(react-native|@react-native|@react-native-community|expo|@expo|expo-.*|expo-modules-core|expo-secure-store|react-native-reanimated|lucide-react-native|@unimodules|unimodules|@testing-library/react-native|@testing-library/jest-native|victory-native|native-base|react-native-svg)/)'
   ],
+  collectCoverageFrom: [
+    'app/**/*.{ts,tsx}',
+    '!app/**/*.d.ts',
+    '!app/__tests__/**',
+    '!app/**/__tests__/**'
+  ],
+  coverageDirectory: '<rootDir>/coverage',
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60
+    }
+  },
+  coverageProvider: 'v8',
 };

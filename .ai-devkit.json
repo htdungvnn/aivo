@@ -1,0 +1,15 @@
+{
+  "version": "0.27.0",
+  "environments": [
+    "claude"
+  ],
+  "phases": [],
+  "createdAt": "2026-04-27T10:28:02.299Z",
+  "updatedAt": "2026-04-27T10:32:57.101Z",
+  "skills": [
+    {
+      "registry": "codeaholicguy/ai-devkit",
+      "name": "agent-orchestration"
+    }
+  ]
+}

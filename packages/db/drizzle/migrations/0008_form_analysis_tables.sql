@@ -59,6 +59,9 @@ CREATE TABLE IF NOT EXISTS users_new (
   fitness_level TEXT,
   goals TEXT, -- JSON array
   picture TEXT,
+  email_verified INTEGER DEFAULT 0,
+  onboarding_completed INTEGER DEFAULT 0,
+  receive_monthly_reports INTEGER DEFAULT 1,
   expo_push_token TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL

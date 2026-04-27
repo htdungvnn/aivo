@@ -1,7 +1,7 @@
-import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate, FoodLogUpdate } from "@aivo/shared-types";
+import type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate, FoodLogUpdate, SensorDataSnapshot, SleepLogCreate, BiometricReading } from "@aivo/shared-types";
 
 // Re-export types for convenient consumption by mobile/web apps
-export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate, FoodLogUpdate };
+export type { ApiResponse, User, AuthResponse, BodyMetric, HealthScoreResult, Workout, VisionAnalysis, BodyHeatmapData, Conversation, BodyZone, HeatmapRegion, VisionAnalysisResult, StoredHeatmap, BodyPhotoRecord, HeatmapComparison, SleepLog, BiometricSnapshot, CorrelationFinding, RecoveryScoreResult, FoodItem, DetectedFoodItem, FoodVisionAnalysis, FoodLog, DailyNutritionSummary, MacroTargets, UploadImageResponse, VisionAnalysisRequest, CreateFromAnalysisRequest, FoodLogCreate, FoodLogUpdate, SensorDataSnapshot, SleepLogCreate, BiometricReading };
 
 /**
  * Export format types
@@ -192,6 +192,46 @@ export class ApiClient {
     return response.json() as Promise<ApiResponse<BodyMetric>>;
   }
 
+  /**
+   * Upload batch sensor readings from wearable devices
+   * POST /api/biometric/readings/batch
+   */
+  async uploadSensorReadings(readings: BiometricReading[]): Promise<ApiResponse<{ received: number }>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/biometric/readings/batch`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(readings),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to upload sensor readings", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<{ received: number }>>;
+  }
+
+  /**
+   * Upload sleep log data
+   * POST /api/biometric/sleep
+   */
+  async uploadSleepData(sleepData: SleepLogCreate): Promise<ApiResponse<SleepLog>> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}/biometric/sleep`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(sleepData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText })) as any;
+      throw new ApiError(error.error || error.message || "Failed to upload sleep data", response.status);
+    }
+
+    return response.json() as Promise<ApiResponse<SleepLog>>;
+  }
+
   async getHealthScore(): Promise<ApiResponse<HealthScoreResult>> {
     return this.request("/body/health-score");
   }
@@ -270,10 +310,23 @@ export class ApiClient {
 
   /**
    * Upload a body photo for analysis
+   * Works with both web (Blob/File) and React Native (with uri, type, name)
    */
-  async uploadBodyPhoto(file: Blob | File): Promise<ApiResponse<{ photo: BodyPhotoRecord }>> {
+  async uploadBodyPhoto(file: Blob | File | { uri: string; type: string; name: string }): Promise<ApiResponse<{ photo: BodyPhotoRecord }>> {
     const formData = new FormData();
-    formData.append("photo", file);
+
+    // React Native file format
+    if (typeof file === 'object' && 'uri' in file) {
+      // @ts-ignore - React Native FormData file handling
+      formData.append('photo', {
+        uri: file.uri,
+        type: file.type,
+        name: file.name,
+      });
+    } else {
+      // Web Blob/File format
+      formData.append('photo', file);
+    }
 
     const headers = await this.getAuthHeaders();
 
@@ -616,10 +669,23 @@ export class ApiClient {
 
   /**
    * Upload a food image to R2 storage
+   * Works with both web (Blob/File) and React Native (with uri, type, name)
    */
-  async uploadFoodImage(file: Blob | File): Promise<ApiResponse<UploadImageResponse["data"]>> {
+  async uploadFoodImage(file: Blob | File | { uri: string; type: string; name: string }): Promise<ApiResponse<UploadImageResponse["data"]>> {
     const formData = new FormData();
-    formData.append("image", file);
+
+    // React Native file format
+    if (typeof file === 'object' && 'uri' in file) {
+      // @ts-ignore - React Native FormData file handling
+      formData.append('image', {
+        uri: file.uri,
+        type: file.type,
+        name: file.name,
+      });
+    } else {
+      // Web Blob/File format
+      formData.append('image', file);
+    }
 
     const headers = await this.getAuthHeaders();
 

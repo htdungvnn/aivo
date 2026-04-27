@@ -70,7 +70,7 @@ pub struct MacroAdjuster;
 impl MacroAdjuster {
     /// Main entry point - calculate adaptive macro adjustment
     #[wasm_bindgen(js_name = "calculateAdjustment")]
-    pub fn calculate_adjustment(inputs_json: &str) -> JsValue {
+    pub fn calculate_adjustment(inputs_json: &str) -> Result<String, JsValue> {
         let inputs: AdaptiveMacroInputs = match serde_json::from_str(inputs_json) {
             Ok(inputs) => inputs,
             Err(e) => {
@@ -80,7 +80,9 @@ impl MacroAdjuster {
                     "calorie_change": 0,
                     "reasoning": ["Invalid input data"]
                 });
-                return serde_json::to_string(&error_obj).unwrap().into();
+                let error_string = serde_json::to_string(&error_obj)
+                    .map_err(|_| JsValue::from_str("Failed to serialize error message"))?;
+                return Err(JsValue::from_str(&error_string));
             }
         };
 
@@ -99,7 +101,8 @@ impl MacroAdjuster {
                 confidence: 0.95,
                 urgency: "low".to_string(),
             };
-            return serde_json::to_string(&result).unwrap().into();
+            return Ok(serde_json::to_string(&result)
+                .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))?);
         }
 
         // 3. Calculate adjustment using heuristic rules (can be replaced with LP later)
@@ -113,7 +116,8 @@ impl MacroAdjuster {
             adjustment.reasoning = Self::generate_reasoning(&adjustment, &assessment, &inputs);
         }
 
-        serde_json::to_string(&adjustment).unwrap().into()
+        Ok(serde_json::to_string(&adjustment)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))?)
     }
 
     /// Assess current state from inputs
@@ -462,4 +466,174 @@ fn calculate_std_dev(values: &[f64]) -> f64 {
     let mean = values.iter().sum::<f64>() / values.len() as f64;
     let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64;
     variance.sqrt()
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_calculate_adjustment_valid_input() {
+        let inputs = json!({
+            "current_calories": 2000.0,
+            "current_protein": 150.0,
+            "current_carbs": 250.0,
+            "current_fat": 70.0,
+            "target_calories": 2200.0,
+            "target_protein": 160.0,
+            "target_carbs": 260.0,
+            "target_fat": 73.0,
+            "goal": "lose_weight",
+            "activity_level": "moderate",
+            "body_weight_kg": 70.0,
+            "daily_calories_consumed": vec![2100.0, 2050.0, 2000.0],
+            "daily_calories_burned": vec![400.0, 350.0, 300.0],
+            "daily_adherence": vec![0.95, 0.93, 0.91],
+            "recovery_score": 70.0,
+            "sleep_quality": 80.0,
+            "sleep_duration_hours": 7.5,
+            "hrv_rmssd": None::<f64>,
+            "stress_score": 30.0,
+            "steps_last_24h": 8000,
+            "active_minutes": 60,
+            "weight_change_weekly": -0.5,
+            "body_fat_change": -0.3,
+            "nutrition_consistency_score": 85.0
+        }).to_string();
+
+        let result = MacroAdjuster::calculate_adjustment(&inputs);
+        assert!(result.is_ok(), "Expected Ok, got Err: {:?}", result.err());
+        let json_str = result.unwrap();
+        let adjustment: serde_json::Value = serde_json::from_str(&json_str).expect("Should parse JSON");
+        assert!(adjustment.get("adjustment_type").is_some());
+        assert!(adjustment.get("calorie_change").is_some());
+        assert!(adjustment.get("reasoning").is_some());
+    }
+
+    #[test]
+    fn test_calculate_adjustment_invalid_json() {
+        let invalid_json = r#"not valid json"#;
+        let result = MacroAdjuster::calculate_adjustment(invalid_json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_adjustment_maintain_when_doing_well() {
+        let inputs = json!({
+            "current_calories": 2000.0,
+            "current_protein": 150.0,
+            "current_carbs": 250.0,
+            "current_fat": 70.0,
+            "target_calories": 2000.0,
+            "target_protein": 150.0,
+            "target_carbs": 250.0,
+            "target_fat": 70.0,
+            "goal": "lose_weight",
+            "activity_level": "moderate",
+            "body_weight_kg": 70.0,
+            "daily_calories_consumed": vec![1950.0, 2000.0, 1980.0],
+            "daily_calories_burned": vec![400.0, 350.0, 300.0],
+            "daily_adherence": vec![0.98, 0.99, 0.97],
+            "recovery_score": 85.0,
+            "sleep_quality": 90.0,
+            "sleep_duration_hours": 8.0,
+            "hrv_rmssd": None::<f64>,
+            "stress_score": 20.0,
+            "steps_last_24h": 9000,
+            "active_minutes": 60,
+            "weight_change_weekly": -0.7,
+            "body_fat_change": -0.4,
+            "nutrition_consistency_score": 95.0
+        }).to_string();
+
+        let result = MacroAdjuster::calculate_adjustment(&inputs);
+        assert!(result.is_ok());
+        let json_str = result.unwrap();
+        let adjustment: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(adjustment["adjustment_type"], "maintain");
+        assert_eq!(adjustment["calorie_change"], 0);
+    }
+
+    #[test]
+    fn test_calculate_adjustment_increase_calories_for_low_adherence() {
+        let inputs = json!({
+            "current_calories": 1500.0,
+            "current_protein": 100.0,
+            "current_carbs": 150.0,
+            "current_fat": 50.0,
+            "target_calories": 2000.0,
+            "target_protein": 150.0,
+            "target_carbs": 250.0,
+            "target_fat": 70.0,
+            "goal": "gain_muscle",
+            "activity_level": "moderate",
+            "body_weight_kg": 70.0,
+            "daily_calories_consumed": vec![1400.0, 1450.0, 1500.0],
+            "daily_calories_burned": vec![300.0, 350.0, 400.0],
+            "daily_adherence": vec![0.6, 0.65, 0.62],
+            "recovery_score": 70.0,
+            "sleep_quality": 75.0,
+            "sleep_duration_hours": 7.0,
+            "hrv_rmssd": None::<f64>,
+            "stress_score": 40.0,
+            "steps_last_24h": 8000,
+            "active_minutes": 60,
+            "weight_change_weekly": -0.2,
+            "body_fat_change": 0.0,
+            "nutrition_consistency_score": 60.0
+        }).to_string();
+
+        let result = MacroAdjuster::calculate_adjustment(&inputs);
+        assert!(result.is_ok());
+        let json_str = result.unwrap();
+        let adjustment: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert!(adjustment["calorie_change"].as_i64().unwrap() > 0);
+        assert!(adjustment["adjustment_type"] == "increase_calories");
+    }
+
+    #[test]
+    fn test_assess_recovery() {
+        assert_eq!(MacroAdjuster::assess_recovery(85.0), "excellent");
+        assert_eq!(MacroAdjuster::assess_recovery(60.0), "good");
+        assert_eq!(MacroAdjuster::assess_recovery(40.0), "fair");
+        assert_eq!(MacroAdjuster::assess_recovery(20.0), "poor");
+    }
+
+    #[test]
+    fn test_assess_sleep() {
+        assert_eq!(MacroAdjuster::assess_sleep(90.0), "excellent");
+        assert_eq!(MacroAdjuster::assess_sleep(70.0), "good");
+        assert_eq!(MacroAdjuster::assess_sleep(50.0), "fair");
+        assert_eq!(MacroAdjuster::assess_sleep(30.0), "poor");
+    }
+
+    #[test]
+    fn test_assess_activity() {
+        // 10000 steps + 60 active min = 500 + 500 = 1000 -> 1000/20? Actually formula: steps/10000*50 + active_min/60*50
+        // 10000 steps -> 50, 60 min -> 50, total 100 -> score 100 -> "very_high"
+        let score = MacroAdjuster::assess_activity(10000, 60);
+        assert_eq!(score, "very_high");
+        // 5000 steps, 30 min -> 25+25=50 -> "moderate"
+        let score = MacroAdjuster::assess_activity(5000, 30);
+        assert_eq!(score, "moderate");
+    }
+
+    #[test]
+    fn test_assess_adherence() {
+        let adherence = vec![0.95, 0.93, 0.91];
+        assert_eq!(MacroAdjuster::assess_adherence(&adherence), "high");
+        let adherence = vec![0.7, 0.75, 0.72];
+        assert_eq!(MacroAdjuster::assess_adherence(&adherence), "under");
+        let adherence = vec![0.9]; // less than 3 days
+        assert_eq!(MacroAdjuster::assess_adherence(&adherence), "unknown");
+    }
+
+    #[test]
+    fn test_calculate_weight_loss_rate() {
+        assert_eq!(MacroAdjuster::calculate_weight_loss_rate(0.05), None);
+        assert_eq!(MacroAdjuster::calculate_weight_loss_rate(1.5), Some("too_fast_loss"));
+        assert_eq!(MacroAdjuster::calculate_weight_loss_rate(-0.5), Some("slow_loss"));
+        assert_eq!(MacroAdjuster::calculate_weight_loss_rate(-1.5), Some("weight_gain"));
+        assert_eq!(MacroAdjuster::calculate_weight_loss_rate(-0.8), Some("healthy_loss"));
+    }
 }

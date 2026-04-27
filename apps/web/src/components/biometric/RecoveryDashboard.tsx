@@ -412,8 +412,8 @@ export function RecoveryDashboard() {
                       <SleepLogEntry
                         key={entry.id}
                         date={entry.date}
-                        duration={entry.durationHours}
-                        quality={entry.qualityScore}
+                        duration={entry.durationHours && entry.durationHours !== null ? entry.durationHours : 0}
+                        quality={entry.qualityScore && entry.qualityScore !== null ? entry.qualityScore : undefined}
                       />
                     ))}
                     {sleepHistory.length === 0 && (
@@ -479,8 +479,8 @@ export function RecoveryDashboard() {
                       <SleepLogEntry
                         key={entry.id}
                         date={entry.date}
-                        duration={entry.durationHours}
-                        quality={entry.qualityScore}
+                        duration={entry.durationHours && entry.durationHours !== null ? entry.durationHours : 0}
+                        quality={entry.qualityScore && entry.qualityScore !== null ? entry.qualityScore : undefined}
                       />
                     ))}
                     {sleepHistory.length === 0 && (

@@ -304,7 +304,7 @@ fn deduplicate_entities(mut entities: Vec<ExtractedEntity>) -> Vec<ExtractedEnti
     let mut seen = HashSet::new();
 
     // Sort by confidence descending
-    entities.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+    entities.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or_else(|| std::cmp::Ordering::Equal));
 
     for entity in entities {
         if !seen.contains(&entity.entity) {

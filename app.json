@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.anonymous.aivo"
+  },
+  "ios": {
+    "bundleIdentifier": "com.anonymous.aivo"
+  }
+}

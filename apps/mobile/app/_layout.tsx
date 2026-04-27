@@ -2,9 +2,10 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MetricsProvider } from "@/contexts/MetricsContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/theme/colors";
 
 const styles = StyleSheet.create({
@@ -26,7 +27,7 @@ export default function RootLayout() {
 
   const checkAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem("aivo_token");
+      const token = await SecureStore.getItemAsync("aivo_token");
       setIsAuthenticated(!!token);
     } catch {
       // Silently handle auth check errors
@@ -44,7 +45,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="light" />
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }}>
@@ -61,6 +62,6 @@ export default function RootLayout() {
           )}
         </Stack>
       </AuthProvider>
-    </>
+    </ErrorBoundary>
   );
 }

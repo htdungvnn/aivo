@@ -8,7 +8,11 @@
   "exports": {
     ".": "./base.js",
     "./web": "./web.js",
-    "./react-native": "./react-native.js"
+    "./react-native": "./react-native.js",
+    "./test-utils": "./test-utils/index.js",
+    "./test-utils/factories": "./test-utils/factories.js",
+    "./test-utils/mocks": "./test-utils/mocks.js",
+    "./test-utils/helpers": "./test-utils/helpers.js"
   },
   "scripts": {
     "test": "echo \"No tests in config package\""
@@ -23,6 +27,7 @@
     "ts-jest": "^29.1.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "jest": "^30.3.0",
     "typescript": "^6.0.3"
   }

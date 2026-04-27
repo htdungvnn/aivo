@@ -48,7 +48,11 @@ export const sessions = sqliteTable("sessions", {
   expiresAt: integer("expires_at"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-});
+}, (table) => [
+  index('idx_sessions_user_id').on(table.userId),
+  index('idx_sessions_created').on(sql`desc ${table.createdAt}`),
+  index('idx_sessions_provider_user').on(table.provider, table.providerUserId),
+]);
 
 // Body photos table - stores uploaded user body photos
 export const bodyPhotos = sqliteTable("body_photos", {
@@ -81,7 +85,10 @@ export const bodyMetrics = sqliteTable("body_metrics", {
   hipCircumference: real("hip_circumference"),
   source: text("source"), // "manual", "ai", "device"
   notes: text("notes"),
-});
+}, (table) => [
+  index('idx_body_metrics_user_id').on(table.userId),
+  index('idx_body_metrics_timestamp').on(table.userId, sql`desc ${table.timestamp}`),
+]);
 
 // Body heatmaps table - stores AI-analyzed heatmap regions
 export const bodyHeatmaps = sqliteTable("body_heatmaps", {
@@ -107,6 +114,7 @@ export const bodyHeatmapHistory = sqliteTable("body_heatmap_history", {
 }, (table) => [
   index('idx_user_id').on(table.userId),
   index('idx_snapshot_date').on(table.snapshotDate),
+  index('idx_heatmap_id').on(table.heatmapId),
 ]);
 
 // Vision analyses table
@@ -118,7 +126,10 @@ export const visionAnalyses = sqliteTable("vision_analyses", {
   analysis: text("analysis"),
   confidence: real("confidence"),
   createdAt: integer("created_at").notNull(),
-});
+}, (table) => [
+  index('idx_vision_analyses_user_id').on(table.userId),
+  index('idx_vision_analyses_created').on(sql`desc ${table.createdAt}`),
+]);
 
 // ============================================
 // NUTRITION & FOOD LOGGING SCHEMA
@@ -165,9 +176,10 @@ export const foodLogs = sqliteTable("food_logs", {
   loggedAt: integer("logged_at").notNull(),
   createdAt: integer("created_at").notNull(),
 }, (table) => [
-  index('idx_user_id').on(table.userId),
-  index('idx_logged_at').on(table.loggedAt),
-  index('idx_user_meal').on(table.userId, table.mealType),
+  index('idx_food_logs_user_id').on(table.userId),
+  index('idx_food_logs_logged').on(table.userId, sql`desc ${table.loggedAt}`),
+  index('idx_food_logs_food_item').on(table.foodItemId),
+  index('idx_food_logs_meal_type').on(table.userId, table.mealType),
 ]);
 
 // Daily nutrition summaries table - materialized aggregates for fast queries
@@ -206,10 +218,9 @@ export const nutritionConsults = sqliteTable("nutrition_consults", {
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
-  index('idx_user_id').on(table.userId),
-  index('idx_created_at').on(table.createdAt),
-  index('idx_session_id').on(table.sessionId),
-  index('idx_user_created').on(table.userId, table.createdAt),
+  index('idx_nutrition_consults_user_id').on(table.userId),
+  index('idx_nutrition_consults_created').on(sql`desc ${table.createdAt}`),
+  index('idx_nutrition_consults_session').on(table.sessionId),
 ]);
 
 // Workouts table
@@ -227,7 +238,12 @@ export const workouts = sqliteTable("workouts", {
   createdAt: integer("created_at").notNull(),
   completedAt: integer("completed_at"),
   status: text("status"),
-});
+}, (table) => [
+  index('idx_workouts_user_id').on(table.userId),
+  index('idx_workouts_created').on(sql`desc ${table.createdAt}`),
+  index('idx_workouts_user_status').on(table.userId, table.status),
+  index('idx_workouts_start_time').on(table.userId, sql`desc ${table.startTime}`),
+]);
 
 // Workout exercises table
 export const workoutExercises = sqliteTable("workout_exercises", {
@@ -257,7 +273,11 @@ export const workoutRoutines = sqliteTable("workout_routines", {
   isActive: integer("is_active").default(1),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-});
+}, (table) => [
+  index('idx_routines_user_id').on(table.userId),
+  index('idx_routines_active').on(table.userId, table.isActive),
+  index('idx_routines_week_start').on(table.userId, table.weekStartDate),
+]);
 
 // Routine exercises table - planned exercises for specific days
 export const routineExercises = sqliteTable("routine_exercises", {
@@ -292,7 +312,9 @@ export const bodyInsights = sqliteTable("body_insights", {
   hydrationLevel: integer("hydration_level"), // 1-10
   notes: text("notes"),
   rawData: text("raw_data"), // Original analysis data
-});
+}, (table) => [
+  index('idx_body_insights_user_time').on(table.userId, sql`desc ${table.timestamp}`),
+]);
 
 // User goals table - structured fitness goals
 export const userGoals = sqliteTable("user_goals", {
@@ -307,7 +329,11 @@ export const userGoals = sqliteTable("user_goals", {
   status: text("status").default("active"), // "active", "completed", "paused"
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-});
+}, (table) => [
+  index('idx_user_goals_user_id').on(table.userId),
+  index('idx_user_goals_status').on(table.status),
+  index('idx_user_goals_type').on(table.type),
+]);
 
 // Plan deviations table - tracks adjustments made by AI
 export const planDeviations = sqliteTable("plan_deviations", {
@@ -319,7 +345,11 @@ export const planDeviations = sqliteTable("plan_deviations", {
   reason: text("reason"), // "missed_workout", "muscle_soreness", "fatigue", "injury"
   adjustmentsJson: text("adjustments_json"), // Detailed changes made
   createdAt: integer("created_at").notNull(),
-});
+}, (table) => [
+  index('idx_plan_deviations_user_id').on(table.userId),
+  index('idx_plan_deviations_created').on(sql`desc ${table.createdAt}`),
+  index('idx_plan_deviations_original_routine').on(table.originalRoutineId),
+]);
 
 // Workout completion feedback table - tracks what was actually done vs planned
 export const workoutCompletions = sqliteTable("workout_completions", {
@@ -336,8 +366,9 @@ export const workoutCompletions = sqliteTable("workout_completions", {
   notes: text("notes"),
   createdAt: integer("created_at").notNull(),
 }, (table) => [
-  index('idx_workout_id').on(table.workoutId),
-  index('idx_routine_exercise').on(table.routineExerciseId),
+  index('idx_workout_completions_workout').on(table.workoutId),
+  index('idx_workout_completions_routine_exercise').on(table.routineExerciseId),
+  index('idx_workout_completions_created').on(sql`desc ${table.createdAt}`),
 ]);
 
 // Daily schedules table
@@ -353,7 +384,10 @@ export const dailySchedules = sqliteTable("daily_schedules", {
   generatedBy: text("generated_by"),
   optimizationScore: real("optimization_score"),
   adjustmentsMade: text("adjustments_made"),
-});
+}, (table) => [
+  index('idx_daily_schedules_user_date').on(table.userId, table.date),
+  index('idx_daily_schedules_routine').on(table.routineId),
+]);
 
 // Workout templates table
 export const workoutTemplates = sqliteTable("workout_templates", {
@@ -378,7 +412,10 @@ export const conversations = sqliteTable("conversations", {
   tokensUsed: integer("tokens_used"),
   model: text("model"),
   createdAt: integer("created_at").notNull(),
-});
+}, (table) => [
+  index('idx_conversations_user_id').on(table.userId),
+  index('idx_conversations_created').on(sql`desc ${table.createdAt}`),
+]);
 
 // AI recommendations table
 export const aiRecommendations = sqliteTable("ai_recommendations", {
@@ -395,7 +432,12 @@ export const aiRecommendations = sqliteTable("ai_recommendations", {
   isDismissed: integer("is_dismissed").default(0),
   feedback: text("feedback"),
   createdAt: integer("created_at").notNull(),
-});
+}, (table) => [
+  index('idx_ai_recs_user_id').on(table.userId),
+  index('idx_ai_recs_created').on(sql`desc ${table.createdAt}`),
+  index('idx_ai_recs_unread').on(table.userId, table.isRead),
+  index('idx_ai_recs_type').on(table.type),
+]);
 
 // Memory nodes table
 export const memoryNodes = sqliteTable("memory_nodes", {
@@ -481,7 +523,10 @@ export const achievements = sqliteTable("achievements", {
   completed: integer("completed").default(0),
   completedAt: integer("completed_at"),
   claimed: integer("claimed").default(0),
-});
+}, (table) => [
+  index('idx_achievements_user_id').on(table.userId),
+  index('idx_achievements_completed').on(table.completed),
+]);
 
 // Social proof cards table
 export const socialProofCards = sqliteTable("social_proof_cards", {
@@ -494,7 +539,11 @@ export const socialProofCards = sqliteTable("social_proof_cards", {
   shareableImageUrl: text("shareable_image_url"),
   createdAt: integer("created_at").notNull(),
   isPublic: integer("is_public").default(0),
-});
+}, (table) => [
+  index('idx_social_proof_user_id').on(table.userId),
+  index('idx_social_proof_created').on(sql`desc ${table.createdAt}`),
+  index('idx_social_proof_public').on(table.isPublic),
+]);
 
 // Activity events table
 export const activityEvents = sqliteTable("activity_events", {
@@ -506,7 +555,12 @@ export const activityEvents = sqliteTable("activity_events", {
   clientTimestamp: integer("client_timestamp").notNull(),
   serverTimestamp: integer("server_timestamp").notNull(),
   deviceInfo: text("device_info"),
-});
+}, (table) => [
+  index('idx_activity_events_user_id').on(table.userId),
+  index('idx_activity_events_workout_id').on(table.workoutId),
+  index('idx_activity_events_server_time').on(sql`desc ${table.serverTimestamp}`),
+  index('idx_activity_events_type').on(table.type),
+]);
 
 // System metrics table
 export const systemMetrics = sqliteTable("system_metrics", {
@@ -529,7 +583,10 @@ export const userAnalytics = sqliteTable("user_analytics", {
   churnProbability: real("churn_probability"),
   preferredCommunication: text("preferred_communication"),
   lastActive: integer("last_active"),
-});
+}, (table) => [
+  index('idx_user_analytics_risk').on(table.retentionRisk),
+  index('idx_user_analytics_last_active').on(table.lastActive),
+]);
 
 // Daily check-ins table for streak tracking
 export const dailyCheckins = sqliteTable("daily_checkins", {
@@ -604,7 +661,11 @@ export const shareableContent = sqliteTable("shareable_content", {
   likes: integer("likes").default(0),
   shares: integer("shares").default(0),
   createdAt: integer("created_at").notNull(),
-});
+}, (table) => [
+  index('idx_shareable_user_id').on(table.userId),
+  index('idx_shareable_created').on(sql`desc ${table.createdAt}`),
+  index('idx_shareable_public').on(table.isPublic),
+]);
 
 // ============================================
 // FORM ANALYSIS - AI-POWERED MOVEMENT CORRECTION
@@ -627,7 +688,8 @@ export const formAnalysisVideos = sqliteTable("form_analysis_videos", {
 }, (table) => [
   index('idx_form_videos_user_id').on(table.userId),
   index('idx_form_videos_status').on(table.status),
-  index('idx_form_videos_created_at').on(table.createdAt),
+  index('idx_form_videos_created_at').on(sql`desc ${table.createdAt}`),
+  index('idx_form_videos_user_status').on(table.userId, table.status),
 ]);
 
 // Form analyses table - completed analysis results
@@ -650,8 +712,9 @@ export const formAnalyses = sqliteTable("form_analyses", {
   processingTimeMs: integer("processing_time_ms"),
 }, (table) => [
   index('idx_form_analyses_user_id').on(table.userId),
-  index('idx_form_analyses_created_at').on(table.createdAt),
+  index('idx_form_analyses_created').on(sql`desc ${table.createdAt}`),
   index('idx_form_analyses_grade').on(table.grade),
+  index('idx_form_analyses_exercise').on(table.userId, table.exerciseType),
 ]);
 
 // Notifications table - push notifications and in-app alerts
@@ -697,7 +760,7 @@ export const sleepLogs = sqliteTable("sleep_logs", {
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
   index('idx_sleep_user_date').on(table.userId, table.date),
-  unique('unique_sleep_user_date').on(table.userId, table.date),
+  index('idx_sleep_created').on(sql`desc ${table.createdAt}`),
 ]);
 
 // Biometric snapshots - pre-aggregated 7d/30d statistics for performance
@@ -843,7 +906,8 @@ export const muscleFatigueReadings = sqliteTable("muscle_fatigue_readings", {
 }, (table) => [
   index('idx_fatigue_user_muscle').on(table.userId, table.muscleGroup),
   index('idx_fatigue_updated').on(sql`desc ${table.updatedAt}`),
-  unique('unique_fatigue_user_muscle').on(table.userId, table.muscleGroup),
+  index('idx_fatigue_session').on(table.sessionId),
+  index('idx_fatigue_measured').on(table.userId, sql`desc ${table.measuredAt}`),
 ]);
 
 // Acoustic fatigue trends - aggregated trend data for analytics

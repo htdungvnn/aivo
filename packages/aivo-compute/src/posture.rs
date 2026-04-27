@@ -631,3 +631,117 @@ impl PostureAnalyzer {
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_analyze_skeleton_valid_squat() {
+        let skeleton = json!({
+            "exercise_type": "squat",
+            "frames": [
+                {
+                    "frame_number": 0,
+                    "timestamp_ms": 0,
+                    "joints": {
+                        "nose": {"x": 0.5, "y": 0.1, "z": 0.0, "confidence": 0.9},
+                        "neck": {"x": 0.5, "y": 0.15, "z": 0.0, "confidence": 0.9},
+                        "left_shoulder": {"x": 0.45, "y": 0.2, "z": 0.0, "confidence": 0.9},
+                        "right_shoulder": {"x": 0.55, "y": 0.2, "z": 0.0, "confidence": 0.9},
+                        "left_hip": {"x": 0.48, "y": 0.4, "z": 0.0, "confidence": 0.9},
+                        "right_hip": {"x": 0.52, "y": 0.4, "z": 0.0, "confidence": 0.9},
+                        "left_knee": {"x": 0.5, "y": 0.7, "z": 0.0, "confidence": 0.9},
+                        "right_knee": {"x": 0.5, "y": 0.7, "z": 0.0, "confidence": 0.9},
+                        "left_ankle": {"x": 0.5, "y": 0.95, "z": 0.0, "confidence": 0.9},
+                        "right_ankle": {"x": 0.5, "y": 0.95, "z": 0.0, "confidence": 0.9}
+                    }
+                }
+            ],
+            "metadata": {
+                "fps": 30,
+                "resolution_width": 1920,
+                "resolution_height": 1080,
+                "total_frames": 30
+            }
+        }).to_string();
+
+        let result = PostureAnalyzer::analyze_skeleton(&skeleton);
+        assert!(result.is_ok(), "Expected Ok, got Err: {:?}", result.err());
+        let json_str = result.unwrap();
+        let analysis: serde_json::Value = serde_json::from_str(&json_str).expect("Should parse JSON");
+        assert!(analysis.get("overall_score").is_some());
+        assert!(analysis.get("grade").is_some());
+        assert!(analysis.get("deviations").is_some());
+    }
+
+    #[test]
+    fn test_analyze_skeleton_empty_frames() {
+        let skeleton = json!({
+            "exercise_type": "squat",
+            "frames": [],
+            "metadata": {
+                "fps": 30,
+                "resolution_width": 1920,
+                "resolution_height": 1080,
+                "total_frames": 0
+            }
+        }).to_string();
+
+        let result = PostureAnalyzer::analyze_skeleton(&skeleton);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_analyze_skeleton_missing_joints() {
+        // Frame missing required joints will be skipped; if all frames invalid, score 100 with no deviations.
+        let skeleton = json!({
+            "exercise_type": "squat",
+            "frames": [
+                {
+                    "frame_number": 0,
+                    "timestamp_ms": 0,
+                    "joints": {
+                        "nose": {"x": 0.5, "y": 0.1, "z": 0.0, "confidence": 0.9},
+                        "neck": {"x": 0.5, "y": 0.15, "z": 0.0, "confidence": 0.9}
+                        // Missing hips, knees, ankles -> this frame will be skipped
+                    }
+                }
+            ],
+            "metadata": {
+                "fps": 30,
+                "resolution_width": 1920,
+                "resolution_height": 1080,
+                "total_frames": 1
+            }
+        }).to_string();
+
+        let result = PostureAnalyzer::analyze_skeleton(&skeleton);
+        // Should succeed, with no valid angles, no deviations -> score 100
+        assert!(result.is_ok());
+        let json_str = result.unwrap();
+        let analysis: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(analysis["overall_score"], 100.0);
+        assert_eq!(analysis["deviations"], json!([]));
+    }
+
+    #[test]
+    fn test_calculate_angle_3d() {
+        // Test angle calculation: right angle (90 degrees)
+        let a = JointPosition { x: 1.0, y: 0.0, z: Some(0.0), confidence: 1.0 };
+        let b = JointPosition { x: 0.0, y: 0.0, z: Some(0.0), confidence: 1.0 };
+        let c = JointPosition { x: 0.0, y: 1.0, z: Some(0.0), confidence: 1.0 };
+        let angle = PostureAnalyzer::calculate_angle_3d(&a, &b, &c);
+        assert!((angle - 90.0).abs() < 0.001, "Expected 90°, got {}", angle);
+    }
+
+    #[test]
+    fn test_calculate_vertical_angle() {
+        // Perfectly vertical spine (neck below nose)
+        let neck = JointPosition { x: 0.0, y: 0.5, z: Some(0.0), confidence: 1.0 };
+        let nose = JointPosition { x: 0.0, y: 0.6, z: Some(0.0), confidence: 1.0 };
+        let angle = PostureAnalyzer::calculate_vertical_angle(&neck, &nose);
+        assert_eq!(angle, 0.0);
+    }
+}

@@ -6,7 +6,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { OpenAI } from 'openai';
 import type { ModelSelection, TaskRequirements, ModelDefinition } from './model-selector';
-import { selectModel, MODELS, getModel } from './model-selector';
+import { selectModel, MODELS, getModel, filterCapableModels, calculateCost } from './model-selector';
 
 // Environment variables for API keys
 export interface AIServiceConfig {
@@ -324,7 +324,7 @@ export class UnifiedAIService {
 
   private estimateComplexity(prompt: string, systemPrompt: string): TaskRequirements['complexity'] {
     const combined = (prompt + ' ' + systemPrompt).toLowerCase();
-    const wordCount = combined.split(/\s+/).length;
+    const wordCount = combined.split(/\s+/).filter(Boolean).length;
 
     const complexIndicators = [
       'analyze', 'compare', 'evaluate', 'synthesize', 'critique',
@@ -433,46 +433,6 @@ export class UnifiedAIService {
       excludeProviders,
     });
   }
-}
-
-/**
- * Calculate cost for a model
- */
-function calculateCost(
-  model: ModelDefinition,
-  inputTokens: number,
-  outputTokens: number
-): number {
-  const inputCost = (inputTokens / 1_000_000) * model.inputPricePer1M;
-  const outputCost = (outputTokens / 1_000_000) * model.outputPricePer1M;
-  return inputCost + outputCost;
-}
-
-/**
- * Filter models based on capabilities
- */
-function filterCapableModels(
-  requirements: TaskRequirements,
-  models: ModelDefinition[]
-): ModelDefinition[] {
-  return models.filter(model => {
-    if (requirements.estimatedInputTokens + requirements.estimatedOutputTokens > model.contextWindow) {
-      return false;
-    }
-    if (requirements.estimatedOutputTokens > model.maxOutputTokens) {
-      return false;
-    }
-    if (requirements.needsVision && !model.capabilities.vision) {return false;}
-    if (requirements.needsJsonMode && !model.capabilities.jsonMode) {return false;}
-    if (requirements.needsReasoning && !model.capabilities.reasoning) {return false;}
-    if (requirements.needsCode && !model.capabilities.code) {return false;}
-    if (requirements.needsCreative && !model.capabilities.creative) {return false;}
-    if (requirements.complexity === 'expert' && !model.capabilities.highComplexity) {return false;}
-    if (requirements.complexity === 'complex' && !model.capabilities.highComplexity && model.qualityScore < 9) {
-      return false;
-    }
-    return true;
-  });
 }
 
 /**

@@ -10,26 +10,78 @@
     "newArchEnabled": true,
     "platforms": ["ios", "android", "web"],
     "ios": {
+      "deploymentTarget": "16.0",
       "supportsTablet": true,
-      "bundleIdentifier": "fit.aivo.mobile"
+      "bundleIdentifier": "fit.aivo.mobile",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["aivo"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#030712"
       },
-      "package": "fit.aivo.mobile"
+      "package": "fit.aivo.mobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "aivo",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "server",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "config": {
+        "firebase": {
+          "apiKey": "${FIREBASE_API_KEY}",
+          "authDomain": "${FIREBASE_AUTH_DOMAIN}",
+          "projectId": "${FIREBASE_PROJECT_ID}",
+          "storageBucket": "${FIREBASE_STORAGE_BUCKET}",
+          "messagingSenderId": "${FIREBASE_MESSAGING_SENDER_ID}",
+          "appId": "${FIREBASE_APP_ID}"
+        }
+      }
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0",
+            "newArchEnabled": true,
+            "useFrameworks": "static"
+          },
+          "android": {
+            "newArchEnabled": true,
+            "enableProguardInReleaseBuilds": true,
+            "proguardRules": "proguard-rules.pro"
+          }
+        }
+      ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "${EXPO_PROJECT_ID}"
+      }
     }
   }
 }

@@ -6,6 +6,8 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+use rustfft::{FftPlanner, Fft, FftDirection};
+use rustfft::num_complex::Complex;
 
 /// Audio configuration for processing
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -463,7 +465,7 @@ fn calculate_rms(samples: &[f64]) -> f64 {
     (sum_sq / samples.len() as f64).sqrt()
 }
 
-/// Analyze spectrum using simplified FFT
+/// Analyze spectrum using FFT
 fn analyze_spectrum(filtered: &[f64]) -> Result<Spectrum, JsValue> {
     if filtered.len() < FFT_SIZE {
         return Err(JsValue::from_str(&format!(
@@ -481,21 +483,26 @@ fn analyze_spectrum(filtered: &[f64]) -> Result<Spectrum, JsValue> {
         windowed[i] = segment[i] * window;
     }
 
-    // DFT (real implementation would use rustfft)
+    // Perform FFT using rustfft (O(n log n) vs O(n^2) for DFT)
     let bin_width = TARGET_SAMPLE_RATE as f64 / FFT_SIZE as f64;
     let mut bins = vec![0.0; FFT_SIZE / 2];
 
-    for k in 0..(FFT_SIZE / 2) {
-        let mut real = 0.0;
-        let mut imag = 0.0;
+    // Create FFT planner and compute FFT
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(FFT_SIZE);
 
-        for n in 0..FFT_SIZE {
-            let angle = 2.0 * PI * k as f64 * n as f64 / FFT_SIZE as f64;
-            real += windowed[n] * angle.cos();
-            imag -= windowed[n] * angle.sin();
-        }
+    // Prepare input buffer (complex numbers)
+    let mut complex_input: Vec<Complex<f64>> = Vec::with_capacity(FFT_SIZE);
+    for &sample in &windowed {
+        complex_input.push(Complex { re: sample, im: 0.0 });
+    }
 
-        bins[k] = (real * real + imag * imag).sqrt() / FFT_SIZE as f64;
+    // Perform FFT in-place
+    fft.process(&mut complex_input);
+
+    // Extract magnitude spectrum (first half only)
+    for (i, complex) in complex_input.iter().take(FFT_SIZE / 2).enumerate() {
+        bins[i] = (complex.re * complex.re + complex.im * complex.im).sqrt();
     }
 
     Ok(Spectrum {

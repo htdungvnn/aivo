@@ -5,23 +5,57 @@
  */
 
 declare module 'expo-health' {
-  export interface HealthClient {
-    authorize(permissions: string[]): Promise<Record<string, string>>;
-    getAuthStatusForPermissions(permissions: string[]): Promise<Record<string, string>>;
-    getSamples(
-      type: string,
-      options: { startDate: Date; endDate: Date }
-    ): Array<{ value: number }>;
+  export interface HealthPermissionResult {
+    granted: boolean;
+    scope: string;
   }
 
-  export interface ClientOptions {
-    clientOptions: {
-      bundleIdentifier?: string;
-      packageName?: string;
+  export interface HealthPermissionsStatus {
+    permissions: HealthPermissionResult[];
+  }
+
+  export interface HealthSample {
+    startDate: string;
+    endDate: string;
+    value: number | string;
+  }
+
+  export interface HealthConstants {
+    Permissions: {
+      HeartRate: string;
+      Steps: string;
+      ActiveEnergyBurned: string;
+      SleepAnalysis: string;
+      BodyMass: string;
+      BodyFatPercentage: string;
+      HeartRateVariability: string;
+      RestingHeartRate: string;
     };
+    Steps: string;
+    HeartRate: string;
+    ActiveEnergyBurned: string;
+    SleepAnalysis: string;
+    BodyMass: string;
+    BodyFatPercentage: string;
+    HeartRateVariability: string;
+    RestingHeartRate: string;
   }
 
-  export function createClient(options: ClientOptions): HealthClient;
+  export function isAvailableAsync(): Promise<boolean>;
+  export function requestPermissionsAsync(options: {
+    permissions: {
+      read: string[];
+    };
+  }): Promise<{ granted: boolean }>;
+  export function getPermissionsAsync(): Promise<HealthPermissionsStatus>;
+  export function getSamplesAsync(
+    type: string,
+    options: {
+      startDate: Date;
+      endDate: Date;
+      unit?: string;
+    }
+  ): Promise<HealthSample[]>;
 
-  export const isAvailableAsync: () => Promise<boolean>;
+  export const Constants: HealthConstants;
 }

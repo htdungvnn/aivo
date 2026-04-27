@@ -6,8 +6,8 @@
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/compute": ["../../packages/aivo-compute/pkg"],
-      "@aivo/db": ["../../packages/db/src"],
-      "@aivo/db/schema": ["../../packages/db/src/schema"],
+      "@aivo/db": ["../../packages/db/dist"],
+      "@aivo/db/schema": ["../../packages/db/dist/schema"],
       "@aivo/infographic-generator": ["../../packages/infographic-generator/pkg"],
       "@aivo/api-client": ["../../packages/api-client/src"],
       "@aivo/optimizer": ["../../packages/optimizer/pkg"],

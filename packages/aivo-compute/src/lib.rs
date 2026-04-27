@@ -1,3 +1,18 @@
+//! # AIVO Compute Engine
+//! High-performance fitness calculations compiled to WebAssembly (WASM).
+//!
+//! This crate provides optimized algorithms for:
+//! - Body composition calculations (BMI, body fat, lean mass)
+//! - Health scoring and risk assessment
+//! - Workout planning and adjustment
+//! - Recovery analysis and correlation
+//! - Voice parsing for nutrition logging
+//! - Metabolic twin simulation
+//! - Live workout adjustment
+//!
+//! All functions are designed for WASM targets with proper error handling
+//! using `Result<T, JsValue>` for safe interop with TypeScript/JavaScript.
+
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::to_value;
 use js_sys::Array;

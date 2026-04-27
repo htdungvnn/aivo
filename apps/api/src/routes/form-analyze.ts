@@ -33,7 +33,7 @@ interface EnvWithR2 {
   R2_BUCKET: R2BucketWithName;
 }
 
-export const formRouter = () => {
+export const FormAnalyzeRouter = () => {
   const router = new Hono<{ Bindings: EnvWithR2 }>();
 
   // Apply authentication to all form analysis routes

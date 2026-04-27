@@ -6,6 +6,10 @@ import { SwaggerUI } from "@hono/swagger-ui";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
+import { APIError } from "./utils/errors";
+
+// Import middleware
+import { errorHandler, notFoundHandler, attachRequestId } from "./middleware/error-handler";
 
 // Import routers
 import { AuthRouter } from "./routes/auth";
@@ -22,14 +26,15 @@ import { GamificationRouter } from "./routes/gamification";
 import { runCronJob } from "./routes/cron";
 import { NutritionRouter } from "./routes/nutrition";
 import { InfographicRouter } from "./routes/infographic";
-import { liveWorkoutRouter } from "./routes/live-workout";
+import { LiveWorkoutRouter } from "./routes/live-workout";
 import { MetabolicRouter } from "./routes/metabolic";
-import { postureRouter } from "./routes/posture";
+import { PostureRouter } from "./routes/posture";
 import { AdminTestRouter } from "./routes/admin-test";
 import { DigitalTwinRouter } from "./routes/digital-twin";
 import { BiometricRouter } from "./routes/biometric";
 import { AcousticRouter } from "./routes/acoustic";
-import { formRouter } from "./routes/form-analyze";
+import { FormAnalyzeRouter } from "./routes/form-analyze";
+
 export interface AppEnv {
   AUTH_SECRET: string;
   DB: D1Database;
@@ -45,6 +50,23 @@ export interface AppEnv {
 
 // Create OpenAPIHono app
 const app = new OpenAPIHono<{ Bindings: AppEnv }>();
+
+// ============================================
+// REQUEST ID MIDDLEWARE
+// ============================================
+app.use("*", async (c, next) => {
+  attachRequestId(c);
+  return await next();
+});
+
+// GLOBAL ERROR HANDLING MIDDLEWARE
+// ============================================
+app.use("*", errorHandler);
+
+// ============================================
+// NOT FOUND HANDLER
+// ============================================
+app.notFound(notFoundHandler);
 
 // ============================================
 // SECURITY HEADERS MIDDLEWARE
@@ -65,7 +87,7 @@ app.use("*", async (c, next) => {
   );
   c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
-  await next();
+  return await next();
 });
 
 // ============================================
@@ -92,28 +114,28 @@ app.use(
 // ============================================
 app.use("/api/auth", async (c, next) => {
   await applyRateLimit(c, 5, 900000); // 5 attempts per 15 minutes for auth
-  await next();
+  return await next();
 });
 
 app.use("/ai", async (c, next) => {
   await applyRateLimit(c, 60, 60000); // 60 requests per minute for AI
-  await next();
+  return await next();
 });
 
 app.use("/upload", async (c, next) => {
   await applyRateLimit(c, 30, 60000); // 30 uploads per minute
-  await next();
+  return await next();
 });
 
 // Global rate limit for other endpoints
 app.use(async (c, next) => {
   await applyRateLimit(c, 300, 60000); // 300 requests per minute
-  await next();
+  return await next();
 });
 
 async function applyRateLimit(c: Context<{ Bindings: AppEnv }>, maxRequests: number, windowMs: number): Promise<void> {
   const env = c.env;
-  if (!env.RATE_LIMIT_KV) {return;}
+  if (!env.RATE_LIMIT_KV) { return; }
 
   const userId = c.req.header("X-User-Id") || c.req.header("cf-connecting-ip") || "anonymous";
   const window = Math.floor(Date.now() / windowMs);
@@ -126,7 +148,7 @@ async function applyRateLimit(c: Context<{ Bindings: AppEnv }>, maxRequests: num
     c.header("X-RateLimit-Limit", String(maxRequests));
     c.header("X-RateLimit-Remaining", "0");
     c.header("X-RateLimit-Reset", String(windowMs - (Date.now() % windowMs)));
-    throw new Error("Too many requests");
+    throw new APIError(429, "RATE_LIMIT_EXCEEDED", "Too many requests", { retryAfter: Math.ceil(windowMs / 1000) });
   }
 
   await env.RATE_LIMIT_KV.put(key, String(currentCount + 1), { expirationTtl: Math.ceil(windowMs / 1000) });
@@ -140,9 +162,9 @@ async function applyRateLimit(c: Context<{ Bindings: AppEnv }>, maxRequests: num
 app.use("*", async (c, next) => {
   const contentLength = c.req.header("content-length");
   if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) { // 10MB limit
-    return c.json({ error: "Request too large" }, 413);
+    throw new APIError(413, "REQUEST_TOO_LARGE", "Request too large");
   }
-  await next();
+  return await next();
 });
 
 // Use pretty JSON in dev
@@ -165,12 +187,12 @@ app.route("/api", MonthlyReportRouter());
 app.route("/health", HealthRouter());
 app.route("/api/gamification", GamificationRouter());
 app.route("/api/infographic", InfographicRouter());
-app.route("/api/live-workout", liveWorkoutRouter());
+app.route("/api/live-workout", LiveWorkoutRouter());
 app.route("/api/metabolic", MetabolicRouter());
-app.route("/api/posture", postureRouter());
+app.route("/api/posture", PostureRouter());
 app.route("/api/digital-twin", DigitalTwinRouter());
 app.route("/api/acoustic", AcousticRouter());
-app.route("/api/form", formRouter());
+app.route("/api/form", FormAnalyzeRouter());
 // Admin test data endpoint (development only)
 if (process.env.NODE_ENV !== "production") {
   app.route("/api/admin/test", AdminTestRouter());

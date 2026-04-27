@@ -1,0 +1,64 @@
+{
+  "cli": {
+    "version": ">= 13.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "ios": {
+        "autoIncrement": true,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "autoIncrement": true,
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  },
+  "platforms": {
+    "ios": {
+      " simulator": true,
+      "buildConfiguration": "Debug"
+    },
+    "android": {
+      "buildType": "apk"
+    }
+  },
+  "plugins": [
+    [
+      "expo-build-properties",
+      {
+        "ios": {
+          "deploymentTarget": "16.0",
+          "newArchEnabled": true,
+          "useFrameworks": "static"
+        },
+        "android": {
+          "newArchEnabled": true,
+          "enableProguardInReleaseBuilds": true,
+          "proguardRules": "proguard-rules.pro"
+        }
+      }
+    ]
+  ]
+}

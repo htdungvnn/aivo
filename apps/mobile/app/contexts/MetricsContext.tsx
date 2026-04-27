@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
 import { createApiClient, type BodyMetric, type HealthScoreResult } from "@aivo/api-client";
+import { ApiErrorHandler, retryWithBackoff, useNetworkStatus } from "@/utils/error-handler";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8787";
 
@@ -28,12 +29,14 @@ export interface MetricsState {
   loading: boolean;
   error: string | null;
   optimisticUpdate: BodyMetric | null;
+  lastRefreshed: Date | null;
 }
 
 interface MetricsContextType extends MetricsState {
   refreshMetrics: () => Promise<void>;
   addMetric: (metric: Partial<BodyMetric>) => Promise<BodyMetric>;
   addMetricOptimistic: (metric: Partial<BodyMetric>) => Promise<BodyMetric>;
+  clearError: () => void;
 }
 
 const MetricsContext = createContext<MetricsContextType | undefined>(undefined);
@@ -46,7 +49,9 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     loading: true,
     error: null,
     optimisticUpdate: null,
+    lastRefreshed: null,
   }));
+  const { isConnected } = useNetworkStatus();
 
   const loadCachedData = useCallback(async () => {
     try {
@@ -70,24 +75,32 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
         }));
       }
     } catch {
-      // Silently ignore cache load errors
+      // Handle cache load errors silently
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
   }, []);
 
   const refreshMetrics = useCallback(async () => {
+    // If offline, use cached data
+    if (!isConnected) {
+      setState((prev) => ({ ...prev, loading: false, error: "You're offline. Showing cached data." }));
+      return;
+    }
+
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       const api = getApiClient();
-      const [metricsRes, scoreRes] = await Promise.allSettled([
-        api.getBodyMetrics({ limit: 30 }),
-        api.getHealthScore(),
+
+      // Use retry with backoff for network requests
+      const [metricsData, scoreData] = await Promise.allSettled([
+        retryWithBackoff(() => api.getBodyMetrics({ limit: 30 })),
+        retryWithBackoff(() => api.getHealthScore()),
       ]);
 
-      if (metricsRes.status === "fulfilled") {
-        const { data } = metricsRes.value;
+      if (metricsData.status === "fulfilled") {
+        const { data } = metricsData.value;
         setState((prev) => ({
           ...prev,
           metrics: data || [],
@@ -96,28 +109,39 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
         await SecureStore.setItemAsync(STORAGE_KEYS.METRICS, JSON.stringify(data || []));
       }
 
-      if (scoreRes.status === "fulfilled") {
-        const { data } = scoreRes.value;
+      if (scoreData.status === "fulfilled") {
+        const { data } = scoreData.value;
         setState((prev) => ({
           ...prev,
           healthScore: data || null,
         }));
         await SecureStore.setItemAsync(STORAGE_KEYS.HEALTH_SCORE, JSON.stringify(data));
       }
+
+      setState((prev) => ({
+        ...prev,
+        lastRefreshed: new Date(),
+        loading: false,
+      }));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to load metrics";
-      setState((prev) => ({ ...prev, error: message }));
-    } finally {
-      setState((prev) => ({ ...prev, loading: false }));
+      const message = ApiErrorHandler.handle(error, "Failed to load metrics");
+      setState((prev) => ({ ...prev, error: message, loading: false }));
     }
-  }, []);
+  }, [isConnected]);
 
   const addMetric = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
-    const api = getApiClient();
-    const { data } = await api.createBodyMetric(metric);
-    if (!data) {throw new Error('Failed to create metric: no data returned');}
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
-    return data;
+    try {
+      const api = getApiClient();
+      const { data } = await api.createBodyMetric(metric);
+      if (!data) {
+        throw new Error('Failed to create metric: no data returned');
+      }
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
+      return data;
+    } catch (error: unknown) {
+      const message = ApiErrorHandler.handle(error, "Failed to add metric");
+      throw new Error(message);
+    }
   };
 
   const addMetricOptimistic = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
@@ -144,8 +168,10 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     }));
 
     try {
-      const { data: newMetric } = await api.createBodyMetric(metric);
-      if (!newMetric) {throw new Error('No data returned from API');}
+      const { data: newMetric } = await retryWithBackoff(() => api.createBodyMetric(metric));
+      if (!newMetric) {
+        throw new Error('No data returned from API');
+      }
 
       // Replace optimistic metric with real one
       setState((prev) => ({
@@ -157,7 +183,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
 
       await SecureStore.deleteItemAsync(STORAGE_KEYS.METRICS);
       return newMetric;
-    } catch (error) {
+    } catch (error: unknown) {
       // Revert optimistic update on error
       setState((prev) => ({
         ...prev,
@@ -165,9 +191,14 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
         latestMetric: prev.metrics[0] || null,
         optimisticUpdate: null,
       }));
-      throw error;
+      const message = ApiErrorHandler.handle(error, "Failed to add metric");
+      throw new Error(message);
     }
   };
+
+  const clearError = useCallback(() => {
+    setState((prev) => ({ ...prev, error: null }));
+  }, []);
 
   useEffect(() => {
     loadCachedData();
@@ -178,6 +209,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     refreshMetrics,
     addMetric,
     addMetricOptimistic,
+    clearError,
   };
 
   return <MetricsContext.Provider value={value}>{children}</MetricsContext.Provider>;

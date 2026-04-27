@@ -272,7 +272,7 @@ export function analyzeTaskRequirements(
 /**
  * Filters models based on task requirements
  */
-function filterCapableModels(
+export function filterCapableModels(
   requirements: TaskRequirements,
   models: ModelDefinition[]
 ): ModelDefinition[] {
@@ -308,7 +308,7 @@ function filterCapableModels(
 /**
  * Calculates estimated cost for a model given token estimates
  */
-function calculateCost(
+export function calculateCost(
   model: ModelDefinition,
   inputTokens: number,
   outputTokens: number

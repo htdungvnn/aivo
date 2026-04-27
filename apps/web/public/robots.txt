@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Allow crawling of all pages
+Disallow:
+
+# Sitemap location
+Sitemap: https://aivo fitness.com/sitemap.xml
+
+# Don't crawl admin or API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+
+# Allow important static assets
+Allow: /_next/static/
+Allow: /icons/
+Allow: /screenshots/

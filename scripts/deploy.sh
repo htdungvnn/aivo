@@ -341,11 +341,6 @@ main() {
         SKIP_TESTS=true
         shift
         ;;
-      --quick|--skip-checks)
-        QUICK_MODE=true
-        SKIP_TESTS=true
-        shift
-        ;;
       --skip-tests)
         SKIP_TESTS=true
         shift

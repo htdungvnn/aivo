@@ -19,10 +19,20 @@ export default {
   collectCoverageFrom: [
     'src/**/*.ts',
     'src/**/*.tsx',
-    '!src/**/*.d.ts'
+    '!src/**/*.d.ts',
+    '!src/**/__tests__/**',
+    '!src/**/mocks/**'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  },
   clearMocks: true,
   restoreMocks: true,
   testTimeout: 30000,

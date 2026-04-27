@@ -7,6 +7,7 @@ import { MuscleDashboard } from "@/components/body/MuscleActivationChart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SkipLink } from "@/components/accessibility";
 import {
   Activity,
   ArrowRight,
@@ -190,14 +191,17 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950/20 to-slate-950 text-white overflow-x-hidden">
+      {/* Skip to main content link for accessibility */}
+      <SkipLink targetId="main-content" />
+
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-lg border-b border-blue-500/10">
+      <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-lg border-b border-blue-500/10" role="navigation" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Activity className="w-8 h-8 text-cyan-400" />
-                <div className="absolute -inset-1 bg-cyan-400/20 rounded-full blur-sm" />
+                <Activity className="w-8 h-8 text-cyan-400" aria-hidden="true" />
+                <div className="absolute -inset-1 bg-cyan-400/20 rounded-full blur-sm" aria-hidden="true" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                 AIVO
@@ -220,6 +224,7 @@ export default function LandingPage() {
                 size="sm"
                 onClick={() => router.push("/login")}
                 className="text-gray-300 hover:text-white"
+                aria-label="Sign in to your account"
               >
                 Sign In
               </Button>
@@ -227,6 +232,7 @@ export default function LandingPage() {
                 size="sm"
                 onClick={() => router.push("/login")}
                 className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40"
+                aria-label="Get started with AIVO for free"
               >
                 Get Started Free
               </Button>
@@ -235,51 +241,55 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeInUp}
-            className="text-center mb-16"
-          >
-            <Badge variant="outline" className="mb-6 gap-2 px-4 py-2 border-cyan-500/30 text-cyan-400 bg-cyan-500/10">
-              <Zap className="w-4 h-4" />
-              AI-Powered Fitness Intelligence
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
-              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-                Body Insight
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                Powered by AI
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
-              Unlock your body&apos;s full potential with AI-driven analysis, real-time tracking, and personalized
-              fitness plans. Experience the future of health technology built on Cloudflare&apos;s edge network.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={() => router.push("/login")}
-                className="group bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40"
-              >
-                Start Free Analysis
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-slate-600 bg-slate-800/50 hover:bg-slate-700/50"
-              >
-                <Activity className="w-5 h-5 mr-2" />
-                Watch Demo
-              </Button>
-            </div>
-          </motion.div>
+      {/* Main Content */}
+      <main id="main-content" role="main" tabIndex={-1}>
+        {/* Hero Section */}
+        <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8" aria-labelledby="hero-title">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeInUp}
+              className="text-center mb-16"
+            >
+              <Badge variant="outline" className="mb-6 gap-2 px-4 py-2 border-cyan-500/30 text-cyan-400 bg-cyan-500/10">
+                <Zap className="w-4 h-4" aria-hidden="true" />
+                AI-Powered Fitness Intelligence
+              </Badge>
+              <h1 id="hero-title" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+                <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                  Body Insight
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
+                  Powered by AI
+                </span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
+                Unlock your body&apos;s full potential with AI-driven analysis, real-time tracking, and personalized
+                fitness plans. Experience the future of health technology built on Cloudflare&apos;s edge network.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => router.push("/login")}
+                  className="group bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40"
+                  aria-label="Start your free AI body analysis"
+                >
+                  Start Free Analysis
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-slate-600 bg-slate-800/50 hover:bg-slate-700/50"
+                  aria-label="Watch a demo of AIVO platform"
+                >
+                  <Activity className="w-5 h-5 mr-2" aria-hidden="true" />
+                  Watch Demo
+                </Button>
+              </div>
+            </motion.div>
 
           {/* Hero Visual - Interactive Muscle Activation Dashboard */}
           <motion.div
@@ -1021,8 +1031,10 @@ export default function LandingPage() {
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
-      <footer className="border-t border-slate-800/50 bg-slate-900/30 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-slate-800/50 bg-slate-900/30 py-12 px-4 sm:px-6 lg:px-8" role="contentinfo">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="relative">

@@ -15,6 +15,7 @@ interface Env {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
   BODY_INSIGHTS_CACHE: KVNamespace;
+  BIOMETRIC_CACHE: KVNamespace;
   LEADERBOARD_CACHE: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   OPENAI_API_KEY?: string;
@@ -39,17 +40,24 @@ export interface HealthResponse {
     latency?: number;
     tables?: string[];
   };
-  cache: {
-    connected: boolean;
-    latency?: number;
+  caches: {
+    bodyInsights: CacheDetails;
+    biometric: CacheDetails;
+    leaderboard: CacheDetails;
+    rateLimit: CacheDetails;
   };
   storage: {
     connected: boolean;
     bucket?: string;
+    objectCount?: number;
   };
   compute: {
     wasmLoaded: boolean;
     optimizerLoaded: boolean;
+  };
+  ai: {
+    openaiConfigured: boolean;
+    geminiConfigured: boolean;
   };
 }
 
@@ -108,25 +116,37 @@ const createHealthCheck = () => {
       });
     }
 
-    // 3. Check Cache (KV)
-    try {
-      const cacheStart = Date.now();
-      await c.env.BODY_INSIGHTS_CACHE.get("health-check", "text");
-      const cacheLatency = Date.now() - cacheStart;
+    // 3. Check Cache (KV) - all namespaces
+    const caches: Record<string, CacheDetails> = {
+      bodyInsights: { connected: false },
+      biometric: { connected: false },
+      leaderboard: { connected: false },
+      rateLimit: { connected: false },
+    };
 
-      services.push({
-        name: "cache",
-        status: "healthy",
-        latency: cacheLatency,
-        details: { type: "Cloudflare KV" },
-      });
-    } catch (error) {
-      services.push({
-        name: "cache",
-        status: "unhealthy",
-        error: error instanceof Error ? error.message : "Cache connection failed",
-      });
-    }
+    const checkCache = async (name: string, cache: KVNamespace): Promise<void> => {
+      try {
+        const start = Date.now();
+        await cache.get("health-check", "text");
+        const latency = Date.now() - start;
+        caches[name] = { connected: true, latency };
+      } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _error = error;
+        caches[name] = { connected: false };
+      }
+    };
+
+    await checkCache("bodyInsights", c.env.BODY_INSIGHTS_CACHE);
+    await checkCache("biometric", c.env.BIOMETRIC_CACHE);
+    await checkCache("leaderboard", c.env.LEADERBOARD_CACHE);
+    await checkCache("rateLimit", c.env.RATE_LIMIT_KV);
+
+    services.push({
+      name: "caches",
+      status: Object.values(caches).every(c => c.connected) ? "healthy" : "degraded",
+      details: caches,
+    });
 
     // 4. Check Storage (R2)
     try {
@@ -151,76 +171,16 @@ const createHealthCheck = () => {
       });
     }
 
-    // 5. Check WASM Compute (temporarily disabled)
-    // try {
-    //   const wasmStart = Date.now();
-    //   const bmi = FitnessCalculator.calculateBMI(70, 1.75);
-    //   const wasmLatency = Date.now() - wasmStart;
-    //
-    //   services.push({
-    //     name: "wasm-compute",
-    //     status: "healthy",
-    //     latency: wasmLatency,
-    //     details: {
-    //       module: "@aivo/compute",
-    //       testResult: { bmi: bmi },
-    //     },
-    //   });
-    // } catch (error) {
-    //   services.push({
-    //     name: "wasm-compute",
-    //     status: "unhealthy",
-    //     error: error instanceof Error ? error.message : "WASM module failed",
-    //   });
-    // }
-
-    // 6. Check AI Optimizer (temporarily disabled)
-    // try {
-    //   const { optimize_content_wasm } = await import("@aivo/optimizer");
-    //   const testText = "This is a test message for optimizer validation.";
-    //   const result = optimize_content_wasm(testText, "");
-    //
-    //   if (result && typeof result === "string") {
-    //     services.push({
-    //       name: "ai-optimizer",
-    //       status: "healthy",
-    //       details: {
-    //         module: "@aivo/optimizer",
-    //         features: ["token-optimization", "semantic-pruning"],
-    //       },
-    //     });
-    //   } else {
-    //     services.push({
-    //       name: "ai-optimizer",
-    //       status: "degraded",
-    //       details: { issue: "Optimization returned unexpected result" },
-    //     });
-    //   }
-    // } catch (error) {
-    //   services.push({
-    //     name: "ai-optimizer",
-    //     status: "unhealthy",
-    //     error: error instanceof Error ? error.message : "Optimizer initialization failed",
-    //   });
-    // }
-
-    // 7. Check AI Configuration (OpenAI)
-    if (c.env.OPENAI_API_KEY) {
-      services.push({
-        name: "ai-service",
-        status: "healthy",
-        details: {
-          provider: "OpenAI",
-          model: "gpt-4o-mini (configured)",
-        },
-      });
-    } else {
-      services.push({
-        name: "ai-service",
-        status: "degraded",
-        details: { issue: "OpenAI API key not configured" },
-      });
-    }
+    // 5. Check AI Configuration
+    const aiStatus = {
+      openaiConfigured: !!c.env.OPENAI_API_KEY,
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+    };
+    services.push({
+      name: "ai-services",
+      status: aiStatus.openaiConfigured ? "healthy" : "degraded",
+      details: aiStatus,
+    });
 
     // Calculate overall status
     const unhealthy = services.filter((s) => s.status === "unhealthy");
@@ -235,12 +195,13 @@ const createHealthCheck = () => {
       uptime: (Date.now() - MODULE_START_TIME) / 1000,
       services,
       database: ((services.find((s) => s.name === "database")?.details || { connected: false }) as any) as DatabaseDetails,
-      cache: ((services.find((s) => s.name === "cache")?.details || { connected: false }) as any) as CacheDetails,
+      caches: caches as any,
       storage: ((services.find((s) => s.name === "storage")?.details || { connected: false }) as any) as StorageDetails,
       compute: {
-        wasmLoaded: false, // Temporarily disabled
+        wasmLoaded: false,
         optimizerLoaded: services.some((s) => s.name === "ai-optimizer" && s.status === "healthy"),
       },
+      ai: aiStatus,
     };
 
     return c.json(response, overallStatus === "unhealthy" ? 503 : 200);

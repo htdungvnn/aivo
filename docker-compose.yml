@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # API Service (Cloudflare Workers)
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: aivo-api
+    ports:
+      - "8787:8787"
+    volumes:
+      # Mount source code for hot reload
+      - ./:/app:cached
+      # Use anonymous volumes for node_modules and build artifacts to avoid cross-platform issues
+      - /app/node_modules
+      - /app/packages
+      - /app/.wrangler
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8081
+      # Generate a random AUTH_SECRET for local dev if not set in host
+      - AUTH_SECRET=${AUTH_SECRET:-dev-secret-please-change}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LOG_LEVEL=debug
+    env_file:
+      - .env/.env.base
+    networks:
+      - aivo-network
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Web Service (Next.js)
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: aivo-web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8787
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+      - NEXT_PUBLIC_FACEBOOK_CLIENT_ID=${NEXT_PUBLIC_FACEBOOK_CLIENT_ID:-}
+      - NEXT_PUBLIC_R2_PUBLIC_URL=${NEXT_PUBLIC_R2_PUBLIC_URL:-}
+    env_file:
+      - .env/.env.base
+    networks:
+      - aivo-network
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  aivo-network:
+    driver: bridge
+
+# Volumes are defined inline as anonymous volumes
+# To list: docker volume ls | grep aivo
+# To cleanup: docker-compose down -v

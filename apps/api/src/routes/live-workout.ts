@@ -55,11 +55,11 @@ const LiveAdjustmentSchema = z.object({
   ),
 });
 
-interface Env {
+export interface Env {
   DB: D1Database;
 }
 
-export const liveWorkoutRouter = () => {
+export const LiveWorkoutRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
 
   // Apply authentication to all live workout routes

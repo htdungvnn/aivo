@@ -32,12 +32,12 @@ interface R2BucketWithName extends R2Bucket {
   name?: string;
 }
 
-interface Env {
+export interface Env {
   DB: D1Database;
   R2_BUCKET: R2BucketWithName;
 }
 
-export const postureRouter = () => {
+export const PostureRouter = () => {
   const router = new Hono<{ Bindings: Env }>();
 
   // Apply authentication to all posture routes

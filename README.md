@@ -83,16 +83,22 @@ cd packages/db && pnpm exec drizzle-kit studio
 | Topic | Guide |
 |-------|-------|
 | **Getting Started** | [QUICKSTART.md](./docs/QUICKSTART.md) |
-| **Environment Variables** | [.env/ENVIRONMENT.md](./.env/ENVIRONMENT.md) |
+| **Environment Setup** | [ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md) |
+| **Environment Variables** | [ENV_VARIABLES_REFERENCE.md](./docs/ENV_VARIABLES_REFERENCE.md) |
+| **Contributing** | [CONTRIBUTING.md](./docs/CONTRIBUTING.md) |
 | **Architecture** | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
 | **API Reference** | [API.md](./docs/API.md) |
 | **Database Schema** | [DATABASE.md](./docs/DATABASE.md) |
 | **Compute Engine** | [COMPUTE.md](./docs/COMPUTE.md) |
 | **Memory Service** | [MEMORY_SERVICE.md](./docs/MEMORY_SERVICE.md) |
 | **Frontend Apps** | [FRONTEND.md](./docs/FRONTEND.md) |
+| **Mobile Development** | [MOBILE_DEVELOPMENT.md](./docs/MOBILE_DEVELOPMENT.md) |
+| **WASM Development** | [WASM_DEVELOPMENT.md](./docs/WASM_DEVELOPMENT.md) |
+| **CI/CD Pipeline** | [CI_CD.md](./docs/CI_CD.md) |
 | **Deployment** | [DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
 | **Testing** | [TESTING.md](./docs/TESTING.md) |
 | **Troubleshooting** | [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) |
+| **Changelog** | [CHANGELOG.md](./CHANGELOG.md) |
 
 ---
 
