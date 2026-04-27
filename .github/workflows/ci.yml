@@ -9,10 +9,8 @@ on:
 # Set up environment variables for caching
 env:
   PNPM_HOME: ~/.pnpm
-  CARGO_HOME: ${{ runner.temp }}/cargo
-  RUSTUP_HOME: ${{ runner.temp }}/rustup
-  RUSTUP_DIST_SERVER: https://static.rust-lang.org
-  # Use sparse registry for faster, more reliable downloads
+  CARGO_HOME: ~/.cargo
+  RUSTUP_HOME: ~/.rustup
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:
@@ -37,30 +35,48 @@ jobs:
 
       - name: Prepare Rust environment
         run: |
-          # Aggressive cleanup of ALL Rust state to prevent corruption
-          rm -rf ${{ runner.temp }}/rustup
-          rm -rf ${{ runner.temp }}/cargo
-          rm -rf /home/runner/.rustup
-          rm -rf /home/runner/.cargo
+          # Clean up any potentially corrupted wasm32 target from previous runs
+          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
+          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
+          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
 
           # Create fresh directories with proper permissions
-          mkdir -p ${{ runner.temp }}/rustup
-          mkdir -p ${{ runner.temp }}/cargo/registry/index
-          mkdir -p ${{ runner.temp }}/cargo/registry/cache
-          mkdir -p ${{ runner.temp }}/cargo/git
-          mkdir -p ${{ runner.temp }}/cargo/bin
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
+          mkdir -p /home/runner/.cargo/git
+          mkdir -p /home/runner/.cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown
 
       - name: Ensure wasm32 target is installed
         run: |
-          # Explicitly add wasm32 target as a fallback in case the action's target
-          # installation failed due to downloads directory issues
-          rustup target add wasm32-unknown-unknown || true
+          set -e
+          echo "Installing wasm32-unknown-unknown target with retry logic..."
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts..."
+            if rustup target add wasm32-unknown-unknown --verbose; then
+              echo "Successfully installed wasm32-unknown-unknown target"
+              break
+            fi
+            echo "Attempt $attempt failed, cleaning up and retrying..."
+            # Clean up any partial downloads
+            rm -rf /home/runner/.rustup/tmp
+            rm -rf /home/runner/.rustup/dist
+            sleep 5
+            attempt=$((attempt + 1))
+          done
+
+          if [ $attempt -gt $max_attempts ]; then
+            echo "Failed to install wasm32-unknown-unknown target after $max_attempts attempts"
+            exit 1
+          fi
+
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Verify Rust installation
@@ -117,30 +133,48 @@ jobs:
 
       - name: Prepare Rust environment
         run: |
-          # Aggressive cleanup of ALL Rust state to prevent corruption
-          rm -rf ${{ runner.temp }}/rustup
-          rm -rf ${{ runner.temp }}/cargo
-          rm -rf /home/runner/.rustup
-          rm -rf /home/runner/.cargo
+          # Clean up any potentially corrupted wasm32 target from previous runs
+          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
+          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
+          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
 
           # Create fresh directories with proper permissions
-          mkdir -p ${{ runner.temp }}/rustup
-          mkdir -p ${{ runner.temp }}/cargo/registry/index
-          mkdir -p ${{ runner.temp }}/cargo/registry/cache
-          mkdir -p ${{ runner.temp }}/cargo/git
-          mkdir -p ${{ runner.temp }}/cargo/bin
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
+          mkdir -p /home/runner/.cargo/git
+          mkdir -p /home/runner/.cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown
 
       - name: Ensure wasm32 target is installed
         run: |
-          # Explicitly add wasm32 target as a fallback in case the action's target
-          # installation failed due to downloads directory issues
-          rustup target add wasm32-unknown-unknown || true
+          set -e
+          echo "Installing wasm32-unknown-unknown target with retry logic..."
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts..."
+            if rustup target add wasm32-unknown-unknown --verbose; then
+              echo "Successfully installed wasm32-unknown-unknown target"
+              break
+            fi
+            echo "Attempt $attempt failed, cleaning up and retrying..."
+            # Clean up any partial downloads
+            rm -rf /home/runner/.rustup/tmp
+            rm -rf /home/runner/.rustup/dist
+            sleep 5
+            attempt=$((attempt + 1))
+          done
+
+          if [ $attempt -gt $max_attempts ]; then
+            echo "Failed to install wasm32-unknown-unknown target after $max_attempts attempts"
+            exit 1
+          fi
+
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Verify Rust installation
@@ -170,8 +204,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.temp }}/cargo/registry
-            ${{ runner.temp }}/cargo/git
+            ~/.cargo/registry
+            ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -229,30 +263,48 @@ jobs:
 
       - name: Prepare Rust environment
         run: |
-          # Aggressive cleanup of ALL Rust state to prevent corruption
-          rm -rf ${{ runner.temp }}/rustup
-          rm -rf ${{ runner.temp }}/cargo
-          rm -rf /home/runner/.rustup
-          rm -rf /home/runner/.cargo
+          # Clean up any potentially corrupted wasm32 target from previous runs
+          rm -rf /home/runner/.rustup/toolchains/*/lib/rustlib/wasm32-unknown-unknown 2>/dev/null || true
+          rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
+          rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
 
           # Create fresh directories with proper permissions
-          mkdir -p ${{ runner.temp }}/rustup
-          mkdir -p ${{ runner.temp }}/cargo/registry/index
-          mkdir -p ${{ runner.temp }}/cargo/registry/cache
-          mkdir -p ${{ runner.temp }}/cargo/git
-          mkdir -p ${{ runner.temp }}/cargo/bin
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.cargo/registry/index
+          mkdir -p /home/runner/.cargo/registry/cache
+          mkdir -p /home/runner/.cargo/git
+          mkdir -p /home/runner/.cargo/bin
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown
 
       - name: Ensure wasm32 target is installed
         run: |
-          # Explicitly add wasm32 target as a fallback in case the action's target
-          # installation failed due to downloads directory issues
-          rustup target add wasm32-unknown-unknown || true
+          set -e
+          echo "Installing wasm32-unknown-unknown target with retry logic..."
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts..."
+            if rustup target add wasm32-unknown-unknown --verbose; then
+              echo "Successfully installed wasm32-unknown-unknown target"
+              break
+            fi
+            echo "Attempt $attempt failed, cleaning up and retrying..."
+            # Clean up any partial downloads
+            rm -rf /home/runner/.rustup/tmp
+            rm -rf /home/runner/.rustup/dist
+            sleep 5
+            attempt=$((attempt + 1))
+          done
+
+          if [ $attempt -gt $max_attempts ]; then
+            echo "Failed to install wasm32-unknown-unknown target after $max_attempts attempts"
+            exit 1
+          fi
+
           rustup target list | grep wasm32-unknown-unknown
 
       - name: Verify Rust installation
@@ -282,8 +334,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.temp }}/cargo/registry
-            ${{ runner.temp }}/cargo/git
+            ~/.cargo/registry
+            ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
