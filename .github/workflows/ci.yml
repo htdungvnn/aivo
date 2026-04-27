@@ -49,13 +49,7 @@ jobs:
           rustc --version
           cargo --version
           rustup show
-
-          # Clean up any existing wasm32 target to avoid corruption
-          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
-          rm -rf "$CARGO_HOME/registry"/* 2>/dev/null || true
-
-          # Verify - dtolnay/rust-toolchain already installed the target
-          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -120,7 +114,7 @@ jobs:
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
@@ -217,7 +211,7 @@ jobs:
           rustc --version
           cargo --version
           rustup show
-          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
+          rustup target list | grep wasm32-unknown-unknown
 
       - name: Set Rust default toolchain
         run: rustup default stable
