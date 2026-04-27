@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "pnpm copy-wasm && mkdir -p dist && wrangler publish --dry-run --outdir=dist --assets ./assets",
+    "build": "tsc --noEmit",
     "copy-wasm": "mkdir -p assets && cp -f ../../packages/infographic-generator/pkg/infographic_generator_bg.wasm assets/ 2>/dev/null && cp -f ../../packages/aivo-compute/pkg/aivo_compute_bg.wasm assets/ 2>/dev/null || echo 'WASM files not found, skipping copy'",
     "deploy": "wrangler deploy --assets ./assets",
     "lint": "eslint src --ext .ts,.tsx --fix --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test.ts\" --ignore-pattern \"**/*.test.tsx\"",

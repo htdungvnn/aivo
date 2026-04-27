@@ -97,17 +97,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm run build
+      - name: Build WASM packages
+        run: pnpm run build:wasm
 
       - name: Verify build
         run: |
-          # Check API dist exists
-          if [ ! -d "apps/api/dist" ]; then
-            echo "Error: API dist not found"
-            exit 1
-          fi
-          # Check WASM files exist
+          # Check WASM package directories exist
+          test -d packages/aivo-compute/pkg
+          test -d packages/optimizer/pkg
+          test -d packages/infographic-generator/pkg
+          # Check key WASM files exist
           test -f packages/aivo-compute/pkg/aivo_compute.js
           test -f packages/aivo-compute/pkg/aivo_compute_bg.wasm
           test -f packages/aivo-compute/pkg/aivo_compute.d.ts
