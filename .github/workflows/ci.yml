@@ -8,9 +8,9 @@ on:
 
 # Set up environment variables for caching
 env:
-  PNPM_HOME: ~/.pnpm
-  CARGO_HOME: ~/.cargo
-  RUSTUP_HOME: ~/.rustup
+  PNPM_HOME: $HOME/.pnpm
+  CARGO_HOME: $HOME/.cargo
+  RUSTUP_HOME: $HOME/.rustup
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:
