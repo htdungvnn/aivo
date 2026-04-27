@@ -54,10 +54,12 @@ jobs:
           mkdir -p /home/runner/.cargo/bin
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          components: rust-src
           targets: wasm32-unknown-unknown
+          default: true
 
       - name: Verify Rust installation
         run: |
