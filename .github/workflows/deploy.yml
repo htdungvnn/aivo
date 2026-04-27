@@ -46,6 +46,9 @@ jobs:
           rm -rf /home/runner/.rustup/downloads/* 2>/dev/null || true
           rm -rf /home/runner/.cargo/registry/* 2>/dev/null || true
 
+          # Remove wasm32 target from rustup if registered (to avoid conflicts)
+          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
+
           # Prepare directories
           mkdir -p /home/runner/.rustup/downloads
           mkdir -p /home/runner/.cargo/registry/index
