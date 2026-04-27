@@ -23,7 +23,6 @@ async function ensureWasmInitialized(): Promise<void> {
           await init(wasmBytes);
           wasmInitialized = true;
         } catch (error) {
-          console.error("WASM initialization failed:", error);
           throw error;
         }
       })();
