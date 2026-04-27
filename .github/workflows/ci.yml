@@ -8,9 +8,9 @@ on:
 
 # Set up environment variables for caching
 env:
-  PNPM_HOME: ${{ env.HOME }}/.pnpm
-  CARGO_HOME: ${{ env.HOME }}/.cargo
-  RUSTUP_HOME: ${{ env.HOME }}/.rustup
+  PNPM_HOME: /home/runner/.pnpm
+  CARGO_HOME: /home/runner/.cargo
+  RUSTUP_HOME: /home/runner/.rustup
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:

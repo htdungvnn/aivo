@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 env:
-  PNPM_HOME: ${{ env.HOME }}/.pnpm
-  CARGO_HOME: ${{ env.HOME }}/.cargo
-  RUSTUP_HOME: ${{ env.HOME }}/.rustup
+  PNPM_HOME: /home/runner/.pnpm
+  CARGO_HOME: /home/runner/.cargo
+  RUSTUP_HOME: /home/runner/.rustup
 
 jobs:
   build-deploy:
