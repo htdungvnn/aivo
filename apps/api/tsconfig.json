@@ -10,7 +10,6 @@
       "@aivo/db/schema": ["../../packages/db/src/schema"],
       "@aivo/infographic-generator": ["../../packages/infographic-generator/pkg"],
       "@aivo/api-client": ["../../packages/api-client/src"],
-      "@aivo/memory-service": ["../../packages/memory-service/dist"],
       "@aivo/optimizer": ["../../packages/optimizer/pkg"],
       "@aivo/body-compute": ["../../packages/body-compute/src"],
       "@aivo/email-reporter": ["../../packages/email-reporter/src"]
