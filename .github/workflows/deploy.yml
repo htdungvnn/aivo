@@ -44,27 +44,16 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-          targets: wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
           rustc --version
           cargo --version
           rustup show
+          rustup target list | grep wasm32-unknown-unknown || echo "Target not listed - will be installed by wasm-pack if needed"
 
       - name: Set Rust default toolchain
         run: rustup default stable
-
-      - name: Prepare Rust directories
-        run: |
-          mkdir -p ~/.rustup/downloads
-          chmod -R u+rwX ~/.rustup 2>/dev/null || true
-
-      - name: Add wasm32 target
-        run: |
-          rustup target remove wasm32-unknown-unknown 2>/dev/null || true
-          rustup target add wasm32-unknown-unknown
-          rustup target list | grep wasm32-unknown-unknown
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
