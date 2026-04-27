@@ -57,37 +57,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-
-      - name: Ensure wasm32 target is installed
-        run: |
-          set -e
-          echo "Installing wasm32-unknown-unknown target with retry logic..."
-          # Ensure rustup directories exist
-          mkdir -p /home/runner/.rustup/downloads
-          mkdir -p /home/runner/.rustup/toolchains
-          max_attempts=3
-          attempt=1
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt/$max_attempts..."
-            if rustup target add wasm32-unknown-unknown; then
-              echo "Successfully installed wasm32-unknown-unknown target"
-              break
-            fi
-            echo "Attempt $attempt failed, cleaning up and retrying..."
-            # Clean up any partial downloads
-            rm -rf /home/runner/.rustup/tmp
-            rm -rf /home/runner/.rustup/dist
-            rm -rf /home/runner/.rustup/downloads/*
-            sleep 5
-            attempt=$((attempt + 1))
-          done
-
-          if [ $attempt -gt $max_attempts ]; then
-            echo "Failed to install wasm32-unknown-unknown target after $max_attempts attempts"
-            exit 1
-          fi
-
-          rustup target list | grep wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown
 
       - name: Verify Rust installation
         run: |
