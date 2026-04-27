@@ -62,6 +62,9 @@ jobs:
         run: |
           set -e
           echo "Installing wasm32-unknown-unknown target with retry logic..."
+          # Ensure rustup directories exist
+          mkdir -p /home/runner/.rustup/downloads
+          mkdir -p /home/runner/.rustup/toolchains
           max_attempts=3
           attempt=1
           while [ $attempt -le $max_attempts ]; do
@@ -74,6 +77,7 @@ jobs:
             # Clean up any partial downloads
             rm -rf /home/runner/.rustup/tmp
             rm -rf /home/runner/.rustup/dist
+            rm -rf /home/runner/.rustup/downloads/*
             sleep 5
             attempt=$((attempt + 1))
           done
