@@ -35,6 +35,87 @@ export const MetabolicRouter = () => {
    * Generate metabolic twin projections
    * POST /metabolic/simulate
    */
+  /**
+   * @swagger
+   * /metabolic/simulate:
+   *   post:
+   *     summary: Generate metabolic twin simulation
+   *     description: Project future body composition changes based on historical data using WASM-powered metabolic modeling
+   *     tags: [metabolic]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - historicalData
+   *             properties:
+   *               historicalData:
+   *                 type: array
+   *                 description: Array of historical body metrics
+   *                 items:
+   *                   type: object
+   *                   required:
+   *                     - timestamp
+   *                     - weightKg
+   *                     - bodyFatPct
+   *                     - muscleMassKg
+   *                   properties:
+   *                     timestamp:
+   *                       type: number
+   *                       description: Unix timestamp in milliseconds
+   *                     weightKg:
+   *                       type: number
+   *                       description: Weight in kilograms
+   *                     bodyFatPct:
+   *                       type: number
+   *                       description: Body fat percentage
+   *                     muscleMassKg:
+   *                       type: number
+   *                       description: Muscle mass in kilograms
+   *                     activityLevel:
+   *                       type: number
+   *                       description: Activity level (1-5)
+   *                     calorieIntake:
+   *                       type: number
+   *                       description: Daily calorie intake
+   *               timeHorizonDays:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 120
+   *                 default: 30
+   *                 description: Projection timeline in days
+   *     responses:
+   *       200:
+   *         description: Simulation generated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     projections:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                     scenarios:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *       400:
+   *         description: Insufficient historical data
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Simulation failed
+   */
   router.post("/simulate", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -94,6 +175,42 @@ export const MetabolicRouter = () => {
   /**
    * Get available projection scenarios
    * GET /metabolic/scenarios
+   */
+  /**
+   * @swagger
+   * /metabolic/scenarios:
+   *   get:
+   *     summary: List metabolic projection scenarios
+   *     description: Retrieve available projection scenarios for metabolic twin simulations
+   *     tags: [metabolic]
+   *     security:
+   *       - bearer: []
+   *     responses:
+   *       200:
+   *         description: List of scenarios
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     scenarios:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           id:
+   *                             type: string
+   *                           name:
+   *                             type: string
+   *                           description:
+   *                             type: string
+   *       401:
+   *         description: Unauthorized
    */
   router.get("/scenarios", async (c) => {
     return c.json({

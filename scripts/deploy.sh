@@ -176,7 +176,7 @@ build_wasm() {
   run_command "pnpm run build:wasm" "Building Rust WASM module"
 
   # Verify WASM output exists
-  if [ ! -f "$PROJECT_ROOT/packages/aivo-compute/pkg/aivo_compute.js" ]; then
+  if [ ! -f "$PROJECT_ROOT/packages/compute/pkg/aivo_compute.js" ]; then
     log_error "WASM build output not found!"
     return 1
   fi

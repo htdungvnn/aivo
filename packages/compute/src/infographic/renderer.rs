@@ -1,6 +1,6 @@
 //! SVG rendering from templates and data
 
-use crate::types::*;
+use super::types::*;
 use svg::{node::element::{Text, Group, Rectangle, Circle, Path, Image}, Document, node::Text as SvgText};
 
 /// Render SVG from template and data
@@ -225,7 +225,7 @@ pub enum RenderError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{InfographicStory, StatData, WorkoutStats, GamificationStats, StrengthStats, BodyStats, Comparisons, UserStats, Period};
+    use crate::infographic::types::{InfographicStory, StatData, WorkoutStats, GamificationStats, StrengthStats, BodyStats, Comparisons, UserStats, Period};
 
     fn create_test_data() -> InfographicData {
         let story = InfographicStory {
@@ -297,11 +297,9 @@ mod tests {
         };
 
         let config = InfographicConfig {
-            template: crate::types::InfographicTemplate::WeeklySummary,
-            theme: "vibrant".to_string(),
-            layout: "square".to_string(),
-            color_scheme: crate::colors::default_palette(),
-            typography: crate::types::TypographyConfig {
+            template: crate::infographic::types::InfographicTemplate::WeeklySummary,
+            color_scheme: crate::infographic::colors::default_palette(),
+            typography: crate::infographic::types::TypographyConfig {
                 headline_font: "Arial".to_string(),
                 body_font: "Arial".to_string(),
                 headline_size: 64.0,
@@ -317,7 +315,7 @@ mod tests {
         InfographicData {
             id: "test".to_string(),
             user_id: "user123".to_string(),
-            template: crate::types::InfographicTemplate::WeeklySummary,
+            template: crate::infographic::types::InfographicTemplate::WeeklySummary,
             config,
             story,
             stats,
@@ -377,8 +375,8 @@ mod tests {
     #[test]
     fn test_render_svg() {
         let data = create_test_data();
-        let template = crate::templates::build_weekly_summary_template(
-            1080, 1080, crate::colors::default_palette()
+        let template = crate::infographic::templates::build_weekly_summary_template(
+            1080, 1080, crate::infographic::colors::default_palette()
         );
 
         let svg = render_svg(template, &data).unwrap();

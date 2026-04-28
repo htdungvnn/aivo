@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --webpack",
-    "build:pages": "next build --webpack --config next.config.cloudflare.js",
+    "build:pages": "pnpm run build",
     "start": "next start",
     "lint": "NODE_OPTIONS='--max-old-space-size=16384' eslint src --ext .ts,.tsx --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test.ts\" --ignore-pattern \"**/*.test.tsx\"",
     "type-check": "tsc --noEmit",

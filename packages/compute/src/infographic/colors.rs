@@ -1,6 +1,6 @@
 //! Color palette generation for infographic themes
 
-use crate::types::ColorPalette;
+use super::types::ColorPalette;
 
 /// Generate color palette for a given theme
 pub fn generate_palette(theme: &str, _level: i32) -> ColorPalette {

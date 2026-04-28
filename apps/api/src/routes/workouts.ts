@@ -23,6 +23,43 @@ export const WorkoutsRouter = () => {
   router.use("*", authenticate);
 
   // List workouts for authenticated user only
+  /**
+   * @swagger
+   * /workouts:
+   *   get:
+   *     summary: List user workouts
+   *     description: Retrieve all workout entries for the authenticated user
+   *     tags: [workouts]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 50
+   *         description: Number of workouts to return
+   *       - in: query
+   *         name: offset
+   *         schema:
+   *           type: integer
+   *           minimum: 0
+   *           default: 0
+   *         description: Offset for pagination
+   *     responses:
+   *       200:
+   *         description: List of workouts
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Workout'
+   *       401:
+   *         description: Unauthorized
+   */
   router.get("/", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -35,6 +72,53 @@ export const WorkoutsRouter = () => {
   });
 
   // Create workout - userId must match authenticated user
+  /**
+   * @swagger
+   * /workouts:
+   *   post:
+   *     summary: Create workout
+   *     description: Log a new workout for the authenticated user
+   *     tags: [workouts]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - type
+   *               - duration
+   *             properties:
+   *               type:
+   *                 type: string
+   *                 enum: [strength, cardio, hiit, yoga, running, cycling]
+   *                 description: Workout type
+   *               duration:
+   *                 type: number
+   *                 description: Duration in minutes
+   *               caloriesBurned:
+   *                 type: number
+   *                 minimum: 0
+   *                 description: Calories burned (optional)
+   *               metrics:
+   *                 type: object
+   *                 additionalProperties:
+   *                   type: number
+   *                 description: Additional workout metrics (sets, reps, distance, etc.)
+   *     responses:
+   *       201:
+   *         description: Workout created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Workout'
+   *       400:
+   *         description: Invalid request data
+   *       401:
+   *         description: Unauthorized
+   */
   router.post("/", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;

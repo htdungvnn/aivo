@@ -34,7 +34,7 @@
         "../../packages/shared-types/dist/src"
       ],
       "@aivo/compute": [
-        "../../packages/aivo-compute/pkg"
+        "../../packages/compute/pkg"
       ]
     }
   },

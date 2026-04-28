@@ -39,11 +39,6 @@
 
 use wasm_bindgen::prelude::*;
 
-/// WASM module entry point - required for proper initialization
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
-    Ok(())
-}
 
 pub mod error;
 pub mod keyword_extraction;

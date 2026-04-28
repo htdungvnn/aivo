@@ -91,6 +91,44 @@ export const MonthlyReportRouter = () => {
   // Apply authentication to admin routes (cron endpoint uses Cloudflare cron auth)
   router.use("*", authenticate);
 
+  /**
+   * @swagger
+   * /monthly-reports/cron/monthly-reports:
+   *   get:
+   *     summary: Trigger monthly reports (cron)
+   *     description: Internal endpoint triggered by Cloudflare Cron to send monthly progress reports to opted-in users. Accessible only by Cloudflare cron job.
+   *     tags: [monthly-reports]
+   *     security:
+   *       - cfCron: []
+   *     responses:
+   *       200:
+   *         description: Monthly reports triggered successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 year:
+   *                   type: integer
+   *                 month:
+   *                   type: integer
+   *                 processed:
+   *                   type: integer
+   *                 sent:
+   *                   type: integer
+   *                 failed:
+   *                   type: integer
+   *                 errors:
+   *                   type: array
+   *                   items:
+   *                     type: string
+   *       401:
+   *         description: Unauthorized - not called from cron
+   *       500:
+   *         description: Cron job failed
+   */
   router.get("/cron/monthly-reports", async (c) => {
     const cf = c.req.raw.cf;
     if (!cf || cf.cron !== "0 9 1 * *") {
@@ -132,6 +170,71 @@ export const MonthlyReportRouter = () => {
   });
 
   router.post("/admin/monthly-reports", async (c) => {
+    /**
+     * @swagger
+     * /monthly-reports/admin/monthly-reports:
+     *   post:
+     *     summary: Manually trigger monthly reports (admin)
+     *     description: Admin endpoint to manually trigger monthly report generation for a specific month
+     *     tags: [monthly-reports, admin]
+     *     security:
+     *       - bearer: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - year
+     *               - month
+     *             properties:
+     *               year:
+     *                 type: integer
+     *                 minimum: 2000
+     *                 description: Report year
+     *               month:
+     *                 type: integer
+     *                 minimum: 1
+     *                 maximum: 12
+     *                 description: Report month (1-12)
+     *               dryRun:
+     *                 type: boolean
+     *                 default: false
+     *                 description: If true, simulate without sending emails
+     *     responses:
+     *       200:
+     *         description: Reports triggered successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 year:
+     *                   type: integer
+     *                 month:
+     *                   type: integer
+     *                 processed:
+     *                   type: integer
+     *                 sent:
+     *                   type: integer
+     *                 failed:
+     *                   type: integer
+     *                 errors:
+     *                   type: array
+     *                   items:
+     *                     type: string
+     *                 dryRun:
+     *                   type: boolean
+     *       400:
+     *         description: Invalid request data
+     *       401:
+     *         description: Unauthorized
+     *       403:
+     *         description: Forbidden - requires admin role
+     */
     try {
       const { year, month, dryRun = false } = MonthlyReportSchema.parse(await c.req.json());
       const drizzle = createDrizzleInstance(c.env.DB);
@@ -155,6 +258,51 @@ export const MonthlyReportRouter = () => {
     }
   });
 
+  /**
+   * @swagger
+   * /monthly-reports/users/{userId}/email-preferences:
+   *   put:
+   *     summary: Update monthly report email preferences
+   *     description: Allow users to opt-in or opt-out of monthly progress report emails
+   *     tags: [monthly-reports, users]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID (must match authenticated user)
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               receiveMonthlyReports:
+   *                 type: boolean
+   *                 description: Whether to receive monthly progress reports
+   *     responses:
+   *       200:
+   *         description: Preferences updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *       400:
+   *         description: Invalid request data
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden - can only update own preferences
+   */
   router.put("/users/:userId/email-preferences", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const requesterId = authUser.id;

@@ -2,7 +2,7 @@
 
 **Team A Implementation - Tasks #60, #75, #85, #137, #141**
 
-This document provides detailed API specifications for social features and gamification. It covers both existing implemented endpoints (gamification) and planned endpoints for clubs, events, messaging, and enhanced leaderboards.
+This document provides detailed API specifications for social features and gamification. It covers both existing implemented endpoints (gamification) and planned endpoints for clubs, events, and enhanced leaderboards.
 
 ---
 
@@ -17,9 +17,8 @@ This document provides detailed API specifications for social features and gamif
    - [Share Profile](#share-profile)
 2. [Clubs & Groups (Planned)](#clubs--groups-planned)
 3. [Events (Planned)](#events-planned)
-4. [Messaging (Planned)](#messaging-planned)
-5. [Enhanced Leaderboards (Planned)](#enhanced-leaderboards-planned)
-6. [Real-time Updates (Planned)](#real-time-updates-planned)
+4. [Enhanced Leaderboards (Planned)](#enhanced-leaderboards-planned)
+5. [Real-time Updates (Planned)](#real-time-updates-planned)
 
 ---
 
@@ -730,182 +729,7 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## Messaging (Planned)
 
-### Direct Messages
-
-#### Send Message
-
-```http
-POST /messages
-Authorization: Bearer <jwt-token>
-Content-Type: application/json
-
-{
-  "recipientId": "user-uuid",
-  "content": "Hey! How's the training going?",
-  "replyToMessageId": "msg-uuid"  // optional
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "messageId": "msg-uuid",
-    "senderId": "user-uuid",
-    "recipientId": "user-uuid",
-    "content": "Hey! How's the training going?",
-    "sentAt": "2025-04-27T12:00:00.000Z",
-    "replyToMessageId": null
-  }
-}
-```
-
-#### Get Conversation
-
-```http
-GET /messages/conversations/:userId?limit=100
-Authorization: Bearer <jwt-token>
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "participant": {
-      "userId": "user-uuid",
-      "name": "Other User",
-      "picture": "https://..."
-    },
-    "messages": [
-      {
-        "messageId": "msg-uuid",
-        "senderId": "user-uuid",
-        "content": "Hello!",
-        "sentAt": "2025-04-27T10:00:00.000Z",
-        "isRead": true,
-        "readAt": "2025-04-27T10:05:00.000Z"
-      }
-    ],
-    "hasMore": false
-  }
-}
-```
-
-#### List Conversations
-
-```http
-GET /messages/conversations?limit=50
-Authorization: Bearer <jwt-token>
-```
-
-Returns list of all conversation partners with last message preview.
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "participant": {
-        "userId": "user-uuid",
-        "name": "John Doe",
-        "picture": "https://..."
-      },
-      "lastMessage": "See you tomorrow!",
-      "lastMessageAt": "2025-04-27T12:00:00.000Z",
-      "unreadCount": 2
-    }
-  ]
-}
-```
-
-#### Mark as Read
-
-```http
-POST /messages/:messageId/read
-Authorization: Bearer <jwt-token>
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Marked as read"
-}
-```
-
-#### Delete Message
-
-```http
-DELETE /messages/:messageId
-Authorization: Bearer <jwt-token>
-```
-
-**Authorization:** Only sender can delete.
-
----
-
-### Group Chat (Club/Event)
-
-#### Send Club Message
-
-```http
-POST /clubs/:clubId/messages
-Authorization: Bearer <jwt-token>
-Content-Type: application/json
-
-{
-  "content": "Great workout everyone!",
-  "replyToMessageId": "msg-uuid"  // optional
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "messageId": "msg-uuid",
-    "clubId": "club-uuid",
-    "senderId": "user-uuid",
-    "senderName": "User Name",
-    "senderPicture": "https://...",
-    "content": "Great workout everyone!",
-    "sentAt": "2025-04-27T12:00:00.000Z"
-  }
-}
-```
-
-#### Get Club Messages
-
-```http
-GET /clubs/:clubId/messages?limit=100&before=...
-Authorization: Bearer <jwt-token>
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "clubId": "club-uuid",
-    "messages": [ ... ],
-    "hasMore": false
-  }
-}
-```
-
----
 
 ## Enhanced Leaderboards (Planned)
 
@@ -1229,22 +1053,6 @@ interface EventParticipant {
 }
 ```
 
-### Message (Planned)
-
-```typescript
-interface Message {
-  id: string;
-  senderId: string;
-  recipientId: string | null;  // null for group chat
-  clubId: string | null;      // set for club messages
-  eventId: string | null;     // set for event chat
-  content: string;
-  replyToMessageId: string | null;
-  sentAt: number;
-  isRead: boolean;
-  readAt: number | null;
-}
-```
 
 ---
 
@@ -1255,7 +1063,6 @@ interface Message {
 | `/gamification/checkin` | 1/day | Daily check-in limit |
 | `/gamification/freeze/purchase` | 10/day | Prevent spam |
 | `/clubs` | 100/hour | Club creation/modification |
-| `/messages` | 200/hour | Message sending |
 | `/events` | 100/hour | Event creation/modification |
 
 ---
@@ -1296,7 +1103,6 @@ Events that trigger webhooks:
 - `club.member.joined`
 - `event.created`
 - `event.rsvp.updated`
-- `message.sent`
 - `leaderboard.updated`
 
 Webhook payload:
@@ -1325,7 +1131,6 @@ See `packages/db/src/schema.ts` for table definitions. Key tables:
 - `club_members` - Club membership (planned)
 - `events` - Event definitions (planned)
 - `event_participants` - Event RSVP tracking (planned)
-- `messages` - Direct and group messages (planned)
 
 ### Caching Strategy
 
@@ -1368,7 +1173,7 @@ openapi: 3.0.3
 info:
   title: AIVO Social & Gamification API
   version: 1.0.0
-  description: Endpoints for gamification, clubs, events, and messaging
+  description: Endpoints for gamification, clubs, and events
 
 paths:
   /gamification/streak/{userId}:

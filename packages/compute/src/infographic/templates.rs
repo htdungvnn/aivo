@@ -1,6 +1,7 @@
 //! SVG Template definitions and rendering
 
-use crate::types::{ColorPalette, SvgTemplate, SvgTemplateElement};
+use super::types::{ColorPalette, SvgTemplate, SvgTemplateElement};
+use super::colors::generate_palette;
 
 /// Get a template by ID
 pub fn get_template_by_id(
@@ -9,7 +10,7 @@ pub fn get_template_by_id(
     height: u32,
     theme: &str,
 ) -> Option<SvgTemplate> {
-    let palette = crate::colors::generate_palette(theme, 0);
+    let palette = generate_palette(theme, 0);
 
     match template_id {
         "weekly_summary" => Some(build_weekly_summary_template(width, height, palette)),
@@ -640,7 +641,7 @@ mod tests {
 
     #[test]
     fn test_get_template_by_id() {
-        let _palette = crate::colors::generate_palette("vibrant", 0);
+        let _palette = super::colors::generate_palette("vibrant", 0);
         let template = get_template_by_id("weekly_summary", 1080, 1080, "vibrant");
         assert!(template.is_some());
         let t = template.unwrap();

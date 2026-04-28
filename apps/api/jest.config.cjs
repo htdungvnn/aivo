@@ -15,8 +15,6 @@ module.exports = {
   moduleNameMapper: {
     // Map WASM packages to mocks
     '^@aivo/compute$': '<rootDir>/__mocks__/@aivo/compute.js',
-    '^@aivo/infographic-generator$': '<rootDir>/__mocks__/@aivo/infographic-generator.js',
-    '^@aivo/optimizer$': '<rootDir>/__mocks__/@aivo/optimizer.js',
     // Mock ESM-only node_modules
     '^jose$': '<rootDir>/__mocks__/jose.js',
     // TypeScript packages - map to dist (built output)
@@ -26,6 +24,7 @@ module.exports = {
     '^@aivo/api-client$': '<rootDir>/../../packages/api-client/src',
     '^@aivo/body-compute$': '<rootDir>/../../packages/body-compute/src',
     '^@aivo/email-reporter$': '<rootDir>/../../packages/email-reporter/src',
+    '^@aivo/excel-export$': '<rootDir>/../../packages/excel-export/src',
     '^@aivo/memory-service$': '<rootDir>/../../packages/memory-service/src'
   },
   setupFilesAfterEnv: [

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS user_macro_targets (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 -- Create macro_adjustment_sessions table for active adjustment periods
 CREATE TABLE IF NOT EXISTS macro_adjustment_sessions (
@@ -28,9 +29,11 @@ CREATE TABLE IF NOT EXISTS macro_adjustment_sessions (
   effective_fat REAL,
   ended_at INTEGER
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_macro_session_user ON macro_adjustment_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_macro_session_status ON macro_adjustment_sessions(status);
+--> statement-breakpoint
 
 -- Create macro_adjustment_logs table for adjustment history
 CREATE TABLE IF NOT EXISTS macro_adjustment_logs (
@@ -49,10 +52,12 @@ CREATE TABLE IF NOT EXISTS macro_adjustment_logs (
   user_accepted INTEGER DEFAULT 0,
   user_feedback TEXT
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_macro_logs_session ON macro_adjustment_logs(session_id);
 CREATE INDEX IF NOT EXISTS idx_macro_logs_user ON macro_adjustment_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_macro_logs_timestamp ON macro_adjustment_logs(timestamp DESC);
+--> statement-breakpoint
 
 -- Create sensor_data_snapshots table for raw sensor aggregates
 CREATE TABLE IF NOT EXISTS sensor_data_snapshots (
@@ -70,12 +75,16 @@ CREATE TABLE IF NOT EXISTS sensor_data_snapshots (
   source TEXT,
   raw_data TEXT
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_sensor_snapshot_user_time ON sensor_data_snapshots(user_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_sensor_snapshot_period ON sensor_data_snapshots(user_id, period);
+CREATE INDEX IF NOT EXISTS idx_sensor_snapshot_user_period_time ON sensor_data_snapshots(user_id, period, timestamp DESC);
+--> statement-breakpoint
 
 -- +goose Down
 -- Drop indexes
+DROP INDEX IF EXISTS idx_sensor_snapshot_user_period_time;
 DROP INDEX IF EXISTS idx_sensor_snapshot_period;
 DROP INDEX IF EXISTS idx_sensor_snapshot_user_time;
 DROP INDEX IF EXISTS idx_macro_logs_timestamp;
@@ -83,6 +92,7 @@ DROP INDEX IF EXISTS idx_macro_logs_user;
 DROP INDEX IF EXISTS idx_macro_logs_session;
 DROP INDEX IF EXISTS idx_macro_session_status;
 DROP INDEX IF EXISTS idx_macro_session_user;
+--> statement-breakpoint
 
 -- Drop tables
 DROP TABLE IF EXISTS sensor_data_snapshots;

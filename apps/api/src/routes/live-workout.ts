@@ -66,6 +66,59 @@ export const LiveWorkoutRouter = () => {
   router.use("*", authenticate);
 
   // POST /api/live-workout/start - Start a new live workout session
+  /**
+   * @swagger
+   * /live-workout/start:
+   *   post:
+   *     summary: Start live workout session
+   *     description: Initialize a new live workout session with optional template and RPE target
+   *     tags: [live-workout]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               workoutTemplateId:
+   *                 type: string
+   *                 description: Optional template ID to base session on
+   *               name:
+   *                 type: string
+   *                 minLength: 1
+   *                 maxLength: 100
+   *                 description: Session name
+   *               targetRPE:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 10
+   *                 description: Target rate of perceived exertion
+   *               idealRestSeconds:
+   *                 type: integer
+   *                 minimum: 1
+   *                 description: Target rest time between sets
+   *               hasSpotter:
+   *                 type: boolean
+   *                 description: Whether spotter is available
+   *     responses:
+   *       200:
+   *         description: Session started successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/LiveWorkoutSession'
+   *       400:
+   *         description: Invalid request data
+   *       401:
+   *         description: Unauthorized
+   */
   router.post("/start", async (c: Context) => {
     try {
       const authUser = getUserFromContext(c) as AuthUser;
@@ -95,6 +148,39 @@ export const LiveWorkoutRouter = () => {
   });
 
   // GET /api/live-workout/session/:id - Get session state
+  /**
+   * @swagger
+   * /live-workout/session/{id}:
+   *   get:
+   *     summary: Get live workout session
+   *     description: Retrieve the current state of a live workout session
+   *     tags: [live-workout]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Session ID
+   *     responses:
+   *       200:
+   *         description: Session state retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/LiveWorkoutSession'
+   *       404:
+   *         description: Session not found
+   *       401:
+   *         description: Unauthorized
+   */
   router.get("/session/:id", async (c: Context) => {
     try {
       const authUser = getUserFromContext(c) as AuthUser;
@@ -120,6 +206,80 @@ export const LiveWorkoutRouter = () => {
   });
 
   // POST /api/live-workout/log-rpe - Log RPE for a set
+  /**
+   * @swagger
+   * /live-workout/log-rpe:
+   *   post:
+   *     summary: Log RPE (Rate of Perceived Exertion)
+   *     description: Record the perceived exertion for a completed set during a live workout
+   *     tags: [live-workout]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - sessionId
+   *               - setNumber
+   *               - exerciseName
+   *               - completedReps
+   *               - rpe
+   *               - restTimeSeconds
+   *             properties:
+   *               sessionId:
+   *                 type: string
+   *                 description: Live workout session ID
+   *               setNumber:
+   *                 type: integer
+   *                 minimum: 1
+   *                 description: Set number in the workout
+   *               exerciseName:
+   *                 type: string
+   *                 description: Name of the exercise
+   *               weight:
+   *                 type: number
+   *                 minimum: 0
+   *                 description: Weight used (optional)
+   *               plannedReps:
+   *                 type: integer
+   *                 minimum: 1
+   *                 description: Planned repetitions
+   *               completedReps:
+   *                 type: integer
+   *                 minimum: 1
+   *                 description: Actual repetitions completed
+   *               rpe:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 10
+   *                 description: Rate of Perceived Exertion (1-10)
+   *               restTimeSeconds:
+   *                 type: integer
+   *                 minimum: 0
+   *                 description: Rest time before next set
+   *               notes:
+   *                 type: string
+   *                 description: Optional notes about the set
+   *     responses:
+   *       200:
+   *         description: RPE logged successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/SetRPELog'
+   *       400:
+   *         description: Invalid request data
+   *       401:
+   *         description: Unauthorized
+   */
   router.post("/log-rpe", async (c: Context) => {
     try {
       const authUser = getUserFromContext(c) as AuthUser;
@@ -165,6 +325,83 @@ export const LiveWorkoutRouter = () => {
   });
 
   // POST /api/live-workout/adjust - Get AI adjustment recommendation
+  /**
+   * @swagger
+   * /live-workout/adjust:
+   *   post:
+   *     summary: Get live workout adjustment
+   *     description: AI-powered recommendation for weight/reps adjustments based on RPE history
+   *     tags: [live-workout]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - sessionId
+   *               - currentWeight
+   *               - targetReps
+   *               - remainingSets
+   *               - exerciseType
+   *               - isWarmup
+   *               - hasSpotter
+   *               - recentRPERecords
+   *             properties:
+   *               sessionId:
+   *                 type: string
+   *               currentWeight:
+   *                 type: number
+   *                 minimum: 0
+   *               targetReps:
+   *                 type: integer
+   *                 minimum: 1
+   *               remainingSets:
+   *                 type: integer
+   *                 minimum: 0
+   *               exerciseType:
+   *                 type: string
+   *                 enum: [squat, deadlift, bench_press, overhead_press, lunge, pull_up, row, other]
+   *               isWarmup:
+   *                 type: boolean
+   *               hasSpotter:
+   *                 type: boolean
+   *               recentRPERecords:
+   *                 type: array
+   *                 items:
+   *                   type: object
+   *                   properties:
+   *                     rpe:
+   *                       type: integer
+   *                       minimum: 1
+   *                       maximum: 10
+   *                     weight:
+   *                       type: number
+   *                     repsCompleted:
+   *                       type: integer
+   *                     restTimeSeconds:
+   *                       type: integer
+   *                     setNumber:
+   *                       type: integer
+   *     responses:
+   *       200:
+   *         description: Adjustment recommendation calculated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/LiveAdjustment'
+   *       400:
+   *         description: Invalid request data
+   *       401:
+   *         description: Unauthorized
+   */
   router.post("/adjust", async (c: Context) => {
     try {
       const authUser = getUserFromContext(c) as AuthUser;
@@ -198,6 +435,52 @@ export const LiveWorkoutRouter = () => {
   });
 
   // POST /api/live-workout/end - End a live workout session
+  /**
+   * @swagger
+   * /live-workout/session/{id}/end:
+   *   post:
+   *     summary: End live workout session
+   *     description: Complete a live workout session with optional summary
+   *     tags: [live-workout]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Session ID to end
+   *     requestBody:
+   *       required: false
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason:
+   *                 type: string
+   *                 description: Reason for ending (e.g., completed, early_stop, injury)
+   *               suggestion:
+   *                 type: string
+   *                 description: AI suggestion for next session
+   *     responses:
+   *       200:
+   *         description: Session ended successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/LiveWorkoutSession'
+   *       404:
+   *         description: Session not found
+   *       401:
+   *         description: Unauthorized
+   */
   router.post("/session/:id/end", async (c: Context) => {
     try {
       const authUser = getUserFromContext(c) as AuthUser;

@@ -26,9 +26,11 @@ CREATE TABLE IF NOT EXISTS body_avatar_models (
   skin_tone TEXT,
   show_muscle_definitions INTEGER DEFAULT 1
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_avatar_user_id ON body_avatar_models(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS unique_avatar_user ON body_avatar_models(user_id);
+--> statement-breakpoint
 
 -- Create body_projections table for digital twin projection results
 CREATE TABLE IF NOT EXISTS body_projections (
@@ -68,10 +70,12 @@ CREATE TABLE IF NOT EXISTS body_projections (
   cache_key TEXT,
   expires_at INTEGER
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_projection_user_created ON body_projections(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_projection_cache_key ON body_projections(cache_key);
 CREATE INDEX IF NOT EXISTS idx_projection_expires ON body_projections(expires_at);
+--> statement-breakpoint
 
 -- +goose Down
 -- Drop indexes
@@ -80,6 +84,7 @@ DROP INDEX IF EXISTS idx_projection_cache_key;
 DROP INDEX IF EXISTS idx_projection_user_created;
 DROP INDEX IF EXISTS unique_avatar_user;
 DROP INDEX IF EXISTS idx_avatar_user_id;
+--> statement-breakpoint
 
 -- Drop tables
 DROP TABLE IF EXISTS body_projections;

@@ -41,7 +41,7 @@ export const BodyRouter = () => {
    * /body/upload:
    *   post:
    *     summary: Upload body image
-   *     description: Upload a body photo for analysis
+   *     description: Upload a body photo for analysis and storage in R2. The image can be used for AI vision analysis and body composition estimation.
    *     tags: [body]
    *     security:
    *       - bearer: []
@@ -55,11 +55,38 @@ export const BodyRouter = () => {
    *               image:
    *                 type: string
    *                 format: binary
+   *                 description: Body image file (JPEG, PNG, WebP supported)
+   *             required:
+   *               - image
    *     responses:
    *       200:
    *         description: Image uploaded successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     imageUrl:
+   *                       type: string
+   *                       format: uri
+   *                     key:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     uploadedAt:
+   *                       type: string
+   *                       format: date-time
    *       400:
-   *         description: Invalid image
+   *         description: Invalid image or validation failed
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Upload failed
    */
   router.post("/upload", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
@@ -119,8 +146,8 @@ export const BodyRouter = () => {
    * @swagger
    * /body/vision/analyze:
    *   post:
-   *     summary: Analyze body image
-   *     description: Use AI vision to analyze body composition and posture
+   *     summary: Analyze body image with AI
+   *     description: Use OpenAI vision to analyze body composition, muscle definition, and posture from an image URL. Results are stored and also generate body metric entries.
    *     tags: [body]
    *     security:
    *       - bearer: []
@@ -136,13 +163,52 @@ export const BodyRouter = () => {
    *               imageUrl:
    *                 type: string
    *                 format: uri
+   *                 description: Publicly accessible image URL
    *               analyzeMuscles:
    *                 type: boolean
+   *                 default: true
+   *                 description: Whether to analyze muscle definition
    *               analyzePosture:
    *                 type: boolean
+   *                 default: true
+   *                 description: Whether to analyze posture alignment
    *     responses:
    *       200:
-   *         description: Analysis complete
+   *         description: Analysis completed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     imageUrl:
+   *                       type: string
+   *                     processedUrl:
+   *                       type: string
+   *                       nullable: true
+   *                     analysis:
+   *                       type: object
+   *                       description: Full analysis results including body composition estimates
+   *                     confidence:
+   *                       type: number
+   *                       minimum: 0
+   *                       maximum: 1
+   *                     createdAt:
+   *                       type: integer
+   *       503:
+   *         description: AI service not configured
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Analysis failed
    */
   router.post("/vision/analyze", async (c) => {
     const drizzle = createDrizzleInstance(c.env.DB);
@@ -227,6 +293,55 @@ export const BodyRouter = () => {
   });
 
   // Get body metrics history
+  /**
+   * @swagger
+   * /body/metrics:
+   *   get:
+   *     summary: Get body metrics history
+   *     description: Retrieve historical body metrics (weight, body fat, muscle mass, etc.) with optional date range filtering
+   *     tags: [body]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: query
+   *         name: startDate
+   *         schema:
+   *           type: integer
+   *           format: int64
+   *         description: Start timestamp (Unix milliseconds) for filtering
+   *       - in: query
+   *         name: endDate
+   *         schema:
+   *           type: integer
+   *           format: int64
+   *         description: End timestamp (Unix milliseconds) for filtering
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 1000
+   *           default: 100
+   *         description: Maximum number of records to return
+   *     responses:
+   *       200:
+   *         description: Metrics retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/BodyMetric'
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Failed to fetch metrics
+   */
   router.get("/metrics", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -255,7 +370,7 @@ export const BodyRouter = () => {
         return c.json({ success: true, data: cachedData });
       }
 
-      const metrics: BodyMetricResponse[] = await drizzle.query.bodyMetrics.findMany({
+      const metrics = await drizzle.query.bodyMetrics.findMany({
         where: (bm, { eq, gte, lte, and }) => {
           const conditions = [
             eq(bm.userId, userId),
@@ -285,6 +400,74 @@ export const BodyRouter = () => {
   });
 
   // Create manual body metric entry
+  /**
+   * @swagger
+   * /body/metrics:
+   *   post:
+   *     summary: Create body metric entry
+   *     description: Manually create a body metrics entry with optional validation
+   *     tags: [body]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               weight:
+   *                 type: number
+   *                 minimum: 0
+   *               bodyFatPercentage:
+   *                 type: number
+   *                 minimum: 0
+   *                 maximum: 100
+   *               muscleMass:
+   *                 type: number
+   *                 minimum: 0
+   *               boneMass:
+   *                 type: number
+   *                 minimum: 0
+   *               waterPercentage:
+   *                 type: number
+   *                 minimum: 0
+   *                 maximum: 100
+   *               bmi:
+   *                 type: number
+   *                 minimum: 0
+   *               waistCircumference:
+   *                 type: number
+   *                 minimum: 0
+   *               chestCircumference:
+   *                 type: number
+   *                 minimum: 0
+   *               hipCircumference:
+   *                 type: number
+   *                 minimum: 0
+   *               notes:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: Metric created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/BodyMetric'
+   *       400:
+   *         description: Invalid data or validation failed
+   *       404:
+   *         description: User not found
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Failed to create metric
+   */
   router.post("/metrics", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -364,6 +547,58 @@ export const BodyRouter = () => {
   });
 
   // Get body heatmap data
+  /**
+   * @swagger
+   * /body/heatmaps:
+   *   get:
+   *     summary: Get body heatmaps
+   *     description: Retrieve body heatmap data showing muscle activation or body composition heat distribution
+   *     tags: [body]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 10
+   *         description: Maximum number of heatmaps to return
+   *     responses:
+   *       200:
+   *         description: Heatmaps retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                       userId:
+   *                         type: string
+   *                       timestamp:
+   *                         type: integer
+   *                       imageUrl:
+   *                         type: string
+   *                       vectorData:
+   *                         type: array
+   *                         items:
+   *                           type: object
+   *                       metadata:
+   *                         type: object
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Failed to fetch heatmaps
+   */
   router.get("/heatmaps", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -418,6 +653,87 @@ export const BodyRouter = () => {
   });
 
   // Generate heatmap from vision analysis
+  /**
+   * @swagger
+   * /body/heatmaps/generate:
+   *   post:
+   *     summary: Generate body heatmap
+   *     description: Generate a heatmap visualization from a vision analysis ID and vector data
+   *     tags: [body]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - analysisId
+   *               - vectorData
+   *             properties:
+   *               analysisId:
+   *                 type: string
+   *                 description: Vision analysis ID to associate with
+   *               vectorData:
+   *                 type: array
+   *                 description: Array of heatmap data points
+   *                 items:
+   *                   type: object
+   *                   required:
+   *                     - x
+   *                     - y
+   *                     - muscle
+   *                     - intensity
+   *                   properties:
+   *                     x:
+   *                       type: number
+   *                       minimum: 0
+   *                       maximum: 100
+   *                     y:
+   *                       type: number
+   *                       minimum: 0
+   *                       maximum: 100
+   *                     muscle:
+   *                       type: string
+   *                     intensity:
+   *                       type: number
+   *                       minimum: 0
+   *                       maximum: 1
+   *     responses:
+   *       200:
+   *         description: Heatmap generated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     timestamp:
+   *                       type: integer
+   *                     imageUrl:
+   *                       type: string
+   *                     vectorData:
+   *                       type: array
+   *                     regions:
+   *                       type: array
+   *                     metrics:
+   *                       type: object
+   *       404:
+   *         description: Analysis not found
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Failed to generate heatmap
+   */
   router.post("/heatmaps/generate", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;
@@ -496,6 +812,34 @@ export const BodyRouter = () => {
   });
 
   // Get health score
+  /**
+   * @swagger
+   * /body/health-score:
+   *   get:
+   *     summary: Get health score
+   *     description: Calculate overall health score based on latest body metrics, BMI, body fat, muscle mass, and fitness level. Score ranges 0-100 with category and recommendations.
+   *     tags: [body]
+   *     security:
+   *       - bearer: []
+   *     responses:
+   *       200:
+   *         description: Health score calculated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 data:
+   *                   $ref: '#/components/schemas/HealthScore'
+   *       404:
+   *         description: User not found
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Failed to calculate health score
+   */
   router.get("/health-score", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const userId = authUser.id;

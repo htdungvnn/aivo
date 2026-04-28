@@ -180,6 +180,7 @@ export const foodLogs = sqliteTable("food_logs", {
   index('idx_food_logs_logged').on(table.userId, sql`desc ${table.loggedAt}`),
   index('idx_food_logs_food_item').on(table.foodItemId),
   index('idx_food_logs_meal_type').on(table.userId, table.mealType),
+  index('idx_food_logs_user_meal_logged').on(table.userId, table.mealType, sql`desc ${table.loggedAt}`),
 ]);
 
 // Daily nutrition summaries table - materialized aggregates for fast queries
@@ -243,6 +244,7 @@ export const workouts = sqliteTable("workouts", {
   index('idx_workouts_created').on(sql`desc ${table.createdAt}`),
   index('idx_workouts_user_status').on(table.userId, table.status),
   index('idx_workouts_start_time').on(table.userId, sql`desc ${table.startTime}`),
+  index('idx_workouts_user_status_start').on(table.userId, table.status, table.startTime),
 ]);
 
 // Workout exercises table
@@ -257,7 +259,9 @@ export const workoutExercises = sqliteTable("workout_exercises", {
   notes: text("notes"),
   order: integer("order"),
   rpe: real("rpe"),
-});
+}, (table) => [
+  index('idx_workout_exercises_workout_id').on(table.workoutId),
+]);
 
 // ============================================
 // AI ADAPTIVE ROUTINE PLANNER SCHEMA
@@ -295,7 +299,9 @@ export const routineExercises = sqliteTable("routine_exercises", {
   restTime: integer("rest_time"), // seconds between sets
   orderIndex: integer("order_index"),
   notes: text("notes"),
-});
+}, (table) => [
+  index('idx_routine_exercises_routine_id').on(table.routineId),
+]);
 
 // Body insights table - recovery and soreness reports
 export const bodyInsights = sqliteTable("body_insights", {
@@ -1016,6 +1022,8 @@ export const sensorDataSnapshots = sqliteTable("sensor_data_snapshots", {
 }, (table) => [
   index('idx_sensor_snapshot_user_time').on(table.userId, table.timestamp),
   index('idx_sensor_snapshot_period').on(table.userId, table.period),
+  // Optimized index for latest snapshot per period (e.g., latest daily, latest hourly)
+  index('idx_sensor_snapshot_user_period_time').on(table.userId, table.period, sql`desc ${table.timestamp}`),
 ]);
 
 // Migrations table
@@ -1168,6 +1176,262 @@ export const bodyProjections = sqliteTable("body_projections", {
   index('idx_projection_expires').on(table.expiresAt),
 ]);
 
+
+// Social Features Tables
+
+// clubs - Fitness communities
+export const clubs = sqliteTable("clubs", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  privacyType: text("privacy_type").notNull().default("public"), // public, private, restricted
+  avatarUrl: text("avatar_url"),
+  coverImageUrl: text("cover_image_url"),
+  category: text("category"),
+  location: text("location"),
+  maxMembers: integer("max_members").default(1000),
+  requiresApproval: integer("requires_approval").default(0), // 0=no, 1=yes
+  allowMemberPosts: integer("allow_member_posts").default(1),
+  isActive: integer("is_active").default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_clubs_owner_id').on(table.ownerId),
+  index('idx_clubs_privacy_type').on(table.privacyType),
+  index('idx_clubs_created_at').on(sql`desc ${table.createdAt}`),
+]);
+
+// clubMembers - Membership with roles
+export const clubMembers = sqliteTable("club_members", {
+  id: text("id").primaryKey(),
+  clubId: text("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"), // owner, admin, moderator, member
+  joinedAt: integer("joined_at").notNull(),
+  lastActiveAt: integer("last_active_at"),
+  isMuted: integer("is_muted").default(0),
+}, (table) => [
+  unique('uq_club_member').on(table.clubId, table.userId),
+  index('idx_club_members_user_id').on(table.userId),
+  index('idx_club_members_club_role').on(table.clubId, table.role),
+]);
+
+// clubEvents - Scheduled workouts/meetups
+export const clubEvents = sqliteTable("club_events", {
+  id: text("id").primaryKey(),
+  clubId: text("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  eventType: text("event_type").notNull(), // workout, social, challenge, meetup
+  startTime: integer("start_time").notNull(),
+  durationMinutes: integer("duration_minutes"),
+  location: text("location"),
+  recurrenceRule: text("recurrence_rule"), // JSON: iCal RRULE format
+  maxParticipants: integer("max_participants"),
+  isCancelled: integer("is_cancelled").default(0),
+  createdBy: text("created_by").notNull().references(() => users.id),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_club_events_club_id').on(table.clubId),
+  index('idx_club_events_start_time').on(table.startTime),
+]);
+
+// eventAttendees - RSVP & attendance tracking
+export const eventAttendees = sqliteTable("event_attendees", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id").notNull().references(() => clubEvents.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  rsvpStatus: text("rsvp_status").notNull().default("going"), // going, maybe, declined, waitlist
+  attended: integer("attended").default(0), // 0=no, 1=yes (checked in)
+  signedUpAt: integer("signed_up_at").notNull(),
+}, (table) => [
+  unique('uq_event_attendee').on(table.eventId, table.userId),
+  index('idx_event_attendees_event').on(table.eventId),
+  index('idx_event_attendees_user').on(table.userId),
+  index('idx_event_attendees_status').on(table.eventId, table.rsvpStatus),
+  index('idx_event_attendees_attended').on(table.eventId, table.attended),
+]);
+
+// comments - Nested threaded comments for any entity
+export const comments = sqliteTable("comments", {
+  id: text("id").primaryKey(),
+  entityType: text("entity_type").notNull(), // club, event, post, challenge, workout
+  entityId: text("entity_id").notNull(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  parentId: text("parent_id"), // for nested replies, FK defined in migration
+  content: text("content").notNull(),
+  mentions: text("mentions"), // JSON array of user IDs
+  isDeleted: integer("is_deleted").default(0),
+  deletedAt: integer("deleted_at"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_comments_entity').on(table.entityType, table.entityId),
+  index('idx_comments_user').on(table.userId),
+  index('idx_comments_parent').on(table.parentId),
+  index('idx_comments_created').on(sql`desc ${table.createdAt}`),
+  index('idx_comments_entity_created').on(table.entityType, table.entityId, sql`desc ${table.createdAt}`),
+]);
+
+// reactions - Like/emoji reactions for any entity
+export const reactions = sqliteTable("reactions", {
+  id: text("id").primaryKey(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reactionType: text("reaction_type").notNull(), // like, love, haha, wow, sad, angry, etc.
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  unique('uq_reaction').on(table.entityType, table.entityId, table.userId, table.reactionType),
+  index('idx_reactions_entity').on(table.entityType, table.entityId),
+  index('idx_reactions_user').on(table.userId),
+  index('idx_reactions_created').on(sql`desc ${table.createdAt}`),
+]);
+
+// activityFeedEntries - Denormalized activity stream for fast retrieval
+export const activityFeedEntries = sqliteTable("activity_feed_entries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // owner of the activity
+  actorId: text("actor_id").notNull().references(() => users.id), // who performed the action
+  action: text("action").notNull(), // created_club, joined_club, registered_event, completed_workout, etc.
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  metadata: text("metadata").notNull(), // JSON: { club_name, workout_title, ... }
+  visibility: integer("visibility").notNull().default(1), // 1=public_to_club, 2=public_global, 0=private
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index('idx_feed_user_created').on(table.userId, sql`desc ${table.createdAt}`),
+  index('idx_feed_actor_id').on(table.actorId),
+  index('idx_feed_entity').on(table.entityType, table.entityId),
+]);
+
+// clubChallenges - Competitive goals within clubs
+export const clubChallenges = sqliteTable("club_challenges", {
+  id: text("id").primaryKey(),
+  clubId: text("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  challengeType: text("challenge_type").notNull(), // distance, strength, consistency, weight_loss, etc.
+  metric: text("metric").notNull(), // e.g., "total_km", "max_squat_kg", "workout_days"
+  unit: text("unit").notNull(), // km, kg, days, etc.
+  startDate: integer("start_date").notNull(),
+  endDate: integer("end_date").notNull(),
+  targetValue: real("target_value"), // optional target to achieve
+  isIndividual: integer("is_individual").default(1), // 1=individual leaderboard, 0=team-based
+  isActive: integer("is_active").default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_club_challenges_club_id').on(table.clubId),
+  index('idx_club_challenges_dates').on(table.startDate, table.endDate),
+]);
+
+// challengeParticipants - Enrollment tracking
+export const challengeParticipants = sqliteTable("challenge_participants", {
+  id: text("id").primaryKey(),
+  challengeId: text("challenge_id").notNull().references(() => clubChallenges.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("active"), // active, completed, withdrew
+  initialValue: real("initial_value").default(0), // starting metric value
+  currentValue: real("current_value").default(0), // latest progress
+  joinedAt: integer("joined_at").notNull(),
+  completedAt: integer("completed_at"),
+}, (table) => [
+  unique('uq_challenge_participant').on(table.challengeId, table.userId),
+  index('idx_challenge_participants_challenge_status').on(table.challengeId, table.status),
+  index('idx_challenge_participants_user_id').on(table.userId),
+  index('idx_challenge_participants_current_value').on(table.challengeId, table.currentValue),
+]);
+
+// challengeLeaderboardSnapshots - Materialized rankings (no live ranking)
+export const challengeLeaderboardSnapshots = sqliteTable("challenge_leaderboard_snapshots", {
+  id: text("id").primaryKey(),
+  challengeId: text("challenge_id").notNull().references(() => clubChallenges.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  rank: integer("rank").notNull(),
+  metricValue: real("metric_value").notNull(),
+  snapshotDate: integer("snapshot_date").notNull(), // Unix timestamp when snapshot was taken
+}, (table) => [
+  index('idx_leaderboard_snapshots_challenge_date').on(table.challengeId, table.snapshotDate),
+  index('idx_leaderboard_snapshots_user_id').on(table.userId),
+]);
+
+// clubPosts - Discussions within clubs
+export const clubPosts = sqliteTable("club_posts", {
+  id: text("id").primaryKey(),
+  clubId: text("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  isPinned: integer("is_pinned").default(0),
+  isAnnouncement: integer("is_announcement").default(0),
+  likeCount: integer("like_count").default(0),
+  commentCount: integer("comment_count").default(0),
+  lastActivityAt: integer("last_activity_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_club_posts_club_id').on(table.clubId),
+  index('idx_club_posts_author_id').on(table.authorId),
+  index('idx_club_posts_club_pinned_created').on(table.clubId, table.isPinned, sql`desc ${table.createdAt}`),
+]);
+
+// notificationTemplates - Push notification templates
+export const notificationTemplates = sqliteTable("notification_templates", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull().unique(), // club_invite, event_reminder, challenge_update, friend_activity, etc.
+  titleTemplate: text("title_template").notNull(),
+  bodyTemplate: text("body_template").notNull(),
+  icon: text("icon"), // emoji or icon name
+  sound: text("sound").default("default"),
+  actionUrl: text("action_url"), // deep link
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index('idx_notification_templates_type').on(table.type),
+]);
+
+// userBlocks - Privacy/blocking for social features
+export const userBlocks = sqliteTable("user_blocks", {
+  id: text("id").primaryKey(),
+  blockerId: text("blocker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  blockedId: text("blocked_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason"), // harassment, spam, inappropriate_content, etc.
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  unique('uq_user_block').on(table.blockerId, table.blockedId),
+  index('idx_user_blocks_blocker_id').on(table.blockerId),
+  index('idx_user_blocks_blocked_id').on(table.blockedId),
+]);
+
+// socialInsights - Pre-computed analytics for users and clubs
+export const socialInsights = sqliteTable("social_insights", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  period: text("period").notNull(), // daily, weekly, monthly
+  start: integer("start").notNull(), // Unix timestamp for period start
+  end: integer("end").notNull(), // Unix timestamp for period end
+  metrics: text("metrics").notNull(), // JSON: { posts_created, comments_added, reactions_given, clubs_joined, events_attended, challenges_completed }
+  generatedAt: integer("generated_at").notNull(),
+}, (table) => [
+  unique('uq_social_insight').on(table.userId, table.period, table.start),
+  index('idx_social_insights_period_start').on(table.period, table.start),
+  index('idx_social_insights_user_id').on(table.userId),
+]);
+
+// clubSearch - Denormalized search blob (alternative to full-text search)
+export const clubSearch = sqliteTable("club_search", {
+  clubId: text("club_id").primaryKey().references(() => clubs.id, { onDelete: "cascade" }),
+  searchBlob: text("search_blob").notNull(), // Concatenation: name + description + category + location + owner_name
+  memberCount: integer("member_count").notNull().default(0),
+  lastActivityAt: integer("last_activity_at").notNull(),
+}, (table) => [
+  index('idx_club_search_blob').on(table.searchBlob),
+  index('idx_club_search_member_count').on(sql`desc ${table.memberCount}`),
+]);
+
 // Export schema object for Drizzle
 export const schema = {
   users,
@@ -1231,4 +1495,21 @@ export const schema = {
   correlationFindings,
   bodyAvatarModels,
   bodyProjections,
+
+  // Social Features Tables
+  clubs,
+  clubMembers,
+  clubEvents,
+  eventAttendees,
+  comments,
+  reactions,
+  activityFeedEntries,
+  clubChallenges,
+  challengeParticipants,
+  challengeLeaderboardSnapshots,
+  clubPosts,
+  notificationTemplates,
+  userBlocks,
+  socialInsights,
+  clubSearch,
 };

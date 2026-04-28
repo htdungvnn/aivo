@@ -1,0 +1,52 @@
+[package]
+name = "aivo-compute"
+version = "0.1.0"
+edition = "2021"
+description = "Unified WebAssembly module for AIVO - fitness calculations, infographic generation, and content optimization"
+license = "MIT"
+repository = "https://github.com/htdungvnn/aivo"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+serde_json = "1.0"
+js-sys = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+
+# Fitness module dependencies (enabled with "fitness" feature)
+image = { version = "0.24", default-features = false, features = ["jpeg", "png", "webp"], optional = true }
+base64 = { version = "0.21", optional = true }
+regex = { version = "1.10", optional = true }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+rustfft = { version = "6.2", optional = true }
+numeric-array = { version = "0.5", optional = true }
+itertools = { version = "0.10", optional = true }
+
+# Infographic module dependencies (enabled with "infographic" feature)
+svg = { version = "0.14", optional = true }
+resvg = { version = "0.41", optional = true }
+tiny-skia = { version = "0.11", optional = true }
+usvg = { version = "0.41", optional = true }
+
+# Optimizer module dependencies (enabled with "optimizer" feature)
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+rand = "0.8"
+
+[features]
+default = ["fitness", "infographic", "optimizer"]
+fitness = ["image", "base64", "regex", "getrandom", "rustfft", "numeric-array", "itertools"]
+infographic = ["svg", "resvg", "tiny-skia", "usvg"]
+optimizer = []
+
+[profile.release]
+opt-level = "z"  # Optimize for size
+lto = true
+codegen-units = 1
+panic = "abort"

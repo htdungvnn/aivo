@@ -182,7 +182,7 @@ if [ "$LOCAL_MODE" = true ]; then
     print_warning "Web not built (run: pnpm run build in apps/web)"
   fi
 
-  if [ -d "packages/aivo-compute/pkg" ] && [ -f "packages/aivo-compute/pkg/aivo_compute_bg.wasm" ]; then
+  if [ -d "packages/compute/pkg" ] && [ -f "packages/compute/pkg/aivo_compute_bg.wasm" ]; then
     print_success "WASM module built"
   else
     print_warning "WASM not built (run: pnpm run build:wasm)"

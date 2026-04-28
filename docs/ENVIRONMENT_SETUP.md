@@ -21,33 +21,51 @@ This guide covers setting up the AIVO development environment, including all req
    pnpm install
    ```
 
-2. **Run the setup script (creates .env files):**
+2. **Build WASM packages:**
+   ```bash
+   pnpm -w run build:wasm
+   ```
+
+3. **Run the setup script (creates .env files):**
    ```bash
    ./scripts/setup.sh env
    ```
 
-3. **Generate secure secrets:**
+4. **Generate secure secrets:**
    ```bash
    ./scripts/setup.sh secrets
    ```
-   Copy the generated `AUTH_SECRET` to `apps/api/.env`.
+   Copy the generated `AUTH_SECRET` to `apps/api/.env` or set via Cloudflare secrets.
 
-4. **Validate configuration:**
+5. **Validate configuration:**
    ```bash
    ./scripts/setup.sh validate
    ```
+   Expected: `✓ All checks passed! Environment is ready for development.`
 
-5. **Set up local development (dependencies, WASM, database):**
+6. **Set up local database:**
    ```bash
    ./scripts/setup.sh dev
    ```
+   This applies all 18 database migrations to local D1.
 
-6. **Start all development services:**
+7. **Start all development services:**
    ```bash
    ./scripts/dev.sh
    ```
+   Or start individually:
+   ```bash
+   # API (terminal 1)
+   cd apps/api && pnpm exec wrangler dev
+   
+   # Web (terminal 2)
+   cd apps/web && pnpm run dev
+   
+   # Mobile (terminal 3)
+   cd apps/mobile && pnpm exec expo start
+   ```
 
-   Or use the quick setup that runs steps 2-5 automatically:
+   Or use the quick setup that runs steps 2-6 automatically:
    ```bash
    ./scripts/setup.sh all
    ```

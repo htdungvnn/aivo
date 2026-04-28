@@ -3,12 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2025-04-24"
 compatibility_flags = ["nodejs_compat"]
 
+# Resource limits for production safety
+# These prevent runaway requests from consuming excessive resources
+[limits]
+cpu_ms = 50
+memory_mb = 256
+
 [alias]
 "@aivo/db" = "../../packages/db/dist"
 "@aivo/db/schema" = "../../packages/db/dist/schema.js"
-"@aivo/compute" = "../../packages/aivo-compute/pkg"
+"@aivo/compute" = "../../packages/compute/pkg"
 "@aivo/memory-service" = "../../packages/memory-service/dist"
-"@aivo/infographic-generator" = "../../packages/infographic-generator/pkg"
 "@aivo/shared-types" = "../../packages/shared-types/dist"
 "@aivo/excel-export" = "../../packages/excel-export/dist"
 "@aivo/body-compute" = "../../packages/body-compute/src"

@@ -33,7 +33,60 @@ export const BodyPhotosRouter = () => {
   };
 
   // Upload body photo
-  router.post('/body-photos/upload', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-photos/upload:
+   *   post:
+   *     summary: Upload body photo
+   *     description: Upload a body photo for analysis and heatmap generation. Photo is stored in R2 and metadata in database.
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               photo:
+   *                 type: string
+   *                 format: binary
+   *                 description: Body image file (JPEG, PNG, WebP)
+   *             required:
+   *               - photo
+   *     responses:
+   *       200:
+   *         description: Photo uploaded successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 photo:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     r2Url:
+   *                       type: string
+   *                     thumbnailUrl:
+   *                       type: string
+   *                     uploadDate:
+   *                       type: integer
+   *                     analysisStatus:
+   *                       type: string
+   *                       enum: [pending, processing, completed, failed]
+   *       400:
+   *         description: No photo provided
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Upload failed
+   */
+  router.post('/upload', authenticate, async (c) => {
     const formData = await c.req.formData();
     const file = formData.get('photo') as File;
 
@@ -87,7 +140,54 @@ export const BodyPhotosRouter = () => {
   });
 
   // Analyze a pending photo
-  router.post('/body-photos/:id/analyze', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-photos/{id}/analyze:
+   *   post:
+   *     summary: Analyze body photo
+   *     description: Trigger AI vision analysis on a pending body photo to generate heatmap and metrics
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Photo ID to analyze
+   *     responses:
+   *       200:
+   *         description: Analysis completed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 heatmap:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     photoId:
+   *                       type: string
+   *                     regions:
+   *                       type: array
+   *                     metrics:
+   *                       type: object
+   *                 analysis:
+   *                   type: object
+   *                   description: Full vision analysis results
+   *       404:
+   *         description: Photo not found or already analyzed
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Analysis failed
+   */
+  router.post('/:id/analyze', authenticate, async (c) => {
     const id = c.req.param('id') as string;
     const userId = getUserId(c);
     if (!userId) {
@@ -162,7 +262,53 @@ export const BodyPhotosRouter = () => {
   });
 
   // Get current heatmap (latest analysis)
-  router.get('/body-heatmap/current', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-heatmap/current:
+   *   get:
+   *     summary: Get current heatmap
+   *     description: Retrieve the most recent body heatmap analysis for the authenticated user
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     responses:
+   *       200:
+   *         description: Current heatmap retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 heatmap:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     timestamp:
+   *                       type: integer
+   *                     imageUrl:
+   *                       type: string
+   *                     vectorData:
+   *                       type: array
+   *                     regions:
+   *                       type: array
+   *                     metrics:
+   *                       type: object
+   *                 photo:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     r2Url:
+   *                       type: string
+   *                     uploadDate:
+   *                       type: integer
+   *       401:
+   *         description: Unauthorized
+   */
+  router.get('/heatmap/current', authenticate, async (c) => {
     const userId = getUserId(c);
     if (!userId) {
       return c.json({ error: 'Unauthorized' }, 401);
@@ -200,7 +346,45 @@ export const BodyPhotosRouter = () => {
   });
 
   // Get heatmap history
-  router.get('/body-heatmap/history', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-heatmap/history:
+   *   get:
+   *     summary: Get heatmap history
+   *     description: Retrieve historical body heatmap analyses for the authenticated user
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 50
+   *           default: 10
+   *         description: Maximum number of results
+   *     responses:
+   *       200:
+   *         description: Heatmap history retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 history:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       heatmap:
+   *                         type: object
+   *                       photo:
+   *                         type: object
+   *       401:
+   *         description: Unauthorized
+   */
+  router.get('/heatmap/history', authenticate, async (c) => {
     const userId = getUserId(c);
     if (!userId) {
       return c.json({ error: 'Unauthorized' }, 401);
@@ -239,7 +423,62 @@ export const BodyPhotosRouter = () => {
   });
 
   // Get heatmap by ID
-  router.get('/body-heatmap/:id', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-heatmap/{id}:
+   *   get:
+   *     summary: Get heatmap by ID
+   *     description: Retrieve a specific body heatmap analysis by its ID
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Heatmap ID
+   *     responses:
+   *       200:
+   *         description: Heatmap retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 heatmap:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     userId:
+   *                       type: string
+   *                     timestamp:
+   *                       type: integer
+   *                     imageUrl:
+   *                       type: string
+   *                     vectorData:
+   *                       type: array
+   *                     regions:
+   *                       type: array
+   *                     metrics:
+   *                       type: object
+   *                 photo:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                     r2Url:
+   *                       type: string
+   *                     uploadDate:
+   *                       type: integer
+   *       404:
+   *         description: Heatmap not found
+   *       401:
+   *         description: Unauthorized
+   */
+  router.get('/heatmap/:id', authenticate, async (c) => {
     const id = c.req.param('id') as string;
     const userId = getUserId(c);
     if (!userId) {
@@ -277,7 +516,61 @@ export const BodyPhotosRouter = () => {
   });
 
   // Compare two heatmaps (progress view)
-  router.get('/body-heatmap/compare/:heatmapId1/:heatmapId2?', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-heatmap/compare/{heatmapId1}/{heatmapId2}:
+   *   get:
+   *     summary: Compare two heatmaps
+   *     description: Compare two body heatmaps to show progress over time. heatmapId2 is optional; if omitted, compares to the previous analysis.
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: heatmapId1
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: First (current) heatmap ID
+   *       - in: path
+   *         name: heatmapId2
+   *         required: false
+   *         schema:
+   *           type: string
+   *         description: Second (previous) heatmap ID; if omitted, uses most recent prior analysis
+   *     responses:
+   *       200:
+   *         description: Comparison complete
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 current:
+   *                   type: object
+   *                 previous:
+   *                   type: object
+   *                   nullable: true
+   *                 differences:
+   *                   type: object
+   *                   additionalProperties:
+   *                     type: object
+   *                     properties:
+   *                       current:
+   *                         type: number
+   *                       previous:
+   *                         type: number
+   *                       change:
+   *                         type: number
+   *                       trend:
+   *                         type: string
+   *                         enum: [improved, regressed, stable]
+   *       404:
+   *         description: Primary heatmap not found
+   *       401:
+   *         description: Unauthorized
+   */
+  router.get('/heatmap/compare/:heatmapId1/:heatmapId2?', authenticate, async (c) => {
     const { heatmapId1, heatmapId2 } = c.req.param();
     const userId = getUserId(c);
     const drizzle = createDrizzleInstance(c.env.DB);
@@ -336,7 +629,38 @@ export const BodyPhotosRouter = () => {
   });
 
   // Delete a body photo (and associated heatmap)
-  router.delete('/body-photos/:id', authenticate, async (c) => {
+  /**
+   * @swagger
+   * /body-photos/{id}:
+   *   delete:
+   *     summary: Delete body photo
+   *     description: Delete a body photo and its associated heatmap analysis. Requires ownership.
+   *     tags: [body-photos]
+   *     security:
+   *       - bearer: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Photo ID to delete
+   *     responses:
+   *       200:
+   *         description: Photo deleted successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *       404:
+   *         description: Photo not found
+   *       401:
+   *         description: Unauthorized
+   */
+  router.delete('/:id', authenticate, async (c) => {
     const id = c.req.param('id') as string;
     const userId = getUserId(c);
     const drizzle = createDrizzleInstance(c.env.DB);

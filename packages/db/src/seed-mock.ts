@@ -150,6 +150,51 @@ async function seedDatabase() {
     await db.insert(schema.dailyCheckins).values(mockData.dailyCheckins).run();
     console.log(`   ✅ Streak tracking populated`);
 
+    // Insert social features
+    console.log(`📝 Inserting ${mockData.clubs.length} clubs...`);
+    await db.insert(schema.clubs).values(mockData.clubs).run();
+    console.log(`   ✅ Clubs created`);
+
+    console.log(`📝 Inserting ${mockData.clubMembers.length} club members...`);
+    await db.insert(schema.clubMembers).values(mockData.clubMembers).run();
+    console.log(`   ✅ Club memberships configured`);
+
+    console.log(`📝 Inserting ${mockData.clubEvents.length} club events...`);
+    await db.insert(schema.clubEvents).values(mockData.clubEvents).run();
+    console.log(`   ✅ Events scheduled`);
+
+    console.log(`📝 Inserting ${mockData.eventAttendees.length} event attendees...`);
+    await db.insert(schema.eventAttendees).values(mockData.eventAttendees).run();
+    console.log(`   ✅ RSVPs recorded`);
+
+    console.log(`📝 Inserting ${mockData.clubPosts.length} club posts...`);
+    await db.insert(schema.clubPosts).values(mockData.clubPosts).run();
+    console.log(`   ✅ Club discussions started`);
+
+    console.log(`📝 Inserting ${mockData.comments.length} comments...`);
+    await db.insert(schema.comments).values(mockData.comments).run();
+    console.log(`   ✅ Comments added`);
+
+    console.log(`📝 Inserting ${mockData.reactions.length} reactions...`);
+    await db.insert(schema.reactions).values(mockData.reactions).run();
+    console.log(`   ✅ Reactions recorded`);
+
+    console.log(`📝 Inserting ${mockData.activityFeedEntries.length} activity feed entries...`);
+    await db.insert(schema.activityFeedEntries).values(mockData.activityFeedEntries).run();
+    console.log(`   ✅ Activity feed populated`);
+
+    console.log(`📝 Inserting ${mockData.clubChallenges.length} club challenges...`);
+    await db.insert(schema.clubChallenges).values(mockData.clubChallenges).run();
+    console.log(`   ✅ Challenges created`);
+
+    console.log(`📝 Inserting ${mockData.challengeParticipants.length} challenge participants...`);
+    await db.insert(schema.challengeParticipants).values(mockData.challengeParticipants).run();
+    console.log(`   ✅ Challenge enrollments recorded`);
+
+    console.log(`📝 Inserting ${mockData.challengeLeaderboardSnapshots.length} leaderboard snapshots...`);
+    await db.insert(schema.challengeLeaderboardSnapshots).values(mockData.challengeLeaderboardSnapshots).run();
+    console.log(`   ✅ Leaderboards populated`);
+
     console.log("\n✅ Database seeding completed successfully!");
     console.log("\n📊 Summary:");
     console.log(`   - User: ${mockData.users[0].email}`);

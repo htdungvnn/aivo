@@ -19,6 +19,9 @@ jobs:
   type-check-lint:
     name: Type Check & Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
     env:
       RUSTUP_TOOLCHAIN: stable
     steps:
@@ -30,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node-version }}
 
       - name: Setup pnpm
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -82,6 +85,9 @@ jobs:
   build:
     name: Build All
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
     needs: [type-check-lint]
     env:
       RUSTUP_TOOLCHAIN: stable
@@ -94,7 +100,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node-version }}
 
       - name: Setup pnpm
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -138,8 +144,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -159,8 +165,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build WASM
-        run: pnpm run build:wasm
 
       - name: Build all packages
         run: pnpm run build
@@ -172,14 +176,15 @@ jobs:
           path: |
             apps/web/.next/
             apps/api/dist/
-            packages/aivo-compute/pkg/
-            packages/aivo-optimizer/pkg/
-            packages/infographic-generator/pkg/
+            packages/compute/pkg/
           retention-days: 1
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
     needs: [type-check-lint]
     env:
       RUSTUP_TOOLCHAIN: stable
@@ -190,7 +195,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node-version }}
 
       - name: Setup pnpm
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -234,8 +239,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -248,6 +253,9 @@ jobs:
         env:
           CI: true
 
+      - name: Run WASM tests
+        if: always()
+        run: pnpm --filter @aivo/compute test
       - name: Upload coverage reports
         if: always()
         uses: actions/upload-artifact@v4

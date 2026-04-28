@@ -1,7 +1,7 @@
 /** @type {import('nativewind').NativeWindConfig} */
 module.exports = {
   presets: {
-    nativewind: "nativewind-preset",
+    nativewind: "nativewind/preset",
   },
   darkMode: "class",
   theme: {

@@ -35,15 +35,6 @@
   "submit": {
     "production": {}
   },
-  "platforms": {
-    "ios": {
-      " simulator": true,
-      "buildConfiguration": "Debug"
-    },
-    "android": {
-      "buildType": "apk"
-    }
-  },
   "plugins": [
     [
       "expo-build-properties",

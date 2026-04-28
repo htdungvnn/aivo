@@ -80,6 +80,46 @@ const adminUser = {
   updatedAt: now(),
 };
 
+// Additional mock users for social features
+const extraUsers = [
+  {
+    id: "user-jane-001",
+    email: "jane@example.com",
+    name: "Jane Doe",
+    age: 26,
+    gender: "female",
+    height: 165,
+    weight: 60,
+    restingHeartRate: 62,
+    maxHeartRate: 194,
+    fitnessLevel: "advanced",
+    goals: JSON.stringify({ primary: "Improve flexibility and core strength" }),
+    emailVerified: 1,
+    onboardingCompleted: 1,
+    receiveMonthlyReports: 0,
+    createdAt: daysAgo(45),
+    updatedAt: now(),
+  },
+  {
+    id: "user-john-001",
+    email: "john@example.com",
+    name: "John Smith",
+    age: 32,
+    gender: "male",
+    height: 175,
+    weight: 77,
+    restingHeartRate: 55,
+    maxHeartRate: 188,
+    fitnessLevel: "beginner",
+    goals: JSON.stringify({ primary: "Lose weight and build endurance" }),
+    emailVerified: 1,
+    onboardingCompleted: 1,
+    receiveMonthlyReports: 1,
+    createdAt: daysAgo(30),
+    updatedAt: now(),
+  },
+];
+
 // OAuth session
 const adminSession = {
   id: generateId(),
@@ -652,9 +692,239 @@ for (let i = 30; i >= 0; i--) {
   }
 }
 
+// Social Features Seed Data
+
+// Clubs
+const clubs = [
+  {
+    id: generateId(),
+    name: "AIVO Fitness Community",
+    description: "Official community for AIVO users to share workouts and tips",
+    ownerId: adminUser.id,
+    privacyType: "public",
+    avatarUrl: "https://r2.aivo.ai/clubs/avatars/aivo-community.jpg",
+    coverImageUrl: "https://r2.aivo.ai/clubs/covers/aivo-community.jpg",
+    category: "General Fitness",
+    location: "Online",
+    maxMembers: 1000,
+    requiresApproval: 0,
+    allowMemberPosts: 1,
+    isActive: 1,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
+
+// Club Members
+const clubMembers = [
+  {
+    id: generateId(),
+    clubId: clubs[0].id,
+    userId: adminUser.id,
+    role: "owner",
+    joinedAt: now(),
+    lastActiveAt: now(),
+    isMuted: 0,
+  },
+  ...extraUsers.map((user) => ({
+    id: generateId(),
+    clubId: clubs[0].id,
+    userId: user.id,
+    role: "member",
+    joinedAt: now(),
+    lastActiveAt: now(),
+    isMuted: 0,
+  })),
+];
+
+// Club Events
+const clubEvents = [
+  {
+    id: generateId(),
+    clubId: clubs[0].id,
+    title: "Weekly Core Strength Challenge",
+    description: "Complete 5 core exercises and log your results",
+    eventType: "challenge",
+    startTime: now() + 3600,
+    durationMinutes: 60,
+    location: "Online",
+    recurrenceRule: null,
+    maxParticipants: 50,
+    isCancelled: 0,
+    createdBy: adminUser.id,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
+
+// Event Attendees
+const eventAttendees = [
+  {
+    id: generateId(),
+    eventId: clubEvents[0].id,
+    userId: adminUser.id,
+    rsvpStatus: "going",
+    attended: 0,
+    signedUpAt: now(),
+  },
+  ...extraUsers.map((user) => ({
+    id: generateId(),
+    eventId: clubEvents[0].id,
+    userId: user.id,
+    rsvpStatus: "going",
+    attended: 0,
+    signedUpAt: now(),
+  })),
+];
+
+// Club Posts
+const clubPosts = [
+  {
+    id: generateId(),
+    clubId: clubs[0].id,
+    authorId: adminUser.id,
+    title: "Welcome to AIVO Fitness Community!",
+    content: "This is a place to share your fitness journey, ask questions, and motivate each other.",
+    isPinned: 1,
+    isAnnouncement: 1,
+    likeCount: 0,
+    commentCount: 0,
+    lastActivityAt: now(),
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
+
+// Comments
+const comments = [
+  {
+    id: generateId(),
+    entityType: "club_post",
+    entityId: clubPosts[0].id,
+    userId: adminUser.id,
+    parentId: undefined,
+    content: "Welcome everyone! Feel free to introduce yourselves.",
+    mentions: null,
+    isDeleted: 0,
+    deletedAt: null,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
+
+// Reactions
+const reactions = [
+  {
+    id: generateId(),
+    entityType: "club_post",
+    entityId: clubPosts[0].id,
+    userId: adminUser.id,
+    reactionType: "like",
+    createdAt: now(),
+  },
+  ...extraUsers.map((user) => ({
+    id: generateId(),
+    entityType: "club_post",
+    entityId: clubPosts[0].id,
+    userId: user.id,
+    reactionType: "like",
+    createdAt: now(),
+  })),
+];
+
+// Activity Feed Entries
+const activityFeedEntries = [
+  {
+    id: generateId(),
+    userId: adminUser.id,
+    actorId: adminUser.id,
+    action: "created_post",
+    entityType: "club_post",
+    entityId: clubPosts[0].id,
+    metadata: JSON.stringify({ clubId: clubs[0].id, clubName: clubs[0].name }),
+    visibility: 1,
+    createdAt: now(),
+  },
+  ...extraUsers.map((user) => ({
+    id: generateId(),
+    userId: adminUser.id,
+    actorId: user.id,
+    action: "joined_club",
+    entityType: "club",
+    entityId: clubs[0].id,
+    metadata: JSON.stringify({ clubName: clubs[0].name }),
+    visibility: 1,
+    createdAt: now(),
+  })),
+];
+
+// Club Challenges
+const clubChallenges = [
+  {
+    id: generateId(),
+    clubId: clubs[0].id,
+    title: "30-Day Step Challenge",
+    description: "Walk at least 10,000 steps every day for 30 days",
+    challengeType: "metric",
+    metric: "steps",
+    unit: "steps",
+    startDate: now(),
+    endDate: now() + 30 * 24 * 3600,
+    targetValue: 10000,
+    isIndividual: 1,
+    isActive: 1,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+];
+
+// Challenge Participants
+const challengeParticipants = [
+  {
+    id: generateId(),
+    challengeId: clubChallenges[0].id,
+    userId: adminUser.id,
+    status: "active",
+    initialValue: 0,
+    currentValue: 0,
+    joinedAt: now(),
+    completedAt: null,
+  },
+  ...extraUsers.map((user) => ({
+    id: generateId(),
+    challengeId: clubChallenges[0].id,
+    userId: user.id,
+    status: "active",
+    initialValue: 0,
+    currentValue: 0,
+    joinedAt: now(),
+    completedAt: null,
+  })),
+];
+
+// Challenge Leaderboard Snapshots
+const challengeLeaderboardSnapshots = [
+  {
+    id: generateId(),
+    challengeId: clubChallenges[0].id,
+    userId: adminUser.id,
+    rank: 1,
+    metricValue: 10500,
+    snapshotDate: now(),
+  },
+  ...extraUsers.map((user, idx) => ({
+    id: generateId(),
+    challengeId: clubChallenges[0].id,
+    userId: user.id,
+    rank: idx + 2,
+    metricValue: 9500 - idx * 500,
+    snapshotDate: now(),
+  })),
+];
+
 // Export all data
 export const mockData = {
-  users: [adminUser],
+  users: [adminUser, ...extraUsers],
   sessions: [adminSession],
   gamificationProfiles: [gamificationProfile],
   bodyMetrics,
@@ -674,6 +944,17 @@ export const mockData = {
   pointTransactions,
   notifications,
   dailyCheckins,
+  clubs,
+  clubMembers,
+  clubEvents,
+  eventAttendees,
+  clubPosts,
+  comments,
+  reactions,
+  activityFeedEntries,
+  clubChallenges,
+  challengeParticipants,
+  challengeLeaderboardSnapshots,
 };
 
 export type MockData = typeof mockData;

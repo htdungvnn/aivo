@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "tsc --noEmit",
-    "copy-wasm": "mkdir -p assets && cp -f ../../packages/infographic-generator/pkg/infographic_generator_bg.wasm assets/ 2>/dev/null && cp -f ../../packages/aivo-compute/pkg/aivo_compute_bg.wasm assets/ 2>/dev/null || echo 'WASM files not found, skipping copy'",
+    "copy-wasm": "mkdir -p assets && cp -f ../../packages/compute/pkg/aivo_compute_bg.wasm assets/",
     "deploy": "wrangler deploy --assets ./assets",
     "lint": "eslint src --ext .ts,.tsx --fix --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test.ts\" --ignore-pattern \"**/*.test.tsx\"",
     "type-check": "tsc --noEmit",
@@ -19,9 +19,7 @@
     "@aivo/db": "workspace:*",
     "@aivo/email-reporter": "workspace:*",
     "@aivo/excel-export": "workspace:*",
-    "@aivo/infographic-generator": "workspace:*",
     "@aivo/memory-service": "workspace:*",
-    "@aivo/optimizer": "workspace:*",
     "@aivo/shared-types": "workspace:*",
     "@anthropic-ai/sdk": "^0.90.0",
     "@cloudflare/d1": "^1.4.1",

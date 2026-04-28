@@ -46,12 +46,6 @@ pub use colors::*;
 
 use wasm_bindgen::prelude::*;
 
-/// WASM module entry point - required for proper initialization
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
-    // Initialize any global state here if needed
-    Ok(())
-}
 use serde::{Deserialize, Serialize};
 
 /// Main WASM entry: Render infographic as SVG string
@@ -143,7 +137,7 @@ pub fn default_config() -> Result<String, JsError> {
         template: InfographicTemplate::WeeklySummary,
         theme: "vibrant".to_string(),
         layout: "square".to_string(),
-        color_scheme: crate::colors::default_palette(),
+        color_scheme: colors::default_palette(),
         typography: TypographyConfig {
             headline_font: "Arial, sans-serif".to_string(),
             body_font: "Arial, sans-serif".to_string(),

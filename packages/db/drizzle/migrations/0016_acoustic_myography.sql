@@ -16,9 +16,11 @@ CREATE TABLE IF NOT EXISTS acoustic_baselines (
   notes TEXT,
   raw_features_json TEXT
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_acoustic_baseline_user_muscle ON acoustic_baselines(user_id, muscle_group);
 CREATE UNIQUE INDEX IF NOT EXISTS unique_baseline_user_muscle ON acoustic_baselines(user_id, muscle_group);
+--> statement-breakpoint
 
 -- Create acoustic_sessions table for workout sessions with acoustic monitoring
 CREATE TABLE IF NOT EXISTS acoustic_sessions (
@@ -42,9 +44,11 @@ CREATE TABLE IF NOT EXISTS acoustic_sessions (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_acoustic_session_user_time ON acoustic_sessions(user_id, start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_acoustic_session_workout ON acoustic_sessions(workout_id);
+--> statement-breakpoint
 
 -- Create acoustic_audio_chunks table for individual audio samples
 CREATE TABLE IF NOT EXISTS acoustic_audio_chunks (
@@ -58,9 +62,11 @@ CREATE TABLE IF NOT EXISTS acoustic_audio_chunks (
   confidence REAL,
   created_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_chunks_session_index ON acoustic_audio_chunks(session_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_chunks_timestamp ON acoustic_audio_chunks(session_id, timestamp);
+--> statement-breakpoint
 
 -- Create muscle_fatigue_readings table for latest fatigue state per muscle
 CREATE TABLE IF NOT EXISTS muscle_fatigue_readings (
@@ -78,10 +84,12 @@ CREATE TABLE IF NOT EXISTS muscle_fatigue_readings (
   session_start_time INTEGER,
   updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_fatigue_user_muscle ON muscle_fatigue_readings(user_id, muscle_group);
 CREATE INDEX IF NOT EXISTS idx_fatigue_updated ON muscle_fatigue_readings(updated_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS unique_fatigue_user_muscle ON muscle_fatigue_readings(user_id, muscle_group);
+--> statement-breakpoint
 
 -- Create acoustic_fatigue_trends table for aggregated trend analytics
 CREATE TABLE IF NOT EXISTS acoustic_fatigue_trends (
@@ -99,9 +107,11 @@ CREATE TABLE IF NOT EXISTS acoustic_fatigue_trends (
   correlation_with_volume REAL,
   calculated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS idx_trend_user_period ON acoustic_fatigue_trends(user_id, period, period_start);
 CREATE INDEX IF NOT EXISTS idx_trend_muscle ON acoustic_fatigue_trends(muscle_group);
+--> statement-breakpoint
 
 -- +goose Down
 -- Drop indexes
@@ -116,6 +126,7 @@ DROP INDEX IF EXISTS idx_acoustic_session_workout;
 DROP INDEX IF EXISTS idx_acoustic_session_user_time;
 DROP INDEX IF EXISTS unique_baseline_user_muscle;
 DROP INDEX IF EXISTS idx_acoustic_baseline_user_muscle;
+--> statement-breakpoint
 
 -- Drop tables
 DROP TABLE IF EXISTS acoustic_fatigue_trends;

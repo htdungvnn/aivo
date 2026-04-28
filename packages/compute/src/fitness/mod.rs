@@ -19,12 +19,6 @@ use js_sys::Array;
 use image::GenericImageView;
 use serde::{Deserialize, Serialize};
 
-/// WASM module entry point - required for proper initialization
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
-    // Initialize any global state here if needed
-    Ok(())
-}
 
 /// Fitness calculation module providing high-performance WASM functions
 #[wasm_bindgen]

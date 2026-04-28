@@ -9,7 +9,7 @@ import init, {
   render_svg,
   render_png,
   build_template
-} from "@aivo/infographic-generator";
+} from "@aivo/compute";
 import type {
   InfographicData,
   InfographicConfig,
@@ -19,7 +19,7 @@ import type {
 
 // We'll fetch the WASM file directly from the assets directory at runtime
 // The WASM file will be uploaded as a static asset
-const WASM_PATH = "/infographic_generator_bg.wasm";
+const WASM_PATH = "/aivo_compute_bg.wasm";
 
 let wasmInitialized = false;
 let wasmInitPromise: Promise<void> | null = null;

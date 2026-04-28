@@ -1,0 +1,52 @@
+{
+  "name": "@aivo/compute",
+  "version": "0.1.0",
+  "description": "Unified WebAssembly module for AIVO - fitness calculations, infographic generation, and content optimization",
+  "main": "pkg/aivo_compute.js",
+  "types": "pkg/aivo_compute.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "wasm-pack build --target web --release --out-dir pkg",
+    "build:nodejs": "wasm-pack build --target nodejs --release --out-dir pkg",
+    "build:all-features": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
+    "build:fitness": "cargo build --release --target wasm32-unknown-unknown --features fitness && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
+    "build:infographic": "cargo build --release --target wasm32-unknown-unknown --features infographic && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
+    "build:optimizer": "cargo build --release --target wasm32-unknown-unknown --features optimizer && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
+    "test": "wasm-pack test --node",
+    "test:browser": "wasm-pack test --chrome --firefox --safari",
+    "clean": "rm -rf pkg target",
+    "build:size": "cargo build --release --target wasm32-unknown-unknown --features fitness,infographic,optimizer && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web && gzip -c pkg/aivo_compute_bg.wasm | wc -c"
+  },
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "fitness",
+    "health",
+    "infographic",
+    "optimization",
+    "rust"
+  ],
+  "author": "AIVO Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aivo/fitness-platform"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "pkg"
+  ],
+  "exports": {
+    ".": {
+      "types": "./pkg/aivo_compute.d.ts",
+      "import": "./pkg/aivo_compute.js"
+    },
+    "./*.wasm": "./pkg/*.wasm",
+    "./*_bg.js": "./pkg/*_bg.js"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.14.0"
+  }
+}
