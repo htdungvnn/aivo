@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance, conversations, workoutRoutines, dailySchedules, planDeviations } from "@aivo/db";
 import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
@@ -8,12 +8,14 @@ import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
 import { MemoryService } from "../lib/memory-service";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import { createAIService, type ChatMessage } from "../utils/unified-ai-service";
+import { buildCacheKey, CACHE_TTL, createCacheHelper, cachedFetch } from "../lib/cache-service";
 import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";
 
 export interface Env {
   DB: D1Database;
   OPENAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  QUERY_CACHE?: KVNamespace;
 }
 
 const ChatRequest = z.object({
@@ -28,11 +30,13 @@ export const AIRouter = () => {
   // Apply authentication to all AI routes
   router.use("*", authenticate);
 
-  // In-memory cache for conversation history (per Worker instance)
-  // Key: userId, Value: { history: Array<{message: string, response: string}>, fetchedAt: number }
-  const historyCache = new Map<string, { history: Array<{ message: string; response: string }>; fetchedAt: number }>();
+  // Helper to get cache helper if available
+  const getCacheHelper = (c: Context<{ Bindings: Env }>) => {
+    return c.env.QUERY_CACHE ? createCacheHelper(c.env.QUERY_CACHE) : null;
+  };
 
-  // Cache TTL: 30 seconds (conversation history is time-sensitive)
+  // In-memory cache for conversation history (per Worker instance)
+  const historyCache = new Map<string, { history: Array<{ message: string; response: string }>; fetchedAt: number }>();
   const HISTORY_CACHE_TTL = 30000;
 
   const getCachedHistory = (userId: string): Array<{ message: string; response: string }> | null => {
@@ -128,6 +132,19 @@ export const AIRouter = () => {
     recoveryRate: number;
   }
 
+  // Cached model definition shape (matches unified-ai-service ModelDefinition)
+  interface CachedModel {
+    id: string;
+    name: string;
+    provider: string;
+    contextWindow: number;
+    maxOutputTokens: number;
+    inputPricePer1M: number;
+    outputPricePer1M: number;
+    capabilities: string[];
+    qualityScore: number;
+  }
+
   // Chat endpoint
   /**
    * @swagger
@@ -178,7 +195,19 @@ export const AIRouter = () => {
       // Try to get conversation history from cache
       let historySource: Array<{ message: string; response: string }> | null = getCachedHistory(userId);
 
-      // If not in cache, fetch from database
+      // If not in in-memory cache, try KV cache
+      const cacheHelper = getCacheHelper(c);
+      const kvCacheKey = buildCacheKey("CONVERSATION_HISTORY", userId);
+
+      if (historySource === null && cacheHelper) {
+        const kvCached = await cacheHelper.get<Array<{ message: string; response: string }>>(kvCacheKey);
+        if (kvCached !== null) {
+          historySource = kvCached;
+          setCachedHistory(userId, historySource); // Populate in-memory cache
+        }
+      }
+
+      // If not in cache anywhere, fetch from database
       if (historySource === null) {
         const historyRows = await drizzle.query.conversations.findMany({
           where: (conv, { eq }) => eq(conv.userId, userId),
@@ -192,8 +221,11 @@ export const AIRouter = () => {
           response: conv.response,
         }));
 
-        // Cache the history
+        // Cache in both in-memory and KV
         setCachedHistory(userId, historySource);
+        if (cacheHelper) {
+          await cacheHelper.set(kvCacheKey, historySource, CACHE_TTL.CONVERSATION_HISTORY);
+        }
       }
 
       // At this point, historySource is guaranteed to be non-null
@@ -303,6 +335,11 @@ export const AIRouter = () => {
 
       // Invalidate conversation history cache to ensure next request gets fresh data
       invalidateHistoryCache(userId);
+      if (cacheHelper) {
+        // Invalidate KV cache entries for this user's history
+        await cacheHelper.invalidate(buildCacheKey("CONVERSATION_HISTORY", userId));
+        await cacheHelper.invalidate(buildCacheKey("CONVERSATION_HISTORY", userId, 50)); // Common limit
+      }
 
       return c.json({
         success: true,
@@ -546,6 +583,7 @@ export const AIRouter = () => {
   router.get("/history/:userId", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const requestedUserId = c.req.param("userId");
+    const cacheHelper = getCacheHelper(c);
 
     // Users can only access their own history
     if (authUser.id !== requestedUserId) {
@@ -554,11 +592,26 @@ export const AIRouter = () => {
 
     const limit = parseInt(c.req.query("limit") || "50");
     const drizzle = createDrizzleInstance(c.env.DB);
+    const cacheKey = buildCacheKey("CONVERSATION_HISTORY", requestedUserId, limit);
+
+    // Try cache first if available
+    if (cacheHelper) {
+      const cachedHistory = await cacheHelper.get(cacheKey);
+      if (cachedHistory) {
+        return c.json(cachedHistory as unknown);
+      }
+    }
+
     const conversationsList = await drizzle.query.conversations.findMany({
       where: (conv, { eq }) => eq(conv.userId, requestedUserId),
       orderBy: (conv, { desc }) => desc(conv.createdAt),
       limit,
     });
+
+    // Cache the result if cache is available
+    if (cacheHelper) {
+      await cacheHelper.set(cacheKey, conversationsList, CACHE_TTL.CONVERSATION_HISTORY);
+    }
 
     return c.json(conversationsList);
   });
@@ -578,8 +631,44 @@ export const AIRouter = () => {
    *         description: List of models
    */
   router.get("/models", async (c) => {
+    const cacheHelper = getCacheHelper(c);
+    const cacheKey = buildCacheKey("AI_MODELS");
+
+    // Try cache first (KV cache for models - static data with long TTL)
+    if (cacheHelper) {
+      const cachedModels = await cacheHelper.get<CachedModel[]>(cacheKey);
+      if (cachedModels) {
+        return c.json({
+          success: true,
+          data: cachedModels.map(model => ({
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            contextWindow: model.contextWindow,
+            maxOutputTokens: model.maxOutputTokens,
+            pricing: {
+              inputPer1M: model.inputPricePer1M,
+              outputPer1M: model.outputPricePer1M,
+            },
+            capabilities: model.capabilities,
+            qualityScore: model.qualityScore,
+          })),
+          config: {
+            costOptimization: 'balanced',
+            maxCostPerRequest: 0.50,
+            qualityThreshold: 7,
+          },
+        });
+      }
+    }
+
     const aiService = getAIService(c.env);
     const models = aiService.getAvailableModels();
+
+    // Cache models for 1 hour if cache is available
+    if (cacheHelper) {
+      await cacheHelper.set(cacheKey, models, CACHE_TTL.AI_MODELS);
+    }
 
     return c.json({
       success: true,

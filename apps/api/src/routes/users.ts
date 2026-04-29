@@ -1,11 +1,13 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { eq } from "drizzle-orm";
 import { createDrizzleInstance, users } from "@aivo/db";
 import type { D1Database } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import { cachedFetch, buildCacheKey, CACHE_TTL, createCacheHelper } from "../lib/cache-service";
 
 export interface Env {
   DB: D1Database;
+  QUERY_CACHE?: KVNamespace;
 }
 
 export const UsersRouter = () => {
@@ -13,6 +15,11 @@ export const UsersRouter = () => {
 
   // Apply authentication to all user routes
   router.use("*", authenticate);
+
+  // Helper to get cache helper if available
+  const getCacheHelper = (c: Context<{ Bindings: Env }>) => {
+    return c.env.QUERY_CACHE ? createCacheHelper(c.env.QUERY_CACHE) : null;
+  };
 
   // Get current user's profile (authenticated user)
   /**
@@ -33,6 +40,17 @@ export const UsersRouter = () => {
   router.get("/me", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const drizzle = createDrizzleInstance(c.env.DB);
+    const cacheHelper = getCacheHelper(c);
+
+    const cacheKey = buildCacheKey("USER_PROFILE", authUser.id);
+
+    // Try cache first if available
+    if (cacheHelper) {
+      const cachedUser = await cacheHelper.get(cacheKey);
+      if (cachedUser) {
+        return c.json(cachedUser as unknown);
+      }
+    }
 
     const user = await drizzle.query.users.findFirst({
       where: eq(users.id, authUser.id),
@@ -40,6 +58,11 @@ export const UsersRouter = () => {
 
     if (!user) {
       return c.json({ error: "User not found" }, 404);
+    }
+
+    // Cache the result if cache is available
+    if (cacheHelper) {
+      await cacheHelper.set(cacheKey, user, CACHE_TTL.USER_PROFILE);
     }
 
     return c.json(user);
@@ -73,6 +96,7 @@ export const UsersRouter = () => {
   router.get("/:id", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const requestedId = c.req.param("id");
+    const cacheHelper = getCacheHelper(c);
 
     // Users can only access their own data
     if (authUser.id !== requestedId) {
@@ -80,12 +104,27 @@ export const UsersRouter = () => {
     }
 
     const drizzle = createDrizzleInstance(c.env.DB);
+    const cacheKey = buildCacheKey("USER_PROFILE", requestedId);
+
+    // Try cache first if available
+    if (cacheHelper) {
+      const cachedUser = await cacheHelper.get(cacheKey);
+      if (cachedUser) {
+        return c.json(cachedUser as unknown);
+      }
+    }
+
     const user = await drizzle.query.users.findFirst({
       where: eq(users.id, requestedId),
     });
 
     if (!user) {
       return c.json({ error: "User not found" }, 404);
+    }
+
+    // Cache the result if cache is available
+    if (cacheHelper) {
+      await cacheHelper.set(cacheKey, user, CACHE_TTL.USER_PROFILE);
     }
 
     return c.json(user);
@@ -125,6 +164,8 @@ export const UsersRouter = () => {
   router.patch("/me", async (c) => {
     const authUser = getUserFromContext(c) as AuthUser;
     const drizzle = createDrizzleInstance(c.env.DB);
+    const cacheHelper = getCacheHelper(c);
+    const cacheKey = buildCacheKey("USER_PROFILE", authUser.id);
 
     try {
       const body = await c.req.json();
@@ -156,6 +197,14 @@ export const UsersRouter = () => {
       const updatedUser = await drizzle.query.users.findFirst({
         where: eq(users.id, authUser.id),
       });
+
+      // Invalidate cache and store updated value
+      if (cacheHelper) {
+        await cacheHelper.invalidate(cacheKey);
+        if (updatedUser) {
+          await cacheHelper.set(cacheKey, updatedUser, CACHE_TTL.USER_PROFILE);
+        }
+      }
 
       return c.json(updatedUser);
     } catch (error) {

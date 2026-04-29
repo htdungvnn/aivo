@@ -45,6 +45,10 @@ id = "c09a3fb62443492389f1675371e1c4d8"
 binding = "RATE_LIMIT_KV"
 id = "cecb209e86dc4b36b3661e6b8d595b74"
 
+[[kv_namespaces]]
+binding = "QUERY_CACHE"
+id = "placeholder"  # Replace with actual KV namespace ID via: wrangler kv:namespace create QUERY_CACHE
+
 [triggers]
 crons = ["0 0 * * *", "0 9 1 * *"]
 
@@ -72,6 +76,6 @@ PUBLIC_SWAGGER = "true"  # Enable Swagger in dev for testing
 # Local development uses in-memory or local emulated services
 # No Cloudflare resource IDs needed for dev environment
 
-[triggers]
+[env.dev.triggers]
 crons = ["0 0 * * *", "0 9 1 * *"]
 
