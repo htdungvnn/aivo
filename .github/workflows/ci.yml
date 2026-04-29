@@ -51,11 +51,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type check all packages
-        run: pnpm run type-check
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rust-src
 
-      - name: Lint all packages
-        run: pnpm run lint
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+
+      - name: Build WASM package
+        run: pnpm --filter @aivo/compute run build
 
       - name: Type check all packages
         run: pnpm run type-check
