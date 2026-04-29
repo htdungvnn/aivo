@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUSTUP_TOOLCHAIN: stable
+      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
     environment:
       name: production
       url: https://aivo.your-domain.workers.dev
@@ -40,11 +41,9 @@ jobs:
           run_install: false
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rust-src
-          default: true
 
       - name: Add wasm32 target
         run: rustup target add wasm32-unknown-unknown
@@ -150,10 +149,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Run Smoke Tests
-        if: ${{ secrets.PRODUCTION_API_URL != '' }}
+        if: ${{ env.PRODUCTION_API_URL != '' }}
         run: bash scripts/smoke-tests.sh
         env:
-          API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          API_URL: ${{ env.PRODUCTION_API_URL }}
 
       - name: Send Deployment Notification
         if: always()

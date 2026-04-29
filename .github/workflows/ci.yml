@@ -84,11 +84,9 @@ jobs:
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rust-src
-          default: true
 
       - name: Add wasm32 target
         run: rustup target add wasm32-unknown-unknown
@@ -108,8 +106,8 @@ jobs:
 
       - name: Configure sccache
         run: |
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "CCACHE_COMPILERCHECK=content" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
 
       - name: Cache sccache
         uses: actions/cache@v4
@@ -194,11 +192,9 @@ jobs:
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rust-src
-          default: true
 
       - name: Add wasm32 target
         run: rustup target add wasm32-unknown-unknown
