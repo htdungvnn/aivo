@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { createDrizzleInstance, users } from "@aivo/db";
 import type { D1Database } from "@cloudflare/workers-types";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
-import { cachedFetch, buildCacheKey, CACHE_TTL, createCacheHelper } from "../lib/cache-service";
+import { buildCacheKey, CACHE_TTL, createCacheHelper } from "../lib/cache-service";
 
 export interface Env {
   DB: D1Database;

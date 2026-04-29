@@ -38,6 +38,8 @@ usvg = { version = "0.41", optional = true }
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 rand = "0.8"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 criterion = "0.5"
 
 [features]

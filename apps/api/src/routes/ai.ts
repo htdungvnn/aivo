@@ -8,8 +8,9 @@ import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
 import { MemoryService } from "../lib/memory-service";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import { createAIService, type ChatMessage } from "../utils/unified-ai-service";
-import { buildCacheKey, CACHE_TTL, createCacheHelper, cachedFetch } from "../lib/cache-service";
-import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";
+import { buildCacheKey, CACHE_TTL, createCacheHelper } from "../lib/cache-service";
+import type { PlanDeviationScore, RecoveryCurve } from "@aivo/shared-types/planning";
+import type { VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types/voice";
 
 export interface Env {
   DB: D1Database;

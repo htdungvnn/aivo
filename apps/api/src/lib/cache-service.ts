@@ -1,5 +1,3 @@
-import type { D1Database } from "@cloudflare/workers-types";
-
 /**
  * Cache service for KV-based caching with cache-aside pattern.
  * Handles caching of database query results with automatic TTL expiration.
