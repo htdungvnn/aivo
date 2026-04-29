@@ -36,7 +36,7 @@ async function ensureWasmInitialized(): Promise<void> {
           }
           const wasmBytes = await response.arrayBuffer();
           // Instantiate WASM and initialize bindings
-          const { instance } = await WebAssembly.instantiate(wasmBytes);
+          const instance = await WebAssembly.instantiate(wasmBytes);
           __wbg_set_wasm(instance.exports);
           start();
           wasmInitialized = true;
