@@ -1,0 +1,66 @@
+# Wrangler ignore file for Cloudflare Pages deployment
+# Exclude large build artifacts and cache directories
+
+# Next.js build cache
+.next/cache/**
+!.next/cache/.keep
+
+# Next.js export/standalone cache (if any)
+**/.next/cache/**
+
+# Turborepo cache
+.turbo/
+
+# Node modules (included in standalone but we might want to exclude some)
+# Note: we need node_modules for standalone, but can exclude heavy optional binaries
+node_modules/**/bin/
+node_modules/**/test/
+node_modules/**/tests/
+node_modules/**/__tests__/
+node_modules/**/*.test.js
+node_modules/**/*.spec.js
+node_modules/**/fixtures/
+node_modules/**/example*/
+node_modules/**/docs/
+node_modules/**/man/
+node_modules/**/CHANGELOG*
+node_modules/**/HISTORY*
+node_modules/**/NOTICE*
+node_modules/**/README*
+node_modules/**/LICENSE*
+node_modules/**/SECURITY*
+
+# Sharp prebuilt binaries (if present, we don't need them in Pages)
+node_modules/sharp/**/vendor/
+node_modules/@img/**/vendor/
+
+# Rust/cargo artifacts (if any)
+**/target/
+**/Cargo.lock
+**/*.rs
+**/Cargo.toml
+
+# Python buffers (if any)
+**/__pycache__/
+**/*.pyc
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files (should not be in build output anyway)
+.env
+.env.local
+.env.*.local

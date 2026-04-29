@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // Transpile packages that need to be included in the bundle
-  transpilePackages: ['@aivo/shared-types', '@aivo/compute'],
+  transpilePackages: ['@aivo/shared-types'],
 
   // Configure images for Cloudflare R2 and external sources
   images: {
@@ -52,7 +52,12 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Handle WASM files
+    // Handle WASM files - ensure they are emitted as assets
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'webassembly/async',
+    });
+
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,

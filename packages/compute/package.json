@@ -6,7 +6,7 @@
   "types": "pkg/aivo_compute.d.ts",
   "type": "module",
   "scripts": {
-    "build": "wasm-pack build --target web --release --out-dir pkg",
+    "build": "wasm-pack build --target bundler --release --out-dir pkg",
     "build:nodejs": "wasm-pack build --target nodejs --release --out-dir pkg",
     "build:all-features": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
     "build:fitness": "cargo build --release --target wasm32-unknown-unknown --features fitness && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
