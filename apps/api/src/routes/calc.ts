@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { FitnessCalculator } from "@aivo/compute";
+import { FitnessCalculator } from "@aivo/compute/aivo_compute_bg.js";
 
 export type Env = Record<string, unknown>;
 

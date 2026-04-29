@@ -10,7 +10,7 @@ import {
   type FatigueAssessment,
   type LiveAdjustment,
 } from "@aivo/shared-types";
-import { LiveWorkoutAdjuster } from "@aivo/compute";
+import { LiveWorkoutAdjuster } from "@aivo/compute/aivo_compute_bg.js";
 
 export class LiveWorkoutService {
   private drizzle: ReturnType<typeof createDrizzleInstance>;

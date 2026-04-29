@@ -148,29 +148,7 @@ jest.mock('@aivo/shared-types', () => ({
     if (score >= 40) return "Fair";
     return "Needs Work";
   }),
-}));
-
-jest.mock('@aivo/body-compute', () => ({
-  BodyCompute: {
-    calculateBMI: jest.fn(),
-    getBMICategory: jest.fn(),
-    getBodyFatCategory: jest.fn(),
-    transformMetricData: jest.fn(),
-    calculateHealthScore: jest.fn(),
-    aggregateHeatmapPoints: jest.fn(),
-    getHeatmapColor: jest.fn(),
-    getHeatmapRadius: jest.fn(),
-    formatTimestamp: jest.fn(),
-    getPostureScoreColor: jest.fn(),
-    getPostureScoreLabel: jest.fn(),
-    prepareHeatmapForRender: jest.fn(() => [
-      { x: 50, y: 42, muscle: 'chest', intensity: 0.7, cx: 100, cy: 168, radius: 10 },
-    ]),
-  },
-  HealthScoreService: {
-    calculate: jest.fn(),
-    getBMICategory: jest.fn(),
-  },
+  // HeatmapRenderer mock
   HeatmapRenderer: {
     color: jest.fn((intensity) => `rgba(255, ${Math.round(intensity * 255)}, 0, ${0.5 + intensity * 0.4})`),
     prepare: jest.fn(() => ({
@@ -179,11 +157,6 @@ jest.mock('@aivo/body-compute', () => ({
       ],
       viewBox: '0 0 200 400',
     })),
-  },
-  PostureAnalyzer: {
-    getScoreColor: jest.fn(),
-    getScoreLabel: jest.fn(),
-    getScoreGradient: jest.fn(),
   },
 }));
 

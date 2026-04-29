@@ -1,4 +1,4 @@
-import { FitnessCalculator } from "@aivo/compute";
+import { FitnessCalculator } from "@aivo/compute/aivo_compute_bg.js";
 
 /**
  * Validate body metrics using WASM-powered validation rules

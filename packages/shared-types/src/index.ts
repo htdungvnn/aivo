@@ -30,3 +30,6 @@ export * from "./nutrition";
 export * from "./biometric";
 export * from "./posture";
 export * from "./planning";
+
+// Platform-agnostic utilities (re-export from body module)
+export { HeatmapRenderer } from "./body";

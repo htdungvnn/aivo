@@ -3,7 +3,7 @@
  * Wraps the Rust WASM PostureAnalyzer for form correction
  */
 
-import { PostureAnalyzer } from "@aivo/compute";
+import { PostureAnalyzer } from "@aivo/compute/aivo_compute_bg.js";
 
 export interface SkeletonJoint {
   x: number;

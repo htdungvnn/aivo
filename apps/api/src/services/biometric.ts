@@ -6,7 +6,7 @@
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { eq, and, gte } from "drizzle-orm";
 import { schema } from "@aivo/db/schema";
-import { FitnessCalculator } from "@aivo/compute";
+import { FitnessCalculator } from "@aivo/compute/aivo_compute_bg.js";
 
 // Drizzle database type
 type DrizzleDB = DrizzleD1Database<typeof schema>;

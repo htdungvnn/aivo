@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "@aivo/api-client": "workspace:*",
-    "@aivo/body-compute": "workspace:*",
     "@aivo/compute": "workspace:*",
     "@aivo/shared-types": "workspace:*",
     "@expo/metro-runtime": "^6.1.2",

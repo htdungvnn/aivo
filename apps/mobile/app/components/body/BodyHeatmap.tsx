@@ -6,8 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import Svg, { G, Circle, Defs, RadialGradient, Stop } from "react-native-svg";
-import { BODY_OUTLINE_FRONT } from "@aivo/shared-types";
-import { HeatmapRenderer, type HeatmapVectorPoint } from "@aivo/body-compute";
+import { BODY_OUTLINE_FRONT, HeatmapRenderer, type HeatmapVectorPoint } from "@aivo/shared-types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HEATMAP_SIZE = Math.min(SCREEN_WIDTH - 64, 320);

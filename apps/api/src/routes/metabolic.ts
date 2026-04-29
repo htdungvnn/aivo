@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import type { D1Database } from "@cloudflare/workers-types";
-import { MetabolicTwin } from "@aivo/compute";
+import { MetabolicTwin } from "@aivo/compute/aivo_compute_bg.js";
 
 interface EnvWithBindings {
   DB: D1Database;

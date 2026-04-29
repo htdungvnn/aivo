@@ -144,9 +144,6 @@ importers:
       '@aivo/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@aivo/body-compute':
-        specifier: workspace:*
-        version: link:../../packages/body-compute
       '@aivo/compute':
         specifier: workspace:*
         version: link:../../packages/compute
@@ -316,12 +313,6 @@ importers:
       '@aivo/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@aivo/body-compute':
-        specifier: workspace:*
-        version: link:../../packages/body-compute
-      '@aivo/compute':
-        specifier: workspace:*
-        version: link:../../packages/compute
       '@aivo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -459,19 +450,6 @@ importers:
       '@types/node':
         specifier: ^22.13.5
         version: 22.19.17
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
-  packages/body-compute:
-    dependencies:
-      '@aivo/shared-types':
-        specifier: workspace:*
-        version: link:../shared-types
-    devDependencies:
-      '@aivo/jest-config':
-        specifier: workspace:*
-        version: link:../jest-config
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

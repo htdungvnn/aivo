@@ -6,7 +6,7 @@ import { eq, gte, lte, and } from "drizzle-orm";
 import { uploadImage, validateImage } from "../services/r2";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
-import { FitnessCalculator } from "@aivo/compute";
+import { FitnessCalculator } from "@aivo/compute/aivo_compute_bg.js";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 
 // Types for daily nutrition summary
@@ -35,7 +35,7 @@ let imageProcessorPromise: Promise<ImageProcessorModule> | null = null;
 
 async function getImageProcessor(): Promise<ImageProcessorModule> {
   if (!imageProcessorPromise) {
-    imageProcessorPromise = import("@aivo/compute").then((mod) => mod as unknown as ImageProcessorModule).catch((err) => {
+    imageProcessorPromise = import("@aivo/compute/aivo_compute_bg.js").then((mod) => mod as unknown as ImageProcessorModule).catch((err) => {
       // eslint-disable-next-line no-console
       console.error("Failed to load WASM image processor:", err);
       return null;

@@ -8,8 +8,7 @@
       "@aivo/db": ["../../packages/db/dist"],
       "@aivo/db/schema": ["../../packages/db/dist/schema"],
       "@aivo/api-client": ["../../packages/api-client/src"],
-      "@aivo/body-compute": ["../../packages/body-compute/src"],
-      "@aivo/email-reporter": ["../../packages/email-reporter/src"]
+      "@aivo/compute/aivo_compute_bg.js": ["../../packages/compute/pkg"]
     }
   },
   "include": ["src"],

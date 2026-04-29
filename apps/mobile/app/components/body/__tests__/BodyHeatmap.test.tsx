@@ -5,9 +5,6 @@ import '@testing-library/jest-native/extend-expect';
 // Mock external dependencies
 jest.mock('@aivo/shared-types', () => ({
   BODY_OUTLINE_FRONT: "M50,50 L100,100", // Simple mock path
-}));
-
-jest.mock('@aivo/body-compute', () => ({
   HeatmapRenderer: {
     prepare: jest.fn(() => ({
       points: [

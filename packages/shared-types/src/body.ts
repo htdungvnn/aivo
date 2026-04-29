@@ -472,6 +472,62 @@ export interface HeatmapRegion {
   confidence: number; // 0-1 from vision analysis
 }
 
+// ============================================
+// HEATMAP RENDERING - Platform-agnostic helpers
+// ============================================
+
+/**
+ * Platform-agnostic heatmap renderer for body visualization
+ * Provides color and geometry calculations for heatmap points
+ */
+export class HeatmapRenderer {
+  /**
+   * Generate color string for a heatmap point based on intensity
+   * @param intensity - Value between 0 and 1
+   * @param scale - Color scale (heat, cool, monochrome)
+   * @returns rgba color string with opacity
+   */
+  static color(intensity: number, scale?: string): string {
+    const { baseColor, opacity } = getHeatmapColor(intensity, scale as HeatmapColorScale);
+    return `${baseColor}${opacity})`;
+  }
+
+  /**
+   * Prepare all heatmap data for rendering in one call
+   * Transforms raw vector data into positioned, colored points
+   * @param vectorData - Raw heatmap vector points from AI analysis
+   * @param options - Rendering dimensions and color scale
+   * @returns Prepared points with coordinates, radius, color, and SVG viewBox
+   */
+  static prepare(
+    vectorData: HeatmapVectorPoint[],
+    options: { width: number; height: number; colorScale?: string } = { width: 200, height: 400 }
+  ): {
+    points: Array<HeatmapVectorPoint & { cx: number; cy: number; radius: number; color: string }>;
+    viewBox: string;
+  } {
+    const scaleFactor = {
+      x: options.width / 100,
+      y: options.height / 100,
+    };
+
+    // Aggregate and scale points
+    const aggregated = aggregateHeatmapPoints(vectorData);
+    const points = aggregated.map((point) => ({
+      ...point,
+      cx: point.x * scaleFactor.x,
+      cy: point.y * scaleFactor.y,
+      radius: getHeatmapRadius(point.intensity),
+      color: this.color(point.intensity, options.colorScale),
+    }));
+
+    return {
+      points,
+      viewBox: `0 0 ${options.width} ${options.height}`,
+    };
+  }
+}
+
 /**
  * Complete vision analysis result from Claude
  */
