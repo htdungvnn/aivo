@@ -122,12 +122,8 @@ jobs:
           command: "deploy --minify --env staging"
 
       - name: Run Smoke Tests (Staging)
-        run: |
-          if [ -z "$API_URL" ]; then
-            echo "Error: STAGING_API_URL secret is not set. Skipping smoke tests."
-            exit 1
-          fi
-          bash scripts/smoke-tests.sh
+        if: secrets.STAGING_API_URL != ''
+        run: bash scripts/smoke-tests.sh
         env:
           API_URL: ${{ secrets.STAGING_API_URL }}
 

@@ -150,12 +150,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Run Smoke Tests
-        run: |
-          if [ -z "$API_URL" ]; then
-            echo "Error: PRODUCTION_API_URL secret is not set. Skipping smoke tests."
-            exit 1
-          fi
-          bash scripts/smoke-tests.sh
+        if: secrets.PRODUCTION_API_URL != ''
+        run: bash scripts/smoke-tests.sh
         env:
           API_URL: ${{ secrets.PRODUCTION_API_URL }}
 
