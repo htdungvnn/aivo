@@ -5,11 +5,7 @@
  * Handles WASM initialization and provides async rendering interface.
  */
 
-import init, {
-  render_svg,
-  render_png,
-  build_template
-} from "@aivo/compute";
+import { __wbg_set_wasm, start, render_svg, render_png, build_template } from '@aivo/compute/aivo_compute_bg.js';
 import type {
   InfographicData,
   InfographicConfig,
@@ -39,7 +35,10 @@ async function ensureWasmInitialized(): Promise<void> {
             throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText}`);
           }
           const wasmBytes = await response.arrayBuffer();
-          await init(wasmBytes);
+          // Instantiate WASM and initialize bindings
+          const { instance } = await WebAssembly.instantiate(wasmBytes);
+          __wbg_set_wasm(instance.exports);
+          start();
           wasmInitialized = true;
         } catch (error) {
           throw error;

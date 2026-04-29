@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
-import init, { AcousticMyography } from '@aivo/compute';
+import { __wbg_set_wasm, start, AcousticMyography } from '@aivo/compute/aivo_compute_bg.js';
 
 // Fetch WASM from assets directory at runtime
 const WASM_PATH = "/aivo_compute_bg.wasm";
@@ -20,7 +20,10 @@ async function ensureWasmInitialized(): Promise<void> {
             throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText}`);
           }
           const wasmBytes = await response.arrayBuffer();
-          await init(wasmBytes);
+          // Instantiate WASM and initialize bindings
+          const { instance } = await WebAssembly.instantiate(wasmBytes);
+          __wbg_set_wasm(instance.exports);
+          start();
           wasmInitialized = true;
         } catch (error) {
           throw error;
