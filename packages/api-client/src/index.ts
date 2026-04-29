@@ -147,6 +147,20 @@ export class ApiClient {
     return this.request("/users");
   }
 
+  /**
+   * Get the current user ID from the provider
+   */
+  async getUserId(): Promise<string | null> {
+    if (this.userIdProvider) {
+      try {
+        return await this.userIdProvider();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   async getUserById(id: string): Promise<ApiResponse<User>> {
     return this.request(`/users/${id}`);
   }
@@ -198,7 +212,7 @@ export class ApiClient {
    */
   async uploadSensorReadings(readings: BiometricReading[]): Promise<ApiResponse<{ received: number }>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/biometric/readings/batch", {
+    const response = await fetch(`${this.baseUrl}/biometric/readings/batch`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -246,7 +260,7 @@ export class ApiClient {
 
   async generateHeatmap(analysisId: string, vectorData: Array<{ x: number; y: number; muscle: string; intensity: number }>): Promise<ApiResponse<BodyHeatmapData>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/body/heatmaps/generate", {
+    const response = await fetch(`${this.baseUrl}/body/heatmaps/generate`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -275,7 +289,7 @@ export class ApiClient {
     // Don't set Content-Type for FormData - browser/RN will set boundary automatically
     delete headers["Content-Type"];
 
-    const response = await fetch(`${this.baseUrl}/body/upload", {
+    const response = await fetch(`${this.baseUrl}/body/upload`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -292,7 +306,7 @@ export class ApiClient {
 
   async analyzeImage(imageUrl: string, analyzeMuscles?: boolean, analyzePosture?: boolean): Promise<ApiResponse<VisionAnalysis>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/body/vision/analyze", {
+    const response = await fetch(`${this.baseUrl}/body/vision/analyze`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -338,7 +352,7 @@ export class ApiClient {
     // Don't set Content-Type for FormData - browser/RN will set boundary automatically
     delete headers["Content-Type"];
 
-    const response = await fetch(`${this.baseUrl}/body-photos/upload", {
+    const response = await fetch(`${this.baseUrl}/body-photos/upload`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -358,7 +372,7 @@ export class ApiClient {
    */
   async analyzeBodyPhoto(photoId: string): Promise<ApiResponse<{ heatmap: StoredHeatmap; analysis: VisionAnalysisResult }>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/body-photos/${encodeURIComponent(photoId)}/analyze", {
+    const response = await fetch(`${this.baseUrl}/body-photos/${encodeURIComponent(photoId)}/analyze`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -418,7 +432,7 @@ export class ApiClient {
 
   async sendChatMessage(message: string, context?: string[]): Promise<ApiResponse<{ message: string; tokensUsed: number; timestamp: string }>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/ai/chat", {
+    const response = await fetch(`${this.baseUrl}/ai/chat`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -618,7 +632,7 @@ export class ApiClient {
    */
   async generateBiometricSnapshot(params?: { period?: "7d" | "30d" }): Promise<ApiResponse<{ snapshotId: string; period: string; recovery_score: number; findings?: CorrelationFinding[] }>> {
     const body = params?.period ? { period: params.period } : {};
-    const response = await fetch(`${this.baseUrl}/biometric/snapshot/generate", {
+    const response = await fetch(`${this.baseUrl}/biometric/snapshot/generate`, {
       method: "POST",
       headers: await this.getAuthHeaders(),
       credentials: "include",
@@ -651,7 +665,7 @@ export class ApiClient {
    * Dismiss a correlation finding
    */
   async dismissCorrelation(findingId: string): Promise<ApiResponse<{ success: boolean }>> {
-    const response = await fetch(`${this.baseUrl}/biometric/correlations/${encodeURIComponent(findingId)}/dismiss", {
+    const response = await fetch(`${this.baseUrl}/biometric/correlations/${encodeURIComponent(findingId)}/dismiss`, {
       method: "PATCH",
       headers: await this.getAuthHeaders(),
       credentials: "include",
@@ -702,7 +716,7 @@ export class ApiClient {
     // Don't set Content-Type for FormData - browser/RN will set boundary automatically
     delete headers["Content-Type"];
 
-    const response = await fetch(`${this.baseUrl}/nutrition/upload", {
+    const response = await fetch(`${this.baseUrl}/nutrition/upload`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -722,7 +736,7 @@ export class ApiClient {
    */
   async analyzeFoodImage(imageUrl: string, mealType?: VisionAnalysisRequest["mealType"]): Promise<ApiResponse<FoodVisionAnalysis>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/nutrition/vision/analyze", {
+    const response = await fetch(`${this.baseUrl}/nutrition/vision/analyze`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -742,7 +756,7 @@ export class ApiClient {
    */
   async createFoodLogFromAnalysis(data: CreateFromAnalysisRequest): Promise<ApiResponse<FoodLog>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/nutrition/logs/from-analysis", {
+    const response = await fetch(`${this.baseUrl}/nutrition/logs/from-analysis`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -762,7 +776,7 @@ export class ApiClient {
    */
   async createFoodLog(data: FoodLogCreate): Promise<ApiResponse<FoodLog>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/nutrition/logs", {
+    const response = await fetch(`${this.baseUrl}/nutrition/logs`, {
       method: "POST",
       headers,
       credentials: "include",
@@ -798,7 +812,7 @@ export class ApiClient {
    */
   async updateFoodLog(id: string, data: FoodLogUpdate): Promise<ApiResponse<FoodLog>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/nutrition/logs/${encodeURIComponent(id)}", {
+    const response = await fetch(`${this.baseUrl}/nutrition/logs/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers,
       credentials: "include",
@@ -841,7 +855,7 @@ export class ApiClient {
    */
   async setMacroTargets(data: Partial<MacroTargets>): Promise<ApiResponse<MacroTargets>> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/nutrition/targets", {
+    const response = await fetch(`${this.baseUrl}/nutrition/targets`, {
       method: "POST",
       headers,
       credentials: "include",

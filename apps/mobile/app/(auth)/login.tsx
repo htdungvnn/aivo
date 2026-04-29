@@ -5,7 +5,17 @@ import * as SecureStore from "expo-secure-store";
 import { Activity as ActivityIcon, Lock } from "lucide-react-native";
 import { STORAGE_KEYS } from "@/config";
 import { useGoogleLogin, useFacebookLogin, handleOAuthResponse } from "@/hooks/useOAuth";
-import colors from "@/theme/colors";
+
+const COLORS = {
+  background: "#0f172a",
+  cardBackground: "#1e293b",
+  border: "#334155",
+  primary: "#3b82f6",
+  text: "#f8fafc",
+  textSecondary: "#94a3b8",
+  googleButtonBackground: "#4285f4",
+  facebookButtonBackground: "#1877f2",
+};
 
 export default function LoginScreen() {
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -127,3 +137,113 @@ export default function LoginScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: COLORS.textSecondary,
+    fontSize: 16,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 48,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 24,
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  googleButton: {
+    backgroundColor: COLORS.googleButtonBackground,
+  },
+  facebookButton: {
+    backgroundColor: COLORS.facebookButtonBackground,
+  },
+  buttonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  googleIcon: {
+    color: COLORS.text,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  facebookIcon: {
+    color: COLORS.text,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  buttonText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  securityNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+  },
+  securityText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  terms: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    maxWidth: "80%",
+  },
+});

@@ -22,8 +22,6 @@ jobs:
     strategy:
       matrix:
         node-version: [20, 22, 24]
-    env:
-      RUSTUP_TOOLCHAIN: stable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,29 +35,6 @@ jobs:
 
       - name: Setup pnpm
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rust-src
-          default: true
-
-      - name: Add wasm32 target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Verify Rust installation
-        run: |
-          rustc --version
-          cargo --version
-          rustup show
-          rustup target list | grep wasm32-unknown-unknown
-
-      - name: Set Rust default toolchain
-        run: rustup default stable
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -82,12 +57,15 @@ jobs:
       - name: Lint all packages
         run: pnpm run lint
 
+      - name: Type check all packages
+        run: pnpm run type-check
+
+      - name: Lint all packages
+        run: pnpm run lint
+
   build:
     name: Build All
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22, 24]
     needs: [type-check-lint]
     env:
       RUSTUP_TOOLCHAIN: stable
@@ -100,7 +78,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
 
       - name: Setup pnpm
         run: corepack enable && corepack prepare pnpm@10.33.0 --activate
@@ -124,6 +102,22 @@ jobs:
 
       - name: Set Rust default toolchain
         run: rustup default stable
+
+      - name: Install sccache
+        run: cargo install sccache
+
+      - name: Configure sccache
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPILERCHECK=content" >> $GITHUB_ENV
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
@@ -164,7 +158,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
 
       - name: Build all packages
         run: pnpm run build

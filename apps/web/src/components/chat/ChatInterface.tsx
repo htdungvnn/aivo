@@ -76,28 +76,27 @@ export function ChatInterface({
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const userId = await apiClient.userIdProvider?.();
+        const userId = await apiClient.getUserId();
         if (!userId) return;
 
         const response = await apiClient.getChatHistory(userId, 50);
         if (response.success && response.data) {
-          const historyMessages: ChatMessage[] = response.data
-            .map((conv: Conversation) => ({
+          const historyMessages: ChatMessage[] = [
+            ...response.data.map((conv: Conversation) => ({
               id: conv.id,
               role: "user" as const,
               content: conv.message,
               timestamp: new Date(conv.createdAt),
-            }))
-            .concat(
-              response.data.map((conv: Conversation) => ({
-                id: `${conv.id}-response`,
-                role: "assistant" as const,
-                content: conv.response,
-                timestamp: new Date(conv.createdAt),
-                tokensUsed: conv.tokensUsed,
-                model: conv.model,
-              }))
-            );
+            })),
+            ...response.data.map((conv: Conversation) => ({
+              id: `${conv.id}-response`,
+              role: "assistant" as const,
+              content: conv.response,
+              timestamp: new Date(conv.createdAt),
+              tokensUsed: conv.tokensUsed,
+              model: conv.model,
+            })),
+          ];
 
           // Sort by timestamp
           historyMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());

@@ -312,12 +312,8 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
     let mounted = true;
     const initWasm = async () => {
       try {
-        // Dynamic import to load WASM module
-        const aivoCompute = await import("@aivo/compute");
-        // The module auto-initializes, but we can explicitly call init if needed
-        if (aivoCompute.init) {
-          await aivoCompute.init();
-        }
+        // Dynamic import to load WASM module - it auto-initializes
+        await import("@aivo/compute");
         if (mounted) {
           setWasmReady(true);
         }

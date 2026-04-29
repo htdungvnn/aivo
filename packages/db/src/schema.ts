@@ -355,6 +355,7 @@ export const planDeviations = sqliteTable("plan_deviations", {
   index('idx_plan_deviations_user_id').on(table.userId),
   index('idx_plan_deviations_created').on(sql`desc ${table.createdAt}`),
   index('idx_plan_deviations_original_routine').on(table.originalRoutineId),
+  index('idx_plan_deviations_adjusted_routine').on(table.adjustedRoutineId),
 ]);
 
 // Workout completion feedback table - tracks what was actually done vs planned
@@ -605,6 +606,7 @@ export const dailyCheckins = sqliteTable("daily_checkins", {
   workoutId: text("workout_id").references(() => workouts.id),
 }, (table) => [
   index('idx_user_id').on(table.userId),
+  index('idx_daily_checkins_workout_id').on(table.workoutId),
   unique('unique_user_date').on(table.userId, table.date),
 ]);
 
@@ -1239,6 +1241,7 @@ export const clubEvents = sqliteTable("club_events", {
 }, (table) => [
   index('idx_club_events_club_id').on(table.clubId),
   index('idx_club_events_start_time').on(table.startTime),
+  index('idx_club_events_created_by').on(table.createdBy),
 ]);
 
 // eventAttendees - RSVP & attendance tracking
