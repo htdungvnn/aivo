@@ -1,7 +1,8 @@
 // ============================================
 // AI ADAPTIVE ROUTINE PLANNER TYPES
 // ============================================
-import { MuscleGroup, DailySchedule } from "./index";
+import type { MuscleGroup } from "./body";
+import type { DailySchedule } from "./workout";
 
 /**
  * Workout Routine - A weekly workout plan
@@ -146,8 +147,9 @@ export interface PlanDeviationScore {
 
 /**
  * Schedule Adjustment - A single change to the plan
+ * Renamed to PlanScheduleAdjustment to avoid conflict with workout module's ScheduleAdjustment
  */
-export interface ScheduleAdjustment {
+export interface PlanScheduleAdjustment {
   date: string; // YYYY-MM-DD
   changeType: "move" | "swap" | "cancel" | "add" | "modify";
   fromExercise?: string;
@@ -165,7 +167,7 @@ export interface AdjustedRoutine {
   routineId: string;
   name: string;
   weekStartDate: string;
-  adjustments: ScheduleAdjustment[];
+  adjustments: PlanScheduleAdjustment[];
   optimizationScore: number; // 0-100
   newSchedule: DailySchedule[];
   reasoning: string[];

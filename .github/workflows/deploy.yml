@@ -125,11 +125,29 @@ jobs:
       - name: Install Wrangler globally
         run: npm install -g wrangler@latest
 
+      - name: Verify Cloudflare Access
+        working-directory: apps/api
+        run: wrangler d1 list
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        continue-on-error: false
+
+      - name: Verify Database Access
+        working-directory: apps/api
+        run: |
+          # Verify the target database exists and is accessible
+          wrangler d1 info aivo-db
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Apply Database Migrations
         working-directory: apps/api
         run: wrangler d1 migrations apply aivo-db --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Run Smoke Tests
         run: |
