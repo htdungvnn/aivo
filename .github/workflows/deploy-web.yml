@@ -58,4 +58,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: aivo-web
-          directory: apps/web
+          directory: apps/web/.next/standalone
