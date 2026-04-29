@@ -122,12 +122,13 @@ jobs:
           workingDirectory: "apps/api"
           command: "deploy --minify"
 
+      - name: Install Wrangler globally
+        run: npm install -g wrangler@latest
+
       - name: Apply Database Migrations
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: "d1 migrations apply aivo-db"
+        run: wrangler d1 migrations apply aivo-db
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Run Smoke Tests
         run: |
