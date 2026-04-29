@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
-import { sendMonthlyReport, defaultEmailConfig } from "@aivo/email-reporter";
+import { sendMonthlyReport, defaultEmailConfig } from "../lib/email-reporter";
 import { users } from "@aivo/db";
 import { eq } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";

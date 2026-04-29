@@ -5,7 +5,7 @@ import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 // import { optimize_content_wasm } from "@aivo/optimizer";  // Temporarily disabled - WASM init issues
 import { AdaptivePlanner, VoiceParser } from "@aivo/compute";
-import { MemoryService } from "@aivo/memory-service";
+import { MemoryService } from "../lib/memory-service";
 import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
 import { createAIService, type ChatMessage } from "../utils/unified-ai-service";
 import type { PlanDeviationScore, RecoveryCurve, VoiceLogRequest, VoiceParseResult } from "@aivo/shared-types";

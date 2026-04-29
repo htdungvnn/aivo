@@ -318,6 +318,7 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
           setWasmReady(true);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn("WASM module failed to load, using fallback calculations:", error);
       }
     };
@@ -329,13 +330,17 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
 
   // Compute overall score using WASM when data changes
   useEffect(() => {
-    if (!wasmReady) return;
+    if (!wasmReady) {
+      return;
+    }
 
     const computeScore = async () => {
       try {
         const aivoCompute = await import("@aivo/compute");
         const data = mockMuscleActivationData;
-        if (data.length === 0) return;
+        if (data.length === 0) {
+          return;
+        }
 
         // Prepare scores as Float64Array
         const scores = new Float64Array(data.map(d => d.activation));
@@ -343,7 +348,6 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
         const optimalRatios = new Float64Array(scores.length).fill(1 / scores.length);
 
         // Use FitnessCalculator.calculateMuscleBalanceScore
-        // @ts-ignore - WASM module may not have full TS types at runtime
         const FitnessCalculator = aivoCompute.FitnessCalculator;
         if (FitnessCalculator && typeof FitnessCalculator.calculateMuscleBalanceScore === 'function') {
           const wasmScore = FitnessCalculator.calculateMuscleBalanceScore(scores, optimalRatios);
@@ -357,6 +361,7 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         setOverallScore(Math.round(avg));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn("WASM calculation failed, using fallback:", error);
         // Fallback to simple average
         const data = mockMuscleActivationData;

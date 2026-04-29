@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
-import { ExcelGenerator, generateJSON } from "@aivo/excel-export";
+import { ExcelGenerator, generateJSON } from "../lib/excel-export";
 import type { D1Database } from "@cloudflare/workers-types";
 // Import Drizzle tables for runtime
 import {

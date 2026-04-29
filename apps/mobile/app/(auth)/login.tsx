@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { Activity as ActivityIcon, Lock } from "lucide-react-native";
 import { STORAGE_KEYS } from "@/config";
-import { useGoogleLogin, useFacebookLogin, handleOAuthResponse } from "@/hooks/useOAuth";
+import { useGoogleLogin, useFacebookLogin } from "@/hooks/useOAuth";
 
 const COLORS = {
   background: "#0f172a",
@@ -15,12 +15,12 @@ const COLORS = {
   textSecondary: "#94a3b8",
   googleButtonBackground: "#4285f4",
   facebookButtonBackground: "#1877f2",
+  buttonIconBg: "rgba(255, 255, 255, 0.3)",
 };
 
 export default function LoginScreen() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -37,21 +37,21 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLoginSuccess = async (userData: unknown, token: string) => {
-    try {
-      await SecureStore.setItemAsync(STORAGE_KEYS.TOKEN, token);
-      // Extract user ID from userData (expected to be a User object with id)
-      const user = userData as { id: string };
-      await SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, user.id);
-      setIsAuthenticated(true);
-      setErrorMessage(null);
-    } catch {
-      Alert.alert("Error", "Failed to save login session");
-    }
+  const handleLoginSuccess = (userData: unknown, token: string) => {
+    SecureStore.setItemAsync(STORAGE_KEYS.TOKEN, token)
+      .then(() => {
+        const user = userData as { id: string };
+        return SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, user.id);
+      })
+      .then(() => {
+        setIsAuthenticated(true);
+      })
+      .catch(() => {
+        Alert.alert("Error", "Failed to save login session");
+      });
   };
 
   const handleError = (message: string) => {
-    setErrorMessage(message);
     Alert.alert("Authentication Error", message);
   };
 
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: COLORS.buttonIconBg,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
