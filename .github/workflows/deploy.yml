@@ -150,7 +150,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Run Smoke Tests
-        if: secrets.PRODUCTION_API_URL != ''
+        if: ${{ secrets.PRODUCTION_API_URL != '' }}
         run: bash scripts/smoke-tests.sh
         env:
           API_URL: ${{ secrets.PRODUCTION_API_URL }}

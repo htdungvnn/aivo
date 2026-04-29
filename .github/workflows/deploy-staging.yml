@@ -122,7 +122,7 @@ jobs:
           command: "deploy --minify --env staging"
 
       - name: Run Smoke Tests (Staging)
-        if: secrets.STAGING_API_URL != ''
+        if: ${{ secrets.STAGING_API_URL != '' }}
         run: bash scripts/smoke-tests.sh
         env:
           API_URL: ${{ secrets.STAGING_API_URL }}
