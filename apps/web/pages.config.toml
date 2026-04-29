@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 # Build configuration
 [build]
 command = "pnpm run build:pages"
-output_directory = ".next/standalone"
+output_directory = "out"
 
 # Environment variables for build
 [build.environment]
@@ -18,14 +18,7 @@ NEXT_TELEMETRY_DISABLED = "1"
 # Routes configuration
 # Pages will automatically use the _routes file, but we can add additional rules here
 
-# Redirects (301 = permanent, 302 = temporary)
-# [[redirects]]
-# from = "/old-path"
-# to = "/new-path"
-# status = 301
-# force = false
-
-# Headers for security
+# Static assets caching
 [[headers]]
 for = "/*"
 [headers.values]
@@ -34,9 +27,7 @@ X-Frame-Options = "DENY"
 X-XSS-Protection = "1; mode=block"
 Referrer-Policy = "strict-origin-when-cross-origin"
 Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
-Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.aivo.yourdomain.com https://*.r2.dev; font-src 'self'; object-src 'none'; frame-ancestors 'none';"
 
-# Static assets caching
 [[headers]]
 for = "/_next/static/*"
 [headers.values]

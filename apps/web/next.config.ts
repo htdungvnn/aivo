@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Cloudflare Pages compatibility
-  output: 'standalone',
+  // Use static export for Cloudflare Pages
+  output: 'export',
 
   // Enable React strict mode
   reactStrictMode: true,
@@ -18,14 +18,12 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.amazonaws.com' },
       { protocol: 'https', hostname: '*.googleusercontent.com' },
     ],
-    // Enable responsive images
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    // For static export, use unoptimized images
+    unoptimized: true,
   },
 
-  // Build output directory
-  distDir: '.next',
+  // Build output directory (for export)
+  distDir: 'out',
 
   // TypeScript configuration
   typescript: {
@@ -40,7 +38,7 @@ const nextConfig: NextConfig = {
     } : false,
   },
 
-  // Webpack configuration for Cloudflare compatibility
+  // Webpack configuration
   webpack: (config, { isServer, webpack }) => {
     // Cloudflare Pages uses Node.js 18+ with some polyfills
     if (!isServer) {
@@ -84,45 +82,6 @@ const nextConfig: NextConfig = {
     );
 
     return config;
-  },
-
-  // Headers for security and caching
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'X-DNS-Prefetch-Control', value: 'on' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-        ],
-      },
-      // Cache static assets
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      // Cache images
-      {
-        source: '/_next/image/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-    ];
-  },
-
-  // Redirects (if needed in future)
-  async redirects() {
-    return [
-      // Example:
-      // { source: '/old-path', destination: '/new-path', permanent: true },
-    ];
   },
 
   // Performance optimizations

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --webpack",
-    "build:pages": "pnpm run build",
+    "build:pages": "next build --webpack",
     "start": "next start",
     "lint": "NODE_OPTIONS='--max-old-space-size=16384' eslint src --ext .ts,.tsx --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test.ts\" --ignore-pattern \"**/*.test.tsx\"",
     "type-check": "tsc --noEmit",
@@ -17,8 +17,6 @@
   },
   "dependencies": {
     "@aivo/api-client": "workspace:*",
-    "@aivo/body-compute": "workspace:*",
-    "@aivo/compute": "workspace:*",
     "@aivo/shared-types": "workspace:*",
     "@base-ui/react": "^1.4.1",
     "@react-oauth/google": "^0.12.1",
@@ -43,6 +41,7 @@
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@tailwindcss/postcss": "^4.2.4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",
