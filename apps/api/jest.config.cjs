@@ -14,7 +14,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     // Map WASM packages to mocks
-    '^@aivo/compute$': '<rootDir>/__mocks__/@aivo/compute.js',
+    '^@aivo/compute$': '<rootDir>/__mocks__/@aivo/compute/index.js',
+    '^@aivo/compute/.*$': '<rootDir>/__mocks__/@aivo/compute/index.js',
     // Mock ESM-only node_modules
     '^jose$': '<rootDir>/__mocks__/jose.js',
     // TypeScript packages - map to dist (built output)
