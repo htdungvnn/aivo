@@ -5,7 +5,6 @@
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
-      "@aivo/compute": ["../../packages/compute/pkg"],
       "@aivo/db": ["../../packages/db/dist"],
       "@aivo/db/schema": ["../../packages/db/dist/schema"],
       "@aivo/api-client": ["../../packages/api-client/src"],

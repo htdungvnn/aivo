@@ -119,6 +119,18 @@ const nextConfig: NextConfig = {
       // { source: '/old-path', destination: '/new-path', permanent: true },
     ];
   },
+
+  // Performance optimizations
+  experimental: {
+    // Optimize package imports for smaller bundles
+    optimizePackageImports: [
+      'lucide-react',
+      'clsx',
+      'tailwind-merge',
+      'date-fns',
+      'recharts',
+    ],
+  },
 };
 
 export default nextConfig;

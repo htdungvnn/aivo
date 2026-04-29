@@ -298,6 +298,8 @@ mod tests {
 
         let config = InfographicConfig {
             template: crate::infographic::types::InfographicTemplate::WeeklySummary,
+            theme: "vibrant".to_string(),
+            layout: "square".to_string(),
             color_scheme: crate::infographic::colors::default_palette(),
             typography: crate::infographic::types::TypographyConfig {
                 headline_font: "Arial".to_string(),

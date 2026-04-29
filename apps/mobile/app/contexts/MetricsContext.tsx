@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import * as SecureStore from "expo-secure-store";
 import { createApiClient, type BodyMetric, type HealthScoreResult } from "@aivo/api-client";
 import { ApiErrorHandler, retryWithBackoff, useNetworkStatus } from "@/utils/error-handler";
@@ -129,7 +129,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isConnected]);
 
-  const addMetric = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
+  const addMetric = useCallback(async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
     try {
       const api = getApiClient();
       const { data } = await api.createBodyMetric(metric);
@@ -142,9 +142,9 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
       const message = ApiErrorHandler.handle(error, "Failed to add metric");
       throw new Error(message);
     }
-  };
+  }, []);
 
-  const addMetricOptimistic = async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
+  const addMetricOptimistic = useCallback(async (metric: Partial<BodyMetric>): Promise<BodyMetric> => {
     const api = getApiClient();
     const userId = await SecureStore.getItemAsync(STORAGE_KEYS.USER_ID) || "";
 
@@ -194,7 +194,7 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
       const message = ApiErrorHandler.handle(error, "Failed to add metric");
       throw new Error(message);
     }
-  };
+  }, []);
 
   const clearError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }));
@@ -204,13 +204,13 @@ export function MetricsProvider({ children }: { children: React.ReactNode }) {
     loadCachedData();
   }, [loadCachedData]);
 
-  const value: MetricsContextType = {
+  const value: MetricsContextType = useMemo(() => ({
     ...state,
     refreshMetrics,
     addMetric,
     addMetricOptimistic,
     clearError,
-  };
+  }), [state, refreshMetrics, addMetric, addMetricOptimistic, clearError]);
 
   return <MetricsContext.Provider value={value}>{children}</MetricsContext.Provider>;
 }

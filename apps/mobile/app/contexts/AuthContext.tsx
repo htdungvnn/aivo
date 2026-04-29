@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import type { User, AuthResponse } from "@aivo/shared-types";
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [isConnected]);
 
-  const login = async (data: AuthResponse) => {
+  const login = useCallback(async (data: AuthResponse) => {
     try {
       await SecureStore.setItemAsync(TOKEN_KEY, data.token);
       await SecureStore.setItemAsync(USER_KEY, data.user.id);
@@ -99,9 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(message);
       throw err;
     }
-  };
+  }, [router]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       if (token && isConnected) {
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       router.replace("/(auth)/login");
     }
-  };
+  }, [isConnected, router]);
 
   // Show error alert if error exists
   useEffect(() => {
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [error]);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     loading,
     login,
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
     error,
     clearError,
-  };
+  }), [user, loading, login, logout, error, clearError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

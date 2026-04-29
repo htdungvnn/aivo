@@ -13,7 +13,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "analyze": "ANALYZE=true next build --webpack --config next.config.cloudflare.js"
+    "analyze": "ANALYZE=true pnpm run build"
   },
   "dependencies": {
     "@aivo/api-client": "workspace:*",

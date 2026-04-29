@@ -731,7 +731,7 @@ export const BiometricRouter = () => {
       goals: user.goals ?? undefined,
     } : undefined;
 
-    const targets = await getUserMacroTargets(drizzle, userId, normalizedUser);
+    const targets = await getUserMacroTargets(drizzle, userId, normalizedUser, c.env.BIOMETRIC_CACHE);
 
     return c.json({ success: true, data: targets });
   });

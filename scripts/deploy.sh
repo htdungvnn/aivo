@@ -23,8 +23,10 @@ DEPLOY_WEB="${DEPLOY_WEB:-true}"
 DEPLOY_API="${DEPLOY_API:-true}"
 SKIP_TESTS="${SKIP_TESTS:-false}"
 SKIP_BUILD="${SKIP_BUILD:-false}"
+SKIP_SMOKE_TESTS="${SKIP_SMOKE_TESTS:-false}"
 DRY_RUN="${DRY_RUN:-false}"
 QUICK_MODE="${QUICK_MODE:-false}"
+STAGING_MODE="${STAGING_MODE:-false}"
 
 # Required environment variables for production
 REQUIRED_ENV_VARS=(
@@ -51,6 +53,40 @@ log_warning() {
 
 log_error() {
   echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+send_notification() {
+  local status="$1"
+  local message="$2"
+  local webhook_url="${DEPLOY_WEBHOOK_URL:-}"
+
+  if [ -z "$webhook_url" ]; then
+    # No webhook configured, skip notification
+    return 0
+  fi
+
+  # Determine color based on status
+  local color
+  if [ "$status" = "success" ]; then
+    color="#36a64f"  # Green
+  elif [ "$status" = "failure" ]; then
+    color="#ff4444"  # Red
+  else
+    color="#ffaa00"  # Yellow
+  fi
+
+  # Build payload (Slack-compatible)
+  local payload
+  payload=$(jq -n \
+    --arg status "$status" \
+    --arg message "$message" \
+    --arg env "$ENVIRONMENT" \
+    --arg commit "$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" \
+    --arg url "${API_URL:-}" \
+    '{attachments: [{color: $color, fields: [{title: "Environment", value: $env, short: true}, {title: "Commit", value: $commit, short: true}, {title: "Status", value: $status, short: true}], text: $message}]}')
+
+  # Send notification (non-blocking, don't fail if webhook fails)
+  curl -s -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null 2>&1 || true
 }
 
 log_header() {
@@ -229,9 +265,16 @@ apply_migrations() {
   log_header "Applying Database Migrations"
 
   if [ "$ENVIRONMENT" = "local" ]; then
-    run_command "cd packages/db && pnpm run migrate:local" "Applying local migrations"
+    run_command "cd packages/db && pnpm exec wrangler d1 migrations apply aivo-db --local" "Applying local migrations"
   else
-    run_command "cd packages/db && pnpm run migrate:remote" "Applying production migrations"
+    # Build wrangler command with environment support
+    local migrate_cmd="cd packages/db && pnpm exec wrangler d1 migrations apply aivo-db --remote"
+    if [ "$STAGING_MODE" = "true" ]; then
+      migrate_cmd="$migrate_cmd --env staging"
+      log_info "Applying migrations to STAGING database"
+    fi
+
+    run_command "$migrate_cmd" "Applying production migrations"
   fi
 
   log_success "Migrations applied"
@@ -245,7 +288,14 @@ deploy_api() {
     return 0
   fi
 
-  run_command "cd apps/api && pnpm run deploy" "Deploying to Cloudflare Workers"
+  # Build wrangler command with environment flag
+  local wrangler_cmd="pnpm exec wrangler deploy"
+  if [ "$STAGING_MODE" = "true" ]; then
+    wrangler_cmd="$wrangler_cmd --env staging"
+    log_info "Deploying to STAGING environment"
+  fi
+
+  run_command "$wrangler_cmd" "Deploying to Cloudflare Workers"
 
   # Get deployment info
   if [ -f "$PROJECT_ROOT/apps/api/.wrangler/migration.json" ]; then
@@ -365,25 +415,38 @@ main() {
         DEPLOY_API=false
         shift
         ;;
+      --staging)
+        STAGING_MODE=true
+        ENVIRONMENT="staging"
+        shift
+        ;;
+      --skip-smoke-tests)
+        SKIP_SMOKE_TESTS=true
+        shift
+        ;;
       -h|--help)
         echo "Usage: $0 [OPTIONS]"
         echo ""
         echo "Options:"
         echo "  --quick, --skip-checks  Skip type-check, lint, and tests (fast deploy)"
         echo "  --skip-tests            Skip running tests only"
+        echo "  --skip-smoke-tests      Skip post-deployment smoke tests"
         echo "  --skip-build           Skip build steps (only deploy)"
         echo "  --dry-run              Show what would be done without doing it"
         echo "  --local                Deploy to local development environment"
         echo "  --no-web               Skip web build/deploy"
         echo "  --no-api               Skip API build/deploy"
+        echo "  --staging              Deploy to staging environment"
         echo "  -h, --help             Show this help message"
         echo ""
         echo "Environment variables:"
-        echo "  ENVIRONMENT       production|local (default: production)"
+        echo "  ENVIRONMENT       production|local|staging (default: production)"
         echo "  DEPLOY_WEB        true|false (default: true)"
         echo "  DEPLOY_API        true|false (default: true)"
         echo "  SKIP_TESTS        true|false (default: false)"
+        echo "  SKIP_SMOKE_TESTS  true|false (default: false)"
         echo "  DRY_RUN           true|false (default: false)"
+        echo "  DEPLOY_WEBHOOK_URL  Slack/Discord webhook for notifications"
         echo ""
         echo "Required for production:"
         echo "  CLOUDFLARE_API_TOKEN"
@@ -437,10 +500,29 @@ main() {
   fi
 
   health_check
+
+  # Run smoke tests if not skipped
+  if [ "$SKIP_SMOKE_TESTS" = "false" ] && [ "$DRY_RUN" = "false" ] && [ "$DEPLOY_API" = "true" ]; then
+    log_header "Running Smoke Tests"
+    API_URL="${API_URL:-https://api.aivo.website}"
+    if [ "$STAGING_MODE" = "true" ]; then
+      API_URL="${STAGING_API_URL:-http://localhost:8787}"
+    fi
+    "$SCRIPT_DIR/smoke-tests.sh" --api-url "$API_URL" || {
+      log_warning "Smoke tests failed! Deployment continuing but please investigate."
+    }
+  fi
+
   print_summary
 
   log_success "Deployment script completed!"
 }
 
+# Trap errors and send failure notification
+trap 'log_error "Deployment failed at line $LINENO. Check $LOG_FILE for details."; send_notification "failure" "Deployment failed at line $LINENO. Check logs: $LOG_FILE"; exit 1' ERR
+
 # Run main function
 main "$@"
+
+# Send success notification
+send_notification "success" "Deployment completed successfully for $ENVIRONMENT environment. API: ${API_URL:-https://api.aivo.website}"

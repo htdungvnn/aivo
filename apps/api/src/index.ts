@@ -10,6 +10,7 @@ import { APIError } from "./utils/errors";
 
 // Import middleware
 import { errorHandler, notFoundHandler, attachRequestId } from "./middleware/error-handler";
+import { metricsMiddleware } from "./middleware/metrics";
 
 // Import routers
 import { AuthRouter } from "./routes/auth";
@@ -58,6 +59,11 @@ app.use("*", async (c, next) => {
   attachRequestId(c);
   return await next();
 });
+
+// ============================================
+// METRICS MIDDLEWARE
+// ============================================
+app.use("*", metricsMiddleware);
 
 // GLOBAL ERROR HANDLING MIDDLEWARE
 // ============================================

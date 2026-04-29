@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo, useMemo } from "react";
 import {
   View,
   Text,
@@ -30,7 +30,7 @@ import {
 
 type TabKey = "overview" | "sleep" | "correlations";
 
-export default function RecoveryDashboard() {
+function RecoveryDashboard() {
   const { user } = useAuth();
 
   const [snapshot, setSnapshot] = useState<BiometricSnapshot | null>(null);
@@ -100,7 +100,10 @@ export default function RecoveryDashboard() {
     setCorrelations((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  const renderOverview = () => (
+  // Memoize top correlation to avoid recalculation
+  const topCorrelation = useMemo(() => correlations[0], [correlations]);
+
+  const renderOverview = useCallback(() => (
     <View className="space-y-4">
       {/* Recovery Score */}
       {snapshot && (
@@ -159,7 +162,7 @@ export default function RecoveryDashboard() {
       </View>
 
       {/* Top Correlation */}
-      {correlations.length > 0 && (
+      {topCorrelation && (
         <TouchableOpacity
           className="bg-slate-900/50 border border-slate-800 rounded-xl p-4"
           onPress={() => setActiveTab("correlations")}
@@ -170,16 +173,16 @@ export default function RecoveryDashboard() {
               <Text className="text-slate-200 font-semibold text-sm">Top Insight</Text>
             </View>
           </View>
-          <Text className="text-white text-sm mb-1">{correlations[0].actionableInsight}</Text>
+          <Text className="text-white text-sm mb-1">{topCorrelation.actionableInsight}</Text>
           <View className="flex-row items-center gap-2">
             <View className="h-1 flex-1 rounded-full bg-slate-800 overflow-hidden">
               <View
                 className="h-full bg-purple-500"
-                style={{ width: `${correlations[0].confidence * 100}%` }}
+                style={{ width: `${topCorrelation.confidence * 100}%` }}
               />
             </View>
             <Text className="text-purple-400 text-xs">
-              {Math.round(correlations[0].confidence * 100)}% confidence
+              {Math.round(topCorrelation.confidence * 100)}% confidence
             </Text>
           </View>
         </TouchableOpacity>
@@ -201,9 +204,9 @@ export default function RecoveryDashboard() {
         </Text>
       </TouchableOpacity>
     </View>
-  );
+  ), [snapshot, sleepSummary, topCorrelation, generating, handleGenerateSnapshot]);
 
-  const renderSleep = () => (
+  const renderSleep = useCallback(() => (
     <View className="space-y-4">
       <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
         <View className="flex-row items-center justify-between mb-3">
@@ -272,9 +275,9 @@ export default function RecoveryDashboard() {
         </Text>
       </View>
     </View>
-  );
+  ), [sleepSummary]);
 
-  const renderCorrelations = () => (
+  const renderCorrelations = useCallback(() => (
     <View className="space-y-4">
       {correlations.length === 0 ? (
         <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 items-center">
@@ -333,7 +336,7 @@ export default function RecoveryDashboard() {
         ))
       )}
     </View>
-  );
+  ), [correlations, handleDismissCorrelation]);
 
   const tabs = [
     { key: "overview", label: "Overview", icon: Activity },
@@ -396,3 +399,6 @@ export default function RecoveryDashboard() {
     </ScrollView>
   );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(RecoveryDashboard);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 // Inline color definitions to avoid import scope issues
@@ -320,5 +320,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+// Memoize components to prevent unnecessary re-renders
+export const MemoizedBodyMetricChart = memo(BodyMetricChart);
+export const MemoizedMuscleBalanceChart = memo(MuscleBalanceChart);
+export const MemoizedHealthScoreGauge = memo(HealthScoreGauge);
 
 export default BodyMetricChart;

@@ -28,6 +28,33 @@ export const AIRouter = () => {
   // Apply authentication to all AI routes
   router.use("*", authenticate);
 
+  // In-memory cache for conversation history (per Worker instance)
+  // Key: userId, Value: { history: Array<{message: string, response: string}>, fetchedAt: number }
+  const historyCache = new Map<string, { history: Array<{ message: string; response: string }>; fetchedAt: number }>();
+
+  // Cache TTL: 30 seconds (conversation history is time-sensitive)
+  const HISTORY_CACHE_TTL = 30000;
+
+  const getCachedHistory = (userId: string): Array<{ message: string; response: string }> | null => {
+    const entry = historyCache.get(userId);
+    if (!entry) {
+      return null;
+    }
+    if (Date.now() - entry.fetchedAt > HISTORY_CACHE_TTL) {
+      historyCache.delete(userId);
+      return null;
+    }
+    return entry.history;
+  };
+
+  const setCachedHistory = (userId: string, history: Array<{ message: string; response: string }>) => {
+    historyCache.set(userId, { history, fetchedAt: Date.now() });
+  };
+
+  const invalidateHistoryCache = (userId: string) => {
+    historyCache.delete(userId);
+  };
+
   // Initialize unified AI service (lazy initialization)
   let cachedAIService: ReturnType<typeof createAIService> | null = null;
 
@@ -148,12 +175,29 @@ export const AIRouter = () => {
         return c.json({ success: false, error: "AI service not configured" }, 503);
       }
 
-      // Fetch recent conversation history for context
-      const history = await drizzle.query.conversations.findMany({
-        where: (conv, { eq }) => eq(conv.userId, userId),
-        orderBy: (conv, { desc }) => desc(conv.createdAt),
-        limit: 20,
-      });
+      // Try to get conversation history from cache
+      let historySource: Array<{ message: string; response: string }> | null = getCachedHistory(userId);
+
+      // If not in cache, fetch from database
+      if (historySource === null) {
+        const historyRows = await drizzle.query.conversations.findMany({
+          where: (conv, { eq }) => eq(conv.userId, userId),
+          orderBy: (conv, { desc }) => desc(conv.createdAt),
+          limit: 20,
+        });
+
+        // Transform to simple {message, response} format for caching
+        historySource = historyRows.map((conv) => ({
+          message: conv.message,
+          response: conv.response,
+        }));
+
+        // Cache the history
+        setCachedHistory(userId, historySource);
+      }
+
+      // At this point, historySource is guaranteed to be non-null
+      const history = historySource!;
 
       // Build messages array
       const systemPrompt = `You are AIVO, an expert AI fitness coach and nutrition advisor.`;
@@ -256,6 +300,9 @@ export const AIRouter = () => {
           console.warn("Memory service initialization failed:", error);
         }
       }
+
+      // Invalidate conversation history cache to ensure next request gets fresh data
+      invalidateHistoryCache(userId);
 
       return c.json({
         success: true,

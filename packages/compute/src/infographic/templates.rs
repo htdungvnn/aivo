@@ -641,7 +641,7 @@ mod tests {
 
     #[test]
     fn test_get_template_by_id() {
-        let _palette = super::colors::generate_palette("vibrant", 0);
+        let _palette = crate::infographic::colors::generate_palette("vibrant", 0);
         let template = get_template_by_id("weekly_summary", 1080, 1080, "vibrant");
         assert!(template.is_some());
         let t = template.unwrap();

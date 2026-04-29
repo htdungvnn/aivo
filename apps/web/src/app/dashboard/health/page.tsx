@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,12 @@ import {
   Watch,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { TimeSeriesChart } from "@/components/charts/TimeSeriesChart";
-import { GoalsChart } from "@/components/charts/GoalsChart";
 import type { HealthMetric, HealthGoal, SyncStatus, ChartDataPoint } from "@/types/health";
 import { format } from "date-fns";
+
+// Dynamic imports for heavy chart components
+const TimeSeriesChart = lazy(() => import("@/components/charts/TimeSeriesChart"));
+const GoalsChart = lazy(() => import("@/components/charts/GoalsChart"));
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -482,13 +484,15 @@ export default function HealthDashboardPage() {
                 </div>
                 <div className="h-64">
                   {stepsChartData.length > 0 ? (
-                    <TimeSeriesChart
-                      data={stepsChartData}
-                      metric="steps"
-                      height={256}
-                      showGrid={true}
-                      showTooltip={true}
-                    />
+                    <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                      <TimeSeriesChart
+                        data={stepsChartData}
+                        metric="steps"
+                        height={256}
+                        showGrid={true}
+                        showTooltip={true}
+                      />
+                    </Suspense>
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                       <p>No steps data available for selected time range</p>
@@ -518,13 +522,15 @@ export default function HealthDashboardPage() {
                 </div>
                 <div className="h-64">
                   {heartRateChartData.length > 0 ? (
-                    <TimeSeriesChart
-                      data={heartRateChartData}
-                      metric="heart_rate"
-                      height={256}
-                      showGrid={true}
-                      showTooltip={true}
-                    />
+                    <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                      <TimeSeriesChart
+                        data={heartRateChartData}
+                        metric="heart_rate"
+                        height={256}
+                        showGrid={true}
+                        showTooltip={true}
+                      />
+                    </Suspense>
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                       <p>No heart rate data available for selected time range</p>
@@ -575,7 +581,9 @@ export default function HealthDashboardPage() {
                 </div>
               ) : (
                 <div style={{ height: "300px" }}>
-                  <GoalsChart goals={goals} height={300} showCompact={false} />
+                  <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                    <GoalsChart goals={goals} height={300} showCompact={false} />
+                  </Suspense>
                 </div>
               )}
             </CardContent>

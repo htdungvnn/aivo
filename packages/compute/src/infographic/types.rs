@@ -264,7 +264,7 @@ pub struct ValidationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::colors::default_palette;
+    use crate::infographic::colors::default_palette;
 
     #[test]
     fn test_color_palette_serialization() {

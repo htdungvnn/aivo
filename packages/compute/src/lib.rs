@@ -14,7 +14,7 @@
 //!
 //! ### Full Build (All Features)
 //! ```rust
-//! use aivo_compute::{fitness::FitnessCalculator, infographic::InfographicGenerator, optimizer::TokenOptimizer};
+//! use aivo_compute::{fitness::{FitnessCalculator, TokenOptimizer}, infographic::InfographicConfig, optimizer::OptimizerConfig};
 //! ```
 //!
 //! ### Feature-Specific Builds
@@ -24,7 +24,7 @@
 //! ```
 //!
 //! ## WASM Integration
-//! ```
+//! ```typescript
 //! import init, { FitnessCalculator, render_svg, optimize_content } from '@aivo/compute';
 //! await init();
 //! ```

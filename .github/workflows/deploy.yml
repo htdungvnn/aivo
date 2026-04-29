@@ -140,3 +140,34 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: "apps/api"
           command: "deploy --minify"
+
+      - name: Run Smoke Tests
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "Error: PRODUCTION_API_URL secret is not set. Skipping smoke tests."
+            exit 1
+          fi
+          bash scripts/smoke-tests.sh
+        env:
+          API_URL: ${{ secrets.PRODUCTION_API_URL }}
+
+      - name: Send Deployment Notification
+        if: always()
+        run: |
+          if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
+            echo "DEPLOY_WEBHOOK_URL not set, skipping notification."
+            exit 0
+          fi
+          STATUS="${{ job.status }}"
+          COMMIT="${{ github.sha }}"
+          REF="${{ github.ref_name }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          PAYLOAD=$(jq -n \
+            --arg status "$STATUS" \
+            --arg commit "$COMMIT" \
+            --arg ref "$REF" \
+            --arg url "$RUN_URL" \
+            '{text: "Deployment \($status). Commit: \($commit), Ref: \($ref). Details: \($url)"}')
+          curl -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DEPLOY_WEBHOOK_URL"
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}

@@ -175,39 +175,34 @@ export async function generateBiometricSnapshot(
   const daysAgo = period === "7d" ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
   const cutoffDate = now - daysAgo;
 
-  // Fetch sleep logs for period
-  const sleepLogs = await drizzle.query.sleepLogs.findMany({
-    where: and(
-      eq(schema.sleepLogs.userId, userId),
-      gte(schema.sleepLogs.createdAt, cutoffDate)
-    ),
-  });
-
-  // Fetch workouts for period
-  const workouts = await drizzle.query.workouts.findMany({
-    where: and(
-      eq(schema.workouts.userId, userId),
-      gte(schema.workouts.startTime, cutoffDate)
-    ),
-  });
-
-  // Fetch daily nutrition summaries
-  const dateThreshold = new Date(cutoffDate).toISOString().split("T")[0];
-  const nutritionSummaries = await drizzle.query.dailyNutritionSummaries.findMany({
-    where: and(
-      eq(schema.dailyNutritionSummaries.userId, userId),
-      gte(schema.dailyNutritionSummaries.date, dateThreshold)
-    ),
-  });
-
-  // Fetch body metrics for period
-  const bodyMetrics = await drizzle.query.bodyMetrics.findMany({
-    where: and(
-      eq(schema.bodyMetrics.userId, userId),
-      gte(schema.bodyMetrics.timestamp, cutoffDate)
-    ),
-    orderBy: (t, { asc }) => [asc(t.timestamp)],
-  });
+  // Fetch all data in parallel for maximum performance
+  const [sleepLogs, workouts, nutritionSummaries, bodyMetrics] = await Promise.all([
+    drizzle.query.sleepLogs.findMany({
+      where: and(
+        eq(schema.sleepLogs.userId, userId),
+        gte(schema.sleepLogs.createdAt, cutoffDate)
+      ),
+    }),
+    drizzle.query.workouts.findMany({
+      where: and(
+        eq(schema.workouts.userId, userId),
+        gte(schema.workouts.startTime, cutoffDate)
+      ),
+    }),
+    drizzle.query.dailyNutritionSummaries.findMany({
+      where: and(
+        eq(schema.dailyNutritionSummaries.userId, userId),
+        gte(schema.dailyNutritionSummaries.date, new Date(cutoffDate).toISOString().split("T")[0])
+      ),
+    }),
+    drizzle.query.bodyMetrics.findMany({
+      where: and(
+        eq(schema.bodyMetrics.userId, userId),
+        gte(schema.bodyMetrics.timestamp, cutoffDate)
+      ),
+      orderBy: (t, { asc }) => [asc(t.timestamp)],
+    }),
+  ]);
 
   // Calculate aggregates
   const snapshot = calculateSnapshotAggregates({
@@ -786,8 +781,18 @@ export async function getOrGenerateSnapshot(
   // Cache the snapshot
   await setCachedBiometricData(kv, cacheKey, snapshot, CACHE_TTL.SNAPSHOT);
 
-  // Trigger correlation analysis asynchronously
-  await analyzeCorrelations(drizzle, userId, snapshot.id);
+  // Trigger correlation analysis asynchronously (non-blocking)
+  // Use a microtask to avoid awaiting the analysis
+  (async () => {
+    try {
+      await analyzeCorrelations(drizzle, userId, snapshot.id);
+    } catch (error) {
+      // Log but don't fail the snapshot generation
+      /* eslint-disable no-console */
+      console.error("Correlation analysis failed (non-critical):", error);
+      /* eslint-enable no-console */
+    }
+  })();
 
   return snapshot;
 }
@@ -924,7 +929,8 @@ export async function getUserMacroTargets(
     age?: number;
     gender?: string;
     goals?: unknown;
-  }
+  },
+  kv: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: { expirationTtl: number }) => Promise<void> } | null = null
 ): Promise<{
   calories: number;
   protein_g: number;
@@ -932,23 +938,44 @@ export async function getUserMacroTargets(
   fat_g: number;
   water_ml: number;
 }> {
+  // Check cache first if KV is provided
+  if (kv) {
+    const cacheKey = getBiometricCacheKey(userId, "macro_targets");
+    const cached = await getCachedBiometricData<{
+      calories: number;
+      protein_g: number;
+      carbs_g: number;
+      fat_g: number;
+      water_ml: number;
+    }>(kv, cacheKey);
+    if (cached.hit && cached.data) {
+      return cached.data;
+    }
+  }
+
   // Check for persisted override
   const override = await drizzle.query.userMacroTargets.findFirst({
     where: eq(schema.userMacroTargets.userId, userId),
   });
 
+  let result: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    water_ml: number;
+  };
+
   if (override) {
-    return {
+    result = {
       calories: override.calories,
       protein_g: override.protein_g,
       carbs_g: override.carbs_g,
       fat_g: override.fat_g,
       water_ml: override.water_ml || 3000,
     };
-  }
-
-  // Calculate from user profile using WASM
-  if (userProfile) {
+  } else if (userProfile) {
+    // Calculate from user profile using WASM
     const bmr = FitnessCalculator.calculateBMR(
       userProfile.weight || 70,
       userProfile.height || 170,
@@ -984,23 +1011,31 @@ export async function getUserMacroTargets(
     const carbs_g = Math.round((targetCalories * carbsRatio) / 4);
     const fat_g = Math.round((targetCalories * fatRatio) / 9);
 
-    return {
+    result = {
       calories: Math.round(targetCalories),
       protein_g,
       carbs_g,
       fat_g,
       water_ml: 3000,
     };
+  } else {
+    // Default if no profile
+    result = {
+      calories: 2000,
+      protein_g: 150,
+      carbs_g: 250,
+      fat_g: 70,
+      water_ml: 3000,
+    };
   }
 
-  // Default if no profile
-  return {
-    calories: 2000,
-    protein_g: 150,
-    carbs_g: 250,
-    fat_g: 70,
-    water_ml: 3000,
-  };
+  // Cache result if KV provided
+  if (kv) {
+    const cacheKey = getBiometricCacheKey(userId, "macro_targets");
+    await setCachedBiometricData(kv, cacheKey, result, 300); // 5 minutes
+  }
+
+  return result;
 }
 
 /**
