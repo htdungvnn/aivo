@@ -5,8 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 # Resource limits for production safety
 # These prevent runaway requests from consuming excessive resources
+# Note: cpu_ms is only available on paid Cloudflare Workers plans
 [limits]
-cpu_ms = 100
 memory_mb = 256
 
 [alias]
