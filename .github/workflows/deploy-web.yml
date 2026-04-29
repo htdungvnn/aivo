@@ -59,4 +59,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: aivo-web
           directory: apps/web
-          wranglerVersion: '3'

@@ -17,7 +17,6 @@ export * from "./social";
 export * from "./admin";
 export * from "./errors";
 export * from "./validation";
-export * from "./voice";
 export * from "./content";
 export * from "./config";
 export * from "./files";
