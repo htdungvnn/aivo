@@ -23,6 +23,7 @@ memory_mb = 256
 binding = "DB"
 database_name = "aivo-db"
 database_id = "c262737b-ab5f-4973-841a-7c75ef0dcb20"
+migrations_dir = "../../packages/db/drizzle/migrations"
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
@@ -73,6 +74,7 @@ PUBLIC_SWAGGER = "true"  # Enable Swagger in staging for testing
 binding = "DB"
 database_name = "aivo-db-staging"
 database_id = "REPLACE_WITH_STAGING_DB_ID"
+migrations_dir = "../../packages/db/drizzle/migrations"
 
 [[env.staging.r2_buckets]]
 binding = "R2_BUCKET"
