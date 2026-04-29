@@ -14,6 +14,7 @@
     "build:optimizer": "cargo build --release --target wasm32-unknown-unknown --features optimizer && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web",
     "test": "wasm-pack test --node",
     "test:browser": "wasm-pack test --chrome --firefox --safari",
+    "bench": "cargo bench",
     "clean": "rm -rf pkg target",
     "build:size": "cargo build --release --target wasm32-unknown-unknown --features fitness,infographic,optimizer && wasm-bindgen target/wasm32-unknown-unknown/release/aivo_compute.wasm --out-dir pkg --target web && gzip -c pkg/aivo_compute_bg.wasm | wc -c"
   },

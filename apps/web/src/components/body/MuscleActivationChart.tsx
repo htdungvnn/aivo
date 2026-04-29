@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -304,6 +304,75 @@ export interface MuscleDashboardProps {
 
 export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [overallScore, setOverallScore] = useState<number>(82); // Default fallback
+  const [wasmReady, setWasmReady] = useState(false);
+
+  // Initialize WASM compute module
+  useEffect(() => {
+    let mounted = true;
+    const initWasm = async () => {
+      try {
+        // Dynamic import to load WASM module
+        const aivoCompute = await import("@aivo/compute");
+        // The module auto-initializes, but we can explicitly call init if needed
+        if (aivoCompute.init) {
+          await aivoCompute.init();
+        }
+        if (mounted) {
+          setWasmReady(true);
+        }
+      } catch (error) {
+        console.warn("WASM module failed to load, using fallback calculations:", error);
+      }
+    };
+    initWasm();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Compute overall score using WASM when data changes
+  useEffect(() => {
+    if (!wasmReady) return;
+
+    const computeScore = async () => {
+      try {
+        const aivoCompute = await import("@aivo/compute");
+        const data = mockMuscleActivationData;
+        if (data.length === 0) return;
+
+        // Prepare scores as Float64Array
+        const scores = new Float64Array(data.map(d => d.activation));
+        // Optimal ratios: equal distribution
+        const optimalRatios = new Float64Array(scores.length).fill(1 / scores.length);
+
+        // Use FitnessCalculator.calculateMuscleBalanceScore
+        // @ts-ignore - WASM module may not have full TS types at runtime
+        const FitnessCalculator = aivoCompute.FitnessCalculator;
+        if (FitnessCalculator && typeof FitnessCalculator.calculateMuscleBalanceScore === 'function') {
+          const wasmScore = FitnessCalculator.calculateMuscleBalanceScore(scores, optimalRatios);
+          if (typeof wasmScore === 'number' && !isNaN(wasmScore) && wasmScore >= 0 && wasmScore <= 100) {
+            setOverallScore(Math.round(wasmScore));
+            return;
+          }
+        }
+
+        // Fallback to simple average if WASM function unavailable or returned invalid
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        setOverallScore(Math.round(avg));
+      } catch (error) {
+        console.warn("WASM calculation failed, using fallback:", error);
+        // Fallback to simple average
+        const data = mockMuscleActivationData;
+        if (data.length > 0) {
+          const avg = data.reduce((acc, item) => acc + item.activation, 0) / data.length;
+          setOverallScore(Math.round(avg));
+        }
+      }
+    };
+
+    computeScore();
+  }, [wasmReady]);
 
   const handleBarClick = (data: { muscle: string; activation: number }) => {
     setSelectedMuscle(data.muscle);
@@ -327,8 +396,15 @@ export function MuscleDashboard({ className = "" }: MuscleDashboardProps) {
         {/* Overall Score */}
         <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-6 flex items-center justify-center">
           <div className="text-center">
-            <MuscleRadialGauge score={82} size={150} />
-            <h3 className="text-lg font-semibold text-white mt-4">Overall Engagement</h3>
+            <MuscleRadialGauge score={overallScore} size={150} />
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <h3 className="text-lg font-semibold text-white">Overall Engagement</h3>
+              {wasmReady && (
+                <span className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/30">
+                  WASM Powered
+                </span>
+              )}
+            </div>
             <p className="text-slate-400 text-sm">Your muscles are responding well to training</p>
           </div>
         </div>

@@ -1,10 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
+import { STORAGE_KEYS, API_CONFIG } from "@/config";
 
-const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
-
-// Storage keys
-const TOKEN_KEY = "aivo.auth.token";
-const USER_ID_KEY = "aivo.user.id";
+const API_URL = API_CONFIG.BASE_URL;
 
 export interface LiveAdjustmentResponse {
   success: boolean;
@@ -55,8 +52,8 @@ export interface LiveWorkoutSession {
 }
 
 async function getAuthHeaders(): Promise<Headers> {
-  const token = await SecureStore.getItemAsync(TOKEN_KEY);
-  const userId = await SecureStore.getItemAsync(USER_ID_KEY);
+  const token = await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN);
+  const userId = await SecureStore.getItemAsync(STORAGE_KEYS.USER_ID);
 
   const headers = new Headers({
     "Content-Type": "application/json",
@@ -78,7 +75,7 @@ async function fetchAPI<T>(
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers,
     });

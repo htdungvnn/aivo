@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MetricsProvider } from "@/contexts/MetricsContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { STORAGE_KEYS } from "@/config";
 import colors from "@/theme/colors";
 
 const styles = StyleSheet.create({
@@ -27,7 +28,7 @@ export default function RootLayout() {
 
   const checkAuth = async () => {
     try {
-      const token = await SecureStore.getItemAsync("aivo_token");
+      const token = await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN);
       setIsAuthenticated(!!token);
     } catch {
       // Silently handle auth check errors

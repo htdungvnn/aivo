@@ -38,6 +38,7 @@ usvg = { version = "0.41", optional = true }
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 rand = "0.8"
+criterion = "0.5"
 
 [features]
 default = ["fitness", "infographic", "optimizer"]

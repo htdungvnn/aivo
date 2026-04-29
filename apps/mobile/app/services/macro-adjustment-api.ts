@@ -4,8 +4,9 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import { STORAGE_KEYS, API_CONFIG } from "@/config";
 
-const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
+const API_URL = API_CONFIG.BASE_URL;
 
 // Types matching the API responses
 export interface MacroTargets {
@@ -39,7 +40,7 @@ export interface MacroAdjustmentSession {
 }
 
 async function getToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync("aivo.auth.token");
+  return await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN);
 }
 
 async function fetchApi<T>(
@@ -53,7 +54,7 @@ async function fetchApi<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
   });

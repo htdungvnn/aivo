@@ -516,7 +516,9 @@ export const badges = sqliteTable("badges", {
   icon: text("icon"),
   earnedAt: integer("earned_at").notNull(),
   tier: text("tier"),
-});
+}, (table) => [
+  index('idx_badges_user_id').on(table.userId),
+]);
 
 // Achievements table
 export const achievements = sqliteTable("achievements", {
@@ -814,6 +816,7 @@ export const correlationFindings = sqliteTable("correlation_findings", {
 }, (table) => [
   index('idx_findings_user_snapshot').on(table.userId, table.snapshotId),
   index('idx_findings_detected').on(table.detectedAt),
+  index('idx_findings_snapshot_id').on(table.snapshotId),
 ]);
 
 // ============================================

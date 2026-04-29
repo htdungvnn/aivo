@@ -59,43 +59,19 @@ pattern = "api.aivo.website"
 custom_domain = true
 zone_name = "aivo.website"
 
-# Staging environment configuration
-# Deploy with: wrangler deploy --env staging
-[env.staging]
-name = "aivo-api-staging"
+# Development environment for local debugging
+# Uses local D1 database and emulated services
+[env.dev]
+name = "aivo-api-dev"
 
-[env.staging.vars]
-NODE_ENV = "staging"
-ALLOWED_ORIGINS = "https://staging-aivo.website,http://localhost:3000"
-R2_PUBLIC_URL = "https://staging-bucket.r2.cloudflarestorage.com/aivo-images"
-PUBLIC_SWAGGER = "true"  # Enable Swagger in staging for testing
+[env.dev.vars]
+NODE_ENV = "development"
+ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:5173"
+PUBLIC_SWAGGER = "true"  # Enable Swagger in dev for testing
 
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "aivo-db-staging"
-database_id = "REPLACE_WITH_STAGING_DB_ID"
-migrations_dir = "../../packages/db/drizzle/migrations"
+# Local development uses in-memory or local emulated services
+# No Cloudflare resource IDs needed for dev environment
 
-[[env.staging.r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "aivo-images-staging"
-
-[[env.staging.kv_namespaces]]
-binding = "BODY_INSIGHTS_CACHE"
-id = "REPLACE_WITH_STAGING_KV_ID"
-
-[[env.staging.kv_namespaces]]
-binding = "BIOMETRIC_CACHE"
-id = "REPLACE_WITH_STAGING_KV_ID_2"
-
-[[env.staging.kv_namespaces]]
-binding = "LEADERBOARD_CACHE"
-id = "REPLACE_WITH_STAGING_KV_ID_3"
-
-[[env.staging.kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "REPLACE_WITH_STAGING_KV_ID_4"
-
-[env.staging.triggers]
+[triggers]
 crons = ["0 0 * * *", "0 9 1 * *"]
 

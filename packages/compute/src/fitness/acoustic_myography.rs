@@ -6,7 +6,7 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
-use rustfft::{FftPlanner, Fft, FftDirection};
+use rustfft::FftPlanner;
 use rustfft::num_complex::Complex;
 
 /// Audio configuration for processing

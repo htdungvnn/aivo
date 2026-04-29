@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
+import { STORAGE_KEYS, API_CONFIG } from "@/config";
+import type { BodyMetric, HealthScoreResult, VisionAnalysis, BodyHeatmapData } from "@aivo/shared-types";
 
-const API_BASE_URL = __DEV__ ? "http://localhost:8787" : "https://api.aivo.app";
-const TOKEN_KEY = "aivo.auth.token";
+const API_URL = API_CONFIG.BASE_URL;
 
 // Sleep Log types (re-exported from shared-types would be ideal but keeping local)
 export interface SleepLog {
@@ -115,7 +116,7 @@ export interface RecoveryScoreResult {
 }
 
 async function getToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+  return await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN);
 }
 
 async function fetchApi<T>(
@@ -129,7 +130,7 @@ async function fetchApi<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
   });
