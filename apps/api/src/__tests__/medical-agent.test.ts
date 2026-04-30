@@ -19,7 +19,7 @@ jest.mock('../utils/openai', () => ({
 describe('Medical Agent', () => {
   const baseContext = {
     medicalConditions: [] as string[],
-    medications: [] as string[],
+    medications: [] as Array<{ name: string; dosage?: string; frequency?: string }>,
     allergies: [] as string[],
     intolerances: [] as string[],
     age: undefined as number | undefined,
@@ -70,14 +70,14 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'Is this safe?',
         context: {
           ...baseContext,
           medicalConditions: ['diabetes'],
-          medications: ['metformin'],
+          medications: [{ name: 'metformin' }],
         },
       });
 
@@ -93,7 +93,7 @@ describe('Medical Agent', () => {
       // Consultation needed adds a warning
       expect(result.warnings.some(w => w.includes('Medical consultation recommended'))).toBe(true);
       expect(result.metadata).toHaveProperty('analysis');
-      expect(result.metadata.analysis.safetyAlerts).toHaveLength(1);
+      expect((result.metadata as any).analysis.safetyAlerts).toHaveLength(1);
       expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
     });
 
@@ -109,7 +109,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       // Context with medical conditions and medications: 0.3 + 0.25 + 0.25 = 0.8
       const result = await invokeMedicalAgent({
@@ -117,7 +117,7 @@ describe('Medical Agent', () => {
         context: {
           ...baseContext,
           medicalConditions: ['hypertension'],
-          medications: ['lisinopril'],
+          medications: [{ name: 'lisinopril' }],
         },
       });
 
@@ -146,7 +146,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'query',
@@ -179,7 +179,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'query',
@@ -203,7 +203,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'query',
@@ -270,7 +270,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'query',
@@ -313,7 +313,7 @@ describe('Medical Agent', () => {
 
       mockCreate.mockResolvedValue({
         choices: [{ message: { content: JSON.stringify(mockAnalysis) } }],
-      });
+      } as any);
 
       const result = await invokeMedicalAgent({
         query: 'query',

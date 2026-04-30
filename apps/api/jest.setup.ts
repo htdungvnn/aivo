@@ -1,5 +1,5 @@
 // Set vi to jest global for compatibility
-(global as any).vi = jest;
+(global as any).vi = globalThis.jest;
 
 // Mock environment variables for testing
 process.env.AUTH_SECRET = 'test-secret-key-for-ci';

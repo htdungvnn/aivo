@@ -5,6 +5,8 @@
  * regardless of routing structure.
  */
 
+/// <reference types="jest" />
+
 import {
   calculateHealthScore,
   validateBodyMetrics,

@@ -14,7 +14,7 @@
     "fetch": "pnpm install --force",
     "build:wasm": "pnpm --filter @aivo/compute run build",
     "build:compute": "pnpm --filter @aivo/compute run build",
-    "test": "pnpm exec jest --config=jest.config.js --selectProjects=api-unit,api-integration",
+    "test": "pnpm exec jest --config=jest.config.js --selectProjects api-unit,api-integration",
     "test:all": "jest",
     "test:unit": "jest --selectProjects=api-unit",
     "test:integration": "jest --selectProjects api-integration",

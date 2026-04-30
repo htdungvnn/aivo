@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance, conversations, workoutRoutines, dailySchedules, planDeviations } from "@aivo/db";
 import { eq, and, desc, gte, lt, asc, inArray, isNotNull } from "drizzle-orm";
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database, KVNamespace } from "@cloudflare/workers-types";
 // import { optimize_content_wasm } from "@aivo/optimizer";  // Temporarily disabled - WASM init issues
 import { AdaptivePlanner, VoiceParser } from "@aivo/compute/aivo_compute_bg.js";
 import { MemoryService } from "../lib/memory-service";

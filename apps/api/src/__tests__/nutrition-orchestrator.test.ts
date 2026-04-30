@@ -58,7 +58,7 @@ describe('Nutrition Orchestrator', () => {
     });
 
     it('includes medical agent for medications', () => {
-      const result = selectAgents('query', { medications: ['metformin'] }, undefined);
+      const result = selectAgents('query', { medications: [{ name: 'metformin' }] }, undefined);
       expect(result).toContain('medical');
     });
 
@@ -83,7 +83,7 @@ describe('Nutrition Orchestrator', () => {
     });
 
     it('includes chef agent when ingredients available', () => {
-      const result = selectAgents('query', { availableIngredients: ['chicken', 'rice'] }, undefined);
+      const result = selectAgents('query', { availableIngredients: [{ name: 'chicken', quantity: 1, unit: 'piece', isPerishable: true }, { name: 'rice', quantity: 1, unit: 'kg', isPerishable: false }] }, undefined);
       expect(result).toContain('chef');
     });
 
@@ -102,7 +102,7 @@ describe('Nutrition Orchestrator', () => {
     it('returns deduplicated list', () => {
       const result = selectAgents('recipe for cheap diabetes-friendly meals', {
         medicalConditions: ['diabetes'],
-        availableIngredients: ['rice'],
+        availableIngredients: [{ name: 'rice', quantity: 1, unit: 'kg', isPerishable: false }],
       }, undefined);
       expect(result).toEqual(['medical', 'chef', 'budget']);
     });
@@ -276,7 +276,7 @@ describe('Nutrition Orchestrator', () => {
       const result = await orchestrateNutritionConsult({
         ...baseRequest,
         query: 'recipe',
-        context: { availableIngredients: ['chicken'] },
+        context: { availableIngredients: [{ name: 'chicken', quantity: 1, unit: 'piece', isPerishable: true }] },
       });
 
       expect(result.success).toBe(true);

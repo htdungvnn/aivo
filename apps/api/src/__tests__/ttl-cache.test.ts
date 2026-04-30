@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, jest } from '@jest/globals';
 import { TTLCache, createCache } from '../utils/ttl-cache';
 
 const mockNow = 1000000;
-let dateNowSpy: jest.Mock;
+let dateNowSpy: any;
 
 beforeAll(() => {
   dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(mockNow);

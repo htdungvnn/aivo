@@ -42,8 +42,8 @@ web-build/
 *.p12
 *.key
 *.mobileprovision
-android/
-ios/
+android
+ios
 
 # Environment files (ALL variants)
 .env

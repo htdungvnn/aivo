@@ -102,6 +102,7 @@ describe('Body Metrics Validation', () => {
     it('should validate normal body fat', () => {
       const result = validateBodyMetrics({
         bodyFatPercentage: 0.15,
+        height: 175,
         age: 25,
         gender: 'male',
         fitnessLevel: 'intermediate',
@@ -114,6 +115,7 @@ describe('Body Metrics Validation', () => {
     it('should reject body fat above 100%', () => {
       const result = validateBodyMetrics({
         bodyFatPercentage: 1.5,
+        height: 175,
         age: 25,
         gender: 'male',
         fitnessLevel: 'intermediate',
@@ -126,6 +128,7 @@ describe('Body Metrics Validation', () => {
     it('should reject essential fat below minimum', () => {
       const result = validateBodyMetrics({
         bodyFatPercentage: 0.01,
+        height: 175,
         age: 25,
         gender: 'male',
         fitnessLevel: 'intermediate',
