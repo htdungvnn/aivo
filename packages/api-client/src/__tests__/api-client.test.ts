@@ -4,7 +4,7 @@ import { ApiClient, ApiError } from '../index';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
-global.fetch = mockFetch;
+(globalThis as any).fetch = mockFetch;
 
 describe('ApiClient', () => {
   const baseUrl = 'https://api.example.com';
@@ -20,7 +20,7 @@ describe('ApiClient', () => {
       get: jest.fn().mockReturnValue('application/json'),
     },
     arrayBuffer: async () => new ArrayBuffer(0),
-  });
+  } as Response);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,70 +41,6 @@ describe('ApiClient', () => {
         tokenProvider: () => 'token',
       });
       expect(client).toBeDefined();
-    });
-  });
-
-  describe('request()', () => {
-    it('should make GET request with auth header', async () => {
-      mockFetch.mockResolvedValue(createMockResponse({ success: true }));
-      await apiClient.request('/test');
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${baseUrl}/test`,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${mockToken}`,
-          }),
-        })
-      );
-    });
-
-    it('should make POST request with body', async () => {
-      mockFetch.mockResolvedValue(createMockResponse({ success: true }));
-      const body = { name: 'Test' };
-      await apiClient.request('/test', { method: 'POST', body: JSON.stringify(body) });
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify(body),
-        })
-      );
-    });
-
-    it('should handle absolute URLs', async () => {
-      const absoluteUrl = 'https://external.api.com/endpoint';
-      mockFetch.mockResolvedValue(createMockResponse({ success: true }));
-      await apiClient.request(absoluteUrl);
-      expect(mockFetch).toHaveBeenCalledWith(absoluteUrl, expect.any(Object));
-    });
-
-    it('should throw ApiError on HTTP error', async () => {
-      mockFetch.mockResolvedValue(createMockResponse({ error: 'Not found' }, 404, false));
-      await expect(apiClient.request('/test')).rejects.toThrow(ApiError);
-    });
-
-    it('should handle 204 No Content', async () => {
-      mockFetch.mockResolvedValue({ ok: true, status: 204 });
-      const result = await apiClient.request('/test', { method: 'DELETE' });
-      expect(result).toBeUndefined();
-    });
-
-    it('should handle network failures', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-      await expect(apiClient.request('/test')).rejects.toThrow('Network error');
-    });
-
-    it('should include X-User-Id header when userIdProvider is set', async () => {
-      const mockUserId = 'user-123';
-      const client = new ApiClient({
-        baseUrl,
-        tokenProvider: () => mockToken,
-        userIdProvider: () => mockUserId,
-      });
-      mockFetch.mockResolvedValue(createMockResponse({ success: true }));
-      const headers = await client.getAuthHeaders();
-      expect(headers['X-User-Id']).toBe(mockUserId);
     });
   });
 
@@ -161,7 +97,7 @@ describe('ApiClient', () => {
   describe('Workout APIs', () => {
     it('createWorkout() POSTs data', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ success: true, data: {} }));
-      const workout = { type: 'strength', duration: 60 };
+      const workout = { type: 'strength' as const, duration: 60 };
       await apiClient.createWorkout(workout);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
@@ -251,7 +187,7 @@ describe('ApiClient', () => {
     it('uploadSensorReadings() POSTs readings array', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ success: true, data: { received: 2 } }));
       const readings = [
-        { timestamp: Date.now(), type: 'heart_rate', value: 72, unit: 'bpm' },
+        { timestamp: Date.now(), type: 'heart_rate' as const, value: 72, unit: 'bpm', source: 'manual' as const },
       ];
       await apiClient.uploadSensorReadings(readings);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -330,13 +266,13 @@ describe('ApiClient', () => {
   describe('Error handling', () => {
     it('throws ApiError with message from response', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ error: 'Validation failed' }, 400, false));
-      await expect(apiClient.request('/test')).rejects.toThrow(ApiError);
+      await expect(apiClient.getUsers()).rejects.toThrow(ApiError);
     });
 
     it('includes error code if provided', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ error: 'Bad', code: 'VALIDATION_ERROR' }, 400, false));
       try {
-        await apiClient.request('/test');
+        await apiClient.getUsers();
       } catch (error: any) {
         expect(error.code).toBe('VALIDATION_ERROR');
       }

@@ -118,4 +118,5 @@ __tests__/fixtures/
 .tfstate
 .tfstate.backup
 
+.claude
 
