@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777538972790-e879e235",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "pending",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Pushed D1 migration fix for muscle_fatigue_readings table. Triggering new Deploy workflow run.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_attempt",
+  "recordedAt": "2026-04-30T08:49:32.790Z"
+}

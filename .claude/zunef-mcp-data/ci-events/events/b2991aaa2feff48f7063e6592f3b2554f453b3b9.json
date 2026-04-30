@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777542199225-e1e5d7ad",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "pending",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Fixed smoke test counting logic. Triggering final Deploy workflow.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_attempt",
+  "recordedAt": "2026-04-30T09:43:19.225Z"
+}

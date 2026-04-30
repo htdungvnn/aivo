@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777541050692-f5de3bd1",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "success",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Deployment successful! All migrations applied. Smoke tests pass except Facebook auth (500 due to missing config). CI/CD pipeline fixed.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_complete",
+  "recordedAt": "2026-04-30T09:24:10.692Z"
+}

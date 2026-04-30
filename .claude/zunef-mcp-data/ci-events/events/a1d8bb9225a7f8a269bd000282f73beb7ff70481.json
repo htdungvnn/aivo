@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777543279805-89a8201b",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "pending",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Fixed Cloudflare Pages build configuration to use correct production API URL. Triggering Deploy Web workflow.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_attempt",
+  "recordedAt": "2026-04-30T10:01:19.806Z"
+}

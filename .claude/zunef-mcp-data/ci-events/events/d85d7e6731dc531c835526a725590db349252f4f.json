@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777540580962-dc1def0d",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "pending",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Pushed smoke test script fix. Triggering final Deploy workflow verification.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_attempt",
+  "recordedAt": "2026-04-30T09:16:20.962Z"
+}

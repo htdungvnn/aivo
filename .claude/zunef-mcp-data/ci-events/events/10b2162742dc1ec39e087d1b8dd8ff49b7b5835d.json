@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777542772536-2bff4a12",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "success",
+  "branch": "",
+  "commitSha": "",
+  "summary": "✅ FULLY OPERATIONAL! All CI/CD pipelines now pass:\n- CI workflow: type-check, lint, build, test all pass\n- Deploy Web workflow: successful\n- Deploy Workers: code builds, migrations apply, smoke tests pass (9/9)\n- Database: all migrations applied successfully\n\nFixed: dependency, CSS, WASM, D1 migrations, smoke tests.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_complete",
+  "recordedAt": "2026-04-30T09:52:52.536Z"
+}

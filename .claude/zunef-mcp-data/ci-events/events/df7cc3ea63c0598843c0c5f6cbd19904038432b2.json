@@ -1,0 +1,14 @@
+{
+  "eventId": "ci-1777540314468-9435a9e3",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "pipelineId": "default",
+  "status": "pending",
+  "branch": "",
+  "commitSha": "",
+  "summary": "Pushed comprehensive table creation safeguards for migrations 0020-0022. Triggering new Deploy workflow.",
+  "failingSteps": [],
+  "artifactPaths": [],
+  "logExcerpt": "",
+  "eventType": "deploy_attempt",
+  "recordedAt": "2026-04-30T09:11:54.468Z"
+}

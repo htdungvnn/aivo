@@ -1,0 +1,22 @@
+{
+  "id": "checkpoint-1776855569755-5eec9a3b",
+  "createdAt": "2026-04-22T10:59:29.755Z",
+  "workspaceRoot": "/Users/htdung/Documents/aivo",
+  "title": "Fixing WASM binding errors in aivo-compute",
+  "currentGoal": "Fix test compilation errors by properly separating WASM exports from internal helper functions",
+  "changedFiles": [],
+  "completedWork": [
+    "Removed unused imports from infographic-generator",
+    "Fixed all warnings in aivo-compute lib.rs",
+    "Made test-only functions pub",
+    "Added #[wasm_bindgen(skip)] to some functions but still encountering WASM compatibility issues"
+  ],
+  "blockers": [],
+  "nextStep": "Split CorrelationAnalyzer impl into regular (helpers) and #[wasm_bindgen] (public API) blocks",
+  "testResults": [],
+  "decisions": [],
+  "commandsRun": [],
+  "artifacts": [],
+  "notes": "The core issue: #[wasm_bindgen] on impl block forces all pub methods to be WASM-compatible. Need to move WASM methods to separate impl block and keep helpers in regular impl.",
+  "tags": []
+}
