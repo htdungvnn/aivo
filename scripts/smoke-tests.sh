@@ -136,15 +136,21 @@ main() {
   # 2. API root/info
   test_endpoint "GET" "/" "200" || test_endpoint "GET" "/api" "200"
 
-  # 3. Swagger docs (if enabled)
+  # 3. Swagger docs (if enabled) - in production with auth it returns 404 for unauthenticated
   if [ "$API_URL" != "http://localhost:8787" ]; then
-    # Swagger might be disabled in production
+    # Swagger might be disabled/protected in production - expect 404 or 200
+    if test_endpoint "GET" "/docs" "200" || test_endpoint "GET" "/docs" "404"; then
+      log_success "Swagger docs accessibility check passed (200 or 404)"
+    else
+      log_warning "Swagger docs not accessible (unexpected response)"
+    fi
+  else
     test_endpoint "GET" "/docs" "200" || log_warning "Swagger docs not accessible (may be disabled)"
   fi
 
-  # 4. Auth endpoint (without valid token - should return 401 or 400)
-  test_endpoint "POST" "/api/auth/google" "400" '{"token":"test-token"}'
-  test_endpoint "POST" "/api/auth/facebook" "400" '{"accessToken":"test-token"}'
+  # 4. Auth endpoint (without valid token - should return 401 Unauthorized)
+  test_endpoint "POST" "/api/auth/google" "401" '{"token":"test-token"}'
+  test_endpoint "POST" "/api/auth/facebook" "401" '{"accessToken":"test-token"}'
 
   # 5. Users endpoint (without auth - should return 401)
   test_endpoint "GET" "/api/users/me" "401"
