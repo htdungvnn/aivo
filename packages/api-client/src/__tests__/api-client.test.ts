@@ -20,7 +20,7 @@ describe('ApiClient', () => {
       get: jest.fn().mockReturnValue('application/json'),
     },
     arrayBuffer: async () => new ArrayBuffer(0),
-  } as Response);
+  }) as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
