@@ -61,6 +61,7 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
   const [currentFatigue, setCurrentFatigue] = useState<FatigueResult | null>(null);
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [wasmInitialized, setWasmInitialized] = useState(false);
 
   // Refs for audio recording
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -76,10 +77,32 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
 
   // Initialize WASM module
   useEffect(() => {
-    AcousticMyography.init().catch(() => {
-      // Silent fail - WASM init errors handled at usage time
-    });
+    let mounted = true;
+    AcousticMyography.init()
+      .then(() => {
+        if (mounted) setWasmInitialized(true);
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError('WASM module failed to initialize. Acoustic analysis unavailable.');
+          console.error('WASM init error:', err);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  /**
+   * Check if WASM is ready
+   */
+  const checkWasmReady = useCallback((): boolean => {
+    if (!wasmInitialized) {
+      setError('Acoustic analysis module is still loading. Please wait.');
+      return false;
+    }
+    return true;
+  }, [wasmInitialized]);
 
   /**
    * Request microphone permission
@@ -140,6 +163,10 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
     }
 
     try {
+      if (!checkWasmReady()) {
+        return;
+      }
+
       await configureAudio();
 
       // Load baseline if provided
@@ -175,10 +202,12 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
 
       // Start processing loop
       startProcessingLoop();
-    } catch {
-      setError('Failed to start recording');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start recording';
+      setError(message);
+      console.error('startSession error:', err);
     }
-  }, [requestPermission, configureAudio, startProcessingLoop]);
+  }, [requestPermission, configureAudio, startProcessingLoop, checkWasmReady]);
 
   /**
    * Process an audio chunk (call this with PCM data from native module)
@@ -188,6 +217,21 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
     chunkCounterRef.current++;
 
     try {
+      if (!checkWasmReady()) {
+        setIsProcessing(false);
+        return {
+          rmsAmplitude: 0,
+          medianFrequency: 0,
+          frequencyBands: [],
+          spectralEntropy: 0,
+          motorUnitRecruitment: 0,
+          contractionCount: 0,
+          signalToNoiseRatio: 0,
+          confidence: 0,
+          isValid: false,
+        };
+      }
+
       const resultJson = AcousticMyography.processAudioChunk(pcmData, Date.now() - sessionStartTimeRef.current);
       const features: AcousticFeatures = JSON.parse(resultJson);
 
@@ -210,33 +254,74 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       }
 
       return features;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to process audio chunk';
+      setError(message);
+      console.error('processChunk error:', err);
+      // Return safe default
+      return {
+        rmsAmplitude: 0,
+        medianFrequency: 0,
+        frequencyBands: [],
+        spectralEntropy: 0,
+        motorUnitRecruitment: 0,
+        contractionCount: 0,
+        signalToNoiseRatio: 0,
+        confidence: 0,
+        isValid: false,
+      };
     } finally {
       setIsProcessing(false);
     }
-  }, [sessionStats]);
+  }, [sessionStats, checkWasmReady]);
 
   /**
    * Calculate fatigue from features and baseline
    */
   const calculateFatigue = useCallback((features: AcousticFeatures, baseline?: BaselineData): FatigueResult => {
-    const baselineJson = baseline ? JSON.stringify(baseline) : '';
-    const featuresJson = JSON.stringify(features);
+    try {
+      if (!checkWasmReady()) {
+        return {
+          fatigueLevel: 0,
+          fatigueCategory: 'fresh',
+          medianFreqShift: 0,
+          confidence: 0,
+          recommendations: ['WASM module not ready'],
+        };
+      }
 
-    const resultJson = AcousticMyography.calculateFatigueScore(featuresJson, baselineJson);
-    const result: FatigueResult = JSON.parse(resultJson);
+      const baselineJson = baseline ? JSON.stringify(baseline) : '';
+      const featuresJson = JSON.stringify(features);
 
-    setCurrentFatigue(result);
+      const resultJson = AcousticMyography.calculateFatigueScore(featuresJson, baselineJson);
+      const result: FatigueResult = JSON.parse(resultJson);
 
-    // Track fatigue samples for trend
-    fatigueSamplesRef.current.push(result.fatigueLevel);
+      setCurrentFatigue(result);
 
-    // Emit fatigue update
-    if (onFatigueRef.current) {
-      onFatigueRef.current(result);
+      // Track fatigue samples for trend
+      fatigueSamplesRef.current.push(result.fatigueLevel);
+
+      // Emit fatigue update
+      if (onFatigueRef.current) {
+        onFatigueRef.current(result);
+      }
+
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to calculate fatigue';
+      setError(message);
+      console.error('calculateFatigue error:', err);
+      // Return safe default
+      const fallback: FatigueResult = {
+        fatigueLevel: 0,
+        fatigueCategory: 'fresh',
+        medianFreqShift: 0,
+        confidence: 0,
+        recommendations: [`Error: ${message}`],
+      };
+      return fallback;
     }
-
-    return result;
-  }, []);
+  }, [checkWasmReady]);
 
   /**
    * Calibrate baseline from resting muscle recording
@@ -244,13 +329,21 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
   const calibrateBaseline = useCallback(async (pcmData: Int16Array): Promise<BaselineData> => {
     setIsProcessing(true);
     try {
+      if (!checkWasmReady()) {
+        throw new Error('WASM module not ready');
+      }
       const baselineJson = AcousticMyography.calibrateBaseline(pcmData);
       const baseline: BaselineData = JSON.parse(baselineJson);
       return baseline;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to calibrate baseline';
+      setError(message);
+      console.error('calibrateBaseline error:', err);
+      throw err;
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [checkWasmReady]);
 
   /**
    * Save baseline to storage
@@ -329,8 +422,10 @@ export function useAcousticRecording(): UseAcousticRecordingReturn {
       fatigueSamplesRef.current = [];
 
       return session;
-    } catch {
-      setError('Failed to stop session');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to stop session';
+      setError(message);
+      console.error('stopSession error:', err);
       return null;
     }
   }, [sessionId, isRecording]);

@@ -2,117 +2,10 @@
 // BIOMETRIC CORRELATION - STRESS & RECOVERY ANALYSIS
 // ACOUSTIC MYOGRAPHY - MUSCLE FATIGUE ANALYSIS
 // ============================================
-import type { WorkoutType } from "./workout";
+
 import type { MuscleGroup } from "./body";
-
-/**
- * Aggregated statistics for a time period (used in BiometricSnapshot)
- */
-export interface ExerciseLoadAggregate {
-  totalWorkouts: number;
-  totalDurationMinutes: number;
-  totalCalories: number;
-  avgDurationMinutes: number;
-  workoutsByType: Record<WorkoutType, number>;
-  intensityDistribution: {
-    low: number; // % of workouts at low intensity
-    moderate: number;
-    high: number;
-  };
-  consecutiveDays: number;
-  restDays: number;
-  avgRpe?: number; // Average Rate of Perceived Exertion
-}
-
-export interface SleepAggregate {
-  avgDurationHours: number;
-  avgQualityScore?: number;
-  avgDeepSleepMinutes?: number;
-  avgRemSleepMinutes?: number;
-  consistencyScore?: number;
-  bedtimeConsistency: number; // 0-1, lower variance = higher score
-  qualityVsDurationCorrelation?: number; // Correlation coefficient
-  daysWithData: number;
-  totalDays: number;
-}
-
-export interface NutritionAggregate {
-  avgDailyCalories: number;
-  targetCalories: number;
-  avgDailyProtein: number;
-  targetProtein: number;
-  avgDailyCarbs: number;
-  targetCarbs: number;
-  avgDailyFat: number;
-  targetFat: number;
-  avgDailyFiber?: number;
-  targetFiber?: number;
-  proteinGoalPct: number; // % of target achieved
-  carbsGoalPct: number;
-  fatGoalPct: number;
-  consistencyScore: number; // 0-100 based on variance
-  avgMealCount: number;
-  lateNightEatingIncidents: number; // Meals after 9 PM
-  hydration?: {
-    avgWaterMl: number;
-    targetWaterMl: number;
-    goalPct: number;
-  };
-  macroBalanceScore: number; // 0-100 based on ratio balance
-}
-
-export interface BodyMetricsAggregate {
-  weightChange: number; // kg change over period
-  bodyFatChange: number; // percentage points change
-  muscleMassChange?: number; // kg change
-  bmiChange?: number;
-  avgWeight: number;
-  avgBodyFat: number;
-  measurementsCompleteness: number; // 0-1
-}
-
-/**
- * Pre-computed biometric snapshot for a time period
- * Used to avoid expensive on-the-fly correlations for every API call
- * Corresponds to biometric_snapshots table
- */
-export interface BiometricSnapshot {
-  id: string;
-  userId: string;
-  period: "7d" | "30d";
-  generatedAt: Date;
-  validUntil?: Date;
-  exerciseLoad: ExerciseLoadAggregate;
-  sleep: SleepAggregate;
-  nutrition: NutritionAggregate;
-  bodyMetrics: BodyMetricsAggregate;
-  recoveryScore: number; // 0-100 composite score
-  warnings: string[]; // e.g., ["low_sleep", "nutrient_deficit", "overtraining_risk"]
-}
-
-/**
- * Correlation finding between two factors
- * Identifies patterns like "recovery drops when eating after 9 PM"
- * Corresponds to correlation_findings table
- */
-export interface CorrelationFinding {
-  id: string;
-  userId: string;
-  snapshotId: string;
-  factorA: BiometricFactor; // e.g., "sleep_quality" or "late_nutrition"
-  factorB: BiometricFactor; // e.g., "recovery_score" or "workout_intensity"
-  correlationCoefficient: number; // -1 to 1 (Pearson's r)
-  pValue: number; // Statistical significance (0-1, lower = more significant)
-  confidence: number; // Combined confidence score (0-1)
-  anomalyThreshold: number; // Z-score threshold used for anomaly detection
-  anomalyCount: number; // Number of outlier points
-  outlierDates: string[]; // ISO dates where anomalies occurred
-  explanation: string; // AI-generated plain-language explanation
-  actionableInsight: string; // AI-generated recommendation
-  detectedAt: Date;
-  validUntil?: Date; // Correlations expire after data gets stale
-  isDismissed: boolean;
-}
+import type { CorrelationFinding } from "./api-contracts";
+export type { BiometricSnapshot, CorrelationFinding, RecoveryScoreResult } from "./api-contracts";
 
 /**
  * Factor types that can be correlated
@@ -183,52 +76,6 @@ export interface CorrelationAnalysisResult {
     nutrition: number;
     bodyMetrics: number;
   };
-}
-
-/**
- * Recovery score factors for detailed breakdown
- */
-export interface RecoveryScoreFactors {
-  sleep: {
-    duration: number; // 0-100 score
-    quality: number;
-    consistency: number;
-    weight: number; // Overall weight for this factor
-  };
-  exercise: {
-    load: number; // 0-100 (balanced = high, under/over = low)
-    recoveryTime: number; // Days of rest
-    intensityBalance: number;
-    weight: number;
-  };
-  nutrition: {
-    adequacy: number; // Meeting targets
-    timing: number; // Meal timing quality
-    hydration: number;
-    weight: number;
-  };
-  bodyMetrics: {
-    weightChange: number; // Score based on healthy rate
-    bodyFatChange: number;
-    trend: number; // Direction of change
-    weight: number;
-  };
-}
-
-/**
- * Recovery score calculation result
- */
-export interface RecoveryScoreResult {
-  score: number; // 0-100 overall score
-  factors: RecoveryScoreFactors;
-  grade: "excellent" | "good" | "fair" | "poor" | "critical";
-  trend: "improving" | "stable" | "declining";
-  comparedToLastPeriod: {
-    change: number;
-    direction: "up" | "down" | "same";
-  };
-  primaryRiskFactor: BiometricFactor | null;
-  recommendations: string[];
 }
 
 // ============================================

@@ -11,6 +11,7 @@ jest.mock('@/services/biometric-api', () => ({
   getBiometricSnapshot: jest.fn(),
   generateBiometricSnapshot: jest.fn(),
   getRecoveryScore: jest.fn(),
+  dismissCorrelation: jest.fn(),
 }));
 
 describe('Mobile RecoveryDashboard Component', () => {
@@ -96,6 +97,7 @@ describe('Mobile RecoveryDashboard Component', () => {
     (biometricApi.getBiometricSnapshot as jest.Mock).mockResolvedValue(mockSnapshot);
     (biometricApi.generateBiometricSnapshot as jest.Mock).mockResolvedValue(mockSnapshot);
     (biometricApi.getRecoveryScore as jest.Mock).mockResolvedValue(mockRecoveryScore);
+    (biometricApi.dismissCorrelation as jest.Mock).mockResolvedValue(undefined);
   });
 
   it('should render recovery dashboard', async () => {
@@ -202,8 +204,14 @@ describe('Mobile RecoveryDashboard Component', () => {
     const dismissButton = dismissButtonText.parent;
     fireEvent.press(dismissButton);
 
+    // Verify API was called with correct ID
     await waitFor(() => {
-      expect(biometricApi.getCorrelationFindings).toHaveBeenCalled();
+      expect(biometricApi.dismissCorrelation).toHaveBeenCalledWith('corr-1');
+    });
+
+    // Verify correlation is removed from UI
+    await waitFor(() => {
+      expect(screen.queryByText(/Aim for 7\+ hours/)).not.toBeOnTheScreen();
     });
   });
 

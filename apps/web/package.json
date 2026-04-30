@@ -58,6 +58,7 @@
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.4.49",
+    "playwright": "^1.52.0",
     "shadcn": "^3.8.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",

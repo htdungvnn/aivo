@@ -4,11 +4,12 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   Alert,
   Platform,
+  FlatList,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMetrics } from "@/contexts/MetricsContext";
@@ -247,6 +248,99 @@ export default function InsightsScreen() {
     { muscle: "calves", current: 65 },
   ];
 
+  const renderTrendsContent = () => {
+    type ChartMetric = "weight" | "bodyFat" | "muscleMass";
+
+    interface ChartItem {
+      id: string;
+      icon: any;
+      title: string;
+      data: any[];
+      color: string;
+      isBalance: boolean;
+      metric?: ChartMetric;
+    }
+
+    const charts: ChartItem[] = [];
+
+    if (weightData.length > 0) {
+      charts.push({
+        id: "weight",
+        icon: Scale,
+        title: "Weight Progress",
+        data: weightData,
+        color: "emerald",
+        isBalance: false,
+        metric: "weight",
+      });
+    }
+
+    if (bodyFatData.length > 0) {
+      charts.push({
+        id: "bodyFat",
+        icon: Activity,
+        title: "Body Fat %",
+        data: bodyFatData,
+        color: "orange",
+        isBalance: false,
+        metric: "bodyFat",
+      });
+    }
+
+    if (muscleData.length > 0) {
+      charts.push({
+        id: "muscle",
+        icon: TrendingUp,
+        title: "Muscle Mass",
+        data: muscleData,
+        color: "blue",
+        isBalance: false,
+        metric: "muscleMass",
+      });
+    }
+
+    // Always add muscle balance chart
+    charts.push({
+      id: "balance",
+      icon: Target,
+      title: "Muscle Balance",
+      data: muscleBalanceData,
+      color: "purple",
+      isBalance: true,
+    });
+
+    if (charts.length === 0) {
+      return (
+        <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <Text className="text-slate-400 text-center">No trend data available yet. Start logging your metrics to see progress.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={charts}
+        keyExtractor={(item) => item.id}
+        scrollEnabled={false}
+        className="space-y-4"
+        ItemSeparatorComponent={() => <View className="h-3" />}
+        renderItem={({ item }) => (
+          <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <View className="flex items-center gap-2 mb-3">
+              <item.icon className={`w-5 h-5 text-${item.color}-400`} />
+              <Text className="text-slate-200 font-semibold">{item.title}</Text>
+            </View>
+            {item.isBalance ? (
+              <MuscleBalanceChart data={item.data as any} height={250} />
+            ) : (
+              <BodyMetricChart data={item.data as any} metric={item.metric!} height={200} />
+            )}
+          </View>
+        )}
+      />
+    );
+  };
+
   const renderBodyContent = () => {
     switch (bodyTab) {
       case "overview":
@@ -312,7 +406,12 @@ export default function InsightsScreen() {
             {selectedImage ? (
               <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
                 <View className="relative">
-                  <Image source={{ uri: selectedImage }} className="w-full aspect-[3/4] rounded-lg" resizeMode="cover" />
+                  <ExpoImage
+                    source={{ uri: selectedImage }}
+                    className="w-full aspect-[3/4] rounded-lg"
+                    contentFit="cover"
+                    cachePolicy="disk"
+                  />
                   <TouchableOpacity
                     onPress={clearImage}
                     className="absolute top-2 right-2 p-2 bg-red-500/80 rounded-full"
@@ -414,47 +513,7 @@ export default function InsightsScreen() {
         );
 
       case "trends":
-        return (
-          <View className="space-y-4">
-            {weightData.length > 0 && (
-              <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                <View className="flex items-center gap-2 mb-3">
-                  <Scale className="w-5 h-5 text-emerald-400" />
-                  <Text className="text-slate-200 font-semibold">Weight Progress</Text>
-                </View>
-                <BodyMetricChart data={weightData} metric="weight" height={200} />
-              </View>
-            )}
-
-            {bodyFatData.length > 0 && (
-              <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                <View className="flex items-center gap-2 mb-3">
-                  <Activity className="w-5 h-5 text-orange-400" />
-                  <Text className="text-slate-200 font-semibold">Body Fat %</Text>
-                </View>
-                <BodyMetricChart data={bodyFatData} metric="bodyFat" height={200} />
-              </View>
-            )}
-
-            {muscleData.length > 0 && (
-              <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                <View className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="w-5 h-5 text-blue-400" />
-                  <Text className="text-slate-200 font-semibold">Muscle Mass</Text>
-                </View>
-                <BodyMetricChart data={muscleData} metric="muscleMass" height={200} />
-              </View>
-            )}
-
-            <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <View className="flex items-center gap-2 mb-3">
-                <Target className="w-5 h-5 text-purple-400" />
-                <Text className="text-slate-200 font-semibold">Muscle Balance</Text>
-              </View>
-              <MuscleBalanceChart data={muscleBalanceData} height={250} />
-            </View>
-          </View>
-        );
+        return renderTrendsContent();
 
       case "digital-twin":
         return <DigitalTwinScreen />;

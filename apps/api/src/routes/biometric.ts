@@ -1,16 +1,13 @@
-import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
 import { eq } from "drizzle-orm";
-import { schema } from "@aivo/db/schema";
+import { schema as dbSchema } from "@aivo/db/schema";
 import {
   getCachedBiometricData,
   getBiometricCacheKey,
   storeSensorReadings,
   type BiometricReading,
   type BiometricSnapshot,
-} from "../services/biometric";
-import {
   getSleepLogs,
   getSleepSummary,
   createSleepLog,
@@ -22,20 +19,17 @@ import {
   getUserMacroTargets,
   upsertUserMacroTargets,
 } from "../services/biometric";
-import type { D1Database } from "@cloudflare/workers-types";
-import type { KVNamespace } from "@cloudflare/workers-types";
-import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import type { D1Database, KVNamespace } from "@cloudflare/workers-types";
+import { BaseRouter, type BaseEnv } from "../lib/base-router";
+import { APIError } from "../utils/errors";
 
-interface EnvWithKV {
-  DB: D1Database;
+interface Env extends BaseEnv {
   BIOMETRIC_CACHE: KVNamespace;
 }
 
 export const BiometricRouter = () => {
-  const router = new Hono<{ Bindings: EnvWithKV }>();
-
-  // Apply authentication to all biometric routes
-  router.use("*", authenticate);
+  const baseRouter = new BaseRouter<Env>();
+  const router = baseRouter.getRouter();
 
   // ============================================
   // SLEEP LOGS
@@ -131,14 +125,14 @@ export const BiometricRouter = () => {
    *         description: Failed to create sleep log
    */
   router.post("/sleep", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
 
-      const schema = z.object({
+      const validationSchema = z.object({
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         durationHours: z.number().positive(),
         qualityScore: z.number().min(0).max(100).optional(),
@@ -152,16 +146,16 @@ export const BiometricRouter = () => {
         source: z.enum(["manual", "device", "imported"]).default("manual"),
       });
 
-      const validated = schema.parse(body);
+      const validated = validationSchema.parse(body);
 
       const sleepLog = await createSleepLog(drizzle, userId, validated);
 
       return c.json({ success: true, data: sleepLog }, 201);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
+        throw new APIError(400, "VALIDATION_ERROR", "Validation error", { details: error.errors });
       }
-      return c.json({ success: false, error: "Failed to create sleep log" }, 500);
+      throw new APIError(500, "CREATE_SLEEP_LOG_FAILED", "Failed to create sleep log");
     }
   });
 
@@ -245,15 +239,15 @@ export const BiometricRouter = () => {
    *         description: Failed to update sleep log
    */
   router.patch("/sleep/:id", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
     const logId = c.req.param("id");
 
     try {
       const body = await c.req.json();
 
-      const schema = z.object({
+      const validationSchema = z.object({
         durationHours: z.number().positive().optional(),
         qualityScore: z.number().min(0).max(100).optional(),
         deepSleepMinutes: z.number().int().positive().optional(),
@@ -266,20 +260,20 @@ export const BiometricRouter = () => {
         source: z.string().optional(),
       });
 
-      const validated = schema.parse(body);
+      const validated = validationSchema.parse(body);
 
       const sleepLog = await updateSleepLog(drizzle, userId, logId, validated);
 
       if (!sleepLog) {
-        return c.json({ success: false, error: "Sleep log not found" }, 404);
+        throw new APIError(404, "SLEEP_LOG_NOT_FOUND", "Sleep log not found");
       }
 
       return c.json({ success: true, data: sleepLog });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
+        throw new APIError(400, "VALIDATION_ERROR", "Validation error", { details: error.errors });
       }
-      return c.json({ success: false, error: "Failed to update sleep log" }, 500);
+      throw new APIError(500, "UPDATE_SLEEP_LOG_FAILED", "Failed to update sleep log");
     }
   });
 
@@ -328,9 +322,9 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.get("/sleep/history", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     const limit = parseInt(c.req.query("limit") || "30");
     const offset = parseInt(c.req.query("offset") || "0");
@@ -377,9 +371,9 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.get("/sleep/summary", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     const period = c.req.query("period") === "7d" ? "7d" : "30d";
 
@@ -437,18 +431,18 @@ export const BiometricRouter = () => {
    *         description: Failed to generate snapshot
    */
   router.post("/snapshot/generate", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
 
-      const schema = z.object({
+      const validationSchema = z.object({
         period: z.enum(["7d", "30d"]).default("7d"),
       });
 
-      const { period } = schema.parse(body);
+      const { period } = validationSchema.parse(body);
 
       // Generate snapshot (this will also store in DB)
       const snapshot = await getOrGenerateSnapshot(drizzle, userId, period, c.env.BIOMETRIC_CACHE);
@@ -456,9 +450,9 @@ export const BiometricRouter = () => {
       return c.json({ success: true, data: snapshot }, 201);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
+        throw new APIError(400, "VALIDATION_ERROR", "Validation error", { details: error.errors });
       }
-      return c.json({ success: false, error: "Failed to generate snapshot" }, 500);
+      throw new APIError(500, "GENERATE_SNAPSHOT_FAILED", "Failed to generate snapshot");
     }
   });
 
@@ -501,13 +495,13 @@ export const BiometricRouter = () => {
    *         description: Failed to get or generate snapshot
    */
   router.get("/snapshot/:period", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
     const period = c.req.param("period") as "7d" | "30d";
 
     if (period !== "7d" && period !== "30d") {
-      return c.json({ success: false, error: "Period must be 7d or 30d" }, 400);
+      throw new APIError(400, "INVALID_PERIOD", "Period must be 7d or 30d");
     }
 
     // Check cache first
@@ -574,9 +568,9 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.get("/correlations", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     const limit = parseInt(c.req.query("limit") || "10");
     const includeDismissed = c.req.query("includeDismissed") === "true";
@@ -622,9 +616,9 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.patch("/correlations/:id/dismiss", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
     const findingId = c.req.param("id");
 
     await dismissCorrelationFinding(drizzle, userId, findingId);
@@ -665,9 +659,9 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.get("/recovery-score", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     const result = await getRecoveryScore(drizzle, userId, c.env.BIOMETRIC_CACHE);
 
@@ -707,13 +701,13 @@ export const BiometricRouter = () => {
    *         description: Unauthorized
    */
   router.get("/nutrition/targets", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     // Get user profile for calculation if needed
     const user = await drizzle.query.users.findFirst({
-      where: eq(schema.users.id, userId),
+      where: eq(dbSchema.users.id, userId),
       columns: {
         weight: true,
         height: true,
@@ -793,14 +787,14 @@ export const BiometricRouter = () => {
    *         description: Failed to set targets
    */
   router.post("/nutrition/targets", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
 
-      const schema = z.object({
+      const validationSchema = z.object({
         calories: z.number().positive(),
         protein_g: z.number().nonnegative(),
         carbs_g: z.number().nonnegative(),
@@ -808,7 +802,7 @@ export const BiometricRouter = () => {
         water_ml: z.number().positive().optional(),
       });
 
-      const validated = schema.parse(body);
+      const validated = validationSchema.parse(body);
 
       await upsertUserMacroTargets(drizzle, userId, validated);
 
@@ -819,9 +813,9 @@ export const BiometricRouter = () => {
       return c.json({ success: true, data: validated });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
+        throw new APIError(400, "VALIDATION_ERROR", "Validation error", { details: error.errors });
       }
-      return c.json({ success: false, error: "Failed to set macro targets" }, 500);
+      throw new APIError(500, "SET_MACRO_TARGETS_FAILED", "Failed to set macro targets");
     }
   });
 
@@ -900,14 +894,14 @@ export const BiometricRouter = () => {
    *         description: Failed to store readings
    */
   router.post("/readings/batch", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
 
-      const schema = z.array(z.object({
+      const validationSchema = z.array(z.object({
         timestamp: z.number().int(),
         type: z.enum(['hrv', 'heart_rate', 'resting_hr', 'steps', 'active_minutes', 'sleep']),
         value: z.number(),
@@ -916,7 +910,7 @@ export const BiometricRouter = () => {
         source: z.enum(['apple_health', 'google_fit', 'manual']),
       }));
 
-      const readings = schema.parse(body);
+      const readings = validationSchema.parse(body);
 
       // Store readings in sensor snapshots table
       await storeSensorReadings(drizzle, userId, readings as BiometricReading[]);
@@ -924,9 +918,9 @@ export const BiometricRouter = () => {
       return c.json({ success: true, received: readings.length });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return c.json({ success: false, error: "Validation error", details: error.errors }, 400);
+        throw new APIError(400, "VALIDATION_ERROR", "Validation error", { details: error.errors });
       }
-      return c.json({ success: false, error: "Failed to store sensor readings" }, 500);
+      throw new APIError(500, "STORE_READINGS_FAILED", "Failed to store sensor readings");
     }
   });
 

@@ -262,3 +262,143 @@ jobs:
             apps/*/coverage
             packages/*/coverage
           retention-days: 14
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [type-check-lint, build]
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PNPM_HOME }}/store
+            ~/.local/share/pnpm/store
+            node_modules
+          key: ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Workers environment
+        run: |
+          pnpm --filter @aivo/api exec wrangler dev --local --port 8787 &
+          echo $! > /tmp/wrangler.pid
+          # Wait for server to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:8787/health > /dev/null 2>&1; then
+              echo "Workers dev server ready"
+              break
+            fi
+            sleep 2
+          done
+        env:
+          # Use local D1 database
+          DATABASE: file:./tmp/test-db.sqlite
+
+      - name: Run integration tests
+        run: pnpm run test:integration
+        env:
+          API_URL: http://localhost:8787
+
+      - name: Stop Workers dev server
+        if: always()
+        run: |
+          kill $(cat /tmp/wrangler.pid) 2>/dev/null || true
+
+      - name: Upload integration test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: coverage/api-integration
+          retention-days: 14
+
+  e2e-tests:
+    name: E2E Tests (Chromium + WebKit)
+    runs-on: ubuntu-latest
+    needs: [build]
+    env:
+      E2E_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PNPM_HOME }}/store
+            ~/.local/share/pnpm/store
+            node_modules
+          key: ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-${{ env.CACHE_BUSTER }}-
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @aivo/web exec playwright install chromium webkit
+
+      - name: Start web server
+        run: |
+          pnpm --filter @aivo/web run build &
+          pnpm --filter @aivo/web run start &
+          echo $! > /tmp/web.pid
+          # Wait for server
+          for i in {1..60}; do
+            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+              echo "Web server ready"
+              break
+            fi
+            sleep 2
+          done
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8787
+
+      - name: Run E2E tests
+        run: pnpm run test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+
+      - name: Stop web server
+        if: always()
+        run: |
+          kill $(cat /tmp/web.pid) 2>/dev/null || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 14

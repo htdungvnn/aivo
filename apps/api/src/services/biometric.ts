@@ -212,6 +212,8 @@ export async function generateBiometricSnapshot(
     bodyMetrics,
     period,
   });
+  // Set userId (calculateSnapshotAggregates leaves it empty)
+  snapshot.userId = userId;
 
   return snapshot;
 }
@@ -437,9 +439,20 @@ export async function analyzeCorrelations(
     return findings;
   }
 
-  // Parse JSON fields
-  const sleep = JSON.parse(snapshot.sleep || "{}");
-  const nutrition = JSON.parse(snapshot.nutrition || "{}");
+  // Parse JSON fields with error handling
+  let sleep: any = {};
+  let nutrition: any = {};
+  try {
+    sleep = JSON.parse(snapshot.sleep || "{}");
+  } catch (e) {
+    // Invalid JSON, return empty findings
+    return findings;
+  }
+  try {
+    nutrition = JSON.parse(snapshot.nutrition || "{}");
+  } catch (e) {
+    return findings;
+  }
 
   // We need historical data to calculate correlations
   // For now, generate findings based on snapshot state

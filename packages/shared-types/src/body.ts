@@ -3,6 +3,10 @@
 // Includes body metrics, vision analysis, and heatmap utilities
 // ============================================
 
+// Re-export API contract types that are also used in body metrics context
+// These are defined in api-contracts.ts to avoid duplication
+export type { SleepLog, SleepLogCreate, SensorDataSnapshot, BiometricReading } from "./api-contracts";
+
 export interface BodyMetric {
   id: string;
   userId: string;
@@ -20,68 +24,6 @@ export interface BodyMetric {
   notes?: string | null; // nullable in DB
 }
 
-// Wearable sensor data snapshot
-export interface SensorDataSnapshot {
-  id: string;
-  userId: string;
-  timestamp: number; // Unix timestamp in milliseconds
-  period: "hourly" | "daily" | "weekly";
-  steps?: number | null;
-  activeMinutes?: number | null;
-  avgHeartRate?: number | null;
-  restingHeartRate?: number | null;
-  hrvMs?: number | null; // Heart rate variability in milliseconds
-  hrvRmssd?: number | null; // RMSSD HRV metric
-  stressScore?: number | null; // 0-100
-  source?: "apple_health" | "google_fit" | "manual";
-  rawData?: string | null; // JSON: full aggregates for debugging
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Sleep log entry
-export interface SleepLog {
-  id: string;
-  userId: string;
-  date: string; // ISO date YYYY-MM-DD
-  durationHours?: number | null;
-  qualityScore?: number | null; // 0-100
-  deepSleepMinutes?: number | null;
-  remSleepMinutes?: number | null;
-  awakeMinutes?: number | null;
-  bedtime?: string | null; // HH:MM
-  waketime?: string | null; // HH:MM
-  consistencyScore?: number | null; // 0-100
-  notes?: string | null;
-  source?: "manual" | "device" | "imported";
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Create sleep log request
-export interface SleepLogCreate {
-  date: string;
-  durationHours: number;
-  qualityScore?: number;
-  deepSleepMinutes?: number;
-  remSleepMinutes?: number;
-  awakeMinutes?: number;
-  bedtime?: string;
-  waketime?: string;
-  consistencyScore?: number;
-  notes?: string;
-  source?: "manual" | "device" | "imported";
-}
-
-// Individual biometric reading from wearable device
-export interface BiometricReading {
-  timestamp: number;
-  type: 'hrv' | 'heart_rate' | 'resting_hr' | 'steps' | 'active_minutes' | 'sleep';
-  value: number;
-  unit: string;
-  confidence?: number;
-  source: 'apple_health' | 'google_fit' | 'manual';
-}
 
 // Sensor data upload request
 export interface SensorDataUpload {

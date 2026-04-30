@@ -16,6 +16,7 @@ import {
   getCorrelationFindings,
   getBiometricSnapshot,
   generateBiometricSnapshot,
+  dismissCorrelation,
 } from "@/services/biometric-api";
 import type {
   BiometricSnapshot,
@@ -100,8 +101,14 @@ function RecoveryDashboard() {
   }, [user]);
 
   const handleDismissCorrelation = useCallback(async (id: string) => {
+    try {
+      await dismissCorrelation(id);
+    } catch (error) {
+      Alert.alert("Error", "Failed to dismiss correlation. Please try again.");
+      return;
+    }
     setCorrelations((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+  }, [dismissCorrelation]);
 
   // Memoize top correlation to avoid recalculation
   const topCorrelation = useMemo(() => correlations[0], [correlations]);

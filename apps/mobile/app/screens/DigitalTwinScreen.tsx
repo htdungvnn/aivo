@@ -9,9 +9,9 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AvatarViewer2D from "./AvatarViewer2D";
+import AvatarViewer2D from "@/components/digital-twin/AvatarViewer2D";
 import TimeSlider from "./TimeSlider";
-import AdherenceAdjuster from "./AdherenceAdjuster";
+import AdherenceAdjuster from "@/components/digital-twin/AdherenceAdjuster";
 
 const COLORS = {
   primary: '#007AFF',

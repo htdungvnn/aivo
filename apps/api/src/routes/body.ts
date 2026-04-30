@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
-import { eq } from "drizzle-orm";
+import { eq, desc, gte, lte, and } from "drizzle-orm";
 import { validateBodyMetrics } from "../services/validation";
 import type {
   BodyMetricResponse,
@@ -11,40 +11,14 @@ import {
   analyzeImageWithAI,
   generateHeatmapSVG,
   validateImage,
+  invalidateBodyCache,
 } from "../services/body-insights";
 import { schema } from "@aivo/db/schema";
-import type { D1Database } from "@cloudflare/workers-types";
-import type { R2Bucket } from "@cloudflare/workers-types";
-import { BaseRouter } from "../lib/base-router";
-import { authenticate } from "../middleware/auth";
+import type { D1Database, KVNamespace, R2Bucket } from "@cloudflare/workers-types";
+import { BaseRouter, type BaseEnv } from "../lib/base-router";
 import { APIError } from "../utils/errors";
-import { AUTH_USER_KEY } from "../utils/context-keys";
 
-import { z } from "zod";
-import { createDrizzleInstance } from "@aivo/db";
-import { eq } from "drizzle-orm";
-import { validateBodyMetrics } from "../services/validation";
-import type {
-  BodyMetricResponse,
-  HealthScoreResponse,
-} from "../services/body-insights";
-import {
-  uploadImage,
-  analyzeImageWithAI,
-  generateHeatmapSVG,
-  validateImage,
-} from "../services/body-insights";
-import { schema } from "@aivo/db/schema";
-import type { D1Database } from "@cloudflare/workers-types";
-import type { R2Bucket } from "@cloudflare/workers-types";
-import { BaseRouter } from "../lib/base-router";
-import { authenticate } from "../middleware/auth";
-import { APIError } from "../utils/errors";
-import { AUTH_USER_KEY } from "../utils/context-keys";
-
-interface Env {
-  DB: D1Database;
-  QUERY_CACHE?: KVNamespace;
+interface Env extends BaseEnv {
   R2_BUCKET: R2Bucket;
   R2_PUBLIC_URL: string;
   BODY_INSIGHTS_CACHE: KVNamespace;
@@ -109,7 +83,7 @@ export const BodyRouter = () => {
    *         description: Upload failed
    */
   router.post("/upload", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
 
     try {
@@ -117,7 +91,7 @@ export const BodyRouter = () => {
       const imageFile = formData.get("image") as File | null;
 
       if (!imageFile) {
-        return c.json({ success: false, error: "No image provided" }, 400);
+        throw new APIError(400, "NO_IMAGE_PROVIDED", "No image provided");
       }
 
       const bytes = await imageFile.arrayBuffer();
@@ -126,7 +100,7 @@ export const BodyRouter = () => {
 
       const validation = validateImage(buffer);
       if (!validation.valid) {
-        return c.json({ success: false, error: validation.error }, 400);
+        throw new APIError(400, "INVALID_IMAGE", validation.error || "Invalid image");
       }
 
       const filename = imageFile.name || `body-photo-${Date.now()}.jpg`;
@@ -141,8 +115,7 @@ export const BodyRouter = () => {
         },
       });
 
-      // Construct the public URL using R2_PUBLIC_URL
-      const baseUrl = c.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
+      const baseUrl = c.env.R2_PUBLIC_URL?.replace(/\/$/, "") || "";
       const imageUrl = `${baseUrl}/${key}`;
 
       return c.json({
@@ -155,9 +128,12 @@ export const BodyRouter = () => {
         },
       });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Upload error:", error);
-      return c.json({ success: false, error: "Upload failed" }, 500);
+      throw new APIError(500, "UPLOAD_FAILED", "Upload failed");
     }
   });
 
@@ -231,8 +207,8 @@ export const BodyRouter = () => {
    *         description: Analysis failed
    */
   router.post("/vision/analyze", async (c) => {
-    const drizzle = createDrizzleInstance(c.env.DB);
-    const authUser = getUserFromContext(c) as AuthUser;
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
 
     const user = await drizzle.query.users.findFirst({
@@ -240,7 +216,7 @@ export const BodyRouter = () => {
     });
 
     if (!user) {
-      return c.json({ success: false, error: "User not found" }, 404);
+      throw new APIError(404, "USER_NOT_FOUND", "User not found");
     }
 
     try {
@@ -255,7 +231,7 @@ export const BodyRouter = () => {
 
       const openaiKey = c.env.OPENAI_API_KEY;
       if (!openaiKey) {
-        return c.json({ success: false, error: "AI service not configured" }, 503);
+        throw new APIError(503, "AI_NOT_CONFIGURED", "AI service not configured");
       }
 
       const analysis = await analyzeImageWithAI(openaiKey, imageUrl, {
@@ -305,10 +281,13 @@ export const BodyRouter = () => {
         },
       });
     } catch (error: unknown) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Vision analysis error:", error);
       const message = error instanceof Error ? error.message : "Analysis failed";
-      return c.json({ success: false, error: message }, 500);
+      throw new APIError(500, "VISION_ANALYSIS_FAILED", message);
     }
   });
 
@@ -363,10 +342,9 @@ export const BodyRouter = () => {
    *         description: Failed to fetch metrics
    */
   router.get("/metrics", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const startDate = c.req.query("startDate")
@@ -378,11 +356,26 @@ export const BodyRouter = () => {
       const limit = parseInt(c.req.query("limit") || "100");
 
       const paramStr = `${startDate || ""}:${endDate || ""}:${limit}`;
-      const cacheKey = getCacheKey(userId, "metrics", paramStr);
+      const cacheKey = baseRouter.buildCacheKey("BODY_INSIGHTS", userId, "metrics", paramStr);
 
-      const { data: cachedData, hit: cacheHit } = await getCachedData<BodyMetricResponse[]>(
-        c.env.BODY_INSIGHTS_CACHE,
-        cacheKey
+      const { data: cachedData, hit: cacheHit } = await baseRouter.withCacheResult<BodyMetricResponse[]>(
+        c,
+        cacheKey,
+        async () => {
+          return await drizzle.query.bodyMetrics.findMany({
+            where: (bm, { eq, gte, lte, and }) => {
+              const conditions = [
+                eq(bm.userId, userId),
+                ...(startDate !== undefined ? [gte(bm.timestamp, startDate)] : []),
+                ...(endDate !== undefined ? [lte(bm.timestamp, endDate)] : []),
+              ];
+              return conditions.length > 1 ? and(...conditions) : conditions[0];
+            },
+            orderBy: (bm, { desc }) => desc(bm.timestamp),
+            limit,
+          });
+        },
+        baseRouter.getCacheTtl("BODY_INSIGHTS")
       );
 
       if (cacheHit && cachedData) {
@@ -390,32 +383,15 @@ export const BodyRouter = () => {
         return c.json({ success: true, data: cachedData });
       }
 
-      const metrics = await drizzle.query.bodyMetrics.findMany({
-        where: (bm, { eq, gte, lte, and }) => {
-          const conditions = [
-            eq(bm.userId, userId),
-            ...(startDate !== undefined ? [gte(bm.timestamp, startDate)] : []),
-            ...(endDate !== undefined ? [lte(bm.timestamp, endDate)] : []),
-          ];
-          return conditions.length > 1 ? and(...conditions) : conditions[0];
-        },
-        orderBy: (bm, { desc }) => desc(bm.timestamp),
-        limit,
-      });
-
-      await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
-        cacheKey,
-        metrics,
-        CACHE_TTL.METRICS
-      );
-
       c.header("X-Cache", "MISS");
-      return c.json({ success: true, data: metrics });
+      return c.json({ success: true, data: cachedData });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Get metrics error:", error);
-      return c.json({ success: false, error: "Failed to fetch metrics" }, 500);
+      throw new APIError(500, "FETCH_METRICS_FAILED", "Failed to fetch metrics");
     }
   });
 
@@ -489,10 +465,9 @@ export const BodyRouter = () => {
    *         description: Failed to create metric
    */
   router.post("/metrics", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
@@ -514,7 +489,7 @@ export const BodyRouter = () => {
       });
 
       if (!user) {
-        return c.json({ success: false, error: "User not found" }, 404);
+        throw new APIError(404, "USER_NOT_FOUND", "User not found");
       }
 
       const hasRequiredFields =
@@ -534,14 +509,7 @@ export const BodyRouter = () => {
         });
 
         if (!validationResult.valid) {
-          return c.json(
-            {
-              success: false,
-              error: "Validation failed",
-              details: validationResult.errors,
-            },
-            400
-          );
+          throw new APIError(400, "VALIDATION_FAILED", "Validation failed", { errors: validationResult.errors });
         }
       }
 
@@ -560,9 +528,12 @@ export const BodyRouter = () => {
 
       return c.json({ success: true, data: metric }, 201);
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Create metric error:", error);
-      return c.json({ success: false, error: "Failed to create metric" }, 500);
+      throw new APIError(500, "CREATE_METRIC_FAILED", "Failed to create metric");
     }
   });
 
@@ -620,55 +591,46 @@ export const BodyRouter = () => {
    *         description: Failed to fetch heatmaps
    */
   router.get("/heatmaps", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const limit = parseInt(c.req.query("limit") || "10");
-      const cacheKey = getCacheKey(userId, "heatmaps", limit.toString());
+      const cacheKey = baseRouter.buildCacheKey("BODY_INSIGHTS", userId, "heatmaps", limit.toString());
 
-      const { data: cachedData, hit: cacheHit } = await getCachedData<
-        Array<{
-          id: string;
-          userId: string;
-          timestamp: number;
-          imageUrl: string;
-          vectorData: unknown[] | null;
-          metadata: unknown | null;
-        }>
-      >(c.env.BODY_INSIGHTS_CACHE, cacheKey);
+      const { data: cachedData, hit: cacheHit } = await baseRouter.withCacheResult(
+        c,
+        cacheKey,
+        async () => {
+          const heatmaps = await drizzle.query.bodyHeatmaps.findMany({
+            where: (bh, { eq }) => eq(bh.userId, userId),
+            orderBy: (bh, { desc }) => desc(bh.createdAt),
+            limit,
+          });
+
+          return heatmaps.map((h) => ({
+            ...h,
+            vectorData: h.vectorData ? JSON.parse(h.vectorData) : null,
+          }));
+        },
+        baseRouter.getCacheTtl("BODY_INSIGHTS")
+      );
 
       if (cacheHit && cachedData) {
         c.header("X-Cache", "HIT");
         return c.json({ success: true, data: cachedData });
       }
 
-      const heatmaps = await drizzle.query.bodyHeatmaps.findMany({
-        where: (bh, { eq }) => eq(bh.userId, userId),
-        orderBy: (bh, { desc }) => desc(bh.createdAt),
-        limit,
-      });
-
-      const parsed = heatmaps.map((h) => ({
-        ...h,
-        vectorData: h.vectorData ? JSON.parse(h.vectorData) : null,
-      }));
-
-      await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
-        cacheKey,
-        parsed,
-        CACHE_TTL.HEATMAPS
-      );
-
       c.header("X-Cache", "MISS");
-      return c.json({ success: true, data: parsed });
+      return c.json({ success: true, data: cachedData });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Get heatmaps error:", error);
-      return c.json({ success: false, error: "Failed to fetch heatmaps" }, 500);
+      throw new APIError(500, "FETCH_HEATMAPS_FAILED", "Failed to fetch heatmaps");
     }
   });
 
@@ -755,10 +717,9 @@ export const BodyRouter = () => {
    *         description: Failed to generate heatmap
    */
   router.post("/heatmaps/generate", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
       const body = await c.req.json();
@@ -781,7 +742,7 @@ export const BodyRouter = () => {
       });
 
       if (!analysis) {
-        return c.json({ success: false, error: "Analysis not found" }, 404);
+        throw new APIError(404, "ANALYSIS_NOT_FOUND", "Analysis not found");
       }
 
       const svgOverlay = generateHeatmapSVG(vectorData);
@@ -797,8 +758,6 @@ export const BodyRouter = () => {
         },
       });
 
-      // Insert heatmap - requires photoId, so we need to create a bodyPhotos entry first
-      // For now, we'll use analysisId as a placeholder photoId (needs validation)
       const now = Math.floor(Date.now() / 1000);
       const [heatmap] = await drizzle
         .insert(schema.bodyHeatmaps)
@@ -806,8 +765,8 @@ export const BodyRouter = () => {
           id: crypto.randomUUID(),
           userId,
           photoId: analysisId, // TODO: Properly link to bodyPhotos
-          regions: JSON.stringify(vectorData), // vectorData as regions
-          metrics: JSON.stringify({ generatedAt: now }), // minimal metrics
+          regions: JSON.stringify(vectorData),
+          metrics: JSON.stringify({ generatedAt: now }),
           vectorData: JSON.stringify(vectorData),
           createdAt: now,
         })
@@ -825,9 +784,12 @@ export const BodyRouter = () => {
         },
       });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Generate heatmap error:", error);
-      return c.json({ success: false, error: "Failed to generate heatmap" }, 500);
+      throw new APIError(500, "GENERATE_HEATMAP_FAILED", "Failed to generate heatmap");
     }
   });
 
@@ -861,17 +823,130 @@ export const BodyRouter = () => {
    *         description: Failed to calculate health score
    */
   router.get("/health-score", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const userId = authUser.id;
-
-    const drizzle = createDrizzleInstance(c.env.DB);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
 
     try {
-      const cacheKey = getCacheKey(userId, "health-score");
+      const cacheKey = baseRouter.buildCacheKey("BODY_INSIGHTS", userId, "health-score");
 
-      const { data: cachedData, hit: cacheHit } = await getCachedData<HealthScoreResponse>(
-        c.env.BODY_INSIGHTS_CACHE,
-        cacheKey
+      const { data: cachedData, hit: cacheHit } = await baseRouter.withCacheResult<HealthScoreResponse>(
+        c,
+        cacheKey,
+        async () => {
+          const user = await drizzle.query.users.findFirst({
+            where: (u, { eq }) => eq(u.id, userId),
+          });
+
+          if (!user) {
+            throw new APIError(404, "USER_NOT_FOUND", "User not found");
+          }
+
+          const latestMetric = await drizzle.query.bodyMetrics.findMany({
+            where: (bm, { eq }) => eq(bm.userId, userId),
+            orderBy: (bm, { desc }) => desc(bm.timestamp),
+            limit: 1,
+          });
+
+          const metric = latestMetric[0];
+
+          // Calculate health score (simplified)
+          const factors: Record<string, number> = {};
+
+          if (metric?.bmi) {
+            const bmi = metric.bmi;
+            if (bmi >= 18.5 && bmi <= 24.9) {
+              factors.bmi = 1;
+            } else if (bmi >= 25 && bmi <= 29.9) {
+              factors.bmi = 0.7;
+            } else if (bmi >= 30) {
+              factors.bmi = 0.3;
+            } else {
+              factors.bmi = 0.5;
+            }
+          } else {
+            factors.bmi = 0.5;
+          }
+
+          if (metric?.bodyFatPercentage) {
+            const bf = metric.bodyFatPercentage;
+            if (bf < 0.12) {
+              factors.bodyFat = 0.8;
+            } else if (bf >= 0.12 && bf <= 0.25) {
+              factors.bodyFat = 1;
+            } else if (bf > 0.25 && bf <= 0.30) {
+              factors.bodyFat = 0.7;
+            } else {
+              factors.bodyFat = 0.3;
+            }
+          } else {
+            factors.bodyFat = 0.5;
+          }
+
+          if (metric?.muscleMass && user?.weight) {
+            const muscleRatio = metric.muscleMass / user.weight;
+            if (muscleRatio >= 0.35 && muscleRatio <= 0.45) {
+              factors.muscleMass = 1;
+            } else if (muscleRatio >= 0.30 && muscleRatio < 0.35) {
+              factors.muscleMass = 0.8;
+            } else if (muscleRatio > 0.45 && muscleRatio <= 0.50) {
+              factors.muscleMass = 0.9;
+            } else {
+              factors.muscleMass = 0.5;
+            }
+          } else {
+            factors.muscleMass = 0.5;
+          }
+
+          const fitnessMap: Record<string, number> = {
+            beginner: 0.4,
+            intermediate: 0.7,
+            advanced: 0.9,
+            elite: 1.0,
+          };
+          factors.fitnessLevel = fitnessMap[user.fitnessLevel || "beginner"] || 0.4;
+
+          const weights = { bmi: 0.25, bodyFat: 0.3, muscleMass: 0.3, fitnessLevel: 0.15 };
+          const score =
+            (factors.bmi * weights.bmi +
+              factors.bodyFat * weights.bodyFat +
+              factors.muscleMass * weights.muscleMass +
+              factors.fitnessLevel * weights.fitnessLevel) *
+            100;
+
+          let category: HealthScoreResponse["category"];
+          if (score >= 80) {
+            category = "excellent";
+          } else if (score >= 60) {
+            category = "good";
+          } else if (score >= 40) {
+            category = "fair";
+          } else {
+            category = "poor";
+          }
+
+          const recommendations: string[] = [];
+          if (factors.bmi < 0.7) {
+            recommendations.push("Focus on maintaining a healthy weight range through balanced nutrition");
+          }
+          if (factors.bodyFat < 0.7) {
+            recommendations.push("Consider adjusting macronutrient intake to optimize body composition");
+          }
+          if (factors.muscleMass < 0.7) {
+            recommendations.push("Incorporate resistance training to build lean muscle mass");
+          }
+          if (recommendations.length === 0) {
+            recommendations.push("Keep up your excellent health trajectory!");
+          }
+
+          return {
+            score: Math.round(score * 10) / 10,
+            category,
+            factors: factors as { bmi: number; bodyFat: number; muscleMass: number; fitnessLevel: number },
+            recommendations,
+          };
+        },
+        600 // health score TTL (10 minutes)
       );
 
       if (cacheHit && cachedData) {
@@ -879,134 +954,15 @@ export const BodyRouter = () => {
         return c.json({ success: true, data: cachedData });
       }
 
-      const user = await drizzle.query.users.findFirst({
-        where: (u, { eq }) => eq(u.id, userId),
-      });
-
-      if (!user) {
-        return c.json({ success: false, error: "User not found" }, 404);
-      }
-
-      const latestMetric = await drizzle.query.bodyMetrics.findMany({
-        where: (bm, { eq }) => eq(bm.userId, userId),
-        orderBy: (bm, { desc }) => desc(bm.timestamp),
-        limit: 1,
-      });
-
-      const metric = latestMetric[0];
-
-      // Calculate health score (simplified)
-      const factors: Record<string, number> = {};
-
-      if (metric?.bmi) {
-        const bmi = metric.bmi;
-        if (bmi >= 18.5 && bmi <= 24.9) {
-          factors.bmi = 1;
-        } else if (bmi >= 25 && bmi <= 29.9) {
-          factors.bmi = 0.7;
-        } else if (bmi >= 30) {
-          factors.bmi = 0.3;
-        } else {
-          factors.bmi = 0.5;
-        }
-      } else {
-        factors.bmi = 0.5;
-      }
-
-      if (metric?.bodyFatPercentage) {
-        const bf = metric.bodyFatPercentage;
-        if (bf < 0.12) {
-          factors.bodyFat = 0.8;
-        } else if (bf >= 0.12 && bf <= 0.25) {
-          factors.bodyFat = 1;
-        } else if (bf > 0.25 && bf <= 0.30) {
-          factors.bodyFat = 0.7;
-        } else {
-          factors.bodyFat = 0.3;
-        }
-      } else {
-        factors.bodyFat = 0.5;
-      }
-
-      if (metric?.muscleMass && user?.weight) {
-        const muscleRatio = metric.muscleMass / user.weight;
-        if (muscleRatio >= 0.35 && muscleRatio <= 0.45) {
-          factors.muscleMass = 1;
-        } else if (muscleRatio >= 0.30 && muscleRatio < 0.35) {
-          factors.muscleMass = 0.8;
-        } else if (muscleRatio > 0.45 && muscleRatio <= 0.50) {
-          factors.muscleMass = 0.9;
-        } else {
-          factors.muscleMass = 0.5;
-        }
-      } else {
-        factors.muscleMass = 0.5;
-      }
-
-      const fitnessMap: Record<string, number> = {
-        beginner: 0.4,
-        intermediate: 0.7,
-        advanced: 0.9,
-        elite: 1.0,
-      };
-      factors.fitnessLevel = fitnessMap[user.fitnessLevel || "beginner"] || 0.4;
-
-      const weights = { bmi: 0.25, bodyFat: 0.3, muscleMass: 0.3, fitnessLevel: 0.15 };
-      const score =
-        (factors.bmi * weights.bmi +
-          factors.bodyFat * weights.bodyFat +
-          factors.muscleMass * weights.muscleMass +
-          factors.fitnessLevel * weights.fitnessLevel) *
-        100;
-
-      let category: HealthScoreResponse["category"];
-      if (score >= 80) {
-        category = "excellent";
-      } else if (score >= 60) {
-        category = "good";
-      } else if (score >= 40) {
-        category = "fair";
-      } else {
-        category = "poor";
-      }
-
-      const recommendations: string[] = [];
-      if (factors.bmi < 0.7) {
-        recommendations.push("Focus on maintaining a healthy weight range through balanced nutrition");
-      }
-      if (factors.bodyFat < 0.7) {
-        recommendations.push("Consider adjusting macronutrient intake to optimize body composition");
-      }
-      if (factors.muscleMass < 0.7) {
-        recommendations.push("Incorporate resistance training to build lean muscle mass");
-      }
-      if (recommendations.length === 0) {
-        recommendations.push("Keep up your excellent health trajectory!");
-      }
-
-      const result = {
-        success: true,
-        data: {
-          score: Math.round(score * 10) / 10,
-          category,
-          factors,
-          recommendations,
-        },
-      };
-
-      await setCachedData(
-        c.env.BODY_INSIGHTS_CACHE,
-        cacheKey,
-        result.data,
-        CACHE_TTL.HEALTH_SCORE
-      );
-
       c.header("X-Cache", "MISS");
-      return c.json(result);
+      return c.json({ success: true, data: cachedData });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Health score error:", error);
-      return c.json({ success: false, error: "Failed to calculate health score" }, 500);
+      throw new APIError(500, "CALCULATE_HEALTH_SCORE_FAILED", "Failed to calculate health score");
     }
   });
 

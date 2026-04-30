@@ -139,12 +139,6 @@ export async function getCorrelationFindings(
   );
 }
 
-export async function dismissCorrelationFinding(id: string): Promise<void> {
-  await fetchApi<void>(`/api/biometric/correlations/${id}/dismiss`, {
-    method: "PATCH",
-  });
-}
-
 /**
  * Recovery Score API
  */
