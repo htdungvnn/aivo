@@ -4,27 +4,20 @@
  */
 
 import type { Context } from "hono";
-import type { ZodSchema} from "zod";
-import { ZodError, z } from "zod";
+import { z, ZodError } from "zod";
 import { ValidationError, formatZodError } from "../utils/errors";
-
-// Store validated data in context (use string key - Hono context doesn't support Symbol keys)
-const VALIDATED_DATA_KEY = "__validated_data";
+import { VALIDATED_BODY_KEY, VALIDATED_QUERY_KEY } from "../utils/context-keys";
 
 /**
  * Middleware factory for validating request body
  * Usage: router.post("/", validateBody(schema), handler)
  */
-export function validateBody<T>(schema: ZodSchema<T>) {
+export function validateBody<T>(schema: z.ZodSchema<T>) {
   return async (c: Context, next: () => Promise<Response>) => {
     try {
       const json = await c.req.json();
       const validated = schema.parse(json);
-
-      // Store validated data in context
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (c as any).set(VALIDATED_DATA_KEY, validated);
-
+      (c as any).set(VALIDATED_BODY_KEY, validated);
       return await next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -39,13 +32,12 @@ export function validateBody<T>(schema: ZodSchema<T>) {
  * Middleware factory for validating query parameters
  * Usage: router.get("/", validateQuery(schema), handler)
  */
-export function validateQuery<T>(schema: ZodSchema<T>) {
+export function validateQuery<T>(schema: z.ZodSchema<T>) {
   return async (c: Context, next: () => Promise<Response>) => {
     try {
       const query: Record<string, unknown> = {};
       const url = new URL(c.req.url);
       url.searchParams.forEach((value, key) => {
-        // Try to parse as JSON, otherwise keep as string
         try {
           query[key] = JSON.parse(value);
         } catch {
@@ -54,9 +46,7 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
       });
 
       const validated = schema.parse(query);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (c as any).set(VALIDATED_DATA_KEY, validated);
-
+      (c as any).set(VALIDATED_QUERY_KEY, validated);
       return await next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -68,14 +58,23 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
 }
 
 /**
- * Get validated data from context
- * Should be called after validation middleware
+ * Get validated body from context (type-safe)
  */
-export function getValidated<T>(c: Context): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (c as any).get(VALIDATED_DATA_KEY);
+export function getValidatedBody<T>(c: Context): T {
+  const data = (c as any).get(VALIDATED_BODY_KEY);
   if (data === undefined) {
-    throw new ValidationError("No validated data found. Did you forget to use validateBody/validateQuery?");
+    throw new ValidationError("No validated body found. Did you forget to use validateBody?");
+  }
+  return data as T;
+}
+
+/**
+ * Get validated query from context (type-safe)
+ */
+export function getValidatedQuery<T>(c: Context): T {
+  const data = (c as any).get(VALIDATED_QUERY_KEY);
+  if (data === undefined) {
+    throw new ValidationError("No validated query found. Did you forget to use validateQuery?");
   }
   return data as T;
 }

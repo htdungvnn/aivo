@@ -6,6 +6,9 @@
 import type { Context } from "hono";
 import { verifyToken } from "../utils/auth";
 import { createDrizzleInstance } from "@aivo/db";
+import { eq } from "drizzle-orm";
+import { sessions, users } from "@aivo/db/schema";
+import { AUTH_USER_KEY } from "../utils/context-keys";
 
 // Simple user type for context
 export interface AuthUser {
@@ -13,9 +16,6 @@ export interface AuthUser {
   email: string;
   name?: string;
 }
-
-// Unique context key for storing auth user
-const AUTH_USER_KEY = "auth-user";
 
 /**
  * Authenticate middleware - verifies JWT token and sets user in context
@@ -46,13 +46,14 @@ export async function authenticate(c: Context): Promise<Response | void> {
   }
 
   try {
+    // Use the cached Drizzle instance (faster than creating new)
     const drizzle = createDrizzleInstance(c.env.DB);
     const payload = await verifyToken(token, drizzle);
     if (!payload) {
       return c.json({ success: false, error: "Invalid token" }, 401);
     }
 
-    // Get user details
+    // Get session
     const session = await drizzle.query.sessions.findFirst({
       where: (tbl, { eq }) => eq(tbl.id, payload.sub),
     });
@@ -61,6 +62,7 @@ export async function authenticate(c: Context): Promise<Response | void> {
       return c.json({ success: false, error: "Session not found" }, 401);
     }
 
+    // Get user
     const user = await drizzle.query.users.findFirst({
       where: (tbl, { eq }) => eq(tbl.id, payload.userId),
     });
@@ -69,12 +71,13 @@ export async function authenticate(c: Context): Promise<Response | void> {
       return c.json({ success: false, error: "User not found" }, 401);
     }
 
-    // Store user in context using Hono's set method with Symbol key
-    c.set(AUTH_USER_KEY, {
+    // Store user in context using string key
+    const authUser: AuthUser = {
       id: user.id,
       email: user.email,
       name: user.name,
-    });
+    };
+    c.set(AUTH_USER_KEY, authUser);
 
     return;
   } catch (error) {
@@ -108,6 +111,7 @@ export function getUserFromContext(c: Context): AuthUser | undefined {
 
 /**
  * Optional authentication - doesn't fail if no token, returns null
+ * Uses cached Drizzle instance and optimized single-query pattern
  */
 export async function optionalAuth(c: Context): Promise<AuthUser | null> {
   let token: string | null = null;
@@ -138,6 +142,7 @@ export async function optionalAuth(c: Context): Promise<AuthUser | null> {
       return null;
     }
 
+    // Get user
     const user = await drizzle.query.users.findFirst({
       where: (tbl, { eq }) => eq(tbl.id, payload.userId),
     });

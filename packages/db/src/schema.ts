@@ -66,6 +66,7 @@ export const bodyPhotos = sqliteTable("body_photos", {
   metadata: text("metadata"), // JSON: width, height, file size, etc.
 }, (table) => [
   index('idx_user_id').on(table.userId),
+  index('idx_body_photos_user_upload').on(table.userId, sql`desc ${table.uploadDate}`),
   index('idx_analysis_status').on(table.analysisStatus),
 ]);
 
@@ -407,7 +408,9 @@ export const workoutTemplates = sqliteTable("workout_templates", {
   tags: text("tags"),
   isPublic: integer("is_public").default(0),
   popularity: real("popularity"),
-});
+}, (table) => [
+  index('idx_workout_templates_user_id').on(table.userId),
+]);
 
 // Conversations table
 export const conversations = sqliteTable("conversations", {
@@ -422,6 +425,7 @@ export const conversations = sqliteTable("conversations", {
 }, (table) => [
   index('idx_conversations_user_id').on(table.userId),
   index('idx_conversations_created').on(sql`desc ${table.createdAt}`),
+  index('idx_conversations_user_created').on(table.userId, sql`desc ${table.createdAt}`),
 ]);
 
 // AI recommendations table
@@ -442,6 +446,7 @@ export const aiRecommendations = sqliteTable("ai_recommendations", {
 }, (table) => [
   index('idx_ai_recs_user_id').on(table.userId),
   index('idx_ai_recs_created').on(sql`desc ${table.createdAt}`),
+  index('idx_ai_recs_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_ai_recs_unread').on(table.userId, table.isRead),
   index('idx_ai_recs_type').on(table.type),
 ]);
@@ -519,6 +524,7 @@ export const badges = sqliteTable("badges", {
   tier: text("tier"),
 }, (table) => [
   index('idx_badges_user_id').on(table.userId),
+  index('idx_badges_user_earned').on(table.userId, sql`desc ${table.earnedAt}`),
 ]);
 
 // Achievements table
@@ -535,6 +541,7 @@ export const achievements = sqliteTable("achievements", {
 }, (table) => [
   index('idx_achievements_user_id').on(table.userId),
   index('idx_achievements_completed').on(table.completed),
+  index('idx_achievements_user_completed').on(table.userId, sql`desc ${table.completedAt}`),
 ]);
 
 // Social proof cards table
@@ -551,6 +558,7 @@ export const socialProofCards = sqliteTable("social_proof_cards", {
 }, (table) => [
   index('idx_social_proof_user_id').on(table.userId),
   index('idx_social_proof_created').on(sql`desc ${table.createdAt}`),
+  index('idx_social_proof_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_social_proof_public').on(table.isPublic),
 ]);
 
@@ -566,6 +574,7 @@ export const activityEvents = sqliteTable("activity_events", {
   deviceInfo: text("device_info"),
 }, (table) => [
   index('idx_activity_events_user_id').on(table.userId),
+  index('idx_activity_events_user_server_time').on(table.userId, sql`desc ${table.serverTimestamp}`),
   index('idx_activity_events_workout_id').on(table.workoutId),
   index('idx_activity_events_server_time').on(sql`desc ${table.serverTimestamp}`),
   index('idx_activity_events_type').on(table.type),
@@ -621,6 +630,7 @@ export const streakFreezes = sqliteTable("streak_freezes", {
   pointsSpent: integer("points_spent").default(50), // default cost 50 points
 }, (table) => [
   index('idx_user_id').on(table.userId),
+  index('idx_streak_freezes_user_purchased').on(table.userId, sql`desc ${table.purchasedAt}`),
 ]);
 
 // Point transactions table - tracks all point earnings and spending
@@ -635,6 +645,7 @@ export const pointTransactions = sqliteTable("point_transactions", {
   createdAt: integer("created_at").notNull(),
 }, (table) => [
   index('idx_user_id').on(table.userId),
+  index('idx_point_transactions_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_created_at').on(table.createdAt),
 ]);
 
@@ -654,6 +665,7 @@ export const socialRelationships = sqliteTable("social_relationships", {
   createdAt: integer("created_at").notNull(),
 }, (table) => [
   index('idx_user').on(table.userId),
+  index('idx_social_relationships_user_status').on(table.userId, table.status),
   index('idx_friend').on(table.friendId),
   unique('unique_user_friend').on(table.userId, table.friendId),
 ]);
@@ -743,6 +755,7 @@ export const notifications = sqliteTable("notifications", {
   createdAt: integer("created_at").notNull(),
 }, (table) => [
   index('idx_notifications_user_id').on(table.userId),
+  index('idx_notifications_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_notifications_status').on(table.status),
   index('idx_notifications_created_at').on(table.createdAt),
 ]);
@@ -1079,6 +1092,8 @@ export const liveWorkoutSessions = sqliteTable("live_workout_sessions", {
   index("idx_live_session_user_id").on(table.userId),
   index("idx_live_session_status").on(table.status),
   index("idx_live_session_started_at").on(sql`desc ${table.startedAt}`),
+  index("idx_live_sessions_user_started").on(table.userId, sql`desc ${table.startedAt}`),
+  index("idx_live_sessions_user_status_started").on(table.userId, table.status, sql`desc ${table.startedAt}`),
 ]);
 
 // Set RPE logs for fatigue analysis
@@ -1099,6 +1114,8 @@ export const setRpeLogs = sqliteTable("set_rpe_logs", {
 }, (table) => [
   index("idx_rpe_logs_session_id").on(table.sessionId),
   index("idx_rpe_logs_user_id").on(table.userId),
+  index("idx_rpe_logs_user_timestamp").on(table.userId, sql`desc ${table.timestamp}`),
+  index("idx_rpe_logs_session_setnumber").on(table.sessionId, table.setNumber),
   index("idx_rpe_logs_timestamp").on(sql`desc ${table.timestamp}`),
 ]);
 
@@ -1276,6 +1293,7 @@ export const comments = sqliteTable("comments", {
 }, (table) => [
   index('idx_comments_entity').on(table.entityType, table.entityId),
   index('idx_comments_user').on(table.userId),
+  index('idx_comments_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_comments_parent').on(table.parentId),
   index('idx_comments_created').on(sql`desc ${table.createdAt}`),
   index('idx_comments_entity_created').on(table.entityType, table.entityId, sql`desc ${table.createdAt}`),
@@ -1293,6 +1311,7 @@ export const reactions = sqliteTable("reactions", {
   unique('uq_reaction').on(table.entityType, table.entityId, table.userId, table.reactionType),
   index('idx_reactions_entity').on(table.entityType, table.entityId),
   index('idx_reactions_user').on(table.userId),
+  index('idx_reactions_user_created').on(table.userId, sql`desc ${table.createdAt}`),
   index('idx_reactions_created').on(sql`desc ${table.createdAt}`),
 ]);
 
@@ -1348,6 +1367,7 @@ export const challengeParticipants = sqliteTable("challenge_participants", {
   unique('uq_challenge_participant').on(table.challengeId, table.userId),
   index('idx_challenge_participants_challenge_status').on(table.challengeId, table.status),
   index('idx_challenge_participants_user_id').on(table.userId),
+  index('idx_challenge_participants_user_status').on(table.userId, table.status),
   index('idx_challenge_participants_current_value').on(table.challengeId, table.currentValue),
 ]);
 
@@ -1381,6 +1401,7 @@ export const clubPosts = sqliteTable("club_posts", {
 }, (table) => [
   index('idx_club_posts_club_id').on(table.clubId),
   index('idx_club_posts_author_id').on(table.authorId),
+  index('idx_club_posts_author_created').on(table.authorId, sql`desc ${table.createdAt}`),
   index('idx_club_posts_club_pinned_created').on(table.clubId, table.isPinned, sql`desc ${table.createdAt}`),
 ]);
 

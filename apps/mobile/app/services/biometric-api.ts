@@ -1,119 +1,33 @@
 import * as SecureStore from 'expo-secure-store';
 import { STORAGE_KEYS, API_CONFIG } from "@/config";
-import type { BodyMetric, HealthScoreResult, VisionAnalysis, BodyHeatmapData } from "@aivo/shared-types";
+import type {
+  SleepLog,
+  SleepLogCreate,
+  BiometricSnapshot,
+  CorrelationFinding,
+  RecoveryScoreResult,
+  BiometricReading,
+  SensorDataSnapshot,
+  ApiResponse
+} from "@aivo/shared-types";
 
+// API URL from config
 const API_URL = API_CONFIG.BASE_URL;
 
-// Sleep Log types (re-exported from shared-types would be ideal but keeping local)
-export interface SleepLog {
-  id: string;
-  userId: string;
-  date: string;
-  durationHours: number;
-  qualityScore?: number;
-  deepSleepMinutes?: number;
-  remSleepMinutes?: number;
-  awakeMinutes?: number;
-  bedtime?: string;
-  waketime?: string;
-  consistencyScore?: number;
-  notes?: string;
-  source: "manual" | "wearable" | "imported";
-  createdAt: number;
-  updatedAt: number;
-}
+// Partial update for SleepLog
+export type SleepLogUpdate = Partial<Omit<SleepLog, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
-export interface SleepLogCreate {
-  date: string;
-  durationHours: number;
-  qualityScore?: number;
-  deepSleepMinutes?: number;
-  remSleepMinutes?: number;
-  awakeMinutes?: number;
-  bedtime?: string;
-  waketime?: string;
-  notes?: string;
-  source?: "manual" | "wearable" | "imported";
-}
-
-export interface SleepLogUpdate {
-  durationHours?: number;
-  qualityScore?: number;
-  deepSleepMinutes?: number;
-  remSleepMinutes?: number;
-  awakeMinutes?: number;
-  bedtime?: string;
-  waketime?: string;
-  consistencyScore?: number;
-  notes?: string;
-  source?: string;
-}
-
-export interface BiometricSnapshot {
-  id: string;
-  userId: string;
-  period: "7d" | "30d";
-  exerciseLoad: {
-    totalWorkouts: number;
-    avgIntensity: number;
-    intensityStdDev: number;
-    weeklyVolume: number;
-    totalReps: number;
-  };
-  sleep: {
-    avgDuration: number;
-    durationStdDev: number;
-    avgQuality?: number;
-    consistencyScore: number;
-    avgDeepSleepMinutes?: number;
-    avgRemSleepMinutes?: number;
-  };
-  nutrition: {
-    avgDailyCalories: number;
-    targetCalories: number;
-    consistencyScore: number;
-    avgProtein?: number;
-    avgCarbs?: number;
-    avgFat?: number;
-    avgWater?: number;
-  };
-  bodyMetrics: {
-    weightChange: number;
-    bodyFatChange?: number;
-    muscleMassChange?: number;
-  };
-  recoveryScore: number;
-  warnings: string[];
-}
-
-export interface CorrelationFinding {
-  id: string;
-  factorA: string;
-  factorB: string;
-  correlationCoefficient: number;
-  pValue: number;
-  confidence: number;
-  anomalyThreshold: number;
-  anomalyCount: number;
-  outlierDates: string[];
-  explanation: string;
-  actionableInsight: string;
-  detectedAt: number;
-  validUntil?: number;
-}
-
-export interface RecoveryScoreResult {
-  score: number;
-  grade: "excellent" | "good" | "fair" | "poor";
-  factors: {
-    sleep: number;
-    exercise: number;
-    nutrition: number;
-    bodyMetrics: number;
-    hydration: number;
-  };
-  warnings: string[];
-}
+// Re-export types for consumers of this module
+export type {
+  SleepLog,
+  SleepLogCreate,
+  SleepLogUpdate,
+  BiometricSnapshot,
+  CorrelationFinding,
+  RecoveryScoreResult,
+  BiometricReading,
+  SensorDataSnapshot,
+};
 
 async function getToken(): Promise<string | null> {
   return await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { CorrelationCard } from '../CorrelationCard';
+import CorrelationCard from '../CorrelationCard';
 
 describe('CorrelationCard Component', () => {
   const mockFinding = {
@@ -129,6 +129,6 @@ describe('CorrelationCard Component', () => {
 
     // late_nutrition is in the map, poor_recovery falls back to replace(/_/g, " ")
     expect(screen.getByText(/Late Night Eating/)).toBeInTheDocument();
-    expect(screen.getByText(/poor recovery/)).toBeInTheDocument();
+    expect(screen.getByText(/Poor Recovery/)).toBeInTheDocument();
   });
 });

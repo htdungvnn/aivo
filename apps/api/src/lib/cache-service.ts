@@ -3,6 +3,8 @@
  * Handles caching of database query results with automatic TTL expiration.
  */
 
+import type { KVNamespace } from "@cloudflare/workers-types";
+
 // TTL configurations (in seconds)
 export const CACHE_TTL = {
   // User profile data - updates infrequently

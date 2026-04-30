@@ -5,19 +5,20 @@
 
 import type { Context, Next } from "hono";
 import { APIError } from "../utils/errors";
+import { REQUEST_ID_KEY, AUTH_USER_KEY } from "../utils/context-keys";
 
-// Request ID storage key (use string key - Hono context doesn't support Symbol keys)
-const REQUEST_ID_KEY = "__request_id";
+/**
+ * Request ID storage key
+ */
+// const REQUEST_ID_KEY = "__request_id__"; // Now imported from context-keys
 
 /**
  * Generate or get request ID
  */
 export function getRequestId(c: Context): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let requestId = (c as any).get(REQUEST_ID_KEY);
   if (!requestId) {
     requestId = crypto.randomUUID();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (c as any).set(REQUEST_ID_KEY, requestId);
   }
   return requestId as string;
@@ -32,7 +33,7 @@ export function attachRequestId(c: Context): void {
 }
 
 /**
- * Structured logger (simple implementation for now)
+ * Structured logger (optimized with minimal allocations)
  */
 function logError(
   requestId: string,
@@ -44,39 +45,48 @@ function logError(
     statusCode: number;
   }
 ): void {
-  const logEntry = {
+  // Build log entry efficiently
+  const logEntry: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     requestId,
     level: "error",
     message: error.message,
     ...context,
-    ...(error instanceof APIError && {
-      errorCode: error.code,
-      errorDetails: error.details,
-    }),
-    // Include stack trace in development
-    ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
   };
 
-  // In production, use structured JSON logging
+  // Add error code and details for APIError
+  if (error instanceof APIError) {
+    logEntry.errorCode = error.code;
+    if (error.details) {
+      logEntry.errorDetails = error.details;
+    }
+  }
+
+  // Include stack trace only in development
+  if (process.env.NODE_ENV !== "production") {
+    logEntry.stack = error.stack;
+  }
+
+  // In production, log as single JSON line (better for Logpush)
   if (process.env.NODE_ENV === "production") {
     // eslint-disable-next-line no-console
     console.error(JSON.stringify(logEntry));
   } else {
-    // In development, use readable format
+    // Development: readable format with colors could be added
     // eslint-disable-next-line no-console
     console.error(
-      `[${logEntry.timestamp}] ${logEntry.method} ${logEntry.path} - ${logEntry.statusCode} - ${logEntry.errorCode || "ERROR"}: ${logEntry.message}`
+      `[${logEntry.timestamp}] ${logEntry.method} ${logEntry.path} - ${logEntry.statusCode} - ${(logEntry as any).errorCode || "ERROR"}: ${error.message}`
     );
   }
 }
 
 /**
  * Error handling middleware
+ * Note: This should be early in the middleware chain but after request ID
  */
 export async function errorHandler(c: Context, next: Next) {
   try {
-    // Attach request ID to all requests
+    // Attach request ID to all requests (idempotent - also done by attachRequestId middleware)
     attachRequestId(c);
     return await next();
   } catch (error) {
@@ -116,7 +126,7 @@ export async function errorHandler(c: Context, next: Next) {
     }
 
     // Get user ID from auth context if available
-    const userId = (c.get("auth-user") as { id?: string } | undefined)?.id;
+    const userId = ((c as any).get(AUTH_USER_KEY) as { id?: string } | undefined)?.id;
 
     // Log the error with context
     logError(requestId, error as Error, {
@@ -126,7 +136,7 @@ export async function errorHandler(c: Context, next: Next) {
       statusCode,
     });
 
-    // Ensure request ID is in response headers
+    // Ensure request ID is in response headers (might already be set)
     c.header("X-Request-Id", requestId);
 
     // Cast statusCode to any to satisfy Hono's type system
@@ -139,7 +149,6 @@ export async function errorHandler(c: Context, next: Next) {
  * Not found handler for undefined routes
  */
 export async function notFoundHandler(c: Context) {
-   
   const requestId = getRequestId(c);
   c.header("X-Request-Id", requestId);
 

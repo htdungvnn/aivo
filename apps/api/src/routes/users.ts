@@ -1,9 +1,24 @@
-import { Hono, type Context } from "hono";
+import { z } from "zod";
+import { createDrizzleInstance, users as usersTable } from "@aivo/db";
 import { eq } from "drizzle-orm";
-import { createDrizzleInstance, users } from "@aivo/db";
 import type { D1Database } from "@cloudflare/workers-types";
-import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
-import { buildCacheKey, CACHE_TTL, createCacheHelper } from "../lib/cache-service";
+import type { KVNamespace } from "@cloudflare/workers-types";
+import { BaseRouter } from "../lib/base-router";
+import { authenticate } from "../middleware/auth";
+import type { AuthUser } from "../middleware/auth";
+
+const UpdateUserSchema = z.object({
+  name: z.string().optional(),
+  age: z.number().int().positive().optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  height: z.number().positive().optional(),
+  weight: z.number().positive().optional(),
+  restingHeartRate: z.number().int().positive().optional(),
+  maxHeartRate: z.number().int().positive().optional(),
+  fitnessLevel: z.enum(["beginner", "intermediate", "advanced", "elite"]).optional(),
+  goals: z.array(z.string()).optional(),
+  picture: z.string().url().optional(),
+});
 
 export interface Env {
   DB: D1Database;
@@ -11,174 +26,83 @@ export interface Env {
 }
 
 export const UsersRouter = () => {
-  const router = new Hono<{ Bindings: Env }>();
+  const baseRouter = new BaseRouter<Env>();
+  const router = baseRouter.getRouter();
 
   // Apply authentication to all user routes
   router.use("*", authenticate);
 
-  // Helper to get cache helper if available
-  const getCacheHelper = (c: Context<{ Bindings: Env }>) => {
-    return c.env.QUERY_CACHE ? createCacheHelper(c.env.QUERY_CACHE) : null;
-  };
-
   // Get current user's profile (authenticated user)
-  /**
-   * @swagger
-   * /users/me:
-   *   get:
-   *     summary: Get current user profile
-   *     description: Retrieve the authenticated user's profile
-   *     tags: [users]
-   *     security:
-   *       - bearer: []
-   *     responses:
-   *       200:
-   *         description: User profile
-   *       401:
-   *         description: Unauthorized
-   */
   router.get("/me", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
-    const drizzle = createDrizzleInstance(c.env.DB);
-    const cacheHelper = getCacheHelper(c);
+    const authUser = baseRouter.getAuthUser(c);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
+    const cacheHelper = baseRouter.getCacheHelper(c);
 
-    const cacheKey = buildCacheKey("USER_PROFILE", authUser.id);
+    const cacheKey = baseRouter.buildCacheKey("USER_PROFILE", authUser.id);
 
-    // Try cache first if available
-    if (cacheHelper) {
-      const cachedUser = await cacheHelper.get(cacheKey);
-      if (cachedUser) {
-        return c.json(cachedUser as unknown);
-      }
-    }
-
-    const user = await drizzle.query.users.findFirst({
-      where: eq(users.id, authUser.id),
-    });
+    const user = await baseRouter.withCache(
+      c,
+      cacheKey,
+      async () => {
+        return await drizzle.query.users.findFirst({
+          where: eq(usersTable.id, authUser.id),
+        });
+      },
+      baseRouter.getCacheTtl("USER_PROFILE")
+    );
 
     if (!user) {
       return c.json({ error: "User not found" }, 404);
-    }
-
-    // Cache the result if cache is available
-    if (cacheHelper) {
-      await cacheHelper.set(cacheKey, user, CACHE_TTL.USER_PROFILE);
     }
 
     return c.json(user);
   });
 
-  // Get user by ID (only own data or admin)
-  /**
-   * @swagger
-   * /users/{id}:
-   *   get:
-   *     summary: Get user by ID
-   *     description: Retrieve a specific user by their ID (only own data)
-   *     tags: [users]
-   *     security:
-   *       - bearer: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: string
-   *         description: User ID
-   *     responses:
-   *       200:
-   *         description: User found
-   *       404:
-   *         description: User not found
-   *       403:
-   *         description: Forbidden (can only access own data)
-   */
+  // Get user by ID (only own data)
   router.get("/:id", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
+    const authUser = baseRouter.getAuthUser(c);
     const requestedId = c.req.param("id");
-    const cacheHelper = getCacheHelper(c);
 
-    // Users can only access their own data
     if (authUser.id !== requestedId) {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    const drizzle = createDrizzleInstance(c.env.DB);
-    const cacheKey = buildCacheKey("USER_PROFILE", requestedId);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
+    const cacheKey = baseRouter.buildCacheKey("USER_PROFILE", requestedId);
 
-    // Try cache first if available
-    if (cacheHelper) {
-      const cachedUser = await cacheHelper.get(cacheKey);
-      if (cachedUser) {
-        return c.json(cachedUser as unknown);
-      }
-    }
-
-    const user = await drizzle.query.users.findFirst({
-      where: eq(users.id, requestedId),
-    });
+    const user = await baseRouter.withCache(
+      c,
+      cacheKey,
+      async () => {
+        return await drizzle.query.users.findFirst({
+          where: eq(usersTable.id, requestedId),
+        });
+      },
+      baseRouter.getCacheTtl("USER_PROFILE")
+    );
 
     if (!user) {
       return c.json({ error: "User not found" }, 404);
-    }
-
-    // Cache the result if cache is available
-    if (cacheHelper) {
-      await cacheHelper.set(cacheKey, user, CACHE_TTL.USER_PROFILE);
     }
 
     return c.json(user);
   });
 
   // Update current user profile
-  /**
-   * @swagger
-   * /users/me:
-   *   patch:
-   *     summary: Update current user profile
-   *     description: Update the authenticated user's profile
-   *     tags: [users]
-   *     security:
-   *       - bearer: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               name:
-   *                 type: string
-   *               age:
-   *                 type: integer
-   *               gender:
-   *                 type: string
-   *               height:
-   *                 type: number
-   *               weight:
-   *                 type: number
-   *     responses:
-   *       200:
-   *         description: User updated
-   */
   router.patch("/me", async (c) => {
-    const authUser = getUserFromContext(c) as AuthUser;
-    const drizzle = createDrizzleInstance(c.env.DB);
-    const cacheHelper = getCacheHelper(c);
-    const cacheKey = buildCacheKey("USER_PROFILE", authUser.id);
+    const authUser = baseRouter.getAuthUser(c);
+    const drizzle = baseRouter.getDrizzle(c.env.DB);
+    const cacheKey = baseRouter.buildCacheKey("USER_PROFILE", authUser.id);
 
     try {
       const body = await c.req.json();
+      const validated = UpdateUserSchema.parse(body);
+
       const updates: Record<string, unknown> = {};
-
-      // Allow only specific fields to be updated
-      const allowedFields = ["name", "age", "gender", "height", "weight", "restingHeartRate", "maxHeartRate", "fitnessLevel", "goals", "picture"];
-
-      for (const field of allowedFields) {
-        if (body[field] !== undefined) {
-          // Convert camelCase to snake_case for database
-          const dbField = field.replace(/([A-Z])/g, "_$1").toLowerCase();
-          updates[dbField] = body[field];
+      for (const [key, value] of Object.entries(validated)) {
+        if (value !== undefined) {
+          const dbField = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+          updates[dbField] = value;
         }
       }
 
@@ -189,26 +113,29 @@ export const UsersRouter = () => {
       updates.updatedAt = Math.floor(Date.now() / 1000);
 
       await drizzle
-        .update(users)
+        .update(usersTable)
         .set(updates)
-        .where(eq(users.id, authUser.id))
+        .where(eq(usersTable.id, authUser.id))
         .run();
 
+      // Invalidate cache
+      await baseRouter.invalidateCache(c, cacheKey);
+
       const updatedUser = await drizzle.query.users.findFirst({
-        where: eq(users.id, authUser.id),
+        where: eq(usersTable.id, authUser.id),
       });
 
-      // Invalidate cache and store updated value
-      if (cacheHelper) {
-        await cacheHelper.invalidate(cacheKey);
-        if (updatedUser) {
-          await cacheHelper.set(cacheKey, updatedUser, CACHE_TTL.USER_PROFILE);
-        }
+      // Re-cache if available
+      if (updatedUser) {
+        await baseRouter.getCacheHelper(c)?.set(
+          cacheKey,
+          updatedUser,
+          baseRouter.getCacheTtl("USER_PROFILE")
+        );
       }
 
       return c.json(updatedUser);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Update user error:", error);
       return c.json({ error: "Failed to update user" }, 500);
     }

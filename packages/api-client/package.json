@@ -13,13 +13,19 @@
   },
   "scripts": {
     "type-check": "pnpm --filter @aivo/shared-types run build && tsc --noEmit",
-    "test": "pnpm --filter @aivo/shared-types run build && tsc --noEmit && echo 'Type check passed - api-client is valid'"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@aivo/shared-types": "workspace:*"
   },
   "devDependencies": {
+    "@aivo/jest-config": "workspace:*",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.13.5",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.1.0",
     "typescript": "^6.0.3"
   }
 }

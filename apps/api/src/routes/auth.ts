@@ -3,9 +3,12 @@ import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
 import axios from "axios";
 import type { D1Database } from "@cloudflare/workers-types";
-import { createDrizzleInstance, sessions } from "@aivo/db";
+import { createDrizzleInstance } from "@aivo/db";
 import { eq } from "drizzle-orm";
+import { sessions } from "@aivo/db/schema";
 import { findOrCreateUser, signToken, createSession, verifyToken } from "../utils/auth";
+import { BaseRouter } from "../lib/base-router";
+import { APIError } from "../utils/errors";
 
 export interface AuthEnv {
   AUTH_SECRET: string;
@@ -23,21 +26,10 @@ const FacebookAuthRequest = z.object({
   token: z.string().min(1),
 });
 
-const AuthResponse = z.object({
-  success: z.boolean(),
-  data: z.object({
-    token: z.string(),
-    user: z.object({
-      id: z.string(),
-      email: z.string(),
-      name: z.string().optional(),
-      picture: z.string().optional(),
-    }),
-  }),
-});
-
 export const AuthRouter = () => {
-  const router = new Hono<{ Bindings: AuthEnv }>();
+  // Use PublicRouter pattern (no authentication required)
+  const baseRouter = new BaseRouter<AuthEnv>({ requireAuth: false });
+  const router = baseRouter.getRouter();
 
   // Initialize Google OAuth client
   const getGoogleClient = (): OAuth2Client | null => {
@@ -49,46 +41,13 @@ export const AuthRouter = () => {
   };
 
   // Google OAuth
-  /**
-   * @swagger
-   * /api/auth/google:
-   *   post:
-   *     summary: Authenticate with Google OAuth
-   *     description: Verify Google ID token and create/find user
-   *     tags: [auth]
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - token
-   *             properties:
-   *               token:
-   *                 type: string
-   *                 description: Google ID token
-   *     responses:
-   *       200:
-   *         description: Authentication successful
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/AuthResponse"
-   *       401:
-   *         description: Invalid token
-   */
   router.post("/google", async (c) => {
     const body = await c.req.json();
     const { token } = GoogleAuthRequest.parse(body);
 
     const googleClient = getGoogleClient();
     if (!googleClient) {
-      return c.json(
-        { success: false, error: "Google OAuth not configured" },
-        503
-      );
+      throw new APIError(503, "GOOGLE_OAUTH_NOT_CONFIGURED", "Google OAuth not configured");
     }
 
     try {
@@ -100,7 +59,7 @@ export const AuthRouter = () => {
       const payload = ticket.getPayload();
 
       if (!payload) {
-        return c.json({ success: false, error: "Invalid Google token" }, 401);
+        throw new APIError(401, "INVALID_GOOGLE_TOKEN", "Invalid Google token");
       }
 
       const googleId = payload.sub;
@@ -109,7 +68,7 @@ export const AuthRouter = () => {
       const picture = payload.picture || null;
 
       if (!email) {
-        return c.json({ success: false, error: "Email not provided by Google" }, 400);
+        throw new APIError(400, "EMAIL_NOT_PROVIDED", "Email not provided by Google");
       }
 
       const drizzle = createDrizzleInstance(c.env.DB);
@@ -131,69 +90,36 @@ export const AuthRouter = () => {
         userId: user.id,
       });
 
-      return c.json(
-        AuthResponse.parse({
-          success: true,
-          data: {
-            token: jwtToken,
-            user: {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              picture: user.picture,
-            },
+      return c.json({
+        success: true,
+        data: {
+          token: jwtToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            picture: user.picture,
           },
-        })
-      );
+        },
+      });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Google auth error:", error);
-      return c.json(
-        { success: false, error: "Google authentication failed" },
-        401
-      );
+      throw new APIError(401, "GOOGLE_AUTH_FAILED", "Google authentication failed");
     }
   });
 
   // Facebook OAuth
-  /**
-   * @swagger
-   * /api/auth/facebook:
-   *   post:
-   *     summary: Authenticate with Facebook OAuth
-   *     description: Verify Facebook access token and create/find user
-   *     tags: [auth]
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - token
-   *             properties:
-   *               token:
-   *                 type: string
-   *                 description: Facebook access token
-   *     responses:
-   *       200:
-   *         description: Authentication successful
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/AuthResponse"
-   */
   router.post("/facebook", async (c) => {
     const body = await c.req.json();
     const { token } = FacebookAuthRequest.parse(body);
 
     // Check if Facebook OAuth is configured
     if (!process.env.FACEBOOK_APP_ID) {
-      return c.json(
-        { success: false, error: "Facebook OAuth not configured" },
-        503
-      );
+      throw new APIError(503, "FACEBOOK_OAUTH_NOT_CONFIGURED", "Facebook OAuth not configured");
     }
 
     try {
@@ -203,7 +129,7 @@ export const AuthRouter = () => {
       );
 
       if (!response.data || !response.data.id) {
-        return c.json({ success: false, error: "Invalid Facebook token" }, 401);
+        throw new APIError(401, "INVALID_FACEBOOK_TOKEN", "Invalid Facebook token");
       }
 
       const fbData = response.data;
@@ -213,7 +139,7 @@ export const AuthRouter = () => {
       const picture = fbData.picture?.data?.url || null;
 
       if (!email) {
-        return c.json({ success: false, error: "Email not provided by Facebook" }, 400);
+        throw new APIError(400, "EMAIL_NOT_PROVIDED", "Email not provided by Facebook");
       }
 
       const drizzle = createDrizzleInstance(c.env.DB);
@@ -235,61 +161,33 @@ export const AuthRouter = () => {
         userId: user.id,
       });
 
-      return c.json(
-        AuthResponse.parse({
-          success: true,
-          data: {
-            token: jwtToken,
-            user: {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              picture: user.picture,
-            },
+      return c.json({
+        success: true,
+        data: {
+          token: jwtToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            picture: user.picture,
           },
-        })
-      );
+        },
+      });
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error("Facebook auth error:", error);
-      return c.json(
-        { success: false, error: "Facebook authentication failed" },
-        401
-      );
+      throw new APIError(401, "FACEBOOK_AUTH_FAILED", "Facebook authentication failed");
     }
   });
 
   // Verify token
-  /**
-   * @swagger
-   * /api/auth/verify:
-   *   post:
-   *     summary: Verify authentication token
-   *     description: Verify JWT token and return authentication status
-   *     tags: [auth]
-   *     security:
-   *       - bearer: []
-   *     responses:
-   *       200:
-   *         description: Token is valid
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 valid:
-   *                   type: boolean
-   *                 user:
-   *                   type: object
-   *       401:
-   *         description: Invalid or missing token
-   */
   router.post("/verify", async (c) => {
     const authHeader = c.req.header("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Invalid token" }, 401);
+      throw new APIError(401, "INVALID_TOKEN", "Invalid token");
     }
 
     const token = authHeader.slice(7);
@@ -298,7 +196,7 @@ export const AuthRouter = () => {
     try {
       const payload = await verifyToken(token, drizzle);
       if (!payload) {
-        return c.json({ success: false, valid: false }, 401);
+        throw new APIError(401, "INVALID_TOKEN", "Invalid token");
       }
 
       // Get user details
@@ -307,7 +205,7 @@ export const AuthRouter = () => {
       });
 
       if (!session) {
-        return c.json({ success: false, valid: false }, 401);
+        throw new APIError(401, "SESSION_NOT_FOUND", "Session not found");
       }
 
       const user = await drizzle.query.users.findFirst({
@@ -325,28 +223,15 @@ export const AuthRouter = () => {
         },
       });
     } catch {
-      return c.json({ success: false, valid: false }, 401);
+      throw new APIError(401, "TOKEN_VERIFICATION_FAILED", "Token verification failed");
     }
   });
 
   // Set session cookie (for httpOnly cookie auth)
-  /**
-   * @swagger
-   * /api/auth/set-session:
-   *   post:
-   *     summary: Set session cookie
-   *     description: Set httpOnly cookie for session (server-side only)
-   *     tags: [auth]
-   *     security:
-   *       - bearer: []
-   *     responses:
-   *       200:
-   *         description: Cookie set successfully
-   */
   router.post("/set-session", async (c) => {
     const authHeader = c.req.header("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
+      throw new APIError(401, "UNAUTHORIZED", "Unauthorized");
     }
 
     const token = authHeader.slice(7);
@@ -362,19 +247,6 @@ export const AuthRouter = () => {
   });
 
   // Logout
-  /**
-   * @swagger
-   * /api/auth/logout:
-   *   post:
-   *     summary: Logout user
-   *     description: Invalidate current session/token
-   *     tags: [auth]
-   *     security:
-   *       - bearer: []
-   *     responses:
-   *       200:
-   *         description: Logged out successfully
-   */
   router.post("/logout", async (c) => {
     const authHeader = c.req.header("Authorization");
     if (authHeader?.startsWith("Bearer ")) {

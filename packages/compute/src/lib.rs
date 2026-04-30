@@ -31,6 +31,11 @@
 
 #![cfg_attr(target_arch = "wasm32", allow(dead_code))]
 
+// Use wee_alloc for smaller WASM binary size (only on wasm32)
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 // Feature-gated module declarations
 #[cfg(feature = "fitness")]
 pub mod fitness;

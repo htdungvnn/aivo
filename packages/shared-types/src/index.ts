@@ -30,6 +30,10 @@ export * from "./nutrition";
 export * from "./biometric";
 export * from "./posture";
 export * from "./planning";
+export * from "./formatting";
+
+// API contract types for mobile app (aligned with backend responses)
+export * from "./api-contracts";
 
 // Platform-agnostic utilities (re-export from body module)
 export { HeatmapRenderer } from "./body";

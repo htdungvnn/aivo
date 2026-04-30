@@ -45,6 +45,7 @@ export interface AppEnv {
   LEADERBOARD_CACHE: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   OPENAI_API_KEY?: string;
+  GEMINI_API_KEY?: string;
   GOOGLE_CLIENT_ID?: string;
   NODE_ENV?: string;
 }

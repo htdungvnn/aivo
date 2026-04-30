@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  FlatList,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { RecoveryScoreGauge } from "@/components/biometric/RecoveryScoreGauge";
@@ -15,9 +16,11 @@ import {
   getCorrelationFindings,
   getBiometricSnapshot,
   generateBiometricSnapshot,
-  type BiometricSnapshot,
-  type CorrelationFinding,
 } from "@/services/biometric-api";
+import type {
+  BiometricSnapshot,
+  CorrelationFinding,
+} from "@aivo/api-client";
 import {
   Bed,
   Dumbbell,
@@ -290,50 +293,58 @@ function RecoveryDashboard() {
           </Text>
         </View>
       ) : (
-        correlations.map((correlation) => (
-          <View key={correlation.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-slate-200 font-semibold text-sm">
-                {correlation.factorA.replace(/_/g, " ")} → {correlation.factorB.replace(/_/g, " ")}
-              </Text>
-              <TouchableOpacity onPress={() => void handleDismissCorrelation(correlation.id)}>
-                <Text className="text-slate-500 text-xs">Dismiss</Text>
-              </TouchableOpacity>
-            </View>
+        <FlatList
+          data={correlations}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-slate-200 font-semibold text-sm">
+                  {item.factorA.replace(/_/g, " ")} → {item.factorB.replace(/_/g, " ")}
+                </Text>
+                <TouchableOpacity onPress={() => void handleDismissCorrelation(item.id)}>
+                  <Text className="text-slate-500 text-xs">Dismiss</Text>
+                </TouchableOpacity>
+              </View>
 
-            <Text className="text-white text-sm mb-2">{correlation.actionableInsight}</Text>
+              <Text className="text-white text-sm mb-2">{item.actionableInsight}</Text>
 
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center gap-1">
-                <Text className="text-slate-400 text-xs">Correlation:</Text>
-                <Text
-                  className={`text-xs font-semibold ${correlation.correlationCoefficient > 0 ? "text-emerald-400" : "text-red-400"}`}
-                >
-                  r = {correlation.correlationCoefficient.toFixed(2)}
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-slate-400 text-xs">Correlation:</Text>
+                  <Text
+                    className={`text-xs font-semibold ${item.correlationCoefficient > 0 ? "text-emerald-400" : "text-red-400"}`}
+                  >
+                    r = {item.correlationCoefficient.toFixed(2)}
+                  </Text>
+                </View>
+                <Text className="text-slate-500 text-xs">
+                  p = {item.pValue.toFixed(4)}
                 </Text>
               </View>
-              <Text className="text-slate-500 text-xs">
-                p = {correlation.pValue.toFixed(4)}
-              </Text>
-            </View>
 
-            {correlation.outlierDates.length > 0 && (
-              <View className="mt-2 pt-2 border-t border-slate-800">
-                <Text className="text-slate-400 text-xs mb-1">Outlier dates:</Text>
-                <View className="flex-row flex-wrap gap-1">
-                  {correlation.outlierDates.slice(0, 3).map((date, idx) => (
-                    <View key={idx} className="bg-slate-800 px-2 py-0.5 rounded">
-                      <Text className="text-slate-300 text-xs">{date}</Text>
-                    </View>
-                  ))}
-                  {correlation.outlierDates.length > 3 && (
-                    <Text className="text-slate-500 text-xs">+{correlation.outlierDates.length - 3} more</Text>
-                  )}
+              {item.outlierDates.length > 0 && (
+                <View className="mt-2 pt-2 border-t border-slate-800">
+                  <Text className="text-slate-400 text-xs mb-1">Outlier dates:</Text>
+                  <View className="flex-row flex-wrap gap-1">
+                    {item.outlierDates.slice(0, 3).map((date, idx) => (
+                      <View key={idx} className="bg-slate-800 px-2 py-0.5 rounded">
+                        <Text className="text-slate-300 text-xs">{date}</Text>
+                      </View>
+                    ))}
+                    {item.outlierDates.length > 3 && (
+                      <Text className="text-slate-500 text-xs">+{item.outlierDates.length - 3} more</Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
-          </View>
-        ))
+              )}
+            </View>
+          )}
+          scrollEnabled={false}
+          initialNumToRender={5}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+        />
       )}
     </View>
   ), [correlations, handleDismissCorrelation]);

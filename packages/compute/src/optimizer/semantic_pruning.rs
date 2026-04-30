@@ -1,6 +1,5 @@
 use crate::error::OptimizerResult;
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
 
 /// Health metrics extracted from conversation or database
 /// These are ALWAYS kept regardless of sliding window
@@ -84,47 +83,52 @@ pub fn prune_conversation_history(
         });
     }
 
-    let mut kept = VecDeque::new();
+    // Score and prioritize messages
+    // Higher score = more important to keep
+    let mut scored: Vec<(usize, &ConversationMessage, usize, f64)> = Vec::with_capacity(messages.len());
+
+    for (idx, msg) in messages.iter().enumerate() {
+        let tokens = msg.tokens.unwrap_or_else(|| token_estimator(&msg.content));
+        let mut score = 0.0;
+
+        // Recency score: newer messages are more important
+        let recency = idx as f64 / messages.len().max(1) as f64;
+        score += recency; // 0.0 to 1.0
+
+        // Health data flag: preserve messages with health metrics
+        if let Some(meta) = &msg.metadata {
+            if meta.get("has_health_data").and_then(|v| v.as_bool()).unwrap_or(false) {
+                score += 2.0; // significant boost
+            }
+        }
+
+        // User messages slightly prioritized (typically contain new information)
+        if msg.role == "user" {
+            score += 0.5;
+        }
+
+        scored.push((idx, msg, tokens, score));
+    }
+
+    // Sort by score descending, then by recency (index) descending for ties
+    scored.sort_by(|a, b| {
+        b.3.partial_cmp(&a.3).unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.0.cmp(&a.0))
+    });
+
+    // Select messages within limits (greedy from highest score)
+    let mut kept_msgs = Vec::new();
     let mut total_tokens = 0;
     let mut removed_count = 0;
     let mut removed_tokens = 0;
 
-    // Process messages from oldest to newest, keeping recent ones
-    // Strategy: First pass - identify which messages to keep based on priority
-    let mut prioritized: Vec<(usize, &ConversationMessage, usize)> = Vec::new();
-
-    for (idx, msg) in messages.iter().enumerate() {
-        let tokens = msg.tokens.unwrap_or_else(|| token_estimator(&msg.content));
-
-        // Priority score: higher = more likely to keep
-        // - Recent messages get boost (index-based)
-        // - Messages with health data get boost
-        // - User messages slightly prioritized over assistant (for context)
-        let _recency_boost = idx as f64 / messages.len() as f64;
-        let _has_health_data = if let Some(meta) = &msg.metadata {
-            meta.get("has_health_data").and_then(|v| v.as_bool()).unwrap_or(false)
-        } else {
-            false
-        } as usize;
-        let _is_user = if msg.role == "user" { 1 } else { 0 };
-
-        prioritized.push((idx, msg, tokens));
-    }
-
-    // Sort by recency (keep recent ones first)
-    prioritized.sort_by(|a, b| b.0.cmp(&a.0));
-
-    // Keep messages until we hit limits
-    for (_idx, msg, tokens) in prioritized.iter() {
-        // Check if we should keep this message
-        let should_keep_by_count = kept.len() < config.max_messages;
+    for (idx, msg, tokens, _score) in scored {
+        let should_keep_by_count = kept_msgs.len() < config.max_messages;
         let should_keep_by_tokens = total_tokens + tokens <= config.max_tokens;
-        let is_minimum = kept.len() < config.min_messages;
+        let is_minimum = kept_msgs.len() < config.min_messages;
 
         if (should_keep_by_count && should_keep_by_tokens) || is_minimum {
-            // Insert at correct position to maintain order
-            let insert_pos = kept.len(); // Since we're adding in reverse recency
-            kept.insert(insert_pos, (*msg).clone());
+            kept_msgs.push((idx, msg));
             total_tokens += tokens;
         } else {
             removed_count += 1;
@@ -132,12 +136,19 @@ pub fn prune_conversation_history(
         }
     }
 
+    // Sort kept messages by original index to maintain chronological order
+    kept_msgs.sort_by_key(|&(idx, _)| idx);
+
+    // Extract just the messages
+    let messages: Vec<ConversationMessage> = kept_msgs.into_iter().map(|(_, msg)| msg.clone()).collect();
+
     // Merge health metrics (deduplicate by date)
     let unique_metrics = deduplicate_health_metrics(health_metrics);
 
-    let kept_count = kept.len();
+    let kept_count = messages.len();
+    let total_messages = messages.len() + removed_count; // Original count approximation
     Ok(PruningResult {
-        messages: kept.into_iter().collect(),
+        messages,
         kept_count,
         removed_count,
         final_tokens: total_tokens,
@@ -146,7 +157,7 @@ pub fn prune_conversation_history(
         summary: format!(
             "Kept {}/{} messages, {} tokens (removed {} msgs, {} tokens)",
             kept_count,
-            messages.len(),
+            total_messages,
             total_tokens,
             removed_count,
             removed_tokens

@@ -195,13 +195,15 @@ async function invokeAgents(
     if (result.status === "fulfilled") {
       results.push(result.value);
     } else {
+      const agentType = agentTypes[i];
+      const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
       results.push({
-        agentType: agentTypes[i],
+        agentType,
         success: false,
         content: "Agent invocation failed",
         confidence: 0,
-        warnings: [],
-        metadata: { error: result.reason },
+        warnings: [`${agentType} agent failed: ${errorMessage}`],
+        metadata: { error: errorMessage },
         processingTimeMs: 0,
       });
     }
@@ -239,9 +241,12 @@ function synthesizeResponse(responses: AgentInvocationResult[], query: string): 
     return "Unable to provide nutrition consultation. Please consult a healthcare provider or nutritionist.";
   }
 
-  // If only one agent responded successfully, return its content
+  // If only one agent responded successfully, still clean up and add disclaimer
   if (responses.length === 1) {
-    return responses[0].content;
+    let content = responses[0].content;
+    // Remove agent heading if present (## or # heading)
+    content = content.replace(/^# .*\n\n/, "").replace(/^## .*\n\n/, "");
+    return content + "\n\n---\n\n**Note:** Always consult with healthcare professionals for medical decisions.\n";
   }
 
   // Multiple agents - synthesize into cohesive response
@@ -283,3 +288,6 @@ function synthesizeResponse(responses: AgentInvocationResult[], query: string): 
 function generateSessionId(): string {
   return `nutr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
+
+// Export for testing
+export { selectAgents, identifyPrimaryAgent, synthesizeResponse };

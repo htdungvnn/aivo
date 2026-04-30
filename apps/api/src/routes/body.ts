@@ -1,16 +1,12 @@
-import { Hono } from "hono";
 import { z } from "zod";
 import { createDrizzleInstance } from "@aivo/db";
+import { eq } from "drizzle-orm";
 import { validateBodyMetrics } from "../services/validation";
 import type {
   BodyMetricResponse,
-  HealthScoreResponse} from "../services/body-insights";
+  HealthScoreResponse,
+} from "../services/body-insights";
 import {
-  getCachedData,
-  setCachedData,
-  invalidateBodyCache,
-  getCacheKey,
-  CACHE_TTL,
   uploadImage,
   analyzeImageWithAI,
   generateHeatmapSVG,
@@ -19,10 +15,36 @@ import {
 import { schema } from "@aivo/db/schema";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { R2Bucket } from "@cloudflare/workers-types";
-import { authenticate, getUserFromContext, type AuthUser } from "../middleware/auth";
+import { BaseRouter } from "../lib/base-router";
+import { authenticate } from "../middleware/auth";
+import { APIError } from "../utils/errors";
+import { AUTH_USER_KEY } from "../utils/context-keys";
 
-interface EnvWithR2 {
+import { z } from "zod";
+import { createDrizzleInstance } from "@aivo/db";
+import { eq } from "drizzle-orm";
+import { validateBodyMetrics } from "../services/validation";
+import type {
+  BodyMetricResponse,
+  HealthScoreResponse,
+} from "../services/body-insights";
+import {
+  uploadImage,
+  analyzeImageWithAI,
+  generateHeatmapSVG,
+  validateImage,
+} from "../services/body-insights";
+import { schema } from "@aivo/db/schema";
+import type { D1Database } from "@cloudflare/workers-types";
+import type { R2Bucket } from "@cloudflare/workers-types";
+import { BaseRouter } from "../lib/base-router";
+import { authenticate } from "../middleware/auth";
+import { APIError } from "../utils/errors";
+import { AUTH_USER_KEY } from "../utils/context-keys";
+
+interface Env {
   DB: D1Database;
+  QUERY_CACHE?: KVNamespace;
   R2_BUCKET: R2Bucket;
   R2_PUBLIC_URL: string;
   BODY_INSIGHTS_CACHE: KVNamespace;
@@ -30,10 +52,8 @@ interface EnvWithR2 {
 }
 
 export const BodyRouter = () => {
-  const router = new Hono<{ Bindings: EnvWithR2 }>();
-
-  // Apply authentication to all body routes
-  router.use("*", authenticate);
+  const baseRouter = new BaseRouter<Env>();
+  const router = baseRouter.getRouter();
 
   // Upload body image to R2
   /**

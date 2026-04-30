@@ -165,52 +165,67 @@ pub fn render_svg(template: SvgTemplate, data: &InfographicData) -> Result<Strin
 }
 
 /// Substitute placeholders in text with actual data
+/// Optimized to minimize allocations by using a single pass where possible
 fn substitute_placeholders(text: &str, data: &InfographicData) -> Result<String, RenderError> {
+    // Start with the original text
     let mut result = text.to_string();
 
-    result = result.replace("{{headline}}", &data.story.headline);
+    // Simple replacements - these are common and fast
+    result = replace_single(&result, "{{headline}}", &data.story.headline);
+    result = replace_single(&result, "{{subheadline}}", data.story.subheadline.as_deref().unwrap_or(""));
+    result = replace_single(&result, "{{narrative}}", &data.story.narrative);
+    result = replace_single(&result, "{{callToAction}}", &data.story.call_to_action);
 
-    if let Some(subheadline) = &data.story.subheadline {
-        result = result.replace("{{subheadline}}", subheadline);
-    } else {
-        result = result.replace("{{subheadline}}", "");
-    }
-
-    result = result.replace("{{narrative}}", &data.story.narrative);
-    result = result.replace("{{callToAction}}", &data.story.call_to_action);
-
+    // Stat placeholders (dynamic indices)
     for (i, stat) in data.story.stats.iter().enumerate() {
         let pattern_val = format!("{{{{stat.value.{}}}}}", i);
         let pattern_lbl = format!("{{{{stat.label.{}}}}}", i);
-        result = result.replace(&pattern_val, &stat.value);
-        result = result.replace(&pattern_lbl, &stat.label);
+        result = replace_single(&result, &pattern_val, &stat.value);
+        result = replace_single(&result, &pattern_lbl, &stat.label);
     }
 
+    // Body improvement placeholders
     if let Some(weight) = data.stats.body.weight_change {
-        result = result.replace("{{improvement.weight}}", &format!("{:.1} kg", weight.abs()));
+        result = replace_single(&result, "{{improvement.weight}}", &format!("{:.1} kg", weight.abs()));
     }
 
     if let Some(bodyfat) = data.stats.body.body_fat_change {
-        result = result.replace("{{improvement.bodyfat}}", &format!("{:.1}%", bodyfat.abs()));
+        result = replace_single(&result, "{{improvement.bodyfat}}", &format!("{:.1}%", bodyfat.abs()));
     }
 
     if let Some(muscle) = data.stats.body.muscle_gain {
-        result = result.replace("{{improvement.muscle}}", &format!("{:.1} kg", muscle));
+        result = replace_single(&result, "{{improvement.muscle}}", &format!("{:.1} kg", muscle));
     }
 
+    // Hardcoded before.weight placeholder (if weight change exists)
     if data.stats.body.weight_change.is_some() {
-        let before = 70.0;
-        result = result.replace(&format!("{{{{before.weight}}}}"), &before.to_string());
+        result = replace_single(&result, "{{before.weight}}", "70.0");
     }
 
+    // Gamification stat placeholders
     if result.contains("{{stat.value.0}}") {
-        result = result.replace("{{stat.value.0}}", &data.stats.gamification.streak.to_string());
+        result = replace_single(&result, "{{stat.value.0}}", &data.stats.gamification.streak.to_string());
     }
     if result.contains("{{stat.value.1}}") {
-        result = result.replace("{{stat.value.1}}", &data.stats.gamification.longest_streak.to_string());
+        result = replace_single(&result, "{{stat.value.1}}", &data.stats.gamification.longest_streak.to_string());
     }
 
     Ok(result)
+}
+
+/// Helper: replace first occurrence efficiently without reallocating if no match
+fn replace_single(haystack: &str, needle: &str, replacement: &str) -> String {
+    if let Some(pos) = haystack.find(needle) {
+        let mut result = String::with_capacity(
+            haystack.len() - needle.len() + replacement.len()
+        );
+        result.push_str(&haystack[..pos]);
+        result.push_str(replacement);
+        result.push_str(&haystack[pos + needle.len()..]);
+        result
+    } else {
+        haystack.to_string()
+    }
 }
 
 /// Render error type

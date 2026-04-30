@@ -33,7 +33,7 @@ export const AIRouter = () => {
 
   // Helper to get cache helper if available
   const getCacheHelper = (c: Context<{ Bindings: Env }>) => {
-    return c.env.QUERY_CACHE ? createCacheHelper(c.env.QUERY_CACHE) : null;
+    return c.env.QUERY_CACHE ? createCacheHelper(c.env.QUERY_CACHE as any) : null;
   };
 
   // In-memory cache for conversation history (per Worker instance)

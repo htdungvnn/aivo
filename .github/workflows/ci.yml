@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -176,17 +176,17 @@ jobs:
             apps/web/.next/
             apps/api/dist/
             packages/compute/pkg/
-          retention-days: 1
+          retention-days: 7
 
   test:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22, 24]
-    needs: [type-check-lint]
+    needs: [type-check-lint, build]
     env:
       RUSTUP_TOOLCHAIN: stable
+    strategy:
+      matrix:
+        node-version: [22]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

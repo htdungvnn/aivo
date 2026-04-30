@@ -96,7 +96,8 @@ export class ApiClient {
       const error = await response.json().catch(() => ({ error: response.statusText })) as any;
       throw new ApiError(
         error.error || error.message || "Request failed",
-        response.status
+        response.status,
+        error.code
       );
     }
 
@@ -134,7 +135,7 @@ export class ApiClient {
   // ==================== Auth APIs ====================
 
   async verifyToken(): Promise<ApiResponse<User>> {
-    return this.request("/api/auth/verify");
+    return this.request("/api/auth/verify", { method: "POST" });
   }
 
   async logout(): Promise<ApiResponse<{ success: boolean }>> {

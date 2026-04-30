@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
   Modal,
+  FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -267,7 +268,15 @@ export default function FormAnalysisScreen() {
               </Text>
             </View>
           ) : (
-            videos.map(renderVideoCard)
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => renderVideoCard(item)}
+              scrollEnabled={false}
+              initialNumToRender={5}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+            />
           )}
         </View>
 

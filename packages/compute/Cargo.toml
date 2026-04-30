@@ -15,8 +15,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 serde_json = "1.0"
 js-sys = "0.3"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
 thiserror = "1.0"
+wee_alloc = "0.4"
 
 # Fitness module dependencies (enabled with "fitness" feature)
 image = { version = "0.24", default-features = false, features = ["jpeg", "png", "webp"], optional = true }

@@ -5,189 +5,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { createApiClient } from "@aivo/api-client";
 import {
   Activity,
-  Heart,
-  Moon,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
   RefreshCw,
-  BarChart3,
   Target,
   Clock,
+  Moon,
+  BarChart3,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BiometricSnapshot as SharedBiometricSnapshot, SleepLog, CorrelationFinding } from "@aivo/shared-types";
-
-interface RecoveryScoreDisplayProps {
-  score: number;
-  trend?: "improving" | "stable" | "declining";
-  change?: number;
-}
-
-const gradeColors = {
-  excellent: "from-emerald-500 to-green-500",
-  good: "from-cyan-500 to-blue-500",
-  fair: "from-yellow-500 to-orange-500",
-  poor: "from-orange-500 to-red-500",
-  critical: "from-red-500 to-rose-600",
-};
-
-const gradeLabels = {
-  excellent: "Excellent",
-  good: "Good",
-  fair: "Fair",
-  poor: "Poor",
-  critical: "Critical",
-};
-
-function getGrade(score: number): keyof typeof gradeLabels {
-  if (score >= 80) {return "excellent";}
-  if (score >= 65) {return "good";}
-  if (score >= 50) {return "fair";}
-  if (score >= 35) {return "poor";}
-  return "critical";
-}
-
-function RecoveryScoreDisplay({ score, trend, change }: RecoveryScoreDisplayProps) {
-  const grade = getGrade(score);
-  const trendColor = trend === "improving" ? "text-emerald-400" : trend === "declining" ? "text-red-400" : "text-gray-400";
-  const TrendIcon = trend === "improving" || trend === "stable" ? TrendingUp : TrendingDown;
-
-  return (
-    <Card className="bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-900/60 border-slate-700/50 overflow-hidden relative">
-      <div className={`absolute inset-0 bg-gradient-to-r ${gradeColors[grade]} opacity-10`} />
-      <CardContent className="pt-6 relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-xl bg-gradient-to-br ${gradeColors[grade]} shadow-lg`}>
-              <Heart className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Recovery Score</p>
-              <p className="text-2xl font-bold text-white">{Math.round(score)}%</p>
-            </div>
-          </div>
-          <Badge className={`bg-gradient-to-r ${gradeColors[grade]} text-white border-0`}>
-            {gradeLabels[grade]}
-          </Badge>
-        </div>
-
-        {change !== undefined && (
-          <div className={`flex items-center gap-2 ${trendColor}`}>
-            <TrendIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {change > 0 ? "+" : ""}{change.toFixed(1)}% from last period
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-interface CorrelationCardProps {
-  factorA: string;
-  factorB: string;
-  correlation: number;
-  pValue: number;
-  insight: string;
-  anomalies: string[];
-  confidence: number;
-}
-
-function CorrelationCard({ factorA, factorB, correlation, pValue, insight, anomalies, confidence }: CorrelationCardProps) {
-  const strength = Math.abs(correlation);
-  const strengthLabel = strength >= 0.7 ? "Strong" : strength >= 0.4 ? "Moderate" : "Weak";
-  const isSignificant = pValue < 0.05;
-
-  return (
-    <Card className="bg-slate-900/60 border-slate-700/50 hover:border-cyan-500/30 transition-all">
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-medium text-cyan-300">
-              {factorA.replace(/_/g, " ")} → {factorB.replace(/_/g, " ")}
-            </span>
-          </div>
-          <Badge
-            variant={isSignificant ? "default" : "outline"}
-            className={isSignificant ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-slate-800 text-gray-400"}
-          >
-            {strengthLabel} ({correlation.toFixed(2)})
-          </Badge>
-        </div>
-
-        <p className="text-sm text-gray-300 mb-3 leading-relaxed">{insight}</p>
-
-        {anomalies.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-amber-400 text-sm">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Anomaly{anomalies.length > 1 ? "s" : ""} detected</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {anomalies.slice(0, 3).map((date, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-300">
-                  {date}
-                </Badge>
-              ))}
-              {anomalies.length > 3 && (
-                <Badge variant="outline" className="text-xs bg-slate-800 text-gray-400">
-                  +{anomalies.length - 3} more
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-gray-500">
-          <span>p-value: {pValue.toFixed(4)}</span>
-          <span>Confidence: {(confidence * 100).toFixed(0)}%</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface SleepLogEntryProps {
-  date: string;
-  duration: number;
-  quality?: number;
-  onEdit?: () => void;
-}
-
-function SleepLogEntry({ date, duration, quality, onEdit }: SleepLogEntryProps) {
-  const formattedDate = new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const qualityColor = quality && quality >= 80 ? "text-emerald-400" : quality && quality >= 60 ? "text-yellow-400" : "text-red-400";
-
-  return (
-    <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800/70 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-slate-700/50 rounded-lg">
-          <Moon className="w-4 h-4 text-slate-400" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-white">{formattedDate}</p>
-          {quality && <p className={`text-xs ${qualityColor}`}>Quality: {quality}%</p>}
-        </div>
-      </div>
-      <div className="text-right">
-        <p className="text-sm font-semibold text-white">{duration}h</p>
-        {onEdit && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs text-cyan-400 hover:text-cyan-300 p-0 h-auto">
-            Edit
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
+import { RecoveryScoreDisplay } from "./RecoveryScoreDisplay";
+import CorrelationCard from "./CorrelationCard";
+import SleepLogEntry from "./SleepLogEntry";
 
 export function RecoveryDashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -434,16 +267,7 @@ export function RecoveryDashboard() {
             >
               {correlations.length > 0 ? (
                 correlations.map((corr) => (
-                  <CorrelationCard
-                    key={corr.id}
-                    factorA={corr.factorA}
-                    factorB={corr.factorB}
-                    correlation={corr.correlationCoefficient}
-                    pValue={corr.pValue}
-                    insight={corr.actionableInsight || corr.explanation}
-                    anomalies={corr.outlierDates}
-                    confidence={corr.confidence}
-                  />
+                  <CorrelationCard key={corr.id} finding={corr} />
                 ))
               ) : (
                 <Card className="bg-slate-900/60 border-slate-700/50">

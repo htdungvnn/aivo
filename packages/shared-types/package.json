@@ -127,19 +127,13 @@
   "scripts": {
     "build": "tsc --build --force",
     "type-check": "tsc --noEmit",
-    "test": "tsc --noEmit && echo 'Type check passed - shared types are valid'"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {},
   "devDependencies": {
     "@aivo/jest-config": "workspace:*",
     "typescript": "^6.0.3"
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.(ts|tsx)$": ["ts-jest", {
-        "useESM": true,
-        "tsconfig": "<rootDir>/tsconfig.json"
-      }]
-    }
   }
 }
