@@ -1,7 +1,6 @@
 /// <reference types="jest" />
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { aggregateUserStats, generateInfographicR2Key } from '../services/user-stats';
-import type { DB } from '../services/user-stats';
 
 // Mock DB with necessary table structures
 const createMockDb = () => {
@@ -91,7 +90,7 @@ describe('User Stats Service', () => {
       db.query.badges.count.mockResolvedValue(5);
       db.execute.mockResolvedValue({ count: 100 });
 
-      const result = await aggregateUserStats(db as unknown as DB, userId, {
+      const result = await aggregateUserStats(db, userId, {
         type: 'weekly',
         start: '2024-01-01',
         end: '2024-01-07',
@@ -145,7 +144,7 @@ describe('User Stats Service', () => {
       db.query.users.findFirst.mockResolvedValue(null);
       db.query.workoutExercises.findMany.mockResolvedValue([]);
 
-      const result = await aggregateUserStats(db as unknown as DB, userId, {
+      const result = await aggregateUserStats(db, userId, {
         type: 'all_time',
         start: '2020-01-01',
       });
@@ -203,7 +202,7 @@ describe('User Stats Service', () => {
       db.query.badges.count.mockResolvedValue(5);
       db.execute.mockResolvedValue({ count: 100 });
 
-      const result = await aggregateUserStats(db as unknown as DB, userId, {
+      const result = await aggregateUserStats(db, userId, {
         type: 'monthly',
         start: '2024-01-01',
         end: '2024-01-31',
@@ -211,8 +210,8 @@ describe('User Stats Service', () => {
 
       const squatPR = result.workouts.personalRecords.find(pr => pr.exercise === 'Squat');
       expect(squatPR).toBeDefined();
-      expect(squatPR.weight).toBeCloseTo(247.5, 1); // Epley formula: 225 * (1 + 3/30) = 247.5
-      expect(squatPR.reps).toBe(3);
+      expect(squatPR!.weight).toBeCloseTo(247.5, 1); // Epley formula: 225 * (1 + 3/30) = 247.5
+      expect(squatPR!.reps).toBe(3);
       // improvementPercent is not currently calculated, so it may be undefined
     });
   });
@@ -221,7 +220,7 @@ describe('User Stats Service', () => {
     it('generates correct key format', () => {
       const userId = 'user-123';
       const infographicId = 'weekly';
-      const format: const = 'svg';
+      const format = 'svg';
       const key = generateInfographicR2Key(userId, infographicId, format);
       expect(key).toMatch(/^infographics\/user-123\/svg\/weekly-\d+\.svg$/);
     });

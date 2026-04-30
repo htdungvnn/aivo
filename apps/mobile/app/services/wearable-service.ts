@@ -420,7 +420,7 @@ class WearableService {
               deepSleepMinutes: sleep.deepSleepMinutes,
               remSleepMinutes: sleep.remSleepMinutes,
               awakeMinutes: sleep.awakeMinutes,
-              source: 'device',
+              source: 'wearable',
             })
           );
           totalSynced++;

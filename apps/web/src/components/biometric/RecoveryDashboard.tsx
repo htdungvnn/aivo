@@ -185,7 +185,7 @@ export function RecoveryDashboard() {
                         <Moon className="w-5 h-5 text-cyan-400" />
                         <span className="text-sm text-gray-400">Sleep</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{snapshot.sleep?.avgDurationHours?.toFixed(1) || 0}h</p>
+                      <p className="text-2xl font-bold text-white">{snapshot.sleep?.avgDuration?.toFixed(1) || 0}h</p>
                       <p className="text-xs text-gray-500 mt-1">Avg duration</p>
                     </CardContent>
                   </Card>
@@ -197,7 +197,7 @@ export function RecoveryDashboard() {
                         <span className="text-sm text-gray-400">Exercise</span>
                       </div>
                       <p className="text-2xl font-bold text-white">{snapshot.exerciseLoad?.totalWorkouts || 0}</p>
-                      <p className="text-xs text-gray-500 mt-1">Workouts ({snapshot.exerciseLoad?.avgDurationMinutes?.toFixed(0) || 0}min avg)</p>
+                      <p className="text-xs text-gray-500 mt-1">Workouts</p>
                     </CardContent>
                   </Card>
 

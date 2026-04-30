@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "jest"],
     "paths": {
       "@aivo/shared-types": ["../../packages/shared-types/src"],
       "@aivo/db": ["../../packages/db/dist"],
@@ -11,6 +11,6 @@
       "@aivo/compute/aivo_compute_bg.js": ["../../packages/compute/pkg"]
     }
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", ".wrangler", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "include": ["src", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": ["node_modules", "dist", ".wrangler"]
 }

@@ -3,6 +3,7 @@ import { STORAGE_KEYS, API_CONFIG } from "@/config";
 import type {
   SleepLog,
   SleepLogCreate,
+  SleepLogUpdate,
   BiometricSnapshot,
   CorrelationFinding,
   RecoveryScoreResult,
@@ -14,9 +15,6 @@ import type {
 // API URL from config
 const API_URL = API_CONFIG.BASE_URL;
 
-// Partial update for SleepLog
-export type SleepLogUpdate = Partial<Omit<SleepLog, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
-
 // Re-export types for consumers of this module
 export type {
   SleepLog,
@@ -27,6 +25,7 @@ export type {
   RecoveryScoreResult,
   BiometricReading,
   SensorDataSnapshot,
+  ApiResponse,
 };
 
 async function getToken(): Promise<string | null> {

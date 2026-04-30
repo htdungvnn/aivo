@@ -6,7 +6,7 @@
  */
 
 import { Hono } from "hono";
-import { Context } from "hono";
+import type { Context } from "hono";
 import { describe, beforeAll, afterAll, test, expect } from "@jest/globals";
 import { initTestDb, getTestDb, cleanupTestDb, createTestUser } from "../tests/setup-db";
 import { userFactory } from "../tests/fixtures";

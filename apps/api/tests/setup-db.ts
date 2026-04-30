@@ -5,7 +5,7 @@
  * Each test file gets its own transaction that rolls back after all tests.
  */
 
-import { drizzle } from "@aivo/db";
+import { drizzle } from "drizzle-orm/d1";
 import { DB } from "@cloudflare/workers-types";
 import { eq } from "drizzle-orm";
 

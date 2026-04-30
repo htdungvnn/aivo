@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDrizzleInstance } from '@aivo/db';

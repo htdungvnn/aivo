@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { TTLCache, createCache } from '../utils/ttl-cache';
 
 const mockNow = 1000000;
-let dateNowSpy: jest.SpyInstance;
+let dateNowSpy: jest.Mock;
 
 beforeAll(() => {
   dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(mockNow);
@@ -13,7 +13,7 @@ afterAll(() => {
 });
 
 describe('TTLCache', () => {
-  let cache: TTLCache<string, number>;
+  let cache: TTLCache<string, any>;
 
   beforeEach(() => {
     // Reset Date.now mock to base value before each test

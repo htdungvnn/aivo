@@ -90,9 +90,36 @@ describe("ContextBuilder", () => {
       const builder = createContextBuilder();
 
       const memories = [
-        createMemory({ type: MemoryType.FACT, content: "Low conf", metadata: { confidence: 0.5 } }),
-        createMemory({ type: MemoryType.FACT, content: "High conf", metadata: { confidence: 0.95 } }),
-        createMemory({ type: MemoryType.FACT, content: "Med conf", metadata: { confidence: 0.75 } }),
+        createMemory({
+          type: MemoryType.FACT,
+          content: "Low conf",
+          metadata: {
+            source: "conversation",
+            confidence: 0.5,
+            extractedAt: Date.now(),
+            verifications: 1
+          }
+        }),
+        createMemory({
+          type: MemoryType.FACT,
+          content: "High conf",
+          metadata: {
+            source: "conversation",
+            confidence: 0.95,
+            extractedAt: Date.now(),
+            verifications: 1
+          }
+        }),
+        createMemory({
+          type: MemoryType.FACT,
+          content: "Med conf",
+          metadata: {
+            source: "conversation",
+            confidence: 0.75,
+            extractedAt: Date.now(),
+            verifications: 1
+          }
+        }),
       ];
 
       const context = builder.buildFromMemories(memories);
@@ -111,7 +138,15 @@ describe("ContextBuilder", () => {
       const builder = createContextBuilder();
 
       const memories = [
-        createMemory({ content: "Test fact", metadata: { confidence: 0.875 } }),
+        createMemory({
+          content: "Test fact",
+          metadata: {
+            source: "conversation",
+            confidence: 0.875,
+            extractedAt: Date.now(),
+            verifications: 1
+          }
+        }),
       ];
 
       const context = builder.buildFromMemories(memories);
@@ -123,7 +158,14 @@ describe("ContextBuilder", () => {
       const builder = createContextBuilder();
 
       const memories = [
-        createMemory({ metadata: { verifications: 3 } }),
+        createMemory({
+          metadata: {
+            source: "conversation",
+            confidence: 0.9,
+            extractedAt: Date.now(),
+            verifications: 3
+          }
+        }),
       ];
 
       const context = builder.buildFromMemories(memories);
@@ -147,9 +189,9 @@ describe("ContextBuilder", () => {
       const builder = createContextBuilder();
 
       const memories = [
-        createMemory({ type: MemoryType.FACT, content: "User has lower back injury", metadata: { confidence: 0.9 } }),
-        createMemory({ type: MemoryType.FACT, content: "Normal health fact", metadata: { confidence: 0.9 } }),
-        createMemory({ type: MemoryType.PREFERENCE, content: "Pref 1", metadata: { confidence: 0.9 } }),
+        createMemory({ type: MemoryType.FACT, content: "User has lower back injury" }),
+        createMemory({ type: MemoryType.FACT, content: "Normal health fact" }),
+        createMemory({ type: MemoryType.PREFERENCE, content: "Pref 1" }),
       ];
 
       const context = builder.buildFromMemories(memories);

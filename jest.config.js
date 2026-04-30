@@ -8,10 +8,15 @@ const config = {
       testEnvironment: "node",
       roots: ["<rootDir>/apps/api"],
       testMatch: ["**/__tests__/**/*.test.ts"],
+      setupFilesAfterEnv: ["<rootDir>/apps/api/jest.setup.ts"],
       moduleNameMapper: {
         "^@aivo/db$": "<rootDir>/packages/db/src/index",
+        "^@aivo/db/schema$": "<rootDir>/packages/db/src/schema",
         "^@aivo/shared-types$": "<rootDir>/packages/shared-types/src/index",
+        "^@aivo/shared-types/(.*)$": "<rootDir>/packages/shared-types/src/$1",
         "^@aivo/api-client$": "<rootDir>/packages/api-client/src/index",
+        "^@aivo/compute/aivo_compute_bg.js$": "<rootDir>/__mocks__/@aivo/compute/index.js",
+        "^@aivo/compute$": "<rootDir>/packages/compute/pkg",
       },
       collectCoverageFrom: [
         "apps/api/src/services/**/*.ts",
@@ -31,7 +36,12 @@ const config = {
       setupFilesAfterEnv: ["<rootDir>/apps/api/tests/setup-db.ts"],
       moduleNameMapper: {
         "^@aivo/db$": "<rootDir>/packages/db/src/index",
+        "^@aivo/db/schema$": "<rootDir>/packages/db/src/schema",
         "^@aivo/shared-types$": "<rootDir>/packages/shared-types/src/index",
+        "^@aivo/shared-types/(.*)$": "<rootDir>/packages/shared-types/src/$1",
+        "^@aivo/api-client$": "<rootDir>/packages/api-client/src/index",
+        "^@aivo/compute/aivo_compute_bg.js$": "<rootDir>/__mocks__/@aivo/compute/index.js",
+        "^@aivo/compute$": "<rootDir>/packages/compute/pkg",
       },
       collectCoverageFrom: [
         "apps/api/src/routes/**/*.ts",
@@ -42,22 +52,23 @@ const config = {
       coverageReporters: ["json", "lcov", "text"],
       testTimeout: 30000, // 30s for integration tests
     },
-    // Unit tests for compute (WASM)
-    {
-      displayName: "compute-unit",
-      preset: "ts-jest",
-      testEnvironment: "node",
-      roots: ["<rootDir>/packages/compute"],
-      testMatch: ["**/tests/**/*.test.ts"],
-      moduleNameMapper: {
-        "^@aivo/compute$": "<rootDir>/packages/compute/pkg",
-      },
-      collectCoverageFrom: [
-        "packages/compute/src/**/*.rs",
-      ],
-      coverageDirectory: "coverage/compute",
-      coverageReporters: ["json", "lcov", "text"],
-    },
+    // Compute tests are run via cargo test, not Jest
+    // {
+    //   displayName: "compute-unit",
+    //   preset: "ts-jest",
+    //   testEnvironment: "node",
+    //   roots: ["<rootDir>/packages/compute"],
+    //   testMatch: ["**/tests/**/*.test.ts"],
+    //   moduleNameMapper: {
+    //     "^@aivo/compute$": "<rootDir>/packages/compute/pkg",
+    //     "^@aivo/compute/aivo_compute_bg.js$": "<rootDir>/__mocks__/@aivo/compute/index.js",
+    //   },
+    //   collectCoverageFrom: [
+    //     "packages/compute/src/**/*.rs",
+    //   ],
+    //   coverageDirectory: "coverage/compute",
+    //   coverageReporters: ["json", "lcov", "text"],
+    // },
   ],
   // Global coverage settings
   coverageThreshold: {

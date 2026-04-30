@@ -167,7 +167,7 @@ describe("MemorySearcher", () => {
     const embedding = await (searcher as any).getEmbedding("test text");
 
     expect(embedding).toHaveLength(1536);
-    expect(embedding.every(v => v === 0)).toBe(true);
+    expect(embedding.every((v: number) => v === 0)).toBe(true);
   });
 
   it("should truncate text for embedding", async () => {

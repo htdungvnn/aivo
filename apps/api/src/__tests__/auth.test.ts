@@ -25,7 +25,7 @@ jest.mock('../services/db', () => ({
   db: mockDb,
 }));
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { Hono } from 'hono';
 import { jwtVerify, sign } from 'jose';
 import { z } from 'zod';

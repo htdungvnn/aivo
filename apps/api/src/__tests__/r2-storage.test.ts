@@ -1,6 +1,5 @@
 /// <reference types="jest" />
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { validateWeight } from '../src/services/validation';
 
 describe('R2 Storage Service', () => {
   describe('Image Upload', () => {
@@ -107,7 +106,7 @@ describe('R2 Storage Service', () => {
 
       try {
         await mockUpload();
-      } catch (error) {
+      } catch (error: any) {
         expect(error.message).toBe('Upload failed');
       }
     });

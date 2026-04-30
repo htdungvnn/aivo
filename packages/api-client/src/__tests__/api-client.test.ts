@@ -2,8 +2,8 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { ApiClient, ApiError } from '../index';
 
-// Mock fetch globally
-const mockFetch = jest.fn();
+// Mock fetch globally - use any to avoid type conflicts in tests
+const mockFetch: any = jest.fn();
 (globalThis as any).fetch = mockFetch;
 
 describe('ApiClient', () => {

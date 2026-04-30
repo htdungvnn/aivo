@@ -25,6 +25,7 @@ import { invokeBudgetAgent } from '../services/nutrition/budget-agent';
 
 describe('Nutrition Orchestrator', () => {
   const baseRequest = {
+    userId: 'test-user-123',
     query: 'I want to eat healthier',
     context: {
       medicalConditions: [] as string[],
@@ -110,40 +111,40 @@ describe('Nutrition Orchestrator', () => {
   describe('identifyPrimaryAgent', () => {
     it('returns undefined for no successful responses', () => {
       const result = identifyPrimaryAgent([
-        { agentType: 'chef' as const, success: false, confidence: 0, processingTimeMs: 100 },
+        { agentType: 'chef' as const, success: false, confidence: 0, processingTimeMs: 100, content: '', warnings: [], metadata: {} },
       ]);
       expect(result).toBeUndefined();
     });
 
     it('returns agent with highest confidence', () => {
       const result = identifyPrimaryAgent([
-        { agentType: 'chef' as const, success: true, confidence: 0.7, processingTimeMs: 100 },
-        { agentType: 'medical' as const, success: true, confidence: 0.9, processingTimeMs: 200 },
-        { agentType: 'budget' as const, success: true, confidence: 0.5, processingTimeMs: 50 },
+        { agentType: 'chef' as const, success: true, confidence: 0.7, processingTimeMs: 100, content: '', warnings: [], metadata: {} },
+        { agentType: 'medical' as const, success: true, confidence: 0.9, processingTimeMs: 200, content: '', warnings: [], metadata: {} },
+        { agentType: 'budget' as const, success: true, confidence: 0.5, processingTimeMs: 50, content: '', warnings: [], metadata: {} },
       ]);
       expect(result).toBe('medical');
     });
 
     it('breaks ties by processing time (faster wins)', () => {
       const result = identifyPrimaryAgent([
-        { agentType: 'chef' as const, success: true, confidence: 0.9, processingTimeMs: 200 },
-        { agentType: 'medical' as const, success: true, confidence: 0.9, processingTimeMs: 100 },
+        { agentType: 'chef' as const, success: true, confidence: 0.9, processingTimeMs: 200, content: '', warnings: [], metadata: {} },
+        { agentType: 'medical' as const, success: true, confidence: 0.9, processingTimeMs: 100, content: '', warnings: [], metadata: {} },
       ]);
       expect(result).toBe('medical');
     });
 
     it('ignores failed responses', () => {
       const result = identifyPrimaryAgent([
-        { agentType: 'chef' as const, success: true, confidence: 0.6, processingTimeMs: 100 },
-        { agentType: 'medical' as const, success: false, confidence: 0.9, processingTimeMs: 200 },
+        { agentType: 'chef' as const, success: true, confidence: 0.6, processingTimeMs: 100, content: '', warnings: [], metadata: {} },
+        { agentType: 'medical' as const, success: false, confidence: 0.9, processingTimeMs: 200, content: '', warnings: [], metadata: {} },
       ]);
       expect(result).toBe('chef');
     });
 
     it('ignores responses with zero confidence', () => {
       const result = identifyPrimaryAgent([
-        { agentType: 'chef' as const, success: true, confidence: 0, processingTimeMs: 100 },
-        { agentType: 'medical' as const, success: true, confidence: 0.5, processingTimeMs: 200 },
+        { agentType: 'chef' as const, success: true, confidence: 0, processingTimeMs: 100, content: '', warnings: [], metadata: {} },
+        { agentType: 'medical' as const, success: true, confidence: 0.5, processingTimeMs: 200, content: '', warnings: [], metadata: {} },
       ]);
       expect(result).toBe('medical');
     });
