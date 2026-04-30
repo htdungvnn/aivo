@@ -149,26 +149,35 @@ main() {
   fi
 
   # 4. Auth endpoint (without valid token - should return 401 Unauthorized, or 503 if provider not configured)
-  if test_endpoint "POST" "/api/auth/google" "401" '{"token":"test-token"}'; then
-    log_success "Google auth endpoint check passed (401)"
+
+  # Google OAuth
+  local google_status
+  google_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"token":"test-token"}' "$API_URL/api/auth/google")
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if [ "$google_status" = "401" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    log_success "POST /api/auth/google -> 401"
+  elif [ "$google_status" = "503" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    log_success "POST /api/auth/google -> 503 (not configured - acceptable)"
   else
-    # Check if Google OAuth is not configured (503)
-    if curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"token":"test-token"}' "$API_URL/api/auth/google" | grep -q "503"; then
-      log_success "Google auth not configured (503) - acceptable"
-    else
-      log_warning "Google auth endpoint unexpected response"
-    fi
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    log_error "POST /api/auth/google -> Expected 401 or 503, got $google_status"
   fi
 
-  if test_endpoint "POST" "/api/auth/facebook" "401" '{"token":"test-token"}'; then
-    log_success "Facebook auth endpoint check passed (401)"
+  # Facebook OAuth
+  local facebook_status
+  facebook_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"token":"test-token"}' "$API_URL/api/auth/facebook")
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if [ "$facebook_status" = "401" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    log_success "POST /api/auth/facebook -> 401"
+  elif [ "$facebook_status" = "503" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    log_success "POST /api/auth/facebook -> 503 (not configured - acceptable)"
   else
-    # Check if Facebook OAuth is not configured (503)
-    if curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"token":"test-token"}' "$API_URL/api/auth/facebook" | grep -q "503"; then
-      log_success "Facebook auth not configured (503) - acceptable"
-    else
-      log_warning "Facebook auth endpoint unexpected response"
-    fi
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    log_error "POST /api/auth/facebook -> Expected 401 or 503, got $facebook_status"
   fi
 
   # 5. Users endpoint (without auth - should return 401)
