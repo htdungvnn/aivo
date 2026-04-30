@@ -11,6 +11,7 @@ export interface AuthEnv {
   AUTH_SECRET: string;
   DB: D1Database;
   GOOGLE_CLIENT_ID?: string;
+  FACEBOOK_APP_ID?: string;
   OPENAI_API_KEY?: string;
 }
 
@@ -186,6 +187,14 @@ export const AuthRouter = () => {
   router.post("/facebook", async (c) => {
     const body = await c.req.json();
     const { token } = FacebookAuthRequest.parse(body);
+
+    // Check if Facebook OAuth is configured
+    if (!process.env.FACEBOOK_APP_ID) {
+      return c.json(
+        { success: false, error: "Facebook OAuth not configured" },
+        503
+      );
+    }
 
     try {
       // Verify Facebook access token with Graph API
