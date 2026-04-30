@@ -8,10 +8,6 @@ import type { R2Bucket } from "@cloudflare/workers-types";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import { APIError } from "./utils/errors";
 
-// Initialize WASM module early
-import { ensureWasmInitialized } from "./lib/wasm-init";
-await ensureWasmInitialized();
-
 // Import middleware
 import { errorHandler, notFoundHandler, attachRequestId } from "./middleware/error-handler";
 import { metricsMiddleware } from "./middleware/metrics";
