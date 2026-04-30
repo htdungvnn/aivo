@@ -133,16 +133,39 @@ main() {
   # 1. Health check
   test_endpoint "GET" "/health" "200"
 
-  # 2. API root/info
-  test_endpoint "GET" "/" "200" || test_endpoint "GET" "/api" "200"
+  # 2. API root/info - try / first, then /api as fallback
+  local root_status
+  root_status=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$API_URL/")
+  if [ "$root_status" = "200" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    TESTS_RUN=$((TESTS_RUN + 1))
+    log_success "GET / -> 200"
+  else
+    # Try /api as fallback
+    local api_root_status
+    api_root_status=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$API_URL/api")
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if [ "$api_root_status" = "200" ]; then
+      TESTS_PASSED=$((TESTS_PASSED + 1))
+      log_success "GET /api -> 200"
+    else
+      TESTS_FAILED=$((TESTS_FAILED + 1))
+      log_error "GET / -> Expected 200, got $root_status (and /api returned $api_root_status)"
+    fi
+  fi
 
   # 3. Swagger docs (if enabled) - in production with auth it returns 404 for unauthenticated
   if [ "$API_URL" != "http://localhost:8787" ]; then
     # Swagger might be disabled/protected in production - expect 404 or 200
-    if test_endpoint "GET" "/docs" "200" || test_endpoint "GET" "/docs" "404"; then
-      log_success "Swagger docs accessibility check passed (200 or 404)"
+    local docs_status
+    docs_status=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$API_URL/docs")
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if [ "$docs_status" = "200" ] || [ "$docs_status" = "404" ]; then
+      TESTS_PASSED=$((TESTS_PASSED + 1))
+      log_success "GET /docs -> $docs_status (acceptable)"
     else
-      log_warning "Swagger docs not accessible (unexpected response)"
+      TESTS_FAILED=$((TESTS_FAILED + 1))
+      log_error "GET /docs -> Expected 200 or 404, got $docs_status"
     fi
   else
     test_endpoint "GET" "/docs" "200" || log_warning "Swagger docs not accessible (may be disabled)"
