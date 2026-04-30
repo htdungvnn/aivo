@@ -1,5 +1,11 @@
+# ============================================
+# AIVO Monorepo - Comprehensive .gitignore
+# ============================================
+
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
 # Build outputs
 .next/
@@ -7,9 +13,12 @@ out/
 dist/
 .wrangler/
 .pkg/
+build/
+release/
 
 # Package build outputs (TypeScript compiled JS)
 packages/*/dist/
+packages/*/build/
 packages/*/src/**/*.js
 !packages/*/src/**/*.ts
 
@@ -19,48 +28,92 @@ target/
 **/*.wasm
 **/*.wasm.d.ts
 Cargo.lock
+Cargo.toml.profraw
+Cargo.toml.profdata
 
 # Expo / React Native
 .expo/
+.expo-shared/
 .android/
 .ios/
 web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# Environment
+# Environment files (ALL variants)
 .env
 .env.local
 .env.*.local
+.env.local.*
+.env.*
+!.env.example
+!.env.template
 .env/
+.envrc
 
-# IDE
+# IDE / Editor
 .idea/
 .vscode/
+*.code-workspace
+.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 *.swp
 *.swo
+*~
+.~*
+.~lock.*
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
 # Logs
 *.log
+*.logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+.pnpm-debug.log*
+turbo-*.log
+*.out
 
 # Testing
 coverage/
+.nyc_output
 .pytest_cache/
+.pytest/
+*.test.ts
+*.spec.ts
+__tests__/fixtures/
+
+# Jest
+/jest-coverage/
+/jest-stare/
+/jest-haste-map/
+*.jestrc
 
 # Misc
 .cache/
 .turbo/
 .watchmanconfig
+.vercel
+.vercel-dev
+.terraform
+.tfstate
+.tfstate.backup
 
-# Claude Code settings (local only)
-.claude/
-
-android
-ios
 
