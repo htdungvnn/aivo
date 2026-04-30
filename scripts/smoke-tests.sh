@@ -58,7 +58,7 @@ test_endpoint() {
   local method="$1"
   local path="$2"
   local expected_status="$3"
-  local body="$4"
+  local body="${4:-}"
   local content_type="${5:-application/json}"
 
   TESTS_RUN=$((TESTS_RUN + 1))
