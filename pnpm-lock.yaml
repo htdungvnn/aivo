@@ -313,6 +313,9 @@ importers:
       '@aivo/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@aivo/compute':
+        specifier: workspace:*
+        version: link:../../packages/compute
       '@aivo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

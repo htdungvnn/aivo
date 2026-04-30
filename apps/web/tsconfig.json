@@ -11,7 +11,6 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-
     "rootDir": ".",
     "esModuleInterop": true,
     "module": "esnext",
@@ -32,9 +31,6 @@
       ],
       "@aivo/shared-types": [
         "../../packages/shared-types/dist/src"
-      ],
-      "@aivo/compute": [
-        "../../packages/compute/pkg"
       ]
     }
   },
@@ -43,7 +39,9 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "out/types/**/*.ts",
+    "out/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
