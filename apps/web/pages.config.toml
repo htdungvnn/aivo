@@ -14,6 +14,7 @@ output_directory = "out"
 [build.environment]
 NODE_VERSION = "20"
 NEXT_TELEMETRY_DISABLED = "1"
+NEXT_PUBLIC_API_URL = "https://api.aivo.website"
 
 # Routes configuration
 # Pages will automatically use the _routes file, but we can add additional rules here
