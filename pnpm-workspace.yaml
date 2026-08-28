@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "workers/**"
 minimumReleaseAgeExclude:
   - "@expo/cli@57.0.20"
   - "@expo/env@2.4.3"
