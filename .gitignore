@@ -39,3 +39,7 @@ yarn-error.log*
 
 .pnpm-store
 .wrangler
+wrangler.jsonc
+.env.example
+wrangler.production.jsonc
+.dev.vars.example
