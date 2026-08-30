@@ -5,6 +5,108 @@
 const encoder = new TextEncoder();
 
 /**
+ * Password hashing configuration
+ */
+const PBKDF2_ITERATIONS = 100000;
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 32;
+
+/**
+ * Hash a password using PBKDF2
+ * Returns hash string in format: version$salt$hash (base64url encoded)
+ */
+export async function hashPassword(password: string): Promise<{ hash: string; version: number }> {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  
+  // Import password as key material
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  
+  // Derive bits using PBKDF2
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    KEY_LENGTH * 8
+  );
+  
+  // Combine salt and hash
+  const hashBytes = new Uint8Array(derivedBits);
+  const combined = new Uint8Array(SALT_LENGTH + KEY_LENGTH);
+  combined.set(salt, 0);
+  combined.set(hashBytes, SALT_LENGTH);
+  
+  // Encode to base64url
+  const hash = base64UrlEncode(combined.buffer);
+  
+  return { hash, version: 1 };
+}
+
+/**
+ * Verify a password against a stored hash
+ */
+export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  // Parse stored hash (format: version$salt$hash)
+  const parts = storedHash.split('$');
+  if (parts.length !== 3) {
+    return false;
+  }
+  
+  const version = parseInt(parts[0], 10);
+  const salt = base64UrlDecode(parts[1]);
+  const storedHashBytes = base64UrlDecode(parts[2]);
+  
+  // Import password as key material
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  
+  // Derive bits using same parameters
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: new Uint8Array(salt),
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    KEY_LENGTH * 8
+  );
+  
+  // Compare hashes (constant-time)
+  const computedHash = new Uint8Array(derivedBits);
+  return timingSafeEqualBytes(computedHash, new Uint8Array(storedHashBytes));
+}
+
+/**
+ * Constant-time byte array comparison
+ */
+function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
+}
+
+/**
  * Generate a cryptographically secure random string
  */
 export function generateSecureToken(length: number = 32): string {
