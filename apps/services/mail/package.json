@@ -20,7 +20,9 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-plugin": "^1.0.0",
+		"@repo/eslint-config": "workspace:*",
 		"@types/node": "^26.4.0",
+		"eslint": "^9.0.0",
 		"typescript": "^5.5.2",
 		"vitest": "~4.1.0",
 		"wrangler": "^4.127.1"
