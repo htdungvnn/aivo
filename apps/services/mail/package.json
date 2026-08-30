@@ -1,0 +1,28 @@
+{
+	"name": "mail",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev --port 3001",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint src --ext .ts,.tsx"
+	},
+	"dependencies": {
+		"@repo/queue-types": "workspace:*",
+		"hono": "^4.6.0",
+		"resend": "^4.0.0",
+		"zod": "^3.23.0"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-plugin": "^1.0.0",
+		"@types/node": "^26.4.0",
+		"typescript": "^5.5.2",
+		"vitest": "~4.1.0",
+		"wrangler": "^4.127.1"
+	}
+}
