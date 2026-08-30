@@ -8,7 +8,6 @@ import type {
   Role,
   Session,
   RefreshToken,
-  EmailVerificationToken,
   AuditLog,
   UserStatus,
   Provider,
@@ -78,6 +77,20 @@ export async function getUserByEmail(db: D1Database, email: string): Promise<Use
 }
 
 /**
+ * Get user by verification code
+ */
+export async function getUserByVerificationCode(
+  db: D1Database,
+  code: string
+): Promise<User | null> {
+  const result = await db
+    .prepare('SELECT * FROM users WHERE verification_code = ? AND deleted_at IS NULL')
+    .bind(code)
+    .first<User>();
+  return result ?? null;
+}
+
+/**
  * Update user
  */
 export async function updateUser(
@@ -89,12 +102,14 @@ export async function updateUser(
     avatarUrl: string | null;
     status: UserStatus;
     emailVerifiedAt: number | null;
+    verificationCode: string | null;
+    verificationCodeExpiresAt: number | null;
     authVersion: number;
   }>
 ): Promise<User | null> {
   const updates: string[] = [];
   const bindings: (string | number | null)[] = [];
-  
+
   if (data.email !== undefined) {
     updates.push('email = ?');
     bindings.push(data.email);
@@ -117,22 +132,30 @@ export async function updateUser(
     updates.push('email_verified_at = ?');
     bindings.push(data.emailVerifiedAt);
   }
+  if (data.verificationCode !== undefined) {
+    updates.push('verification_code = ?');
+    bindings.push(data.verificationCode);
+  }
+  if (data.verificationCodeExpiresAt !== undefined) {
+    updates.push('verification_code_expires_at = ?');
+    bindings.push(data.verificationCodeExpiresAt);
+  }
   if (data.authVersion !== undefined) {
     updates.push('auth_version = ?');
     bindings.push(data.authVersion);
   }
-  
+
   if (updates.length === 0) return getUserById(db, id);
-  
+
   updates.push('updated_at = ?');
   bindings.push(Math.floor(Date.now() / 1000));
   bindings.push(id);
-  
+
   await db
     .prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`)
     .bind(...bindings)
     .run();
-  
+
   return getUserById(db, id);
 }
 
@@ -631,98 +654,6 @@ export async function revokeSessionTokens(db: D1Database, sessionId: string): Pr
 }
 
 /**
- * Create email verification token
- */
-export async function createEmailVerificationToken(
-  db: D1Database,
-  data: {
-    userId: string;
-    tokenHash: string;
-    expiresAt: number;
-  }
-): Promise<EmailVerificationToken> {
-  const id = generateUUID();
-  const now = Math.floor(Date.now() / 1000);
-  
-  // Invalidate any existing active tokens for this user
-  await db
-    .prepare('UPDATE email_verification_tokens SET consumed_at = ? WHERE user_id = ? AND consumed_at IS NULL')
-    .bind(now, data.userId)
-    .run();
-  
-  await db
-    .prepare(
-      `INSERT INTO email_verification_tokens (id, user_id, token_hash, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?)`
-    )
-    .bind(id, data.userId, data.tokenHash, data.expiresAt, now)
-    .run();
-  
-  return getEmailVerificationTokenById(db, id)!;
-}
-
-/**
- * Get email verification token by ID
- */
-export async function getEmailVerificationTokenById(
-  db: D1Database,
-  id: string
-): Promise<EmailVerificationToken | null> {
-  const result = await db
-    .prepare('SELECT * FROM email_verification_tokens WHERE id = ?')
-    .bind(id)
-    .first();
-  
-  if (!result) return null;
-  
-  const row = result as Record<string, unknown>;
-  return {
-    id: row.id as string,
-    user_id: row.user_id as string,
-    token_hash: row.token_hash as string,
-    expires_at: row.expires_at as number,
-    consumed_at: row.consumed_at as number | null,
-    created_at: row.created_at as number,
-  };
-}
-
-/**
- * Get email verification token by hash
- */
-export async function getEmailVerificationTokenByHash(
-  db: D1Database,
-  tokenHash: string
-): Promise<EmailVerificationToken | null> {
-  const result = await db
-    .prepare('SELECT * FROM email_verification_tokens WHERE token_hash = ?')
-    .bind(tokenHash)
-    .first();
-  
-  if (!result) return null;
-  
-  const row = result as Record<string, unknown>;
-  return {
-    id: row.id as string,
-    user_id: row.user_id as string,
-    token_hash: row.token_hash as string,
-    expires_at: row.expires_at as number,
-    consumed_at: row.consumed_at as number | null,
-    created_at: row.created_at as number,
-  };
-}
-
-/**
- * Consume email verification token
- */
-export async function consumeEmailVerificationToken(db: D1Database, id: string): Promise<void> {
-  const now = Math.floor(Date.now() / 1000);
-  await db
-    .prepare('UPDATE email_verification_tokens SET consumed_at = ? WHERE id = ?')
-    .bind(now, id)
-    .run();
-}
-
-/**
  * Create audit log
  */
 export async function createAuditLog(
@@ -771,13 +702,13 @@ export async function cleanupExpiredRecords(db: D1Database): Promise<void> {
     .prepare('DELETE FROM refresh_tokens WHERE expires_at < ?')
     .bind(refreshTokenExpiry)
     .run();
-  
-  // Clean up consumed/expired verification tokens
+
+  // Clean up expired verification codes on users
   await db
-    .prepare('DELETE FROM email_verification_tokens WHERE expires_at < ? OR consumed_at IS NOT NULL')
+    .prepare('UPDATE users SET verification_code = NULL, verification_code_expires_at = NULL WHERE verification_code_expires_at < ?')
     .bind(now)
     .run();
-  
+
   // Clean up expired sessions older than 30 days
   const sessionExpiry = now - (30 * 24 * 60 * 60);
   await db

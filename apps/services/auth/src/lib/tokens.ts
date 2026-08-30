@@ -19,6 +19,7 @@ import {
   getUserById,
   getUserRoles,
   getRoleByCode,
+  getUserSessions,
 } from '../db/queries';
 import { hashToken, generateSecureToken, generateUUID } from '../utils/crypto';
 import { getJWTService } from './jwt';
