@@ -17,6 +17,7 @@ import {
   createUser,
   getUserById,
   getUserByEmail,
+  getUserByVerificationCode,
   getUserIdentityByProvider,
   getUserIdentities,
   createUserIdentity,
@@ -24,13 +25,10 @@ import {
   assignRoleToUser,
   getUserRoles,
   createAuditLog,
-  createEmailVerificationToken,
-  getEmailVerificationTokenByHash,
-  consumeEmailVerificationToken,
   updateUser,
   softDeleteUser,
 } from '../db/queries';
-import { hashToken, normalizeEmail, generateSecureToken, generateOAuthState, generateCodeVerifier, generateCodeChallenge } from '../utils/crypto';
+import { normalizeEmail, generateSecureToken, generateOAuthState, generateCodeVerifier, generateCodeChallenge } from '../utils/crypto';
 import { isTrustedEmailDomain } from '../providers/base';
 import { TokenService, createTokenService } from '../lib/tokens';
 import { OAuthProvider, getGoogleProvider, getFacebookProvider, OAuthError } from '../providers';
@@ -428,29 +426,27 @@ export class AuthService {
    * Send verification email
    */
   async sendVerificationEmail(user: User): Promise<void> {
-    const token = generateSecureToken(32);
-    const tokenHash = await hashToken(token);
+    const code = generateSecureToken(8); // 8 character code
     const expiresAt = Math.floor(Date.now() / 1000) + EMAIL_VERIFICATION_TTL;
-    
-    await createEmailVerificationToken(this.db, {
-      userId: user.id,
-      tokenHash,
-      expiresAt,
+
+    await updateUser(this.db, user.id, {
+      verificationCode: code,
+      verificationCodeExpiresAt: expiresAt,
     });
-    
+
     // Store code for dev/testing
     const nodeEnv = typeof process !== 'undefined' ? process.env.NODE_ENV : undefined;
     if (nodeEnv === 'development' || !nodeEnv) {
-      this.emailVerificationCodes.set(token.slice(0, 8), {
+      this.emailVerificationCodes.set(code, {
         userId: user.id,
         email: user.email,
       });
     }
-    
+
     // In production, send actual email
     // For now, we just log it
-    console.log(`[DEV] Verification email for ${user.email}: ${token}`);
-    
+    console.log(`[DEV] Verification code for ${user.email}: ${code}`);
+
     await createAuditLog(this.db, {
       userId: user.id,
       action: 'verification.email_sent',
@@ -460,34 +456,26 @@ export class AuthService {
   }
   
   /**
-   * Verify email token
+   * Verify email code
    */
-  async verifyEmail(token: string, ipAddress?: string, userAgent?: string): Promise<User> {
-    const tokenHash = await hashToken(token);
-    const storedToken = await getEmailVerificationTokenByHash(this.db, tokenHash);
+  async verifyEmail(code: string, ipAddress?: string, userAgent?: string): Promise<User> {
+    const user = await getUserByVerificationCode(this.db, code);
     
-    if (!storedToken) {
-      throw new AuthServiceError('Invalid verification token', 'INVALID_TOKEN', 400);
-    }
-    
-    const now = Math.floor(Date.now() / 1000);
-    if (storedToken.expires_at < now) {
-      throw new AuthServiceError('Verification token expired', 'TOKEN_EXPIRED', 400);
-    }
-    
-    if (storedToken.consumed_at) {
-      throw new AuthServiceError('Verification token already used', 'INVALID_TOKEN', 400);
-    }
-    
-    // Get user
-    const user = await getUserById(this.db, storedToken.user_id);
     if (!user) {
-      throw new AuthServiceError('User not found', 'INVALID_TOKEN', 400);
+      throw new AuthServiceError('Invalid verification code', 'INVALID_TOKEN', 400);
     }
-    
-    // Consume token
-    await consumeEmailVerificationToken(this.db, storedToken.id);
-    
+
+    const now = Math.floor(Date.now() / 1000);
+    if (user.verification_code_expires_at && user.verification_code_expires_at < now) {
+      throw new AuthServiceError('Verification code expired', 'TOKEN_EXPIRED', 400);
+    }
+
+    // Clear the code
+    await updateUser(this.db, user.id, {
+      verificationCode: null,
+      verificationCodeExpiresAt: null,
+    });
+
     // Activate user if pending
     if (user.status === 'pending_verification') {
       await updateUser(this.db, user.id, {
@@ -495,7 +483,7 @@ export class AuthService {
         emailVerifiedAt: now,
       });
     }
-    
+
     // Audit
     await createAuditLog(this.db, {
       userId: user.id,
@@ -504,7 +492,7 @@ export class AuthService {
       ipAddress,
       userAgent,
     });
-    
+
     return (await getUserById(this.db, user.id))!;
   }
   

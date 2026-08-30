@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url TEXT,
     status TEXT NOT NULL DEFAULT 'pending_verification' CHECK(status IN ('pending_verification', 'active', 'suspended', 'deleted')),
     email_verified_at INTEGER,
+    verification_code TEXT,
+    verification_code_expires_at INTEGER,
     auth_version INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
@@ -109,21 +111,6 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_family_id ON refresh_tokens(
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_consumed_at ON refresh_tokens(consumed_at);
-
--- Create email_verification_tokens table
-CREATE TABLE IF NOT EXISTS email_verification_tokens (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    token_hash TEXT NOT NULL UNIQUE,
-    expires_at INTEGER NOT NULL,
-    consumed_at INTEGER,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_token_hash ON email_verification_tokens(token_hash);
-CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires_at ON email_verification_tokens(expires_at);
 
 -- Create audit_logs table
 CREATE TABLE IF NOT EXISTS audit_logs (

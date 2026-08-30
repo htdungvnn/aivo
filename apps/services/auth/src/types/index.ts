@@ -38,6 +38,8 @@ export interface User {
   avatar_url: string | null;
   status: UserStatus;
   email_verified_at: number | null;
+  verification_code: string | null;
+  verification_code_expires_at: number | null;
   auth_version: number;
   created_at: number;
   updated_at: number;
