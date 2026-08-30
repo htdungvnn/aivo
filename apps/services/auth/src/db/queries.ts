@@ -49,7 +49,9 @@ export async function createUser(
     )
     .run();
   
-  return getUserById(db, id)!;
+  const result = await getUserById(db, id);
+  if (!result) throw new Error('Failed to create user');
+  return result;
 }
 
 /**
@@ -188,13 +190,20 @@ export async function getUserIdentityById(db: D1Database, id: string): Promise<U
   const result = await db
     .prepare('SELECT * FROM user_identities WHERE id = ?')
     .bind(id)
-    .first<UserIdentity & { provider_email_verified: number }>();
+    .first();
   
   if (!result) return null;
   
+  const row = result as Record<string, unknown>;
   return {
-    ...result,
-    provider_email_verified: Boolean(result.provider_email_verified),
+    id: row.id as string,
+    user_id: row.user_id as string,
+    provider: row.provider as Provider,
+    provider_user_id: row.provider_user_id as string,
+    provider_email: row.provider_email as string | null,
+    provider_email_verified: Boolean(row.provider_email_verified),
+    created_at: row.created_at as number,
+    updated_at: row.updated_at as number,
   };
 }
 
@@ -209,13 +218,20 @@ export async function getUserIdentityByProvider(
   const result = await db
     .prepare('SELECT * FROM user_identities WHERE provider = ? AND provider_user_id = ?')
     .bind(provider, providerUserId)
-    .first<UserIdentity & { provider_email_verified: number }>();
+    .first();
   
   if (!result) return null;
   
+  const row = result as Record<string, unknown>;
   return {
-    ...result,
-    provider_email_verified: Boolean(result.provider_email_verified),
+    id: row.id as string,
+    user_id: row.user_id as string,
+    provider: row.provider as Provider,
+    provider_user_id: row.provider_user_id as string,
+    provider_email: row.provider_email as string | null,
+    provider_email_verified: Boolean(row.provider_email_verified),
+    created_at: row.created_at as number,
+    updated_at: row.updated_at as number,
   };
 }
 
@@ -226,11 +242,17 @@ export async function getUserIdentities(db: D1Database, userId: string): Promise
   const results = await db
     .prepare('SELECT * FROM user_identities WHERE user_id = ?')
     .bind(userId)
-    .all<UserIdentity & { provider_email_verified: number }>();
+    .all();
   
-  return results.results.map(row => ({
-    ...row,
+  return (results.results as Record<string, unknown>[]).map(row => ({
+    id: row.id as string,
+    user_id: row.user_id as string,
+    provider: row.provider as Provider,
+    provider_user_id: row.provider_user_id as string,
+    provider_email: row.provider_email as string | null,
     provider_email_verified: Boolean(row.provider_email_verified),
+    created_at: row.created_at as number,
+    updated_at: row.updated_at as number,
   }));
 }
 
@@ -241,13 +263,19 @@ export async function getRoleByCode(db: D1Database, code: string): Promise<Role 
   const result = await db
     .prepare('SELECT * FROM roles WHERE code = ?')
     .bind(code)
-    .first<Role & { is_system: number }>();
+    .first();
   
   if (!result) return null;
   
+  const row = result as Record<string, unknown>;
   return {
-    ...result,
-    is_system: Boolean(result.is_system),
+    id: row.id as string,
+    code: row.code as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    is_system: Boolean(row.is_system),
+    created_at: row.created_at as number,
+    updated_at: row.updated_at as number,
   };
 }
 
@@ -304,11 +332,16 @@ export async function getUserRoles(db: D1Database, userId: string): Promise<Role
        WHERE ur.user_id = ?`
     )
     .bind(userId)
-    .all<Role & { is_system: number }>();
+    .all();
   
-  return results.results.map(row => ({
-    ...row,
+  return (results.results as Record<string, unknown>[]).map(row => ({
+    id: row.id as string,
+    code: row.code as string,
+    name: row.name as string,
+    description: row.description as string | null,
     is_system: Boolean(row.is_system),
+    created_at: row.created_at as number,
+    updated_at: row.updated_at as number,
   }));
 }
 
@@ -398,13 +431,24 @@ export async function getValidSession(db: D1Database, id: string): Promise<Sessi
        AND revoked_at IS NULL`
     )
     .bind(id, now)
-    .first<Session & { revoked_at: number | null }>();
+    .first();
   
   if (!result) return null;
   
+  const row = result as Record<string, unknown>;
   return {
-    ...result,
-    revoked_at: result.revoked_at,
+    id: row.id as string,
+    user_id: row.user_id as string,
+    client_type: row.client_type as ClientType,
+    device_name: row.device_name as string | null,
+    platform: row.platform as string | null,
+    user_agent: row.user_agent as string | null,
+    ip_address: row.ip_address as string | null,
+    created_at: row.created_at as number,
+    last_active_at: row.last_active_at as number,
+    expires_at: row.expires_at as number,
+    revoked_at: row.revoked_at as number | null,
+    revoke_reason: row.revoke_reason as string | null,
   };
 }
 
@@ -507,9 +551,22 @@ export async function getRefreshTokenById(db: D1Database, id: string): Promise<R
   const result = await db
     .prepare('SELECT * FROM refresh_tokens WHERE id = ?')
     .bind(id)
-    .first<RefreshToken>();
+    .first();
   
-  return result ?? null;
+  if (!result) return null;
+  
+  const row = result as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    session_id: row.session_id as string,
+    token_family_id: row.token_family_id as string,
+    token_hash: row.token_hash as string,
+    parent_token_id: row.parent_token_id as string | null,
+    expires_at: row.expires_at as number,
+    consumed_at: row.consumed_at as number | null,
+    revoked_at: row.revoked_at as number | null,
+    created_at: row.created_at as number,
+  };
 }
 
 /**
@@ -522,9 +579,22 @@ export async function getRefreshTokenByHash(
   const result = await db
     .prepare('SELECT * FROM refresh_tokens WHERE token_hash = ?')
     .bind(tokenHash)
-    .first<RefreshToken>();
+    .first();
   
-  return result ?? null;
+  if (!result) return null;
+  
+  const row = result as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    session_id: row.session_id as string,
+    token_family_id: row.token_family_id as string,
+    token_hash: row.token_hash as string,
+    parent_token_id: row.parent_token_id as string | null,
+    expires_at: row.expires_at as number,
+    consumed_at: row.consumed_at as number | null,
+    revoked_at: row.revoked_at as number | null,
+    created_at: row.created_at as number,
+  };
 }
 
 /**
@@ -601,9 +671,19 @@ export async function getEmailVerificationTokenById(
   const result = await db
     .prepare('SELECT * FROM email_verification_tokens WHERE id = ?')
     .bind(id)
-    .first<EmailVerificationToken>();
+    .first();
   
-  return result ?? null;
+  if (!result) return null;
+  
+  const row = result as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    user_id: row.user_id as string,
+    token_hash: row.token_hash as string,
+    expires_at: row.expires_at as number,
+    consumed_at: row.consumed_at as number | null,
+    created_at: row.created_at as number,
+  };
 }
 
 /**
@@ -616,9 +696,19 @@ export async function getEmailVerificationTokenByHash(
   const result = await db
     .prepare('SELECT * FROM email_verification_tokens WHERE token_hash = ?')
     .bind(tokenHash)
-    .first<EmailVerificationToken>();
+    .first();
   
-  return result ?? null;
+  if (!result) return null;
+  
+  const row = result as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    user_id: row.user_id as string,
+    token_hash: row.token_hash as string,
+    expires_at: row.expires_at as number,
+    consumed_at: row.consumed_at as number | null,
+    created_at: row.created_at as number,
+  };
 }
 
 /**

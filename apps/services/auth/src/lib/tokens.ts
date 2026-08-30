@@ -252,7 +252,7 @@ export class TokenService {
    */
   async revokeAllSessions(userId: string): Promise<void> {
     // Get all sessions
-    const sessions = await getValidSession(this.db, userId);
+    const sessions = await getUserSessions(this.db, userId);
     
     for (const session of sessions) {
       await revokeSession(this.db, session.id, 'logout_all');

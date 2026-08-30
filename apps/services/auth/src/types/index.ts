@@ -161,6 +161,13 @@ export interface TokenResponse {
   tokenType: 'Bearer';
 }
 
+// Token pair
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
 // Session with user info
 export interface SessionWithUser extends Session {
   user: Pick<User, 'id' | 'email' | 'display_name' | 'avatar_url' | 'status' | 'auth_version'>;

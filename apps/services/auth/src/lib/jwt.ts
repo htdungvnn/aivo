@@ -158,15 +158,15 @@ export class JWTService {
       });
       
       return {
-        iss: payload.iss!,
-        aud: payload.aud!,
-        sub: payload.sub!,
-        iat: payload.iat!,
-        exp: payload.exp!,
-        jti: payload.jti!,
-        sid: payload.sid as string,
-        ver: payload.ver as number,
-        roles: payload.roles as string[],
+        iss: typeof payload.iss === 'string' ? payload.iss : this.issuer,
+        aud: typeof payload.aud === 'string' ? payload.aud : this.audience,
+        sub: typeof payload.sub === 'string' ? payload.sub : '',
+        iat: typeof payload.iat === 'number' ? payload.iat : 0,
+        exp: typeof payload.exp === 'number' ? payload.exp : 0,
+        jti: typeof payload.jti === 'string' ? payload.jti : '',
+        sid: (payload.sid as string) ?? '',
+        ver: (payload.ver as number) ?? 1,
+        roles: (payload.roles as string[]) ?? [],
       };
     } catch (error) {
       console.error('JWT verification failed:', error);
@@ -213,7 +213,8 @@ async function importPrivateKey(base64: string): Promise<CryptoKey> {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return jose.importPKCS8(bytes.buffer, JWT_ALGORITHM);
+  const keyData = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  return jose.importPKCS8(keyData as ArrayBuffer, JWT_ALGORITHM);
 }
 
 /**
@@ -225,7 +226,8 @@ async function importPublicKey(base64: string): Promise<CryptoKey> {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return jose.importSPKI(bytes.buffer, JWT_ALGORITHM);
+  const keyData = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  return jose.importSPKI(keyData as ArrayBuffer, JWT_ALGORITHM);
 }
 
 /**

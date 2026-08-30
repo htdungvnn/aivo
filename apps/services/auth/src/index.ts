@@ -3,10 +3,9 @@
  */
 
 import { Hono } from 'hono';
-import { handle } from 'hono/cloudflare-workers';
 import { cors, requestId, errorHandler, rateLimits } from './middleware';
 import { createRoutes } from './routes';
-import { getJWTService, setJWTService } from './lib/jwt';
+import { getJWTService, setJWTService, JWTService } from './lib/jwt';
 import type { AuthEnv } from './middleware/auth';
 
 export interface Env extends AuthEnv {
@@ -36,7 +35,15 @@ export interface Env extends AuthEnv {
   ALLOWED_ORIGINS?: string;
 }
 
-const app = new Hono<{ Bindings: Env }>();
+// Context type for request context
+type Context = {
+  Bindings: Env;
+  Variables: {
+    requestId: string;
+  };
+};
+
+const app = new Hono<Context>();
 
 // Request ID for all requests
 app.use('*', requestId());
@@ -73,7 +80,7 @@ app.use('*', async (c, next) => {
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
     c.header('Access-Control-Max-Age', '86400');
-    return c.text('', 204);
+    return c.text('', 200);
   }
   
   await next();
@@ -85,7 +92,7 @@ async function initJWTService(env: Env) {
   
   if (env.AUTH_JWT_PRIVATE_KEY && env.AUTH_JWT_PUBLIC_KEY) {
     try {
-      const service = await jwtService.constructor.fromEnvironment({
+      const service = await (jwtService.constructor as typeof JWTService).fromEnvironment({
         AUTH_JWT_PRIVATE_KEY: env.AUTH_JWT_PRIVATE_KEY,
         AUTH_JWT_PUBLIC_KEY: env.AUTH_JWT_PUBLIC_KEY,
         AUTH_JWT_ISSUER: env.AUTH_JWT_ISSUER,
@@ -137,8 +144,6 @@ export default {
     const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();
     console.log(`[${requestId}] ${request.method} ${request.url}`);
     
-    const response = await handle(app)(request, env, ctx);
-    
-    return response;
+    return app.fetch(request, env, ctx);
   },
 } satisfies ExportedHandler<Env>;

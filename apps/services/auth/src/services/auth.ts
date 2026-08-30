@@ -10,9 +10,9 @@ import type {
   ClientType,
   User,
   UserStatus,
-  TokenPair,
-  UserRole,
+  Role,
 } from '../types';
+import { TokenPair } from '../types';
 import {
   createUser,
   getUserById,
@@ -439,7 +439,8 @@ export class AuthService {
     });
     
     // Store code for dev/testing
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+    const nodeEnv = typeof process !== 'undefined' ? process.env.NODE_ENV : undefined;
+    if (nodeEnv === 'development' || !nodeEnv) {
       this.emailVerificationCodes.set(token.slice(0, 8), {
         userId: user.id,
         email: user.email,
@@ -536,7 +537,7 @@ export class AuthService {
   /**
    * Get user with roles
    */
-  async getUserWithRoles(userId: string): Promise<{ user: User; roles: UserRole[] } | null> {
+  async getUserWithRoles(userId: string): Promise<{ user: User; roles: Role[] } | null> {
     const user = await getUserById(this.db, userId);
     if (!user) return null;
     

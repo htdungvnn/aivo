@@ -191,4 +191,5 @@ export function securityHeaders() {
     
     // Referrer Policy
     c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  };
 }
