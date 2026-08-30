@@ -297,6 +297,23 @@ export class AuthApiClient {
   }
   
   /**
+   * Admin: Get users list
+   */
+  async adminGetUsers(options: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    search?: string;
+  } = {}): Promise<{ users: any[]; total: number; page: number; pageSize: number }> {
+    const { page = 1, pageSize = 20, status, search } = options;
+    const response = await this.request('/admin/users', {
+      method: 'GET',
+      body: { page: page.toString(), pageSize: pageSize.toString(), status, search },
+    });
+    return response as { users: any[]; total: number; page: number; pageSize: number };
+  }
+
+  /**
    * Admin: Get user info
    */
   async adminGetUser(userId: string): Promise<any> {

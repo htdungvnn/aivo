@@ -2,6 +2,7 @@
 	"name": "auth",
 	"version": "0.0.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"dev": "wrangler dev --port 3001 --local",
 		"dev:external": "wrangler dev --port 3001 --external",
@@ -20,6 +21,7 @@
 		"db:execute": "wrangler d1 execute aivo-auth-db --local --file"
 	},
 	"dependencies": {
+		"@repo/queue-types": "workspace:*",
 		"hono": "^4.6.0",
 		"jose": "^5.9.0",
 		"zod": "^3.23.0"
@@ -30,6 +32,7 @@
 		"@typescript-eslint/eslint-plugin": "^8.29.0",
 		"@typescript-eslint/parser": "^8.29.0",
 		"eslint": "^9.24.0",
+		"@types/node": "^26.4.0",
 		"typescript": "^5.5.2",
 		"vitest": "~4.1.0",
 		"wrangler": "^4"

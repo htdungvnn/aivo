@@ -5,6 +5,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { getAuthClient, AuthApiClient, User, Session, AuthApiError } from '@repo/api-client';
 
 interface AuthState {
@@ -246,6 +247,3 @@ export function useRequireRole(role: string) {
 export function useRequireAdmin() {
   return useRequireRole('admin');
 }
-
-// Import useRouter for the hook
-import { useRouter } from 'next/navigation';

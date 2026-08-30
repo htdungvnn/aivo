@@ -265,6 +265,55 @@ export class MobileAuthClient {
   }
 
   /**
+   * Get all user sessions
+   */
+  async getSessions(): Promise<{ sessions: Session[]; total: number }> {
+    const response = await this.request('/sessions');
+    return response as { sessions: Session[]; total: number };
+  }
+
+  /**
+   * Revoke a specific session
+   */
+  async revokeSession(sessionId: string): Promise<void> {
+    await this.request(`/sessions/${sessionId}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Revoke all sessions except current
+   */
+  async revokeOtherSessions(): Promise<void> {
+    await this.request('/sessions', { method: 'DELETE' });
+  }
+
+  /**
+   * Logout from all devices
+   */
+  async logoutAll(): Promise<void> {
+    try {
+      await this.request('/auth/logout-all', { method: 'POST' });
+    } finally {
+      await this.clearTokens();
+    }
+  }
+
+  /**
+   * Delete account
+   */
+  async deleteAccount(): Promise<void> {
+    await this.request('/account', { method: 'DELETE' });
+    await this.clearTokens();
+  }
+
+  /**
+   * Get account info with identities
+   */
+  async getAccountInfo(): Promise<{ user: User; identities: any[] }> {
+    const response = await this.request('/account');
+    return response as { user: User; identities: any[] };
+  }
+
+  /**
    * Get stored user
    */
   async getStoredUser(): Promise<User | null> {
