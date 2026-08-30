@@ -2,6 +2,8 @@
  * Cloudflare Workers Environment Types
  */
 
+import type { EmailVerificationQueueMessage } from '@repo/queue-types';
+
 export interface Env {
   // D1 Database
   DB: D1Database;
@@ -30,4 +32,7 @@ export interface Env {
   
   // KV Namespace for OAuth state (optional)
   OAUTH_STATE?: KVNamespace;
+  
+  // Email Queue for transactional emails
+  EMAIL_QUEUE: Queue<EmailVerificationQueueMessage>;
 }

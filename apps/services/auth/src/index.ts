@@ -7,6 +7,7 @@ import { cors, requestId, errorHandler, rateLimits } from './middleware';
 import { createRoutes } from './routes';
 import { getJWTService, setJWTService, JWTService } from './lib/jwt';
 import type { AuthEnv } from './middleware/auth';
+import type { EmailVerificationQueueMessage } from '@repo/queue-types';
 
 export interface Env extends AuthEnv {
   // D1 Database
@@ -33,6 +34,9 @@ export interface Env extends AuthEnv {
   
   // Allowed Origins (comma-separated)
   ALLOWED_ORIGINS?: string;
+  
+  // Email Queue for transactional emails
+  EMAIL_QUEUE: Queue<EmailVerificationQueueMessage>;
 }
 
 // Context type for request context
