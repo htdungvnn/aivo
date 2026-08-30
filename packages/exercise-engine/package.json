@@ -1,0 +1,40 @@
+{
+  "name": "@repo/exercise-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm.d.ts",
+      "default": "./dist/wasm.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && wasm-pack build --target bundler --out-dir dist-wasm",
+    "build:ts": "tsc",
+    "build:wasm": "wasm-pack build --target bundler --out-dir dist-wasm",
+    "dev": "wasm-pack build --target bundler --out-dir dist-wasm --dev",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "benchmark": "node --experimental-wasm-jit-inlining bench/index.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/fitness-types": "workspace:*",
+    "@types/node": "26.3.0",
+    "typescript": "7.0.2",
+    "vite": "^6.2.0",
+    "vitest": "^2.0.0",
+    "wasm-pack": "^0.13.0"
+  },
+  "dependencies": {}
+}
