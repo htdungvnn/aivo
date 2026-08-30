@@ -78,8 +78,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await authClient.logoutAll();
-              router.replace('/auth/login');
+              await authClient.revokeOtherSessions();
+              await loadSessions();
             } catch (error) {
               Alert.alert('Error', 'Failed to sign out from all devices');
             }
@@ -122,10 +122,10 @@ export default function ProfileScreen() {
   };
 
   const getDeviceIcon = (deviceName: string | null, platform: string | null) => {
-    if (platform?.includes('iOS') || deviceName?.toLowerCase().includes('iphone') || deviceName?.toLowerCase().includes('ipad')) {
+    if (platform?.toLowerCase().includes('ios') || deviceName?.toLowerCase().includes('iphone') || deviceName?.toLowerCase().includes('ipad')) {
       return '📱';
     }
-    if (platform?.includes('Android') || deviceName?.toLowerCase().includes('android')) {
+    if (platform?.toLowerCase().includes('android') || deviceName?.toLowerCase().includes('android')) {
       return '📱';
     }
     return '💻';
@@ -134,20 +134,33 @@ export default function ProfileScreen() {
   if (authLoading) {
     return (
       <ThemedView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
-        </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <Text>Loading...</Text>
+          </View>
+        </SafeAreaView>
       </ThemedView>
     );
   }
 
   if (!isAuthenticated) {
-    return null; // Will redirect via useRequireAuth
+    // Redirect to login
+    useEffect(() => {
+      router.replace('/auth/login');
+    }, []);
+    return null;
   }
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={() => router.push('/settings')}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.content}
@@ -217,7 +230,7 @@ export default function ProfileScreen() {
                     {session?.deviceName || session?.clientType || 'This Device'}
                   </Text>
                   <Text style={styles.sessionPlatform}>
-                    {session?.platform || 'Unknown platform'}
+                    {session?.platform || 'Mobile App'}
                   </Text>
                 </View>
                 <View style={styles.currentBadge}>
@@ -228,13 +241,13 @@ export default function ProfileScreen() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Last Active:</Text>
                   <Text style={styles.detailValue}>
-                    {session?.lastActiveAt ? formatDate(session.lastActiveAt) : 'Unknown'}
+                    {session?.lastActiveAt ? formatDate(session.lastActiveAt) : 'Now'}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Created:</Text>
                   <Text style={styles.detailValue}>
-                    {session?.createdAt ? formatDate(session.createdAt) : 'Unknown'}
+                    {session?.createdAt ? formatDate(session.createdAt) : 'Now'}
                   </Text>
                 </View>
               </View>
@@ -323,6 +336,22 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   scrollView: {
     flex: 1,
