@@ -1,8 +1,39 @@
 {
-	"name": "<WORKER_NAME>",
-	"main": "src/index.ts",
-	"compatibility_date": "<COMPATIBILITY_DATE>",
-	"observability": {
-		"enabled": true,
-	},
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aivo-auth",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aivo-auth-db",
+      "database_id": "<AUTH_D1_DATABASE_ID>"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_STATE",
+      "id": "<OAUTH_STATE_KV_ID>"
+    }
+  ],
+  "secrets": [
+    {
+      "name": "AUTH_JWT_PRIVATE_KEY"
+    },
+    {
+      "name": "AUTH_JWT_PUBLIC_KEY"
+    }
+  ],
+  "vars": {
+    "AUTH_JWT_ISSUER": "aivo",
+    "AUTH_JWT_AUDIENCE": "aivo-app",
+    "AUTH_JWT_ACCESS_TOKEN_TTL": "900"
+  }
 }
