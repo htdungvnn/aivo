@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { cors, requestId, errorHandler, rateLimits } from './middleware';
 import { createRoutes } from './routes';
+import { mountAuthSwagger } from './swagger';
 import { getJWTService, setJWTService, JWTService } from './lib/jwt';
 import type { AuthEnv } from './middleware/auth';
 import type { EmailVerificationQueueMessage } from '@repo/queue-types';
@@ -123,6 +124,9 @@ app.get('/health', (c) => {
 // Mount routes
 const routes = createRoutes();
 app.route('/', routes);
+
+// Mount Swagger UI routes
+mountAuthSwagger(app);
 
 // 404 handler
 app.notFound((c) => {

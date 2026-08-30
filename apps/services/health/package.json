@@ -1,5 +1,5 @@
 {
-  "name": "aivo-coach",
+  "name": "aivo-health",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -11,16 +11,16 @@
     "test:watch": "vitest",
     "lint": "eslint src --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "db:generate": "wrangler d1 migrations generate aivo-coach-db --local",
-    "db:apply": "wrangler d1 migrations apply aivo-coach-db --local",
-    "db:apply:prod": "wrangler d1 migrations apply aivo-coach-db --remote --env production",
+    "db:generate": "wrangler d1 migrations generate aivo-health-db --local",
+    "db:apply": "wrangler d1 migrations apply aivo-health-db --local",
+    "db:apply:prod": "wrangler d1 migrations apply aivo-health-db --remote --env production",
     "types": "wrangler types"
   },
   "dependencies": {
     "hono": "^4.7.0",
     "zod": "^3.23.8",
+    "@repo/health-types": "workspace:*",
     "@repo/queue-types": "workspace:*",
-    "@repo/fitness-types": "workspace:*",
     "@repo/swagger-utils": "workspace:*"
   },
   "devDependencies": {

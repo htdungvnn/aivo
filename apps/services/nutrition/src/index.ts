@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { cors, requestId, errorHandler } from './middleware';
 import { createRoutes } from './routes';
+import { mountNutritionSwagger } from './swagger';
 import type { NutritionEnv } from './types/env';
 
 export interface Env extends NutritionEnv {
@@ -101,6 +102,9 @@ app.get('/health', (c) => {
 // Mount routes
 const routes = createRoutes();
 app.route('/api/v1', routes);
+
+// Mount Swagger UI routes
+mountNutritionSwagger(app);
 
 // 404 handler
 app.notFound((c) => {
