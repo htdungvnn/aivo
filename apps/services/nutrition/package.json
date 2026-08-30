@@ -10,7 +10,7 @@
     "start": "wrangler dev --port 3002",
     "test": "vitest",
     "cf-typegen": "wrangler types",
-    "typecheck": "tsc --noEmit",
+    "check-types": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "migrate": "wrangler d1 migrations apply aivo-nutrition-db --local",
     "migrate:remote": "wrangler d1 migrations apply aivo-nutrition-db --remote --confirm",

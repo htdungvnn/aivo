@@ -47,6 +47,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "check-types": "tsc --noEmit",
+    "test": "echo 'No tests configured for mobile app'",
     "build:ios": "expo run:ios --configuration Release"
   },
   "private": true
