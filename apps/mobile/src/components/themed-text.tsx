@@ -1,28 +1,77 @@
+/**
+ * Themed Text Component
+ * AIVO Design System - Mobile Implementation
+ */
+
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Colors, FontSize, FontWeight, LineHeight, Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+export type TextVariant = 
+  | 'default' 
+  | 'title' 
+  | 'titleLarge'
+  | 'h2'
+  | 'h3'
+  | 'small' 
+  | 'smallBold' 
+  | 'subtitle' 
+  | 'link' 
+  | 'linkPrimary' 
+  | 'code'
+  | 'muted'
+  | 'accent';
+
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
-  themeColor?: ThemeColor;
+  variant?: TextVariant;
+  themeColor?: keyof typeof Colors.dark;
 };
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+export function ThemedText({ 
+  style, 
+  variant = 'default', 
+  themeColor,
+  ...rest 
+}: ThemedTextProps) {
   const theme = useTheme();
+  const colors = Colors[theme.dark ? 'dark' : 'light'];
+
+  const getTextColor = () => {
+    if (themeColor) {
+      return colors[themeColor] || colors.foreground;
+    }
+    switch (variant) {
+      case 'link':
+        return colors.mutedForeground;
+      case 'linkPrimary':
+        return colors.primary;
+      case 'muted':
+        return colors.mutedForeground;
+      case 'accent':
+        return colors.accent;
+      default:
+        return colors.foreground;
+    }
+  };
 
   return (
     <Text
       style={[
-        { color: theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
+        { color: getTextColor() },
+        variant === 'default' && styles.default,
+        variant === 'title' && styles.title,
+        variant === 'titleLarge' && styles.titleLarge,
+        variant === 'h2' && styles.h2,
+        variant === 'h3' && styles.h3,
+        variant === 'small' && styles.small,
+        variant === 'smallBold' && styles.smallBold,
+        variant === 'subtitle' && styles.subtitle,
+        variant === 'link' && styles.link,
+        variant === 'linkPrimary' && styles.linkPrimary,
+        variant === 'code' && styles.code,
+        variant === 'muted' && styles.muted,
+        variant === 'accent' && styles.accent,
         style,
       ]}
       {...rest}
@@ -31,43 +80,77 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
   default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
+    fontSize: FontSize.base,
+    lineHeight: FontSize.base * LineHeight.normal,
+    fontWeight: FontWeight.medium,
   },
   title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+    fontSize: FontSize['4xl'],
+    lineHeight: FontSize['4xl'] * LineHeight.tight,
+    fontWeight: FontWeight.bold,
+  },
+  titleLarge: {
+    fontSize: FontSize['5xl'],
+    lineHeight: FontSize['5xl'] * LineHeight.tight,
+    fontWeight: FontWeight.bold,
+  },
+  h2: {
+    fontSize: FontSize['3xl'],
+    lineHeight: FontSize['3xl'] * LineHeight.snug,
+    fontWeight: FontWeight.bold,
+  },
+  h3: {
+    fontSize: FontSize['2xl'],
+    lineHeight: FontSize['2xl'] * LineHeight.snug,
+    fontWeight: FontWeight.semibold,
+  },
+  small: {
+    fontSize: FontSize.sm,
+    lineHeight: FontSize.sm * LineHeight.normal,
+    fontWeight: FontWeight.medium,
+  },
+  smallBold: {
+    fontSize: FontSize.sm,
+    lineHeight: FontSize.sm * LineHeight.normal,
+    fontWeight: FontWeight.bold,
   },
   subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    fontSize: FontSize.lg,
+    lineHeight: FontSize.lg * LineHeight.relaxed,
+    fontWeight: FontWeight.medium,
   },
   link: {
-    lineHeight: 30,
-    fontSize: 14,
+    fontSize: FontSize.base,
+    lineHeight: FontSize.base * LineHeight.normal,
+    fontWeight: FontWeight.medium,
+    textDecorationLine: 'underline',
   },
   linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#3c87f7',
+    fontSize: FontSize.base,
+    lineHeight: FontSize.base * LineHeight.normal,
+    fontWeight: FontWeight.medium,
+    textDecorationLine: 'underline',
   },
   code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? Fonts.mono : 'monospace',
+    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.sm,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  muted: {
+    fontSize: FontSize.base,
+    lineHeight: FontSize.base * LineHeight.normal,
+    fontWeight: FontWeight.normal,
+  },
+  accent: {
+    fontSize: FontSize.base,
+    lineHeight: FontSize.base * LineHeight.normal,
+    fontWeight: FontWeight.medium,
   },
 });
+
+export default ThemedText;

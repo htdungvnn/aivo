@@ -1,12 +1,15 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
+import { useAuthGuard } from '@/contexts/AuthGuardContext';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
 function getDevMenuHint() {
@@ -29,29 +32,59 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const { isAuthenticated, isReady, isLoading } = useAuthGuard();
+
+  // Redirect to profile if authenticated, login if not
+  useEffect(() => {
+    if (isReady && !isLoading) {
+      if (isAuthenticated) {
+        router.replace('/profile');
+      }
+      // If not authenticated, stay on home (landing page)
+    }
+  }, [isReady, isLoading, isAuthenticated]);
+
+  const handleGetStarted = () => {
+    router.push('/auth/login');
+  };
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
           <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+            Welcome to AIVO
+          </ThemedText>
+          <ThemedText type="body" style={styles.subtitle}>
+            Your AI-powered voice assistant
           </ThemedText>
         </ThemedView>
 
+        {!isAuthenticated && (
+          <View style={styles.ctaContainer}>
+            <Text style={styles.ctaButton} onPress={handleGetStarted}>
+              Get Started
+            </Text>
+          </View>
+        )}
+
         <ThemedText type="code" style={styles.code}>
-          get started
+          features
         </ThemedText>
 
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
           <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+            title="Voice Commands"
+            hint={<ThemedText type="body">Natural language processing</ThemedText>}
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
           <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
+            title="Smart Reminders"
+            hint={<ThemedText type="body">Never miss an important task</ThemedText>}
+          />
+          <HintRow
+            title="Personalized AI"
+            hint={<ThemedText type="body">Learns your preferences</ThemedText>}
           />
         </ThemedView>
 
@@ -84,6 +117,23 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: '#666',
+  },
+  ctaContainer: {
+    marginVertical: Spacing.three,
+  },
+  ctaButton: {
+    backgroundColor: '#208AEF',
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.six,
+    borderRadius: Spacing.two,
+    overflow: 'hidden',
   },
   code: {
     textTransform: 'uppercase',

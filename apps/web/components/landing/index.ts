@@ -1,0 +1,14 @@
+export { Navigation } from "./navigation";
+export { Hero } from "./hero";
+export { ValueStrip } from "./value-strip";
+export { Features } from "./features";
+export { ProductShowcase } from "./product-showcase";
+export { HowItWorks } from "./how-it-works";
+export { AICoaching } from "./ai-coaching";
+export { Platform } from "./platform";
+export { Pricing } from "./pricing";
+export { Privacy } from "./privacy";
+export { FAQ } from "./faq";
+export { Testimonials } from "./testimonials";
+export { FinalCTA } from "./final-cta";
+export { Footer } from "./footer";
