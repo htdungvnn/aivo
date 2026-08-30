@@ -1,7 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "apps/services/**"
+  - "apps/services/auth/**"
+  - "apps/services/mail/*"
+  - "apps/services/nutrition/**"
 allowBuilds:
   esbuild: true
   workerd: true

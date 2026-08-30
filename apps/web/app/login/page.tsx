@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import styles from './login.module.css';
 
@@ -97,6 +98,11 @@ export default function LoginPage() {
             <span>Continue with Facebook</span>
           </button>
         </div>
+
+        <p className={styles.registerLink}>
+          Don&apos;t have an account?{' '}
+          <Link href="/register">Create one</Link>
+        </p>
 
         <p className={styles.terms}>
           By continuing, you agree to our Terms of Service and Privacy Policy.

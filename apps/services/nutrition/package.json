@@ -1,0 +1,35 @@
+{
+  "name": "nutrition",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --port 3002 --local",
+    "dev:external": "wrangler dev --port 3002 --external",
+    "deploy": "wrangler deploy --config wrangler.production.jsonc",
+    "deploy:dev": "wrangler deploy",
+    "start": "wrangler dev --port 3002",
+    "test": "vitest",
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "migrate": "wrangler d1 migrations apply aivo-nutrition-db --local",
+    "migrate:remote": "wrangler d1 migrations apply aivo-nutrition-db --remote --confirm",
+    "migrate:list": "wrangler d1 migrations list aivo-nutrition-db --local",
+    "migrate:list:remote": "wrangler d1 migrations list aivo-nutrition-db --remote",
+    "db:create": "wrangler d1 create aivo-nutrition-db",
+    "queue:consume": "wrangler queues consumer add aivo-nutrition-queue --script nutrition --local"
+  },
+  "dependencies": {
+    "@repo/nutrition-types": "workspace:*",
+    "@repo/queue-types": "workspace:*",
+    "hono": "^4.6.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.0.0",
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.5.2",
+    "vitest": "~4.1.0",
+    "wrangler": "^4"
+  }
+}
