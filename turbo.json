@@ -65,15 +65,5 @@
     "CARGO_TARGET_DIR",
     "RUSTUP_TOOLCHAIN",
     "WASM_TARGET"
-  ],
-  "pipeline": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
-    },
-    "test": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
-    }
-  }
+  ]
 }

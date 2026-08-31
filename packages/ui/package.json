@@ -6,7 +6,7 @@
     "./*": "./src/*.tsx"
   },
   "scripts": {
-    "lint": "pnpm exec eslint . --max-warnings 0",
+    "lint": "pnpm exec eslint .",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
   },

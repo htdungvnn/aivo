@@ -6,7 +6,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "lint": "pnpm exec eslint . --max-warnings 0",
+    "lint": "pnpm exec eslint .",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {

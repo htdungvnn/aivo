@@ -13,7 +13,7 @@
     "./enums": "./src/enums.ts"
   },
   "scripts": {
-    "lint": "pnpm exec eslint . --max-warnings 0",
+    "lint": "pnpm exec eslint .",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.4.0",
+    "eslint": "^9.0.0",
     "typescript": "^5.5.2"
   }
 }

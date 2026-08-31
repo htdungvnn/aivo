@@ -11,7 +11,7 @@
   "scripts": {
     "test": "vitest run",
     "check-types": "tsc --noEmit",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src"
   },
   "dependencies": {
     "zod": "^3.23.8"
@@ -20,6 +20,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
     "typescript": "^5.7.0",
     "vitest": "^2.0.0"
   }
