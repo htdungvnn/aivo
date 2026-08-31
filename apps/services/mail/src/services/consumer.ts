@@ -7,22 +7,24 @@
  * - Error handling
  */
 
-import { z } from 'zod';
 import type { Queue, MessageSendFailure } from '@cloudflare/workers-types';
 import {
   queueMessageSchema,
   EmailVerificationQueueMessage,
+  ReportReadyQueueMessage,
+  isEmailVerificationMessage,
+  isReportReadyMessage,
   BINDING_NAMES,
 } from '@repo/queue-types';
 import { EmailService, EmailServiceError } from './email';
-import { getTemplateContent } from '../templates/email';
+import { getTemplateContent, ReportReadyTemplateData } from '../templates/email';
 
 export interface ProcessedMessage {
   messageId: string;
   success: boolean;
   error?: string;
   isRetryable: boolean;
-  message: EmailVerificationQueueMessage;
+  message: EmailVerificationQueueMessage | ReportReadyQueueMessage;
 }
 
 export interface QueueConsumerResult {
@@ -35,7 +37,6 @@ export interface QueueConsumerResult {
 
 /**
  * Deduplication store interface
- * In production, this would use KV or D1 for persistence
  */
 export interface DeduplicationStore {
   isProcessed(messageId: string): Promise<boolean>;
@@ -43,8 +44,7 @@ export interface DeduplicationStore {
 }
 
 /**
- * In-memory deduplication store (for single-instance testing)
- * In production, use KV or D1 for persistence
+ * In-memory deduplication store
  */
 export class InMemoryDeduplicationStore implements DeduplicationStore {
   private processed = new Set<string>();
@@ -68,13 +68,13 @@ export class InMemoryDeduplicationStore implements DeduplicationStore {
 export class QueueConsumerService {
   private emailService: EmailService;
   private deduplicationStore: DeduplicationStore;
-  private dlq: Queue<EmailVerificationQueueMessage>;
+  private dlq: Queue<EmailVerificationQueueMessage | ReportReadyQueueMessage>;
   private maxRetries: number;
 
   constructor(params: {
     emailService: EmailService;
     deduplicationStore?: DeduplicationStore;
-    dlq: Queue<EmailVerificationQueueMessage>;
+    dlq: Queue<EmailVerificationQueueMessage | ReportReadyQueueMessage>;
     maxRetries?: number;
   }) {
     this.emailService = params.emailService;
@@ -87,7 +87,7 @@ export class QueueConsumerService {
    * Process a batch of Queue messages
    */
   async processBatch(
-    messages: EmailVerificationQueueMessage[]
+    messages: (EmailVerificationQueueMessage | ReportReadyQueueMessage)[]
   ): Promise<QueueConsumerResult> {
     const results: ProcessedMessage[] = [];
     let succeeded = 0;
@@ -122,7 +122,7 @@ export class QueueConsumerService {
    * Process a single message
    */
   private async processMessage(
-    message: EmailVerificationQueueMessage
+    message: EmailVerificationQueueMessage | ReportReadyQueueMessage
   ): Promise<ProcessedMessage> {
     const messageId = message.messageId;
 
@@ -133,7 +133,7 @@ export class QueueConsumerService {
         console.log(`Duplicate message detected: ${messageId}`);
         return {
           messageId,
-          success: true, // Consider duplicates as "successfully handled"
+          success: true,
           message,
         };
       }
@@ -197,13 +197,13 @@ export class QueueConsumerService {
   /**
    * Process message based on type
    */
-  private async processByType(message: EmailVerificationQueueMessage): Promise<void> {
-    switch (message.type) {
-      case 'auth.email_verification_code':
-        await this.sendVerificationEmail(message);
-        break;
-      default:
-        throw new Error(`Unknown message type: ${message.type}`);
+  private async processByType(message: EmailVerificationQueueMessage | ReportReadyQueueMessage): Promise<void> {
+    if (isEmailVerificationMessage(message)) {
+      await this.sendVerificationEmail(message);
+    } else if (isReportReadyMessage(message)) {
+      await this.sendReportReadyEmail(message);
+    } else {
+      throw new Error(`Unknown message type`);
     }
   }
 
@@ -211,10 +211,8 @@ export class QueueConsumerService {
    * Send email verification email
    */
   private async sendVerificationEmail(message: EmailVerificationQueueMessage): Promise<void> {
-    // Extract safe data from validated message
     const { recipient, locale, data } = message;
 
-    // Get template content (never from user input)
     const templateContent = getTemplateContent(
       message.type,
       {
@@ -225,7 +223,6 @@ export class QueueConsumerService {
       locale
     );
 
-    // Send email
     const result = await this.emailService.sendEmail({
       to: recipient.email,
       subject: templateContent.subject,
@@ -237,23 +234,54 @@ export class QueueConsumerService {
       throw new EmailServiceError(result.error || 'Failed to send email', true);
     }
 
-    // Log success (without sensitive data)
-    console.log(`Email sent successfully: ${message.messageId}`);
+    console.log(`Verification email sent: ${message.messageId}`);
+  }
+
+  /**
+   * Send report ready email
+   */
+  private async sendReportReadyEmail(message: ReportReadyQueueMessage): Promise<void> {
+    const { recipient, locale, data } = message;
+
+    const templateData: ReportReadyTemplateData = {
+      reportType: data.reportType,
+      periodStart: data.periodStart,
+      periodEnd: data.periodEnd,
+      downloadUrl: data.downloadUrl,
+      expiresAt: data.expiresAt,
+      dataCompleteness: data.dataCompleteness,
+      recipientName: recipient.displayName,
+    };
+
+    const templateContent = getTemplateContent(
+      message.type,
+      templateData,
+      locale
+    );
+
+    const result = await this.emailService.sendEmail({
+      to: recipient.email,
+      subject: templateContent.subject,
+      html: templateContent.html,
+      text: templateContent.text,
+    });
+
+    if (!result.success) {
+      throw new EmailServiceError(result.error || 'Failed to send email', true);
+    }
+
+    console.log(`Report ready email sent: ${message.messageId}`);
   }
 
   /**
    * Send failed message to Dead Letter Queue
    */
   private async sendToDLQ(
-    message: EmailVerificationQueueMessage,
+    message: EmailVerificationQueueMessage | ReportReadyQueueMessage,
     reason: string
   ): Promise<void> {
     try {
-      // Add failure metadata
-      const dlqMessage: EmailVerificationQueueMessage & {
-        _dlqReason?: string;
-        _dlqTimestamp?: string;
-      } = {
+      const dlqMessage = {
         ...message,
         _dlqReason: reason,
         _dlqTimestamp: new Date().toISOString(),
@@ -276,10 +304,9 @@ export class QueueConsumerService {
    * Retry failed messages
    */
   async retryMessages(
-    messages: EmailVerificationQueueMessage[],
+    messages: (EmailVerificationQueueMessage | ReportReadyQueueMessage)[],
     retryCount: number
   ): Promise<QueueConsumerResult> {
-    // Filter out messages that have exceeded max retries
     const eligibleForRetry = messages.filter(() => retryCount < this.maxRetries);
 
     if (eligibleForRetry.length !== messages.length) {
@@ -296,7 +323,7 @@ export class QueueConsumerService {
 export function createQueueConsumer(params: {
   emailService: EmailService;
   deduplicationStore?: DeduplicationStore;
-  dlq: Queue<EmailVerificationQueueMessage>;
+  dlq: Queue<EmailVerificationQueueMessage | ReportReadyQueueMessage>;
   maxRetries?: number;
 }): QueueConsumerService {
   return new QueueConsumerService(params);

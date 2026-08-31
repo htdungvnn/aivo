@@ -6,55 +6,188 @@
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
 }
 
-.title {
+.header h1 {
   font-size: 2rem;
   font-weight: 700;
   color: var(--foreground);
 }
 
-.content {
-  display: grid;
-  gap: 1.5rem;
+.logoutButton {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+.logoutButton:hover {
+  background: var(--accent);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   gap: 1rem;
-  margin-bottom: 2rem;
 }
 
-.statCard {
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.card h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+}
+
+.card p {
+  color: var(--muted-foreground);
+  margin-bottom: 1.5rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
+
+.main {
+  display: grid;
+  gap: 2rem;
+}
+
+.profileCard,
+.sessionCard {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.5rem;
 }
 
-.statLabel {
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
+.profileCard h2,
+.sessionCard h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.profileInfo p,
+.sessionInfo p {
+  color: var-muted-foreground;
   margin-bottom: 0.5rem;
 }
 
-.statValue {
-  font-size: 2rem;
-  font-weight: 700;
+.profileInfo strong,
+.sessionInfo strong {
+  color: var-foreground;
+}
+
+/* Quick Actions */
+.quickActions {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.quickActions h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--foreground);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.loading {
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.actionCard {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  padding: 1.5rem;
+  background: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  text-decoration: none;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.error {
-  color: var(--destructive);
-  text-align: center;
-  padding: 2rem;
+.actionCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.actionIcon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.actionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.25rem;
+}
+
+.actionDescription {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
 }

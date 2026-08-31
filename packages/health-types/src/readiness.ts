@@ -4,16 +4,22 @@
  */
 
 import { z } from 'zod';
-import {
-  READINESS_LEVELS,
-  TRAINING_INTENSITY,
-  DATA_SOURCES,
-  isFiniteNumber,
-} from './index.js';
 
 // =============================================================================
 // Enums and Constants
 // =============================================================================
+
+/**
+ * Readiness score levels
+ */
+export const READINESS_LEVELS = {
+  LOW: 'low',
+  MODERATE: 'moderate',
+  GOOD: 'good',
+  HIGH: 'high',
+} as const;
+
+export type ReadinessLevel = (typeof READINESS_LEVELS)[keyof typeof READINESS_LEVELS];
 
 /**
  * Factor codes for readiness calculation

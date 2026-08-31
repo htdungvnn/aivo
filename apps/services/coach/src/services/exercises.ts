@@ -455,6 +455,6 @@ export function getFormRuleDefinitions(codes: string[]): FormRuleDefinition[] {
   };
 
   return codes
-    .filter(code => allRules[code])
-    .map(code => allRules[code]);
+    .filter(code => code && allRules[code])
+    .map(code => allRules[code]!);
 }

@@ -26,6 +26,8 @@ import {
   generateHydrationChart,
   getChartDefinition,
   isRangeSupported,
+  CHART_RANGES,
+  getSupportedRanges,
 } from '../lib/chart-aggregation.js';
 import {
   HEALTH_ALGORITHM_VERSION,

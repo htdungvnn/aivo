@@ -21,7 +21,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["WRANGLER_INSPECTOR_ENABLED"]
     },
     "gateway#build": {
       "dependsOn": ["^build"],
@@ -30,7 +31,8 @@
     },
     "gateway#dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["WRANGLER_INSPECTOR_ENABLED"]
     }
   },
   "globalDependencies": [

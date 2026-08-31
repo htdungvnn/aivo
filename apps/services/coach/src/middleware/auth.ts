@@ -2,7 +2,7 @@
  * Coach Service - Authentication Middleware
  */
 
-import { Context, MiddleureHandler } from 'hono';
+import { Context, MiddlewareHandler } from 'hono';
 import type { CoachContext } from '../env.d';
 import { AuthError } from './index';
 
@@ -10,7 +10,7 @@ import { AuthError } from './index';
  * Authentication middleware
  * Validates JWT token from Authorization header
  */
-export const authMiddleware = (): MiddleureHandler<CoachContext> => {
+export const authMiddleware = (): MiddlewareHandler<CoachContext> => {
   return async (c, next) => {
     const authHeader = c.req.header('Authorization');
     
@@ -87,7 +87,7 @@ async function verifyToken(token: string, c: Context<CoachContext>): Promise<str
 /**
  * Optional auth middleware - doesn't fail if no token
  */
-export const optionalAuthMiddleware = (): MiddleureHandler<CoachContext> => {
+export const optionalAuthMiddleware = (): MiddlewareHandler<CoachContext> => {
   return async (c, next) => {
     const authHeader = c.req.header('Authorization');
     

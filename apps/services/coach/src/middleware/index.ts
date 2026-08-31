@@ -2,7 +2,7 @@
  * Coach Service - Middleware
  */
 
-import type { MiddleureHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import type { CoachEnv, CoachContext } from '../env.d';
 
 // Rate limiting state (in production, use KV for distributed state)
@@ -12,7 +12,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
  * Request ID middleware
  * Adds a unique request ID to each request
  */
-export const requestId = (): MiddleureHandler<CoachContext> => {
+export const requestId = (): MiddlewareHandler<CoachContext> => {
   return async (c, next) => {
     const requestId = c.req.header('X-Request-ID') || crypto.randomUUID();
     c.set('requestId', requestId);
@@ -25,7 +25,7 @@ export const requestId = (): MiddleureHandler<CoachContext> => {
  * Error handler middleware
  * Formats errors consistently
  */
-export const errorHandler = (): MiddleureHandler<CoachContext> => {
+export const errorHandler = (): MiddlewareHandler<CoachContext> => {
   return async (c, next) => {
     try {
       await next();
@@ -98,7 +98,7 @@ export const errorHandler = (): MiddleureHandler<CoachContext> => {
 /**
  * Rate limiting middleware
  */
-export const rateLimit = (): MiddleureHandler<CoachContext> => {
+export const rateLimit = (): MiddlewareHandler<CoachContext> => {
   return async (c, next) => {
     // Get rate limit config
     const maxRequests = parseInt(c.env.RATE_LIMIT_REQUESTS || '100', 10);
@@ -161,7 +161,7 @@ export const cors = (options?: {
   allowedMethods?: string[];
   allowedHeaders?: string[];
   maxAge?: number;
-}): MiddleureHandler<CoachContext> => {
+}): MiddlewareHandler<CoachContext> => {
   const {
     allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders = ['Content-Type', 'Authorization', 'X-Request-ID'],

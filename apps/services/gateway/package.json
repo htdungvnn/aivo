@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev src/index.ts --port 3000",
+    "dev": "wrangler dev src/index.ts --port 4000",
     "deploy": "wrangler deploy src/index.ts",
     "types": "wrangler types"
   },

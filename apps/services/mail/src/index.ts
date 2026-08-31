@@ -9,6 +9,7 @@
  * - Retry logic for transient errors
  * - Dead Letter Queue for failed messages
  * - English and Vietnamese template support
+ * - Health report notifications
  */
 
 import { createEmailService, EmailService } from './services/email';
@@ -17,7 +18,10 @@ import {
   QueueConsumerService,
   InMemoryDeduplicationStore,
 } from './services/consumer';
-import type { EmailVerificationQueueMessage } from '@repo/queue-types';
+import type {
+  EmailVerificationQueueMessage,
+  ReportReadyQueueMessage,
+} from '@repo/queue-types';
 
 // Environment interface
 export interface Env {
@@ -36,13 +40,17 @@ export interface Env {
   // Email Queue (consumer binding)
   EMAIL_QUEUE: Queue<EmailVerificationQueueMessage>;
 
+  // Health Report Deliver Queue
+  REPORT_DELIVER_QUEUE: Queue<ReportReadyQueueMessage>;
+
   // Dead Letter Queue for failed messages
-  EMAIL_DLQ: Queue<EmailVerificationQueueMessage>;
+  EMAIL_DLQ: Queue<EmailVerificationQueueMessage | ReportReadyQueueMessage>;
 }
 
 // Email service instance (initialized per Worker instance)
 let emailService: EmailService | null = null;
-let queueConsumer: QueueConsumerService | null = null;
+let emailQueueConsumer: QueueConsumerService | null = null;
+let reportQueueConsumer: QueueConsumerService | null = null;
 let deduplicationStore: InMemoryDeduplicationStore | null = null;
 
 /**
@@ -64,18 +72,33 @@ function getEmailService(env: Env): EmailService {
 }
 
 /**
- * Get or create queue consumer
+ * Get or create email queue consumer
  */
-function getQueueConsumer(env: Env): QueueConsumerService {
-  if (!queueConsumer) {
-    queueConsumer = createQueueConsumer({
+function getEmailQueueConsumer(env: Env): QueueConsumerService {
+  if (!emailQueueConsumer) {
+    emailQueueConsumer = createQueueConsumer({
       emailService: getEmailService(env),
       deduplicationStore: getDeduplicationStore(),
       dlq: env.EMAIL_DLQ,
       maxRetries: 3,
     });
   }
-  return queueConsumer;
+  return emailQueueConsumer;
+}
+
+/**
+ * Get or create report queue consumer
+ */
+function getReportQueueConsumer(env: Env): QueueConsumerService {
+  if (!reportQueueConsumer) {
+    reportQueueConsumer = createQueueConsumer({
+      emailService: getEmailService(env),
+      deduplicationStore: getDeduplicationStore(),
+      dlq: env.EMAIL_DLQ,
+      maxRetries: 3,
+    });
+  }
+  return reportQueueConsumer;
 }
 
 /**
@@ -108,8 +131,6 @@ async function handleHealth(): Promise<Response> {
 
 /**
  * Main worker fetch handler
- * Note: This worker primarily consumes Queue messages.
- * A health endpoint is provided for monitoring.
  */
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -121,7 +142,6 @@ const worker = {
     }
 
     // No public endpoints for arbitrary email sending
-    // All emails are sent via Queue messages only
     return new Response(
       JSON.stringify({
         error: {
@@ -137,39 +157,68 @@ const worker = {
   },
 
   /**
-   * Queue consumer handler
-   * Processes batches of email messages from the Queue
+   * Email queue consumer handler
    */
-  async queue(messages: EmailVerificationQueueMessage[], env: Env, ctx: ExecutionContext): Promise<void> {
+  async emailQueue(messages: EmailVerificationQueueMessage[], env: Env, ctx: ExecutionContext): Promise<void> {
     if (!messages || messages.length === 0) {
       return;
     }
 
-    console.log(`Processing batch of ${messages.length} messages`);
+    console.log(`Processing batch of ${messages.length} email messages`);
 
-    const consumer = getQueueConsumer(env);
+    const consumer = getEmailQueueConsumer(env);
     const result = await consumer.processBatch(messages);
 
     console.log(
-      `Batch complete: ${result.succeeded} succeeded, ${result.failed} failed out of ${result.processed} messages`
+      `Email batch complete: ${result.succeeded} succeeded, ${result.failed} failed out of ${result.processed} messages`
     );
 
-    // Handle retries for failed messages
     const failedMessages = result.results
       .filter((r) => !r.success && r.isRetryable)
       .map((r) => r.message);
 
     if (failedMessages.length > 0) {
       console.log(`${failedMessages.length} messages failed and are eligible for retry`);
-      // Messages that are retryable will be re-queued by the Queue system
     }
 
-    // Log failed non-retryable messages (they should be in DLQ)
     const nonRetryableFailures = result.results.filter(
       (r) => !r.success && !r.isRetryable
     );
     if (nonRetryableFailures.length > 0) {
       console.warn(`${nonRetryableFailures.length} non-retryable failures (sent to DLQ)`);
+    }
+  },
+
+  /**
+   * Report deliver queue consumer handler
+   */
+  async reportDeliverQueue(messages: ReportReadyQueueMessage[], env: Env, ctx: ExecutionContext): Promise<void> {
+    if (!messages || messages.length === 0) {
+      return;
+    }
+
+    console.log(`Processing batch of ${messages.length} report deliver messages`);
+
+    const consumer = getReportQueueConsumer(env);
+    const result = await consumer.processBatch(messages);
+
+    console.log(
+      `Report deliver batch complete: ${result.succeeded} succeeded, ${result.failed} failed out of ${result.processed} messages`
+    );
+
+    const failedMessages = result.results
+      .filter((r) => !r.success && r.isRetryable)
+      .map((r) => r.message);
+
+    if (failedMessages.length > 0) {
+      console.log(`${failedMessages.length} report messages failed and are eligible for retry`);
+    }
+
+    const nonRetryableFailures = result.results.filter(
+      (r) => !r.success && !r.isRetryable
+    );
+    if (nonRetryableFailures.length > 0) {
+      console.warn(`${nonRetryableFailures.length} non-retryable report failures (sent to DLQ)`);
     }
   },
 };

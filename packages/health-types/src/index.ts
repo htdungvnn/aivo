@@ -20,18 +20,6 @@ export * from './validation.js';
 export const HEALTH_ALGORITHM_VERSION = '1.0.0';
 
 /**
- * Readiness score levels
- */
-export const READINESS_LEVELS = {
-  LOW: 'low',
-  MODERATE: 'moderate',
-  GOOD: 'good',
-  HIGH: 'high',
-} as const;
-
-export type ReadinessLevel = (typeof READINESS_LEVELS)[keyof typeof READINESS_LEVELS];
-
-/**
  * Readiness thresholds (0-100)
  */
 export const READINESS_THRESHOLDS = {

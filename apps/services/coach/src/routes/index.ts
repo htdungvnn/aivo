@@ -21,11 +21,11 @@ export function createRoutes(): Hono<CoachContext> {
   app.use('*', authMiddleware());
   
   // Mount route groups
-  app.route('/exercises', exercisesRoutes);
-  app.route('/plans', plansRoutes);
-  app.route('/sessions', sessionsRoutes);
-  app.route('/progress', progressRoutes);
-  app.route('/planning', planningRoutes);
+  app.route('/exercises', exercisesRoutes());
+  app.route('/plans', plansRoutes());
+  app.route('/sessions', sessionsRoutes());
+  app.route('/progress', progressRoutes());
+  app.route('/planning', planningRoutes());
   
   return app;
 }

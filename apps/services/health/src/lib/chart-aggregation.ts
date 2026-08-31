@@ -711,3 +711,181 @@ export function generateEnergyStressChart(
     options
   );
 }
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
+/**
+ * Get chart definition by metric code
+ */
+export function getChartDefinition(metric: string): {
+  config: {
+    metric: string;
+    label: string;
+    unit: string;
+    color: string;
+    target: number;
+    chartType: string;
+  };
+  supportedRanges: ChartRange[];
+} | undefined {
+  // Chart definitions by metric
+  const chartDefs: Record<string, {
+    config: {
+      metric: string;
+      label: string;
+      unit: string;
+      color: string;
+      target: number;
+      chartType: string;
+    };
+    supportedRanges: ChartRange[];
+  }> = {
+    [HEALTH_METRICS.READINESS]: {
+      config: {
+        metric: HEALTH_METRICS.READINESS,
+        label: 'Readiness',
+        unit: 'score',
+        color: '#10b981',
+        target: 80,
+        chartType: 'line',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH],
+    },
+    [HEALTH_METRICS.SLEEP_DURATION]: {
+      config: {
+        metric: HEALTH_METRICS.SLEEP_DURATION,
+        label: 'Sleep Duration',
+        unit: 'hours',
+        color: '#8b5cf6',
+        target: 8,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS],
+    },
+    [HEALTH_METRICS.SLEEP_QUALITY]: {
+      config: {
+        metric: HEALTH_METRICS.SLEEP_QUALITY,
+        label: 'Sleep Quality',
+        unit: 'score',
+        color: '#a78bfa',
+        target: 80,
+        chartType: 'line',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS],
+    },
+    [HEALTH_METRICS.HRV]: {
+      config: {
+        metric: HEALTH_METRICS.HRV,
+        label: 'HRV',
+        unit: 'ms',
+        color: '#f59e0b',
+        target: 50,
+        chartType: 'line',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS, CHART_RANGES.YEAR],
+    },
+    [HEALTH_METRICS.RESTING_HR]: {
+      config: {
+        metric: HEALTH_METRICS.RESTING_HR,
+        label: 'Resting Heart Rate',
+        unit: 'bpm',
+        color: '#ef4444',
+        target: 60,
+        chartType: 'line',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS, CHART_RANGES.YEAR],
+    },
+    [HEALTH_METRICS.STEPS]: {
+      config: {
+        metric: HEALTH_METRICS.STEPS,
+        label: 'Steps',
+        unit: 'steps',
+        color: '#3b82f6',
+        target: 10000,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS],
+    },
+    [HEALTH_METRICS.HYDRATION]: {
+      config: {
+        metric: HEALTH_METRICS.HYDRATION,
+        label: 'Hydration',
+        unit: 'ml',
+        color: '#06b6d4',
+        target: 2000,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH],
+    },
+    [HEALTH_METRICS.WEIGHT]: {
+      config: {
+        metric: HEALTH_METRICS.WEIGHT,
+        label: 'Weight',
+        unit: 'kg',
+        color: '#84cc16',
+        target: 70,
+        chartType: 'line',
+      },
+      supportedRanges: [CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS, CHART_RANGES.YEAR],
+    },
+    [HEALTH_METRICS.CALORIES]: {
+      config: {
+        metric: HEALTH_METRICS.CALORIES,
+        label: 'Calories',
+        unit: 'kcal',
+        color: '#f97316',
+        target: 2000,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH],
+    },
+    [HEALTH_METRICS.PROTEIN]: {
+      config: {
+        metric: HEALTH_METRICS.PROTEIN,
+        label: 'Protein',
+        unit: 'g',
+        color: '#ec4899',
+        target: 150,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.DAY, CHART_RANGES.WEEK, CHART_RANGES.MONTH],
+    },
+    [HEALTH_METRICS.WORKOUT_COMPLETION]: {
+      config: {
+        metric: HEALTH_METRICS.WORKOUT_COMPLETION,
+        label: 'Workout Completion',
+        unit: 'percent',
+        color: '#14b8a6',
+        target: 100,
+        chartType: 'bar',
+      },
+      supportedRanges: [CHART_RANGES.WEEK, CHART_RANGES.MONTH, CHART_RANGES.THREE_MONTHS],
+    },
+  };
+  
+  return chartDefs[metric];
+}
+
+/**
+ * Check if a range is supported for a metric
+ */
+export function isRangeSupported(metric: string, range: ChartRange): boolean {
+  const chartDef = getChartDefinition(metric);
+  if (!chartDef) {
+    return false;
+  }
+  return chartDef.supportedRanges.includes(range);
+}
+
+/**
+ * Get supported ranges for a metric
+ */
+export function getSupportedRanges(metric: string): ChartRange[] {
+  const chartDef = getChartDefinition(metric);
+  if (!chartDef) {
+    return [];
+  }
+  return chartDef.supportedRanges;
+}

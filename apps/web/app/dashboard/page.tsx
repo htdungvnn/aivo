@@ -4,6 +4,7 @@
  * Dashboard page - protected route
  */
 
+import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth, useRequireActiveAccount } from '@/components/auth/AuthProvider';
 import styles from './dashboard.module.css';
@@ -79,6 +80,32 @@ export default function DashboardPage() {
             <p><strong>Device:</strong> {session?.deviceName || session?.clientType || 'Unknown'}</p>
             <p><strong>Platform:</strong> {session?.platform || 'Unknown'}</p>
             <p><strong>Last Active:</strong> {session?.lastActiveAt ? new Date(session.lastActiveAt * 1000).toLocaleString() : 'Unknown'}</p>
+          </div>
+        </div>
+
+        <div className={styles.quickActions}>
+          <h2>Quick Actions</h2>
+          <div className={styles.actionGrid}>
+            <Link href="/reports" className={styles.actionCard}>
+              <span className={styles.actionIcon}>📊</span>
+              <span className={styles.actionTitle}>Health Reports</span>
+              <span className={styles.actionDescription}>View and download your health reports</span>
+            </Link>
+            <Link href="/intelligence" className={styles.actionCard}>
+              <span className={styles.actionIcon}>🧠</span>
+              <span className={styles.actionTitle}>Daily Intelligence</span>
+              <span className={styles.actionDescription}>Check your readiness and recommendations</span>
+            </Link>
+            <Link href="/nutrition" className={styles.actionCard}>
+              <span className={styles.actionIcon}>🥗</span>
+              <span className={styles.actionTitle}>Nutrition</span>
+              <span className={styles.actionDescription}>Track meals and macros</span>
+            </Link>
+            <Link href="/settings" className={styles.actionCard}>
+              <span className={styles.actionIcon}>⚙️</span>
+              <span className={styles.actionTitle}>Settings</span>
+              <span className={styles.actionDescription}>Manage your preferences</span>
+            </Link>
           </div>
         </div>
       </main>

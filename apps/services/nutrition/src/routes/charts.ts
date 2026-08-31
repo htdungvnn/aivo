@@ -66,7 +66,7 @@ charts.get('/:metric', async (c) => {
   
   // Get target if specified
   const targetParam = c.req.query('target');
-  const target = targetParam ? parseFloat(targetParam) : null;
+  let target = targetParam ? parseFloat(targetParam) : null;
   
   // If no target param, get from user targets
   if (!target) {

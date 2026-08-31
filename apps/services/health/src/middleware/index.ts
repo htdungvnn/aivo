@@ -4,7 +4,11 @@
 
 import type { Context, Next } from 'hono';
 import type { HealthEnv } from '../types/env.js';
-import { getHealthError, HealthError } from './index.js';
+import { getHealthError, HealthError, HEALTH_ERROR_CODES } from './errors.js';
+export { getHealthError, HealthError, HEALTH_ERROR_CODES } from './errors.js';
+
+// Re-export auth middleware
+export { requireAuth, requireActiveUser } from './auth.js';
 
 /**
  * Request ID middleware

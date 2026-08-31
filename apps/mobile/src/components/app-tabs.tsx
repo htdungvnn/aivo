@@ -37,6 +37,13 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen
+        name="reports"
+        options={{
+          title: 'Reports',
+          tabBarIcon: ({ color }) => <TabBarIcon name="report" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -54,6 +61,7 @@ function TabBarIcon({ name, color }: { name: string; color: string }) {
     home: '🏠',
     search: '🔍',
     user: '👤',
+    report: '📊',
   };
   return (
     <>{icons[name]}</>
