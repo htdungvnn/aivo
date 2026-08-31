@@ -64,32 +64,6 @@ export const HEALTH_METRICS = {
 export type HealthMetric = (typeof HEALTH_METRICS)[keyof typeof HEALTH_METRICS];
 
 // =============================================================================
-// Readiness Constants
-// =============================================================================
-
-/**
- * Readiness thresholds (0-100)
- */
-export const READINESS_THRESHOLDS = {
-  LOW_MAX: 39,
-  MODERATE_MAX: 59,
-  GOOD_MAX: 79,
-  HIGH_MAX: 100,
-} as const;
-
-/**
- * Readiness levels
- */
-export const READINESS_LEVELS = {
-  LOW: 'low',
-  MODERATE: 'moderate',
-  GOOD: 'good',
-  HIGH: 'high',
-} as const;
-
-export type ReadinessLevel = (typeof READINESS_LEVELS)[keyof typeof READINESS_LEVELS];
-
-// =============================================================================
 // Action Constants
 // =============================================================================
 
