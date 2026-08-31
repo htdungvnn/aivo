@@ -6,7 +6,6 @@
 import { Hono } from 'hono';
 import { cors, requestId, errorHandler } from './middleware';
 import { createRoutes } from './routes';
-import { mountHealthSwagger } from './swagger';
 import type { HealthEnv } from './types/env';
 
 export interface Env extends HealthEnv {}
@@ -63,9 +62,6 @@ app.get('/health', (c) => {
 // Mount routes
 const routes = createRoutes();
 app.route('/api/v1', routes);
-
-// Mount Swagger UI routes
-mountHealthSwagger(app);
 
 // 404 handler
 app.notFound((c) => {

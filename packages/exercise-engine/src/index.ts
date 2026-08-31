@@ -3,6 +3,7 @@
  * Deterministic exercise analysis engine
  */
 
+import type { Landmark } from '@repo/fitness-types/pose';
 import type {
   WASMEngineConfig,
   WASMInput,
@@ -10,7 +11,7 @@ import type {
   EngineState,
   BenchmarkResult,
   TypeScriptEngine,
-} from '@repo/fitness-types';
+} from '@repo/fitness-types/wasm';
 
 // Re-export types for convenience
 export type {
@@ -19,7 +20,7 @@ export type {
   WASMOutput,
   EngineState,
   BenchmarkResult,
-} from '@repo/fitness-types';
+} from '@repo/fitness-types/wasm';
 
 // =============================================================================
 // Geometry Utilities
@@ -34,13 +35,6 @@ interface Point3D {
   x: number;
   y: number;
   z: number;
-}
-
-interface Landmark {
-  x: number;
-  y: number;
-  z: number;
-  visibility: number;
 }
 
 /**
@@ -129,9 +123,9 @@ export function calculateJointAngles(landmarks: Landmark[]): Record<string, numb
   if (landmarks.length < 33) return angles;
 
   const getPoint = (idx: number): Point3D => ({
-    x: landmarks[idx].x,
-    y: landmarks[idx].y,
-    z: landmarks[idx].z,
+    x: landmarks[idx]?.x ?? 0,
+    y: landmarks[idx]?.y ?? 0,
+    z: landmarks[idx]?.z ?? 0,
   });
 
   // Knee angles
@@ -336,7 +330,14 @@ export class ExerciseEngineTS implements TypeScriptEngine {
       isCalibrated: this.state.isCalibrated,
       currentRepMetrics: this.state.currentRepMetrics,
       activeCorrections: Object.fromEntries(this.state.activeCorrections),
-      visibilityHistory: [...this.state.visibilityHistory],
+      landmarkBuffer: this.smoothedLandmarks.map((landmarks) => {
+        const record: Record<string, Landmark> = {};
+        landmarks.forEach((lm, idx) => {
+          record[idx.toString()] = lm;
+        });
+        return record;
+      }),
+      angleHistory: [...this.angleHistory],
     };
   }
 
@@ -445,7 +446,8 @@ export class ExerciseEngineTS implements TypeScriptEngine {
 
   private smoothLandmarks(): Landmark[] {
     if (this.smoothedLandmarks.length === 0) return [];
-    if (this.smoothedLandmarks.length === 1) return this.smoothedLandmarks[0];
+    const firstFrame = this.smoothedLandmarks[0];
+    if (this.smoothedLandmarks.length === 1 || !firstFrame) return [...firstFrame ?? []];
 
     const windowSize = this.smoothedLandmarks.length;
     const smoothed: Landmark[] = [];
@@ -458,10 +460,10 @@ export class ExerciseEngineTS implements TypeScriptEngine {
 
       for (const frame of this.smoothedLandmarks) {
         if (frame[i]) {
-          sumX += frame[i].x;
-          sumY += frame[i].y;
-          sumZ += frame[i].z;
-          sumVis += frame[i].visibility;
+          sumX += frame[i]!.x;
+          sumY += frame[i]!.y;
+          sumZ += frame[i]!.z;
+          sumVis += frame[i]!.visibility;
         }
       }
 
@@ -585,7 +587,8 @@ export class ExerciseEngineTS implements TypeScriptEngine {
     const corrections: CorrectionResult[] = [];
 
     // Common rules
-    if (angles.torso_angle > 45 && angles.torso_angle < 180) {
+    const torsoAngle = angles.torso_angle ?? 0;
+    if (torsoAngle > 45 && torsoAngle < 180) {
       if (this.shouldTriggerCorrection('FORWARD_LEAN_TOO_MUCH')) {
         corrections.push({
           code: 'FORWARD_LEAN_TOO_MUCH',
@@ -598,8 +601,9 @@ export class ExerciseEngineTS implements TypeScriptEngine {
 
     // Exercise-specific rules
     switch (this.state.exerciseCode) {
-      case 'squat':
-        if (angles.left_knee > 100 && angles.left_knee < 100.1) {
+      case 'squat': {
+        const leftKnee = angles.left_knee ?? 180;
+        if (leftKnee > 100 && leftKnee < 100.1) {
           if (this.shouldTriggerCorrection('SQUAT_NOT_DEEP_ENOUGH')) {
             corrections.push({
               code: 'SQUAT_NOT_DEEP_ENOUGH',
@@ -610,9 +614,10 @@ export class ExerciseEngineTS implements TypeScriptEngine {
           }
         }
         break;
-
-      case 'push_up':
-        if (angles.left_elbow > 45 && angles.left_elbow < 180) {
+      }
+      case 'push_up': {
+        const leftElbow = angles.left_elbow ?? 180;
+        if (leftElbow > 45 && leftElbow < 180) {
           if (this.shouldTriggerCorrection('ELBOWS_FLARE_OUT')) {
             corrections.push({
               code: 'ELBOWS_FLARE_OUT',
@@ -623,6 +628,7 @@ export class ExerciseEngineTS implements TypeScriptEngine {
           }
         }
         break;
+      }
     }
 
     return corrections;
@@ -659,8 +665,8 @@ export class ExerciseEngineTS implements TypeScriptEngine {
         metrics.maxAngles[joint] = angle;
       }
 
-      metrics.minAngles[joint] = Math.min(metrics.minAngles[joint], angle);
-      metrics.maxAngles[joint] = Math.max(metrics.maxAngles[joint], angle);
+      metrics.minAngles[joint] = Math.min(metrics.minAngles[joint]!, angle);
+      metrics.maxAngles[joint] = Math.max(metrics.maxAngles[joint]!, angle);
     }
 
     // Calculate range of motion

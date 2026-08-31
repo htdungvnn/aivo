@@ -2,7 +2,8 @@
  * AIVO API Gateway - Cloudflare Worker
  * 
  * Unified API entry point that routes requests to backend services.
- * Handles cross-cutting concerns: authentication, rate limiting, CORS, logging.
+ * Uses Cloudflare Service Bindings for internal networking (production)
+ * with HTTP fallback for local development.
  */
 
 import { Hono } from 'hono';
@@ -11,77 +12,32 @@ import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 import { etag } from 'hono/etag';
-import type { CloudflareVariables, Context } from 'hono';
+import type { Context } from 'hono';
+import { mountGatewaySwagger } from './swagger';
+import type { GatewayEnv } from './env';
 
 // =============================================================================
-// Environment Types
+// Types
 // =============================================================================
 
-export interface GatewayEnv {
-  // Service URLs
-  AUTH_SERVICE_URL: string;
-  HEALTH_SERVICE_URL: string;
-  COACH_SERVICE_URL: string;
-  NUTRITION_SERVICE_URL: string;
-  MAIL_SERVICE_URL: string;
-  
-  // CORS Configuration
-  ALLOWED_ORIGINS: string;
-  
-  // Rate Limiting
-  RATE_LIMIT_MAX: string;
-  RATE_LIMIT_WINDOW_MS: string;
-  
-  // Feature Flags
-  ENABLE_SWAGGER: string;
-  ENABLE_METRICS: string;
-  
-  // Auth
-  API_KEY: string;
-  
-  // Cloudflare bindings
-  ASSETS?: { fetch: (req: Request) => Promise<Response> };
-}
+type ServiceName = 'auth' | 'health' | 'coach' | 'nutrition' | 'mail';
 
-// =============================================================================
-// Constants
-// =============================================================================
+const SERVICE_PATHS: Record<ServiceName, string> = {
+  auth: '/api/v1/auth',
+  health: '/api/v1/health',
+  coach: '/api/v1/coach',
+  nutrition: '/api/v1/nutrition',
+  mail: '/api/v1/mail',
+};
 
-const SERVICE_ROUTES = {
-  auth: '/api/v1/auth/*',
-  health: '/api/v1/health/*',
-  coach: '/api/v1/coach/*',
-  nutrition: '/api/v1/nutrition/*',
-  mail: '/api/v1/mail/*',
-} as const;
-
-const SERVICE_PATHS = {
-  auth: ['/auth'],
-  health: ['/health'],
-  coach: ['/coach'],
-  nutrition: ['/nutrition'],
-  mail: ['/mail'],
-} as const;
-
-type ServiceName = keyof typeof SERVICE_ROUTES;
-
-// =============================================================================
-// Response Types
-// =============================================================================
-
-interface ApiResponse<T = unknown> {
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-  meta?: {
-    requestId: string;
-    timestamp: number;
-    version: string;
-  };
-}
+// Legacy path mappings for convenience routes
+const LEGACY_PATHS: Record<ServiceName, string> = {
+  auth: '/auth',
+  health: '/health',
+  coach: '/coach',
+  nutrition: '/nutrition',
+  mail: '/mail',
+};
 
 // =============================================================================
 // Utility Functions
@@ -109,7 +65,7 @@ function getAllowedOrigins(env: GatewayEnv): string[] {
 }
 
 /**
- * Get service URL from environment
+ * Get service URL from environment (for local development)
  */
 function getServiceUrl(service: ServiceName, env: GatewayEnv): string {
   const urls: Record<ServiceName, string> = {
@@ -120,6 +76,24 @@ function getServiceUrl(service: ServiceName, env: GatewayEnv): string {
     mail: env.MAIL_SERVICE_URL || 'http://localhost:3005',
   };
   return urls[service];
+}
+
+/**
+ * Get service binding fetcher (for production with Cloudflare)
+ */
+function getServiceBinding(service: ServiceName, env: GatewayEnv): Fetcher | null {
+  const bindings: Record<ServiceName, keyof GatewayEnv> = {
+    auth: 'AUTH_SERVICE',
+    health: 'HEALTH_SERVICE',
+    coach: 'COACH_SERVICE',
+    nutrition: 'NUTRITION_SERVICE',
+    mail: 'MAIL_SERVICE',
+  };
+  
+  const binding = bindings[service];
+  const fetcher = env[binding];
+  
+  return fetcher && typeof fetcher.fetch === 'function' ? fetcher : null;
 }
 
 /**
@@ -143,7 +117,7 @@ function validateApiKey(request: Request, env: GatewayEnv): boolean {
 }
 
 // =============================================================================
-// Rate Limiter (In-memory for single instance, use KV for production)
+// Rate Limiter
 // =============================================================================
 
 interface RateLimitEntry {
@@ -184,11 +158,11 @@ function checkRateLimit(
 /**
  * Get rate limit key from request
  */
-function getRateLimitKey(request: Request, userId?: string): string {
+function getRateLimitKey(request: Request): string {
   const ip = request.headers.get('CF-Connecting-IP') || 
              request.headers.get('X-Forwarded-For')?.split(',')[0] ||
              'unknown';
-  return userId ? `user:${userId}` : `ip:${ip}`;
+  return `ip:${ip}`;
 }
 
 // =============================================================================
@@ -196,19 +170,71 @@ function getRateLimitKey(request: Request, userId?: string): string {
 // =============================================================================
 
 /**
- * Forward request to a backend service
+ * Forward request via Cloudflare Service Binding (production)
  */
-async function forwardToService(
+async function forwardViaServiceBinding(
   request: Request,
-  service: ServiceName,
-  env: GatewayEnv,
-  path: string
+  fetcher: Fetcher
 ): Promise<Response> {
-  const serviceUrl = getServiceUrl(service, env);
-  const targetPath = path.replace(SERVICE_PATHS[service][0], '');
+  const headers = new Headers(request.headers);
+  headers.set('X-Gateway-Request', 'true');
+  headers.set('X-Forwarded-Host', 'api.aivo.app');
+  
+  // Get the path without the /api/v1 prefix for internal service routing
+  const url = new URL(request.url);
+  const internalPath = url.pathname.replace(/^\/api\/v1\//, '/');
+  const internalUrl = `${url.origin}${internalPath}${url.search}`;
+  
+  const forwardRequest = new Request(internalUrl, {
+    method: request.method,
+    headers,
+    body: request.method !== 'GET' && request.method !== 'HEAD' 
+      ? await request.clone().text() 
+      : undefined,
+  });
+  
+  try {
+    const response = await fetcher.fetch(forwardRequest);
+    
+    // Copy response headers
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.set('X-Gateway-Response', 'true');
+    responseHeaders.set('X-Gateway-Binding', 'service');
+    
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error('[Gateway] Service binding call failed:', error);
+    return Response.json(
+      {
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'Service is currently unavailable',
+        },
+        meta: {
+          requestId: request.headers.get('X-Request-ID'),
+          timestamp: Date.now(),
+          version: '1.0.0',
+        },
+      },
+      { status: 503 }
+    );
+  }
+}
+
+/**
+ * Forward request via HTTP (local development fallback)
+ */
+async function forwardViaHttp(
+  request: Request,
+  serviceUrl: string,
+  targetPath: string
+): Promise<Response> {
   const url = `${serviceUrl}${targetPath}`;
   
-  // Clone request and modify URL
   const headers = new Headers(request.headers);
   headers.set('X-Gateway-Request', 'true');
   headers.set('X-Forwarded-Host', 'api.aivo.app');
@@ -224,13 +250,14 @@ async function forwardToService(
   
   try {
     const response = await fetch(forwardRequest, {
-      // @ts-expect-error - Cloudflare fetch supports this
+      // @ts-expect-error - Cloudflare fetch supports timeout
       timeout: 30000,
     });
     
     // Copy response headers
     const responseHeaders = new Headers(response.headers);
     responseHeaders.set('X-Gateway-Response', 'true');
+    responseHeaders.set('X-Gateway-Binding', 'http');
     
     return new Response(response.body, {
       status: response.status,
@@ -238,12 +265,12 @@ async function forwardToService(
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error(`[Gateway] Failed to forward to ${service}:`, error);
+    console.error(`[Gateway] HTTP forward failed:`, error);
     return Response.json(
       {
         error: {
           code: 'SERVICE_UNAVAILABLE',
-          message: `Service ${service} is currently unavailable`,
+          message: `Service is currently unavailable`,
         },
         meta: {
           requestId: request.headers.get('X-Request-ID'),
@@ -256,34 +283,69 @@ async function forwardToService(
   }
 }
 
+/**
+ * Forward request to a backend service
+ */
+async function forwardToService(
+  request: Request,
+  service: ServiceName,
+  env: GatewayEnv,
+  path: string
+): Promise<Response> {
+  // Try to use Cloudflare Service Binding first (production)
+  const serviceBinding = getServiceBinding(service, env);
+  
+  if (serviceBinding) {
+    return forwardViaServiceBinding(request, serviceBinding);
+  }
+  
+  // Fall back to HTTP for local development
+  const serviceUrl = getServiceUrl(service, env);
+  return forwardViaHttp(request, serviceUrl, path);
+}
+
 // =============================================================================
 // Health Check Handler
 // =============================================================================
 
 async function healthCheck(env: GatewayEnv): Promise<Response> {
-  const services: Record<ServiceName, { status: 'up' | 'down' | 'unknown'; latency?: number }> = {
-    auth: { status: 'unknown' },
-    health: { status: 'unknown' },
-    coach: { status: 'unknown' },
-    nutrition: { status: 'unknown' },
-    mail: { status: 'unknown' },
+  const services: Record<ServiceName, { status: 'up' | 'down' | 'unknown'; latency?: number; binding: 'service' | 'http' }> = {
+    auth: { status: 'unknown', binding: 'http' },
+    health: { status: 'unknown', binding: 'http' },
+    coach: { status: 'unknown', binding: 'http' },
+    nutrition: { status: 'unknown', binding: 'http' },
+    mail: { status: 'unknown', binding: 'http' },
   };
   
   // Check each service
-  const checks = Object.entries(services).map(async ([name, _]) => {
+  const checks = Object.entries(services).map(async ([name]) => {
     const service = name as ServiceName;
     const start = Date.now();
+    
+    // Check if using service binding or HTTP
+    const binding = getServiceBinding(service, env);
+    services[service].binding = binding ? 'service' : 'http';
+    
     try {
-      const url = getServiceUrl(service, env);
-      const response = await fetch(`${url}/health`, { 
-        method: 'GET',
-        // @ts-expect-error
-        timeout: 5000,
-      });
-      const latency = Date.now() - start;
-      services[service] = { status: response.ok ? 'up' : 'down', latency };
+      if (binding) {
+        // Use service binding
+        const serviceUrl = getServiceUrl(service, env);
+        const response = await binding.fetch(new Request(`${serviceUrl}/health`));
+        const latency = Date.now() - start;
+        services[service] = { status: response.ok ? 'up' : 'down', latency, binding: 'service' };
+      } else {
+        // Use HTTP
+        const serviceUrl = getServiceUrl(service, env);
+        const response = await fetch(`${serviceUrl}/health`, { 
+          method: 'GET',
+          // @ts-expect-error
+          timeout: 5000,
+        });
+        const latency = Date.now() - start;
+        services[service] = { status: response.ok ? 'up' : 'down', latency, binding: 'http' };
+      }
     } catch {
-      services[service] = { status: 'down' };
+      services[service] = { status: 'down', binding: binding ? 'service' : 'http' };
     }
   });
   
@@ -297,89 +359,23 @@ async function healthCheck(env: GatewayEnv): Promise<Response> {
     version: '1.0.0',
     timestamp: Date.now(),
     services,
-    uptime: process.uptime ? process.uptime() : 0,
   }, {
     status: allUp ? 200 : 503,
   });
 }
 
 // =============================================================================
-// API Documentation Handler
-// =============================================================================
-
-function getApiDocs(): Response {
-  const docs = {
-    openapi: '3.0.0',
-    info: {
-      title: 'AIVO API Gateway',
-      version: '1.0.0',
-      description: 'Unified API gateway for AIVO health and fitness platform',
-    },
-    servers: [
-      { url: 'https://api.aivo.app', description: 'Production' },
-      { url: 'http://localhost:3000', description: 'Development' },
-    ],
-    paths: {
-      '/api/v1/auth': {
-        get: {
-          summary: 'Auth service proxy',
-          description: 'Forwards to auth service',
-        },
-      },
-      '/api/v1/health': {
-        get: {
-          summary: 'Health service proxy',
-          description: 'Forwards to health service',
-        },
-      },
-      '/api/v1/coach': {
-        get: {
-          summary: 'Coach service proxy',
-          description: 'Forwards to coach service',
-        },
-      },
-      '/api/v1/nutrition': {
-        get: {
-          summary: 'Nutrition service proxy',
-          description: 'Forwards to nutrition service',
-        },
-      },
-      '/api/v1/mail': {
-        get: {
-          summary: 'Mail service proxy',
-          description: 'Forwards to mail service',
-        },
-      },
-    },
-    components: {
-      securitySchemes: {
-        ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-API-Key',
-        },
-        BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-        },
-      },
-    },
-  };
-  
-  return Response.json(docs);
-}
-
-// =============================================================================
 // Main Application
 // =============================================================================
 
+// Define context type
 type AppContext = {
-  Variables: CloudflareVariables & {
+  Bindings: GatewayEnv;
+  Variables: {
     requestId: string;
     userId?: string;
-    service?: ServiceName;
+    service?: string;
   };
-  Bindings: GatewayEnv;
 };
 
 const app = new Hono<AppContext>();
@@ -459,13 +455,11 @@ app.use('*', async (c, next) => {
 
 // Health check (no auth required)
 app.get('/health', (c) => healthCheck(c.env));
-app.head('/health', (c) => healthCheck(c.env));
 
-// API documentation
-app.get('/docs', (c) => getApiDocs());
-app.get('/swagger', (c) => getApiDocs());
+// Mount Swagger documentation
+mountGatewaySwagger(app);
 
-// Service proxy routes
+// Service proxy routes (standard paths)
 app.all('/api/v1/auth/*', async (c) => {
   return forwardToService(c.req.raw, 'auth', c.env, c.req.path);
 });
@@ -486,7 +480,7 @@ app.all('/api/v1/mail/*', async (c) => {
   return forwardToService(c.req.raw, 'mail', c.env, c.req.path);
 });
 
-// Convenience routes (mapped to services)
+// Convenience routes (short paths mapped to services)
 app.all('/auth/*', async (c) => {
   return forwardToService(c.req.raw, 'auth', c.env, `/api/v1${c.req.path}`);
 });
@@ -508,17 +502,22 @@ app.all('/mail/*', async (c) => {
 });
 
 // Metrics endpoint
-app.get('/metrics', async (c) => {
+app.get('/metrics', (c) => {
   const metrics = {
     requests: {
       total: rateLimitStore.size,
       active: Array.from(rateLimitStore.entries())
-        .filter(([_, v]) => v.resetAt > Date.now())
+        .filter(([, v]) => v.resetAt > Date.now())
         .length,
     },
-    services: Object.fromEntries(
-      Object.entries(SERVICE_PATHS).map(([name, paths]) => [name, { paths }])
-    ) as Record<ServiceName, { paths: string[] }>,
+    services: {
+      auth: { path: SERVICE_PATHS.auth },
+      health: { path: SERVICE_PATHS.health },
+      coach: { path: SERVICE_PATHS.coach },
+      nutrition: { path: SERVICE_PATHS.nutrition },
+      mail: { path: SERVICE_PATHS.mail },
+    },
+    version: '1.0.0',
   };
   return c.json(metrics);
 });
@@ -546,7 +545,7 @@ app.onError((err, c) => {
     error: {
       code: 'INTERNAL_ERROR',
       message: 'An internal error occurred',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      details: err.message,
     },
     meta: {
       requestId: c.get('requestId'),
@@ -562,13 +561,13 @@ app.onError((err, c) => {
 
 export default {
   async fetch(request: Request, env: GatewayEnv, ctx: ExecutionContext): Promise<Response> {
-    const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();
+    const reqId = request.headers.get('X-Request-ID') || crypto.randomUUID();
     
     console.log(`[Gateway] ${request.method} ${request.url}`, {
-      requestId,
+      requestId: reqId,
       cf: request.cf,
     });
     
     return app.fetch(request, env as unknown as Context, ctx);
   },
-} satisfies ExportedHandler<GatewayEnv>;
+};

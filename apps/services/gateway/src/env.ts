@@ -1,15 +1,26 @@
 /**
  * Gateway Environment Types
- * Environment variables and bindings for the API Gateway
+ * 
+ * Environment variables and Cloudflare bindings for the API Gateway.
+ * Uses Cloudflare Service Bindings for internal networking between Workers.
  */
 
 export interface GatewayEnv {
-  // Service URLs (internal networking in production)
-  AUTH_SERVICE_URL: string;
-  HEALTH_SERVICE_URL: string;
-  COACH_SERVICE_URL: string;
-  NUTRITION_SERVICE_URL: string;
-  MAIL_SERVICE_URL: string;
+  // Cloudflare Service Bindings (internal networking - no external calls)
+  // These are configured in wrangler.jsonc under "services"
+  AUTH_SERVICE: Fetcher;
+  HEALTH_SERVICE: Fetcher;
+  COACH_SERVICE: Fetcher;
+  NUTRITION_SERVICE: Fetcher;
+  MAIL_SERVICE: Fetcher;
+  
+  // Legacy environment variables (still supported for local dev)
+  // In production, use service bindings instead
+  AUTH_SERVICE_URL?: string;
+  HEALTH_SERVICE_URL?: string;
+  COACH_SERVICE_URL?: string;
+  NUTRITION_SERVICE_URL?: string;
+  MAIL_SERVICE_URL?: string;
   
   // CORS
   ALLOWED_ORIGINS: string;
@@ -25,10 +36,10 @@ export interface GatewayEnv {
   // Security
   API_KEY: string;
   
-  // KV for distributed rate limiting (optional)
+  // KV for distributed rate limiting
   RATE_LIMIT_KV?: KVNamespace;
   
-  // Analytics (optional)
+  // KV for analytics
   ANALYTICS_KV?: KVNamespace;
   
   // Assets binding for static files
@@ -36,16 +47,30 @@ export interface GatewayEnv {
 }
 
 // =============================================================================
+// Service Names (for service binding keys)
+// =============================================================================
+
+export const SERVICE_BINDINGS = {
+  AUTH: 'AUTH_SERVICE',
+  HEALTH: 'HEALTH_SERVICE',
+  COACH: 'COACH_SERVICE',
+  NUTRITION: 'NUTRITION_SERVICE',
+  MAIL: 'MAIL_SERVICE',
+} as const;
+
+export type ServiceName = keyof typeof SERVICE_BINDINGS;
+
+// =============================================================================
 // Configuration
 // =============================================================================
 
 export interface GatewayConfig {
   services: {
-    auth: { url: string; timeout: number };
-    health: { url: string; timeout: number };
-    coach: { url: string; timeout: number };
-    nutrition: { url: string; timeout: number };
-    mail: { url: string; timeout: number };
+    auth: { timeout: number };
+    health: { timeout: number };
+    coach: { timeout: number };
+    nutrition: { timeout: number };
+    mail: { timeout: number };
   };
   cors: {
     origins: string[];
@@ -69,16 +94,16 @@ export interface GatewayConfig {
 }
 
 // =============================================================================
-// Service Configuration
+// Default Configuration
 // =============================================================================
 
 export const DEFAULT_CONFIG: GatewayConfig = {
   services: {
-    auth: { url: 'http://localhost:3001', timeout: 30000 },
-    health: { url: 'http://localhost:3002', timeout: 30000 },
-    coach: { url: 'http://localhost:3003', timeout: 30000 },
-    nutrition: { url: 'http://localhost:3004', timeout: 30000 },
-    mail: { url: 'http://localhost:3005', timeout: 30000 },
+    auth: { timeout: 30000 },
+    health: { timeout: 30000 },
+    coach: { timeout: 30000 },
+    nutrition: { timeout: 30000 },
+    mail: { timeout: 30000 },
   },
   cors: {
     origins: [
@@ -106,24 +131,23 @@ export const DEFAULT_CONFIG: GatewayConfig = {
 };
 
 // =============================================================================
-// Validation
+// Service Binding Types
 // =============================================================================
 
-export function validateEnv(env: GatewayEnv): void {
-  const required: (keyof GatewayEnv)[] = [];
-  
-  // Only validate required if not in development
-  const isProduction = env.ALLOWED_ORIGINS?.includes('https://aivo.app');
-  
-  if (isProduction) {
-    if (!env.AUTH_SERVICE_URL) required.push('AUTH_SERVICE_URL');
-    if (!env.HEALTH_SERVICE_URL) required.push('HEALTH_SERVICE_URL');
-    if (!env.COACH_SERVICE_URL) required.push('COACH_SERVICE_URL');
-    if (!env.NUTRITION_SERVICE_URL) required.push('NUTRITION_SERVICE_URL');
-    if (!env.MAIL_SERVICE_URL) required.push('MAIL_SERVICE_URL');
-  }
-  
-  if (required.length > 0) {
-    throw new Error(`Missing required environment variables: ${required.join(', ')}`);
-  }
+/**
+ * Get the service binding name for a service
+ */
+export function getServiceBinding(service: ServiceName): string {
+  return SERVICE_BINDINGS[service];
 }
+
+/**
+ * Get the service path prefix for routing
+ */
+export const SERVICE_PATHS: Record<ServiceName, string> = {
+  AUTH: '/api/v1/auth',
+  HEALTH: '/api/v1/health',
+  COACH: '/api/v1/coach',
+  NUTRITION: '/api/v1/nutrition',
+  MAIL: '/api/v1/mail',
+};

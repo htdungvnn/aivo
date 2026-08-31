@@ -5,8 +5,8 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "moduleResolution": "bundler",
-    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
     "target": "ES2022"
   },
   "include": ["src/**/*"],

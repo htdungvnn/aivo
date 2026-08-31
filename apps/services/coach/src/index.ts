@@ -6,7 +6,6 @@
 import { Hono } from 'hono';
 import { requestId, errorHandler, cors, rateLimit } from './middleware';
 import { createRoutes } from './routes';
-import { mountCoachSwagger } from './swagger';
 import type { CoachEnv } from './env.d';
 
 export interface Env extends CoachEnv {}
@@ -72,9 +71,6 @@ app.get('/health', (c) => {
 // Mount routes under /api/v1
 const routes = createRoutes();
 app.route('/api/v1', routes);
-
-// Mount Swagger UI routes
-mountCoachSwagger(app);
 
 // 404 handler
 app.notFound((c) => {

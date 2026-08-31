@@ -23,14 +23,6 @@
       "id": "<OAUTH_STATE_KV_ID>"
     }
   ],
-  "secrets": [
-    {
-      "name": "AUTH_JWT_PRIVATE_KEY"
-    },
-    {
-      "name": "AUTH_JWT_PUBLIC_KEY"
-    }
-  ],
   "vars": {
     "AUTH_JWT_ISSUER": "aivo",
     "AUTH_JWT_AUDIENCE": "aivo-app",
