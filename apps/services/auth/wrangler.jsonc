@@ -1,37 +1,37 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "aivo-auth",
-  "main": "src/index.ts",
-  "compatibility_date": "2025-01-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "./public"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "aivo-auth-db",
-      "database_id": "<AUTH_D1_DATABASE_ID>"
-    }
-  ],
-  "kv_namespaces": [
-    {
-      "binding": "OAUTH_STATE",
-      "id": "<OAUTH_STATE_KV_ID>"
-    }
-  ],
-  "vars": {
-    "AUTH_JWT_ISSUER": "aivo",
-    "AUTH_JWT_AUDIENCE": "aivo-app",
-    "AUTH_JWT_ACCESS_TOKEN_TTL": "900"
-  },
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "aivo-auth",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-01-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true,
+	},
+	"assets": {
+		"directory": "./public",
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "aivo-auth-db",
+			"database_id": "<AUTH_D1_DATABASE_ID>",
+		},
+	],
+	"kv_namespaces": [
+		{
+			"binding": "OAUTH_STATE",
+			"id": "<OAUTH_STATE_KV_ID>",
+		},
+	],
+	"vars": {
+		"AUTH_JWT_ISSUER": "aivo",
+		"AUTH_JWT_AUDIENCE": "aivo-app",
+		"AUTH_JWT_ACCESS_TOKEN_TTL": "900",
+	},
 
-  // Dev configuration (local development)
-  "dev": {
-    "port": 3001,
-    "inspector_port": 9231
-  }
+	// Dev configuration (local development)
+	"dev": {
+		"port": 3001,
+		"inspector_port": 9231,
+	},
 }
