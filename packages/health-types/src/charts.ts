@@ -58,7 +58,7 @@ export interface ChartConfig {
   minValue?: number;
   maxValue?: number;
   precision: number;
-  chartType: 'line' | 'bar' | 'area' | 'donut';
+  chartType: 'line' | 'bar' | 'area' | 'donut' | 'radar';
   categories?: string[];
 }
 
@@ -687,46 +687,8 @@ export const ChartBundleSchema = z.object({
 });
 
 // =============================================================================
-// Validation Helpers
+// Helper Functions
 // =============================================================================
-
-/**
- * Validate chart request
- */
-export function validateChartRequest(request: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = ChartRequestSchema.safeParse(request);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-/**
- * Validate chart data response
- */
-export function validateChartData(data: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = ChartDataSchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
 
 /**
  * Check if metric supports range

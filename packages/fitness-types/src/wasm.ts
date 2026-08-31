@@ -302,19 +302,6 @@ export const wasmTypes = {
   poseAnglesSchema,
   engineStateSchema,
   benchmarkResultSchema,
-  
-  // Type exports
-  WASMEngineConfig,
-  WASMInput,
-  WASMOutput,
-  JointAngleResult,
-  PoseAngles,
-  EngineState,
-  BenchmarkResult,
-  EngineType,
-  WASMModule,
-  TypeScriptEngine,
-  EngineFactory,
 } as const;
 
 export default wasmTypes;

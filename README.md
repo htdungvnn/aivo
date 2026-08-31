@@ -1,159 +1,244 @@
-# Turborepo starter
+# AIVO - AI-Powered Health & Fitness Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+AIVO is a comprehensive monorepo containing microservices and applications for an AI-powered health, fitness, and nutrition coaching platform.
 
-## Using this example
+## 📁 Project Structure
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
+```
+aivo/
+├── apps/
+│   ├── web/              # Next.js web application
+│   ├── mobile/           # React Native mobile app (Expo)
+│   └── services/         # Cloudflare Workers microservices
+│       ├── gateway/      # API Gateway - unified entry point
+│       ├── auth/         # Authentication & user management
+│       ├── health/       # Health tracking & readiness engine
+│       ├── coach/        # AI workout coaching
+│       ├── nutrition/    # Meal planning & nutrition tracking
+│       └── mail/         # Email service
+│
+├── packages/             # Shared libraries
+│   ├── api-client/       # API client utilities
+│   ├── common-types/     # Shared TypeScript types & utilities
+│   ├── design-system/    # Shared design components
+│   ├── exercise-engine/  # WebAssembly-based pose detection
+│   ├── fitness-types/    # Fitness domain types
+│   ├── health-types/     # Health domain types
+│   ├── nutrition-types/  # Nutrition domain types
+│   ├── queue-types/      # Queue message types
+│   ├── swagger-utils/    # Swagger/OpenAPI utilities
+│   ├── ui/               # React UI components
+│   ├── wasm-gateway/     # WASM module loader & executor
+│   └── eslint-config/    # ESLint configurations
+│
+├── turbo.json            # Turborepo configuration
+├── pnpm-workspace.yaml   # pnpm workspace definition
+└── package.json          # Root package.json
 ```
 
-## What's inside?
+## 🏃 Applications
 
-This Turborepo includes the following packages/apps:
+### Web Application (`apps/web`)
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS v4
+- **Features**: Dashboard, user settings, nutrition tracking, AI intelligence
 
-### Apps and Packages
+### Mobile Application (`apps/mobile`)
+- **Framework**: Expo SDK 57
+- **Language**: TypeScript
+- **Features**: On-the-go tracking, pose detection, real-time coaching
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Microservices (`apps/services/*`)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+All services are built on **Cloudflare Workers** with **Hono** framework.
 
-### Utilities
+| Service | Port | Description |
+|---------|------|-------------|
+| `gateway` | 3000 | API Gateway - unified entry point |
+| `auth` | 3001 | User authentication, OAuth, JWT tokens |
+| `health` | 3002 | Health metrics, readiness scores, AI insights |
+| `coach` | 3003 | Workout planning, session tracking, AI coaching |
+| `nutrition` | 3004 | Meal logging, AI food analysis, planning |
+| `mail` | 3005 | Email notifications (via Resend) |
 
-This Turborepo has some additional tools already setup for you:
+## 📦 Shared Packages
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+### `@repo/wasm-gateway`
+WASM module loader with automatic TypeScript fallback:
+- Unified interface for WASM modules
+- Performance monitoring and benchmarking
+- Circuit breaker pattern
+- Cloudflare Workers native support
 
-### Build
+### `@repo/api-client`
+Type-safe API client for all services with:
+- Automatic token refresh
+- Request/response typing
+- Error handling
 
-To build all apps and packages, run the following command:
+### `@repo/common-types`
+Shared utilities extracted to reduce duplication:
+- UUID generation with fallbacks
+- Date/time utilities
+- Validation helpers (isFiniteNumber, clamp, roundTo)
+- Common enums (CHART_METRIC, CLIENT_TYPE, etc.)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### `@repo/fitness-types`, `@repo/health-types`, `@repo/nutrition-types`
+Domain-specific Zod schemas and TypeScript types.
 
-```sh
-cd my-turborepo
-turbo build
+### `@repo/exercise-engine`
+WebAssembly-powered pose detection using MediaPipe:
+- 33-point body landmark detection
+- Real-time angle calculations
+- Rep counting
+- Form correction feedback
+
+## 🔧 Development
+
+### Prerequisites
+- Node.js >= 24
+- pnpm 11+
+- Wrangler CLI (for Cloudflare Workers)
+- Expo CLI (for mobile development)
+
+### Installation
+
+```bash
+pnpm install
 ```
 
-Without global `turbo`, use your package manager:
+### Commands
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm exec turbo build
-pnpm exec turbo build
+```bash
+# Build all packages
+pnpm build
+
+# Development mode
+pnpm dev
+
+# Lint all packages
+pnpm lint
+
+# Type check all packages
+pnpm check-types
+
+# Format code
+pnpm format
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Service Development
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+```bash
+# Auth service
+cd apps/services/auth
+pnpm dev
 
-```sh
-turbo build --filter=docs
+# Nutrition service
+cd apps/services/nutrition
+pnpm dev
 ```
 
-Without global `turbo`:
+### Mobile Development
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+cd apps/mobile
+pnpm dev
 ```
 
-### Develop
+## 🏗️ Architecture
 
-To develop all apps and packages, run the following command:
+### API Communication
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│   Web   │────▶│   Auth  │     │  Health │
+│ Mobile  │     │ Service │     │ Service │
+└─────────┘     └─────────┘     └─────────┘
+     │               │               │
+     │               │               │
+     └───────────────┴───────────────┘
+                     │
+              JWT Token Validation
 ```
 
-Without global `turbo`, use your package manager:
+### Data Flow
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+1. Client sends request with JWT token
+2. Auth service validates token via middleware
+3. Service processes request
+4. Response returned with appropriate status
+
+### Queue Architecture
+
+```
+┌────────────┐     ┌────────────┐     ┌────────────┐
+│  Service   │────▶│  Queue    │────▶│  Worker   │
+│  (Producer)│     │           │     │  (Consumer│
+└────────────┘     └────────────┘     └────────────┘
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## 📊 Type System
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### Zod Schemas
 
-```sh
-turbo dev --filter=web
+All API inputs should be validated using Zod schemas:
+
+```typescript
+import { z } from 'zod';
+
+export const CreateMealSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
+  items: z.array(z.object({
+    name: z.string().min(1),
+    quantity: z.number().positive(),
+  })).min(1),
+});
 ```
 
-Without global `turbo`:
+### Type Exports
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+Types are exported from domain packages:
+
+```typescript
+import type { HealthScore } from '@repo/health-types';
+import type { MealPlan } from '@repo/nutrition-types';
+import type { WorkoutPlan } from '@repo/fitness-types';
 ```
 
-### Remote Caching
+## 🔒 Security
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+### Authentication
+- JWT tokens with RS256 signing
+- Access tokens: 15 minutes expiry
+- Refresh tokens: 7 days expiry
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+### Rate Limiting
+- Per-IP rate limiting in middleware
+- KV-based for distributed environments
+- Configurable limits per endpoint
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+### Input Validation
+- Zod schemas for all API inputs
+- TypeScript strict mode enabled
+- Sanitization for XSS prevention
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## 📝 Documentation
 
-```sh
-cd my-turborepo
-turbo login
-```
+For detailed API documentation, see each service's Swagger endpoint:
+- Auth: `GET /swagger`
+- Health: `GET /swagger`
+- Coach: `GET /swagger`
+- Nutrition: `GET /swagger`
 
-Without global `turbo`, use your package manager:
+## 🤝 Contributing
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
+1. Create a feature branch from `main`
+2. Follow the ESLint configuration
+3. Add tests for new features
+4. Ensure all CI checks pass
+5. Submit a pull request
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## 📄 License
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Private - All rights reserved

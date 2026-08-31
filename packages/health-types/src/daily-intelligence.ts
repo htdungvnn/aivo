@@ -348,7 +348,7 @@ export const DailyActionSchema = z.object({
   completedAt: z.number().nullable(),
   skippedAt: z.number().nullable(),
   skipReason: z.string().nullable(),
-  metadata: z.record(z.unknown()),
+  metadata: z.record(z.string(), z.unknown()),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
@@ -557,67 +557,6 @@ export const AdaptationRequestSchema = z.object({
 });
 
 // =============================================================================
-// Validation Helpers
-// =============================================================================
-
-/**
- * Validate check-in request
- */
-export function validateCheckInRequest(request: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = CheckInRequestSchema.safeParse(request);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-/**
- * Validate today intelligence
- */
-export function validateTodayIntelligence(data: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = TodayIntelligenceSchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-/**
- * Validate weekly intelligence summary
- */
-export function validateWeeklySummary(data: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = WeeklyIntelligenceSummarySchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-// =============================================================================
 // Action Ranking
 // =============================================================================
 
@@ -630,7 +569,7 @@ export const ACTION_PRIORITIES: Record<string, number> = {
   [DAILY_ACTIONS.RECOVERY]: 3,
   [DAILY_ACTIONS.LIGHT_WORKOUT]: 4,
   [DAILY_ACTIONS.START_WORKOUT]: 5,
-  [DAILY_ACTIONS.HIGH_INTENSITY]: 6,
+  [TRAINING_INTENSITY.HIGH_INTENSITY]: 6,
   [DAILY_ACTIONS.ADD_PROTEIN]: 7,
   [DAILY_ACTIONS.DRINK_WATER]: 8,
   [DAILY_ACTIONS.SHORT_WALK]: 9,

@@ -400,27 +400,8 @@ export const HabitEntrySchema = z.object({
 });
 
 // =============================================================================
-// Validation Helpers
+// Helper Functions
 // =============================================================================
-
-/**
- * Validate daily health data
- */
-export function validateHealthData(data: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = DailyHealthDataSchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
 
 /**
  * Calculate data completeness for health data

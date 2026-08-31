@@ -3,6 +3,22 @@
  * Handles authentication, token management, and API calls
  */
 
+// Declare process for browser compatibility
+declare const process: {
+  env: {
+    NEXT_PUBLIC_AUTH_API_URL?: string;
+    [key: string]: string | undefined;
+  };
+} | undefined;
+
+// Get environment variables safely (works in browser and Node.js)
+function getEnv(): { NEXT_PUBLIC_AUTH_API_URL?: string } {
+  if (typeof process !== 'undefined' && process?.env) {
+    return process.env;
+  }
+  return {};
+}
+
 export interface User {
   id: string;
   email: string;
@@ -454,7 +470,8 @@ let clientInstance: AuthApiClient | null = null;
  */
 export function getAuthClient(baseUrl?: string): AuthApiClient {
   if (!clientInstance) {
-    const url = baseUrl || process.env.NEXT_PUBLIC_AUTH_API_URL || '';
+    const env = getEnv();
+    const url = baseUrl || env.NEXT_PUBLIC_AUTH_API_URL || '';
     clientInstance = new AuthApiClient(url);
   }
   return clientInstance;

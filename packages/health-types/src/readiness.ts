@@ -303,48 +303,6 @@ export const ReadinessInputSchema = z.object({
 });
 
 // =============================================================================
-// Validation Helpers
-// =============================================================================
-
-/**
- * Check if all values in readiness input are valid
- */
-export function validateReadinessInput(input: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = ReadinessInputSchema.safeParse(input);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-/**
- * Validate readiness output
- */
-export function validateReadinessOutput(output: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const result = ReadinessOutputSchema.safeParse(output);
-  
-  if (result.success) {
-    return { valid: true, errors: [] };
-  }
-  
-  return {
-    valid: false,
-    errors: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-  };
-}
-
-// =============================================================================
 // Helper Functions
 // =============================================================================
 

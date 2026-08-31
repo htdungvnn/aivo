@@ -1,11 +1,14 @@
 packages:
   - "apps/*"
+  - "apps/services/*"
   - "packages/*"
   - "apps/services/auth/**"
   - "apps/services/mail/*"
   - "apps/services/nutrition/**"
+  - "apps/services/gateway/**"
 allowBuilds:
   esbuild: true
+  wasm-pack: false
   workerd: true
 minimumReleaseAgeExclude:
   - "@expo/cli@57.0.20"

@@ -314,20 +314,6 @@ export const exerciseTypes = {
   
   // Functions
   isValidPhaseTransition,
-  
-  // Type exports
-  ExerciseCode,
-  ExercisePhase,
-  PlankPhase,
-  JointAngleDefinition,
-  RangeOfMotion,
-  ExerciseDifficulty,
-  UserGoal,
-  ExerciseDefinition,
-  DefaultSetConfig,
-  SetStatus,
-  RepSummary,
-  SetSummary,
 } as const;
 
 export default exerciseTypes;

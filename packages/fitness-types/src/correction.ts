@@ -382,14 +382,6 @@ export const correctionTypes = {
   correctionRuleSchema,
   correctionResultSchema,
   feedbackMessageSchema,
-  
-  // Type exports
-  CorrectionSeverity,
-  CorrectionCode,
-  CorrectionRule,
-  CorrectionResult,
-  FeedbackType,
-  FeedbackMessage,
 } as const;
 
 export default correctionTypes;

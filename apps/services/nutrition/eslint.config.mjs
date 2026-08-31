@@ -1,9 +1,32 @@
-import { config } from "@repo/eslint-config/base";
+/**
+ * ESLint config for nutrition service with TypeScript support
+ */
+import js from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
 
-/** @type {import("eslint").Linter.Config[]} */
 export default [
-  ...config,
+  js.configs.recommended,
   {
-    ignores: ["dist/**", "*.json", "wrangler.jsonc"],
+    files: ['**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        sourceType: 'module',
+        project: './tsconfig.json',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  {
+    ignores: ['dist/**', 'node_modules/**', '*.json', 'wrangler.jsonc'],
   },
 ];

@@ -10,13 +10,15 @@ import type {
   Schema, 
   Response,
   SecurityRequirement,
-  Tag
+  Tag,
+  IOperationBuilder,
+  IPathBuilder
 } from './types.js';
 
 /**
  * Operation builder for fluent API
  */
-export class OperationBuilder implements Partial<Operation> {
+export class OperationBuilder implements IOperationBuilder {
   private operation: Partial<Operation> = {};
   private responses: Record<string, Response> = {};
   private parameters: Parameter[] = [];
@@ -143,7 +145,7 @@ export class OperationBuilder implements Partial<Operation> {
 /**
  * Path builder for fluent API
  */
-export class PathBuilder {
+export class PathBuilder implements IPathBuilder {
   private path: Partial<PathItem> = {};
 
   get(operation: Operation): this {

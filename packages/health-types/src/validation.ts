@@ -43,28 +43,28 @@ import {
 /**
  * Validate readiness input
  */
-export function validateReadinessInput(input: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateReadinessInput(input: unknown) {
   return ReadinessInputSchema.safeParse(input);
 }
 
 /**
  * Validate readiness output
  */
-export function validateReadinessOutput(output: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateReadinessOutput(output: unknown) {
   return ReadinessOutputSchema.safeParse(output);
 }
 
 /**
  * Validate measured value
  */
-export function validateMeasuredValue(value: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateMeasuredValue(value: unknown) {
   return MeasuredValueSchema.safeParse(value);
 }
 
 /**
  * Validate readiness factor
  */
-export function validateReadinessFactor(factor: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateReadinessFactor(factor: unknown) {
   return ReadinessFactorSchema.safeParse(factor);
 }
 
@@ -75,14 +75,14 @@ export function validateReadinessFactor(factor: unknown): z.SafeParseReturnType<
 /**
  * Validate daily health data
  */
-export function validateDailyHealthData(data: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateDailyHealthData(data: unknown) {
   return DailyHealthDataSchema.safeParse(data);
 }
 
 /**
  * Validate user check-in
  */
-export function validateUserCheckIn(checkIn: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateUserCheckIn(checkIn: unknown) {
   return UserCheckInSchema.safeParse(checkIn);
 }
 
@@ -93,14 +93,14 @@ export function validateUserCheckIn(checkIn: unknown): z.SafeParseReturnType<unk
 /**
  * Validate chart data
  */
-export function validateChartData(data: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateChartData(data: unknown) {
   return ChartDataSchema.safeParse(data);
 }
 
 /**
  * Validate chart request
  */
-export function validateChartRequest(request: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateChartRequest(request: unknown) {
   return ChartRequestSchema.safeParse(request);
 }
 
@@ -111,35 +111,35 @@ export function validateChartRequest(request: unknown): z.SafeParseReturnType<un
 /**
  * Validate today intelligence
  */
-export function validateTodayIntelligence(data: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateTodayIntelligence(data: unknown) {
   return TodayIntelligenceSchema.safeParse(data);
 }
 
 /**
  * Validate check-in request
  */
-export function validateCheckInRequest(request: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateCheckInRequest(request: unknown) {
   return CheckInRequestSchema.safeParse(request);
 }
 
 /**
  * Validate adaptation request
  */
-export function validateAdaptationRequest(request: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateAdaptationRequest(request: unknown) {
   return AdaptationRequestSchema.safeParse(request);
 }
 
 /**
  * Validate daily action
  */
-export function validateDailyAction(action: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validateDailyAction(action: unknown) {
   return DailyActionSchema.safeParse(action);
 }
 
 /**
  * Validate plan adaptation
  */
-export function validatePlanAdaptation(adaptation: unknown): z.SafeParseReturnType<unknown, unknown> {
+export function validatePlanAdaptation(adaptation: unknown) {
   return PlanAdaptationSchema.safeParse(adaptation);
 }
 
@@ -234,7 +234,7 @@ export function validateUUID(
 export function validateMetric(
   metric: string
 ): { valid: boolean; error?: string } {
-  if (!Object.values(HEALTH_METRICS).includes(metric as any)) {
+  if (!Object.values(HEALTH_METRICS).includes(metric as (typeof HEALTH_METRICS)[keyof typeof HEALTH_METRICS])) {
     return {
       valid: false,
       error: `Unknown metric: ${metric}. Valid metrics: ${Object.values(HEALTH_METRICS).join(', ')}`,
@@ -249,7 +249,7 @@ export function validateMetric(
 export function validateChartRange(
   range: string
 ): { valid: boolean; error?: string } {
-  if (!Object.values(CHART_RANGES).includes(range as any)) {
+  if (!Object.values(CHART_RANGES).includes(range as (typeof CHART_RANGES)[keyof typeof CHART_RANGES])) {
     return {
       valid: false,
       error: `Unknown range: ${range}. Valid ranges: ${Object.values(CHART_RANGES).join(', ')}`,
@@ -347,7 +347,7 @@ export function validateReadinessInputsBatch(inputs: unknown[]): ValidationResul
     const result = ReadinessInputSchema.safeParse(inputs[i]);
     if (!result.success) {
       errors.push(
-        `[${i}]: ${result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `[${i}]: ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
       );
     }
   }
@@ -368,7 +368,7 @@ export function validateChartRequestsBatch(requests: unknown[]): ValidationResul
     const result = ChartRequestSchema.safeParse(requests[i]);
     if (!result.success) {
       errors.push(
-        `[${i}]: ${result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `[${i}]: ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
       );
     }
   }
@@ -409,7 +409,7 @@ export const ERROR_MESSAGES = {
  * Get validation error message
  */
 export function getValidationError(field: string, error: z.ZodError): string[] {
-  return error.errors
+  return error.issues
     .filter(e => e.path[0] === field)
     .map(e => `${field}: ${e.message}`);
 }

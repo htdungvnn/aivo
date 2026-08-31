@@ -211,16 +211,6 @@ export const poseTypes = {
   normalizedPoseSchema,
   cameraSetupSchema,
   poseProcessingConfigSchema,
-  
-  // Type exports
-  LandmarkIndex,
-  Landmark,
-  PoseLandmarks,
-  NormalizedPose,
-  CameraOrientation,
-  CameraSetup,
-  PoseProcessingConfig,
-  PerformanceMode,
 } as const;
 
 export default poseTypes;

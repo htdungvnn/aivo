@@ -324,15 +324,6 @@ export const workoutSessionTypes = {
   
   // Functions
   isValidSessionTransition,
-  
-  // Type exports
-  SessionStatus,
-  WorkoutSession,
-  WorkoutSummary,
-  RestTimer,
-  SessionCheckpoint,
-  PendingSync,
-  SessionEvent,
 } as const;
 
 export default workoutSessionTypes;

@@ -401,19 +401,6 @@ export const planTypes = {
   planningJobSchema,
   userExercisePreferencesSchema,
   userFitnessGoalsSchema,
-  
-  // Type exports
-  PlanStatus,
-  AdjustmentReason,
-  PlanExercise,
-  WorkoutDay,
-  WorkoutPlan,
-  ProgressSummary,
-  AIPlanningRequest,
-  PlanningJobStatus,
-  PlanningJob,
-  UserExercisePreferences,
-  UserFitnessGoals,
 } as const;
 
 export default planTypes;

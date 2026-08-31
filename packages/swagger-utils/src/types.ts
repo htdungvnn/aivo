@@ -115,24 +115,24 @@ export interface Tag {
 }
 
 // Builder types
-export interface PathBuilder {
-  get(operation: Operation): PathBuilder;
-  post(operation: Operation): PathBuilder;
-  put(operation: Operation): PathBuilder;
-  patch(operation: Operation): PathBuilder;
-  delete(operation: Operation): PathBuilder;
+export interface IPathBuilder {
+  get(operation: Operation): IPathBuilder;
+  post(operation: Operation): IPathBuilder;
+  put(operation: Operation): IPathBuilder;
+  patch(operation: Operation): IPathBuilder;
+  delete(operation: Operation): IPathBuilder;
   build(): PathItem;
 }
 
-export interface OperationBuilder {
-  summary(summary: string): OperationBuilder;
-  description(description: string): OperationBuilder;
-  operationId(id: string): OperationBuilder;
-  tags(...tags: string[]): OperationBuilder;
-  param(param: Omit<Parameter, 'name' | 'in'> & { name: string; in: Parameter['in'] }): OperationBuilder;
-  body(schema: Schema, required?: boolean): OperationBuilder;
-  response(code: string, description: string, schema?: Schema): OperationBuilder;
-  security(scheme: string): OperationBuilder;
-  deprecated(): OperationBuilder;
+export interface IOperationBuilder {
+  summary(summary: string): IOperationBuilder;
+  description(description: string): IOperationBuilder;
+  operationId(id: string): IOperationBuilder;
+  tags(...tags: string[]): IOperationBuilder;
+  param(param: Omit<Parameter, 'name' | 'in'> & { name: string; in: Parameter['in'] }): IOperationBuilder;
+  body(schema: Schema, required?: boolean): IOperationBuilder;
+  response(code: string, description: string, schema?: Schema): IOperationBuilder;
+  security(scheme: string): IOperationBuilder;
+  deprecated(): IOperationBuilder;
   build(): Operation;
 }

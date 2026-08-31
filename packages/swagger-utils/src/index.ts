@@ -5,9 +5,15 @@
  * and serving Swagger UI in Cloudflare Workers environment.
  */
 
-export * from './types.js';
-export * from './spec-builder.js';
-export * from './swagger-handler.js';
+// Re-export types
+export type { OpenAPISpec, PathItem, Operation, Parameter, Schema, Response, MediaType, SecurityScheme, SecurityRequirement, Tag } from './types.js';
+export type { IOperationBuilder, IPathBuilder } from './types.js';
+
+// Re-export builder classes
+export { OperationBuilder, PathBuilder, SpecBuilder, op, path, ref, arraySchema, objectSchema, stringSchema, numberSchema, booleanSchema, createSpec } from './spec-builder.js';
+
+// Re-export handler functions
+export { createSwaggerHandler, mountSwaggerRoutes, healthResponseSchema } from './swagger-handler.js';
 
 /**
  * Common OpenAPI schemas for API documentation
