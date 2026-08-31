@@ -33,9 +33,47 @@
       "cache": false,
       "persistent": true,
       "env": ["WRANGLER_INSPECTOR_ENABLED"]
+    },
+    "wasm#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**/*.rs", "Cargo.toml", "Cargo.lock"],
+      "outputs": ["dist/**", "target/**"],
+      "env": ["CARGO_TARGET_DIR"]
+    },
+    "wasm#check": {
+      "dependsOn": [],
+      "inputs": ["src/**/*.rs", "Cargo.toml"],
+      "outputs": []
+    },
+    "wasm#test": {
+      "dependsOn": ["wasm#build"],
+      "inputs": ["src/**/*.rs", "tests/**"],
+      "outputs": ["target/**"]
+    },
+    "wasm#lint": {
+      "dependsOn": [],
+      "inputs": ["src/**/*.rs"],
+      "outputs": []
     }
   },
   "globalDependencies": [
-    "tsconfig.json"
-  ]
+    "tsconfig.json",
+    "Cargo.toml",
+    "rust-toolchain.toml"
+  ],
+  "globalEnv": [
+    "CARGO_TARGET_DIR",
+    "RUSTUP_TOOLCHAIN",
+    "WASM_TARGET"
+  ],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    }
+  }
 }

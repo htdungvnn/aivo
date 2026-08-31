@@ -20,6 +20,7 @@
     "hono": "^4.7.0",
     "zod": "^3.23.8",
     "pdf-lib": "^1.17.1",
+    "@repo/auth-core": "workspace:*",
     "@repo/health-types": "workspace:*",
     "@repo/queue-types": "workspace:*",
     "@repo/swagger-utils": "workspace:*",

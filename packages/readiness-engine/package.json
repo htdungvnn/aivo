@@ -1,0 +1,40 @@
+{
+  "name": "@aivo/readiness-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./wasm": {
+      "import": "./dist/readiness_engine.js",
+      "types": "./dist/readiness_engine.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "wasm-pack build --target bundler --out-dir dist",
+    "build:ts": "tsc --emitDeclarationOnly",
+    "build:node": "wasm-pack build --target nodejs --out-dir dist-node",
+    "dev": "wasm-pack build --target bundler --out-dir dist --dev --watch",
+    "test": "wasm-pack test --node && cargo test",
+    "check": "cargo check && cargo clippy -- -D warnings"
+  },
+  "devDependencies": {
+    "@repo/common-types": "workspace:*",
+    "@repo/health-types": "workspace:*",
+    "@repo/wasm-core": "workspace:*",
+    "typescript": "^5.4.0",
+    "wasm-pack": "^0.13.0"
+  },
+  "peerDependencies": {
+    "@repo/common-types": ">=1.0.0",
+    "@repo/health-types": ">=1.0.0"
+  },
+  "dependencies": {
+    "@repo/wasm-core": "workspace:*"
+  }
+}

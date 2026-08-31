@@ -65,7 +65,7 @@ export function extractRequestId(
 /**
  * Create context key for request ID
  */
-export function createRequestIdContextKey(): unique symbol {
+export function createRequestIdContextKey(): symbol {
   return Symbol('requestId');
 }
 

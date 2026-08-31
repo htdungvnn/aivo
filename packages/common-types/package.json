@@ -13,7 +13,7 @@
     "./enums": "./src/enums.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
+    "lint": "pnpm exec eslint . --max-warnings 0",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

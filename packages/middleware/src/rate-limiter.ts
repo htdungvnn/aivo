@@ -60,6 +60,17 @@ export interface RateLimitStore {
   size: number;
 }
 
+/**
+ * Async rate limit store interface for distributed deployments
+ */
+export interface AsyncRateLimitStore {
+  get(key: string): Promise<RateLimitEntry | undefined>;
+  set(key: string, entry: RateLimitEntry): Promise<void>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+  size: number;
+}
+
 // =============================================================================
 // In-Memory Store
 // =============================================================================
@@ -133,7 +144,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
  * Cloudflare KV rate limit store
  * Suitable for distributed deployments
  */
-export class KVRateLimitStore implements RateLimitStore {
+export class KVRateLimitStore implements AsyncRateLimitStore {
   constructor(
     private kv: KVNamespace,
     private keyPrefix: string = 'ratelimit:'
@@ -167,7 +178,7 @@ export class KVRateLimitStore implements RateLimitStore {
 
   async clear(): Promise<void> {
     const list = await this.kv.list({ prefix: this.keyPrefix });
-    await Promise.all(list.keys.map((k) => this.kv.delete(k.name)));
+    await Promise.all(list.keys.map((k: { name: string }) => this.kv.delete(k.name)));
   }
 
   get size(): number {

@@ -19,6 +19,7 @@
   "dependencies": {
     "hono": "^4.7.0",
     "zod": "^3.23.8",
+    "@repo/auth-core": "workspace:*",
     "@repo/queue-types": "workspace:*",
     "@repo/fitness-types": "workspace:*",
     "@repo/swagger-utils": "workspace:*"
