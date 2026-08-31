@@ -165,8 +165,6 @@ export const EXERCISE_NAMES = {
 // Type Guards and Validators
 // =============================================================================
 
-import { z } from 'zod';
-
 /**
  * Check if a value is a valid exercise code
  */

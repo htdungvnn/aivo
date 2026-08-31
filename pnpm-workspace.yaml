@@ -7,8 +7,10 @@ packages:
   - "apps/services/nutrition/**"
   - "apps/services/gateway/**"
 allowBuilds:
+  '@parcel/watcher': set this to true or false
+  '@swc/core': set this to true or false
   esbuild: true
-  wasm-pack: false
+  wasm-pack: true
   workerd: true
 minimumReleaseAgeExclude:
   - "@expo/cli@57.0.20"

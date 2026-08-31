@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2022", "WebWorker"],
+    "types": ["@cloudflare/workers-types", "node"],
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -19,7 +20,11 @@
     "isolatedModules": true,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@repo/fitness-types": ["../fitness-types/src/index.ts"],
+      "@repo/fitness-types/*": ["../fitness-types/src/*.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

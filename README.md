@@ -1,235 +1,592 @@
 # AIVO - AI-Powered Health & Fitness Platform
 
-AIVO is a comprehensive monorepo containing microservices and applications for an AI-powered health, fitness, and nutrition coaching platform.
+AIVO is a comprehensive monorepo containing microservices and applications for an AI-powered health, fitness, and nutrition coaching platform. Built with modern technologies including Cloudflare Workers, Next.js, React Native (Expo), and TypeScript.
+
+## 🎯 Project Overview
+
+AIVO provides:
+- **Daily Intelligence**: Readiness scores, AI-powered health insights, and personalized recommendations
+- **AI Coaching**: Real-time pose detection, workout tracking, and form correction
+- **Nutrition Tracking**: Meal analysis, calorie tracking, and personalized meal planning
+- **Health Reports**: Weekly/monthly PDF reports with AI-generated summaries
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           CLIENTS                                     │
+│  ┌──────────────────┐    ┌──────────────────┐    ┌────────────────┐ │
+│  │   Web App        │    │   Mobile App     │    │   Third-party  │ │
+│  │   (Next.js 16)   │    │   (Expo SDK 57)  │    │   Integrations │ │
+│  └────────┬─────────┘    └────────┬─────────┘    └───────┬────────┘ │
+└───────────┼───────────────────────┼──────────────────────┼──────────┘
+            │                       │                      │
+            └───────────────────────┼──────────────────────┘
+                                    │
+                           ┌────────▼────────┐
+                           │   API Gateway   │
+                           │   (aivo-gateway)│
+                           └────────┬────────┘
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         │                          │                          │
+    ┌────▼────┐   ┌───────────▼───┐   ┌───────────▼───┐   ┌──▼──────┐
+    │  Auth   │   │    Health     │   │    Coach      │   │ Nutrition│
+    │ Service │   │    Service    │   │    Service    │   │ Service │
+    └────┬────┘   └───────┬───────┘   └───────┬───────┘   └───┬──────┘
+         │                │                    │                │
+         │           ┌─────▼─────┐       ┌─────▼─────┐   ┌─────▼─────┐
+         │           │   Queue    │       │   Queue    │   │   Queue    │
+         │           │  Consumer  │       │  Consumer  │   │  Consumer  │
+         │           └─────┬─────┘       └─────┬─────┘   └─────┬─────┘
+         │                │                    │                │
+         │           ┌─────▼─────┐       ┌─────▼─────┐   ┌─────▼─────┐
+         │           │   Mail     │       │   WASM     │   │   AI      │
+         │           │  Service   │       │  Gateway   │   │  Gateway  │
+         │           └────────────┘       └───────────┘   └───────────┘
+         │
+    ┌────▼────────────────────────────┐
+    │         Shared Packages           │
+    │  • @repo/common-types           │
+    │  • @repo/health-types           │
+    │  • @repo/fitness-types         │
+    │  • @repo/nutrition-types       │
+    │  • @repo/queue-types           │
+    │  • @repo/exercise-engine       │
+    │  • @repo/wasm-gateway          │
+    │  • @repo/api-client            │
+    │  • @aivo/middleware            │
+    └─────────────────────────────────┘
+```
 
 ## 📁 Project Structure
 
 ```
 aivo/
 ├── apps/
-│   ├── web/              # Next.js web application
-│   ├── mobile/           # React Native mobile app (Expo)
-│   └── services/         # Cloudflare Workers microservices
-│       ├── gateway/      # API Gateway - unified entry point
-│       ├── auth/         # Authentication & user management
-│       ├── health/       # Health tracking & readiness engine
-│       ├── coach/        # AI workout coaching
-│       ├── nutrition/    # Meal planning & nutrition tracking
-│       └── mail/         # Email service
+│   ├── web/                    # Next.js 16 web application
+│   │   ├── app/                # App Router pages
+│   │   ├── components/         # React components
+│   │   └── lib/               # API clients
+│   │
+│   ├── mobile/                # React Native mobile app (Expo SDK 57)
+│   │   ├── app/               # Expo Router screens
+│   │   ├── components/        # Mobile components
+│   │   ├── hooks/             # Custom hooks
+│   │   ├── lib/               # Utilities
+│   │   └── services/          # API services
+│   │
+│   └── services/              # Cloudflare Workers microservices
+│       ├── auth/              # Authentication & user management
+│       │   ├── src/
+│       │   │   ├── db/       # D1 database operations
+│       │   │   ├── lib/      # JWT, tokens
+│       │   │   ├── middleware/# Auth middleware
+│       │   │   ├── providers/ # OAuth providers
+│       │   │   ├── routes/   # API routes
+│       │   │   ├── services/ # Business logic
+│       │   │   └── types/    # Type definitions
+│       │   ├── test/         # Tests
+│       │   ├── wrangler.jsonc
+│       │   └── package.json
+│       │
+│       ├── health/            # Health tracking & readiness engine
+│       │   ├── src/
+│       │   │   ├── db/       # D1 database operations
+│       │   │   ├── lib/      # Readiness engine, reports
+│       │   │   ├── middleware/# Auth middleware
+│       │   │   ├── routes/   # API routes
+│       │   │   └── types/    # Type definitions
+│       │   ├── test/         # Tests
+│       │   ├── wrangler.jsonc
+│       │   └── package.json
+│       │
+│       ├── coach/             # AI workout coaching
+│       ├── nutrition/         # Meal planning & nutrition tracking
+│       ├── mail/              # Email service (Resend)
+│       └── gateway/           # API Gateway (unified entry point)
 │
-├── packages/             # Shared libraries
-│   ├── api-client/       # API client utilities
-│   ├── common-types/     # Shared TypeScript types & utilities
-│   ├── design-system/    # Shared design components
-│   ├── exercise-engine/  # WebAssembly-based pose detection
-│   ├── fitness-types/    # Fitness domain types
-│   ├── health-types/     # Health domain types
-│   ├── nutrition-types/  # Nutrition domain types
-│   ├── queue-types/      # Queue message types
-│   ├── swagger-utils/    # Swagger/OpenAPI utilities
-│   ├── ui/               # React UI components
-│   ├── wasm-gateway/     # WASM module loader & executor
-│   └── eslint-config/    # ESLint configurations
-│
-├── turbo.json            # Turborepo configuration
-├── pnpm-workspace.yaml   # pnpm workspace definition
-└── package.json          # Root package.json
+├── packages/                  # Shared libraries
+│   ├── api-client/           # API client utilities
+│   ├── common-types/         # Shared TypeScript types & utilities
+│   ├── design-system/        # Shared design components
+│   ├── eslint-config/        # ESLint configurations
+│   ├── exercise-engine/      # WebAssembly-based pose detection (TS)
+│   ├── fitness-types/        # Fitness domain types (Zod schemas)
+│   ├── health-types/         # Health domain types (Zod schemas)
+│   ├── middleware/           # Shared middleware (Hono)
+│   ├── nutrition-types/      # Nutrition domain types (Zod schemas)
+│   ├── queue-types/          # Queue message types
+│   ├── report-types/         # Health report types
+│   ├── swagger-utils/        # Swagger/OpenAPI utilities
+│   ├── typescript-config/    # TypeScript configurations
+│   ├── ui/                   # React UI components
+│   └── wasm-gateway/         # WASM module loader & executor
+
+├── packages/wasm/               # WASM Engines
+│   ├── wasm-core/              # Shared Rust utilities (math, validation, geometry)
+│   ├── readiness-engine/       # Deterministic readiness scoring
+│   ├── health-engine/          # BMI, BMR, TDEE calculations
+│   ├── nutrition-engine/        # Macro calculations, meal aggregation
+│   └── analytics-engine/        # Time-series processing
+
+├── turbo.json               # Turborepo configuration
+├── pnpm-workspace.yaml      # pnpm workspace definition
+└── package.json             # Root package.json
 ```
 
-## 🏃 Applications
+## 🔧 Technologies
 
-### Web Application (`apps/web`)
-- **Framework**: Next.js 16 (App Router)
-- **Styling**: Tailwind CSS v4
-- **Features**: Dashboard, user settings, nutrition tracking, AI intelligence
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Web App | Next.js | 16.x |
+| Mobile App | React Native (Expo) | SDK 57 |
+| Services | Cloudflare Workers + Hono | - |
+| Language | TypeScript | 5.x / 7.x |
+| WASM Engines | Rust | stable |
+| Validation | Zod | 4.x |
+| Auth | JWT (ES256) | - |
+| Deployment | Cloudflare | - |
+| Package Manager | pnpm | 11.x |
+| Monorepo | Turborepo | 2.x |
 
-### Mobile Application (`apps/mobile`)
-- **Framework**: Expo SDK 57
-- **Language**: TypeScript
-- **Features**: On-the-go tracking, pose detection, real-time coaching
+## ⚡ WASM Engines
 
-### Microservices (`apps/services/*`)
+AIVO uses WebAssembly for computation-intensive, deterministic operations:
 
-All services are built on **Cloudflare Workers** with **Hono** framework.
+### Engine Architecture
 
-| Service | Port | Description |
-|---------|------|-------------|
-| `gateway` | 3000 | API Gateway - unified entry point |
-| `auth` | 3001 | User authentication, OAuth, JWT tokens |
-| `health` | 3002 | Health metrics, readiness scores, AI insights |
-| `coach` | 3003 | Workout planning, session tracking, AI coaching |
-| `nutrition` | 3004 | Meal logging, AI food analysis, planning |
-| `mail` | 3005 | Email notifications (via Resend) |
+```
+packages/wasm/
+├── wasm-core/           # Shared utilities (math, validation, geometry, stats)
+├── exercise-engine/     # Pose detection and exercise analysis (Rust)
+├── readiness-engine/     # Readiness score calculation (Rust)
+├── health-engine/       # BMI, BMR, TDEE calculations
+├── nutrition-engine/     # Macro calculations, meal aggregation
+└── analytics-engine/    # Time-series processing
 
-## 📦 Shared Packages
+packages/wasm-gateway/    # Unified TypeScript adapter
+```
 
-### `@repo/wasm-gateway`
-WASM module loader with automatic TypeScript fallback:
-- Unified interface for WASM modules
-- Performance monitoring and benchmarking
-- Circuit breaker pattern
-- Cloudflare Workers native support
+### Why WASM?
 
-### `@repo/api-client`
-Type-safe API client for all services with:
-- Automatic token refresh
-- Request/response typing
-- Error handling
+- **Deterministic results** across Web, Mobile, and Cloudflare Workers
+- **Performance** for real-time exercise analysis
+- **Code sharing** across platforms
+- **Offline capability** for mobile
 
-### `@repo/common-types`
-Shared utilities extracted to reduce duplication:
-- UUID generation with fallbacks
-- Date/time utilities
-- Validation helpers (isFiniteNumber, clamp, roundTo)
-- Common enums (CHART_METRIC, CLIENT_TYPE, etc.)
+### Engines
 
-### `@repo/fitness-types`, `@repo/health-types`, `@repo/nutrition-types`
-Domain-specific Zod schemas and TypeScript types.
+| Engine | Purpose | Runtime |
+|--------|---------|---------|
+| exercise-engine | Pose detection, form analysis | Rust/WASM |
+| readiness-engine | Daily readiness scoring | Rust/WASM |
+| health-engine | BMI, BMR, TDEE | TypeScript |
+| nutrition-engine | Macro calculations | TypeScript |
+| analytics-engine | Time-series analytics | TypeScript |
 
-### `@repo/exercise-engine`
-WebAssembly-powered pose detection using MediaPipe:
-- 33-point body landmark detection
-- Real-time angle calculations
-- Rep counting
-- Form correction feedback
+### Building WASM
 
-## 🔧 Development
+```bash
+# Build all WASM modules
+pnpm wasm:build
+
+# Build specific engine
+cd packages/readiness-engine
+wasm-pack build --target bundler --out-dir dist
+```
+
+### Fallback Strategy
+
+- Exercise engine: **WASM required** (core feature)
+- Other engines: **TypeScript fallback** available
+
+## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js >= 24
-- pnpm 11+
-- Wrangler CLI (for Cloudflare Workers)
-- Expo CLI (for mobile development)
+- pnpm >= 11.x
+- Wrangler CLI (`npm install -g wrangler`)
+- Cloudflare account (for deployment)
 
 ### Installation
 
 ```bash
+# Install dependencies
 pnpm install
-```
 
-### Commands
-
-```bash
 # Build all packages
 pnpm build
-
-# Development mode
-pnpm dev
-
-# Lint all packages
-pnpm lint
-
-# Type check all packages
-pnpm check-types
-
-# Format code
-pnpm format
 ```
 
-### Service Development
+### Development
 
 ```bash
-# Auth service
+# Start all services in development mode
+pnpm dev
+
+# Start specific service
 cd apps/services/auth
 pnpm dev
 
-# Nutrition service
-cd apps/services/nutrition
+# Start web app
+cd apps/web
 pnpm dev
-```
 
-### Mobile Development
-
-```bash
+# Start mobile app
 cd apps/mobile
 pnpm dev
 ```
 
-## 🏗️ Architecture
+### Testing
 
-### API Communication
+```bash
+# Run all tests
+pnpm test
 
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│   Web   │────▶│   Auth  │     │  Health │
-│ Mobile  │     │ Service │     │ Service │
-└─────────┘     └─────────┘     └─────────┘
-     │               │               │
-     │               │               │
-     └───────────────┴───────────────┘
-                     │
-              JWT Token Validation
+# Run tests for specific package
+cd packages/health-types
+pnpm test
 ```
 
-### Data Flow
+### Type Checking
 
-1. Client sends request with JWT token
-2. Auth service validates token via middleware
-3. Service processes request
-4. Response returned with appropriate status
-
-### Queue Architecture
-
-```
-┌────────────┐     ┌────────────┐     ┌────────────┐
-│  Service   │────▶│  Queue    │────▶│  Worker   │
-│  (Producer)│     │           │     │  (Consumer│
-└────────────┘     └────────────┘     └────────────┘
+```bash
+pnpm check-types
 ```
 
-## 📊 Type System
+### Linting
 
-### Zod Schemas
-
-All API inputs should be validated using Zod schemas:
-
-```typescript
-import { z } from 'zod';
-
-export const CreateMealSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
-  items: z.array(z.object({
-    name: z.string().min(1),
-    quantity: z.number().positive(),
-  })).min(1),
-});
+```bash
+pnpm lint
 ```
 
-### Type Exports
+## 📦 Services
 
-Types are exported from domain packages:
+### Auth Service (`apps/services/auth`)
 
-```typescript
-import type { HealthScore } from '@repo/health-types';
-import type { MealPlan } from '@repo/nutrition-types';
-import type { WorkoutPlan } from '@repo/fitness-types';
-```
+**Port:** 3001
 
-## 🔒 Security
+Handles:
+- User registration and authentication
+- JWT token management (access + refresh tokens)
+- OAuth integration (Google, Facebook)
+- Email verification
+- Session management
+- Admin user management
+
+**Key Endpoints:**
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh tokens
+- `POST /api/v1/auth/logout` - Logout
+- `GET /api/v1/auth/me` - Get current user
+- `POST /api/v1/oauth/start` - Start OAuth flow
+- `GET /api/v1/oauth/callback/:provider` - OAuth callback
+
+**Database:** D1 (`aivo-auth-db`)
+
+### Health Service (`apps/services/health`)
+
+**Port:** 3004
+
+Handles:
+- Daily Readiness calculation
+- Daily Intelligence aggregation
+- Health data tracking
+- AI-powered health insights
+- Health report generation (PDF)
+- Report scheduling
+
+**Key Endpoints:**
+- `GET /api/v1/health/readiness/today` - Today's readiness
+- `POST /api/v1/health/checkin` - Submit daily check-in
+- `GET /api/v1/health/intelligence` - Daily intelligence
+- `GET /api/v1/health/charts/:metric` - Chart data
+- `POST /api/v1/reports` - Create report
+- `GET /api/v1/reports` - List reports
+
+**Database:** D1 (`aivo-health-db`)
+**Storage:** R2 (`aivo-health-reports`)
+
+### Coach Service (`apps/services/coach`)
+
+Handles:
+- Workout planning
+- Session tracking
+- Exercise definitions
+- Progress tracking
+- Plan adjustment
+
+**Key Endpoints:**
+- `GET /api/v1/coach/plans` - Get workout plans
+- `POST /api/v1/coach/sessions` - Start workout session
+- `PUT /api/v1/coach/sessions/:id` - Update session
+- `GET /api/v1/coach/progress` - Progress tracking
+
+### Nutrition Service (`apps/services/nutrition`)
+
+Handles:
+- Meal tracking
+- Food analysis (AI-powered)
+- Meal planning
+- Nutrition calculations
+- Calorie/macro tracking
+
+**Key Endpoints:**
+- `POST /api/v1/nutrition/meals` - Log meal
+- `POST /api/v1/nutrition/upload` - Upload meal image
+- `GET /api/v1/nutrition/foods` - Food database
+- `GET /api/v1/nutrition/plans` - Meal plans
+
+**Storage:** R2 (meal images)
+**AI:** Workers AI for food analysis
+
+### Mail Service (`apps/services/mail`)
+
+Handles:
+- Transactional emails (Resend)
+- Health report notifications
+- Email verification
+- Queue-based processing
+
+**Features:**
+- Bilingual support (EN/VI)
+- Retry logic with DLQ
+- Deduplication
+- Batch processing
+
+### Gateway Service (`apps/services/gateway`)
+
+**Port:** 4000
+
+Unified API entry point with:
+- Service routing
+- Rate limiting (in-memory/KV)
+- CORS handling
+- Circuit breaker
+- Metrics
+- Swagger documentation
+
+## 📚 Shared Packages
+
+### @repo/common-types
+
+Shared utilities:
+- UUID generation with fallbacks
+- Date/time utilities
+- Validation helpers
+- Common enums
+
+### @repo/health-types
+
+Health domain types:
+- Readiness types & schemas
+- Health data types
+- Chart configurations
+- AI insights types
+- Validation functions
+
+### @repo/fitness-types
+
+Fitness domain types:
+- Exercise definitions
+- Pose detection types
+- Workout session types
+- Correction feedback
+- WASM engine types
+
+### @repo/nutrition-types
+
+Nutrition domain types:
+- Meal and food schemas
+- Nutrition calculations
+- AI analysis types
+- Chart data
+
+### @repo/queue-types
+
+Queue message schemas:
+- Email verification messages
+- Report delivery messages
+- Message creators and validators
+
+### @repo/exercise-engine
+
+Pose detection engine:
+- TypeScript implementation
+- WASM-ready architecture
+- Exercise state machine
+- Form evaluation
+
+### @repo/wasm-gateway
+
+WASM module loader:
+- Auto-fallback to TypeScript
+- Performance monitoring
+- Benchmarking
+- Circuit breaker
+
+### @aivo/middleware
+
+Shared middleware:
+- Rate limiting
+- CORS handling
+- Error handling
+- Request ID
+
+## 🌐 Web Application
+
+### Pages
+
+- `/` - Landing page
+- `/login` - User login
+- `/register` - User registration
+- `/dashboard` - Main dashboard
+- `/health/*` - Health tracking pages
+- `/coach/*` - Workout coaching pages
+- `/nutrition/*` - Nutrition pages
+- `/intelligence` - Daily intelligence
+- `/reports` - Health reports
+- `/settings/*` - User settings
+- `/admin` - Admin panel
+
+### Components
+
+- Landing components (hero, features, pricing, etc.)
+- Shell components (sidebar, header)
+- UI components (button, card, input, etc.)
+- Auth components
+
+## 📱 Mobile Application
+
+### Screens
+
+- Today - Daily overview
+- Coach - AI coaching
+- Plan - Workout plan
+- Progress - Progress tracking
+- More - Additional features
+
+### Features
+
+- Expo Router for navigation
+- Real-time pose detection
+- Haptic feedback
+- Camera integration
+- Secure token storage
+
+## 🔐 Security
 
 ### Authentication
-- JWT tokens with RS256 signing
+- JWT tokens with ES256 signing
 - Access tokens: 15 minutes expiry
 - Refresh tokens: 7 days expiry
-
-### Rate Limiting
-- Per-IP rate limiting in middleware
-- KV-based for distributed environments
-- Configurable limits per endpoint
+- Secure HTTP-only cookies
 
 ### Input Validation
 - Zod schemas for all API inputs
 - TypeScript strict mode enabled
 - Sanitization for XSS prevention
 
-## 📝 Documentation
+### Rate Limiting
+- Per-IP rate limiting in middleware
+- KV-based for distributed environments
 
-For detailed API documentation, see each service's Swagger endpoint:
-- Auth: `GET /swagger`
-- Health: `GET /swagger`
-- Coach: `GET /swagger`
-- Nutrition: `GET /swagger`
+## 📊 Monitoring
+
+### Observability
+- Cloudflare Observability enabled
+- Request logging
+- Error tracking
+- Performance metrics
+
+### Logging
+- Structured logging with request IDs
+- Error categorization
+- Debug logging in development
+
+## 🚢 Deployment
+
+### Services
+
+```bash
+# Deploy auth service
+cd apps/services/auth
+wrangler deploy
+
+# Deploy health service
+cd apps/services/health
+wrangler deploy
+
+# Deploy all services
+pnpm -r --filter=./apps/services/* deploy
+```
+
+### Environment Variables
+
+```bash
+# Auth Service
+AUTH_JWT_PRIVATE_KEY=<base64-encoded-private-key>
+AUTH_JWT_PUBLIC_KEY=<base64-encoded-public-key>
+
+# Health Service
+AUTH_SERVICE_URL=https://aivo-auth.workers.dev
+
+# Gateway
+AUTH_SERVICE_URL=<auth-service-url>
+HEALTH_SERVICE_URL=<health-service-url>
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pnpm test
+
+# Run with coverage
+pnpm test --coverage
+
+# Watch mode
+pnpm test --watch
+
+# Specific service
+cd apps/services/auth && pnpm test
+```
+
+## 📈 CI/CD
+
+Turborepo task orchestration:
+- `build` - Build all packages
+- `check-types` - Type check all packages
+- `lint` - Lint all packages
+- `test` - Run all tests
+- `dev` - Development mode
+
+## 🔧 Configuration
+
+### TypeScript
+
+- Strict mode enabled
+- Bundler module resolution
+- ESM support with .js extensions
+
+### ESLint
+
+- Prettier integration
+- Turbo plugin
+- TypeScript ESLint
+
+### Turborepo
+
+- Remote caching
+- Task pipeline
+- Output logging
+
+## 📝 License
+
+Private - All rights reserved
 
 ## 🤝 Contributing
 
@@ -238,7 +595,3 @@ For detailed API documentation, see each service's Swagger endpoint:
 3. Add tests for new features
 4. Ensure all CI checks pass
 5. Submit a pull request
-
-## 📄 License
-
-Private - All rights reserved

@@ -4,10 +4,8 @@
  * Unified export for WASM module loading and execution.
  */
 
-export { WASMGateway, createWasmGateway, isWASMSupported, getAvailableEngines } from './index.js';
-export type { EngineGatewayConfig, EngineType, EngineStrategy } from './index.js';
-
-export { default as WASMGateway } from './index.js';
+export { WASMGateway, createWasmGateway, isWASMSupported, getAvailableEngines } from './gateway.js';
+export type { EngineGatewayConfig, EngineType, EngineStrategy } from './gateway.js';
 
 export * from './types.js';
 

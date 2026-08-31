@@ -5,9 +5,6 @@
 
 import type { 
   WASMEngineConfig, 
-  WASMInput, 
-  WASMOutput, 
-  EngineState,
   BenchmarkResult,
   TypeScriptEngine 
 } from '@repo/fitness-types';
@@ -48,7 +45,7 @@ export interface WASMModuleInstance {
   benchmark(iterations: number): string;
   
   /** Get module version string */
-  version(): string;
+  getVersion(): string;
   
   /** Clean up resources */
   dispose(): void;
@@ -389,27 +386,3 @@ export interface GatewayState {
  * Gateway state listener
  */
 export type GatewayStateListener = (state: GatewayState) => void;
-
-// =============================================================================
-// Module Exports
-// =============================================================================
-
-export const wasmGatewayTypes = {
-  // Types
-  WASMModuleInstance,
-  WASMBinary,
-  WASMLoadOptions,
-  WASMLoaderConfig,
-  WASMModuleManifest,
-  EngineGatewayConfig,
-  ExecutionContext,
-  PerformanceMetrics,
-  BenchmarkComparison,
-  GatewayState,
-  
-  // Error
-  WASMGatewayError,
-  WASMGatewayErrorCode,
-} as const;
-
-export type WasmGatewayTypes = typeof wasmGatewayTypes;

@@ -55,11 +55,12 @@ export interface ApiSuccess<T = unknown> {
 // Re-export commonly used types
 // =============================================================================
 
-export type { MiddlewareHandler } from './hono.js';
+export type { MiddlewareHandler } from 'hono';
 export type { 
   RateLimitConfig, 
   RateLimitStore,
-  RateLimitEntry 
+  RateLimitEntry,
+  AsyncRateLimitStore
 } from './rate-limiter.js';
 export type { 
   CORSConfig, 

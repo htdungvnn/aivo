@@ -21,7 +21,7 @@ import {
   Dumbbell,
   Droplets,
   Moon,
-  Walk,
+  Footprints,
   CheckCircle,
   Circle,
   Lock,
@@ -32,6 +32,7 @@ import {
   Sunset,
   Sunrise,
   Sparkles,
+  Heart,
 } from "lucide-react";
 
 // =============================================================================
@@ -168,7 +169,7 @@ const typeIcons: Record<PlanItem["type"], React.ElementType> = {
   meal: Utensils,
   workout: Dumbbell,
   hydration: Droplets,
-  walk: Walk,
+  walk: Footprints,
   sleep: Moon,
   habit: CheckCircle,
   recovery: Heart,

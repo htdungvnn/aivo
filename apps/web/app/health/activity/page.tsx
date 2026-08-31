@@ -22,7 +22,6 @@ import {
   TrendingDown,
   Minus,
   Target,
-  Walk,
   Bike,
   Activity as ActivityIcon,
   Zap,

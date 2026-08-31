@@ -9,8 +9,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { etag } from 'hono/etag';
 import { secureHeaders } from 'hono/secure-headers';
-import type { WASMEngineConfig, WASMInput, WASMOutput } from '@repo/fitness-types';
-import { WASMGateway, isWASMSupported } from './index.js';
+import type { ExportedHandler, ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
+import type { WASMInput, WASMOutput } from '@repo/fitness-types';
+import { WASMGateway, isWASMSupported } from './gateway.js';
 
 // =============================================================================
 // Environment Types
@@ -323,11 +324,11 @@ export default {
     return app.fetch(request, env as unknown as Context, ctx);
   },
   
-  async scheduled(controller: ScheduledController, env: WASMGatewayEnv, ctx: ExecutionContext): Promise<void> {
+  async scheduled(_controller: ScheduledController, env: WASMGatewayEnv, _ctx: ExecutionContext): Promise<void> {
     // Periodic benchmark to select best engine
     if (env.ENABLE_BENCHMARK === 'true' && gateway) {
       console.log('Running scheduled benchmark...');
       await gateway.runBenchmark();
     }
   },
-} satisfies ExportedHandler<WASMGatewayEnv>;
+} as unknown as ExportedHandler<WASMGatewayEnv>;

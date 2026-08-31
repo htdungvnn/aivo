@@ -9,11 +9,9 @@ import type { MiddlewareHandler } from 'hono';
 import type { Context } from 'hono';
 
 import {
-  AppError,
   isAppError,
   getStatusCode,
   fromZodError,
-  type ErrorCode,
 } from './errors.js';
 
 import {
@@ -107,7 +105,7 @@ export function errorHandler(options?: {
 
   return async (c, next) => {
     try {
-      await next();
+      return await next();
     } catch (error) {
       const requestId = getRequestId(c);
 
@@ -118,18 +116,18 @@ export function errorHandler(options?: {
 
       // Handle AppError
       if (isAppError(error)) {
-        const response: Record<string, unknown> = {
-          error: {
-            code: error.code,
-            message: error.message,
-            requestId,
-            ...(error.details && { details: error.details }),
-          },
+        const errorBody: Record<string, unknown> = {
+          code: error.code,
+          message: error.message,
+          requestId,
         };
+        if (error.details !== undefined) {
+          errorBody.details = error.details;
+        }
 
         // Add stack trace in development
         if (opts.includeStack && error.stack) {
-          (response.error as Record<string, unknown>).stack = error.stack
+          errorBody.stack = error.stack
             .split('\n')
             .slice(0, 5);
         }
@@ -139,7 +137,7 @@ export function errorHandler(options?: {
           c.header('Retry-After', String((error as { retryAfter?: number }).retryAfter || 60));
         }
 
-        return c.json(response, error.statusCode);
+        return c.json({ error: errorBody }, error.statusCode as any);
       }
 
       // Handle Zod errors
@@ -158,22 +156,19 @@ export function errorHandler(options?: {
       }
 
       // Handle unknown errors
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      const response: Record<string, unknown> = {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'An internal error occurred',
-          requestId,
-        },
+      const errorBody: Record<string, unknown> = {
+        code: 'INTERNAL_ERROR',
+        message: 'An internal error occurred',
+        requestId,
       };
 
       if (opts.includeStack && error instanceof Error && error.stack) {
-        (response.error as Record<string, unknown>).stack = error.stack
+        errorBody.stack = error.stack
           .split('\n')
           .slice(0, 5);
       }
 
-      return c.json(response, getStatusCode(error));
+      return c.json({ error: errorBody }, getStatusCode(error) as any);
     }
   };
 }
@@ -253,7 +248,7 @@ export function rateLimit(config?: RateLimitConfig): MiddlewareHandler {
       );
     }
 
-    await next();
+    return await next();
   };
 }
 
@@ -274,35 +269,37 @@ function setRateLimitHeaders(c: Context, result: RateLimitResult): void {
  * Hono middleware for CORS handling
  */
 export function cors(options?: CORSConfig): MiddlewareHandler {
-  const validator = createCORSValidator(options || {});
+  const validator = createCORSValidator(
+    options ?? { origins: ['http://localhost:3000'] }
+  );
 
   return async (c, next) => {
     const origin = c.req.header('Origin');
-    const allowedOrigin = validator.validateOrigin(origin, c.req.raw);
+    const allowedOrigin = validator.validateOrigin(origin ?? null, c.req.raw);
 
     if (allowedOrigin) {
       c.header('Access-Control-Allow-Origin', allowedOrigin);
       c.header('Access-Control-Allow-Credentials', 'true');
 
       if (c.req.method === 'OPTIONS') {
-        const config = options || {};
+        const config: Partial<CORSConfig> = options ?? {};
         c.header(
           'Access-Control-Allow-Methods',
-          (config.methods || ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']).join(', ')
+          (config.methods ?? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']).join(', ')
         );
         c.header(
           'Access-Control-Allow-Headers',
-          (config.headers || ['Content-Type', 'Authorization', 'X-Request-ID']).join(', ')
+          (config.headers ?? ['Content-Type', 'Authorization', 'X-Request-ID']).join(', ')
         );
         c.header(
           'Access-Control-Max-Age',
-          String(config.maxAge || 86400)
+          String(config.maxAge ?? 86400)
         );
         return c.text('', 200);
       }
     }
 
-    await next();
+    return await next();
   };
 }
 
