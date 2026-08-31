@@ -1,7 +1,11 @@
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './routing';
 
-export default createMiddleware(routing);
+const intlMiddleware = createMiddleware(routing);
+
+export default function middleware(request: Request) {
+  return intlMiddleware(request);
+}
 
 export const config = {
   matcher: [

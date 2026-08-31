@@ -4,6 +4,16 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:all": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile dev",
+    "dev:auth": "pnpm --filter @aivo/auth dev",
+    "dev:nutrition": "pnpm --filter @aivo/nutrition dev",
+    "dev:coach": "pnpm --filter @aivo/coach dev",
+    "dev:health": "pnpm --filter @aivo/health dev",
+    "dev:mail": "pnpm --filter @aivo/mail dev",
+    "dev:gateway": "pnpm --filter @aivo/gateway dev",
+    "dev:setup": "bash scripts/dev-setup.sh",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
