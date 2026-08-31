@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Circle, Line, G } from 'react-native-svg';
-import type { CorrectionResult } from '@repo/fitness-types/correction';
+import type { CorrectionResult } from '@aivo/fitness-types/correction';
 import { LANDMARK_INDICES } from '../../lib/coach/pose-processing';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

@@ -2,7 +2,7 @@
  * Cloudflare Workers Environment Types
  */
 
-import type { EmailVerificationQueueMessage } from '@repo/queue-types';
+import type { EmailVerificationQueueMessage } from '@aivo/queue-types';
 
 export interface Env {
   // D1 Database

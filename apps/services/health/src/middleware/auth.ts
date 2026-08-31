@@ -12,10 +12,10 @@ import {
   getClientIP,
   getUserAgent,
   type AuthEnv as CoreAuthEnv,
-} from '@repo/auth-core';
-import { getJWTService } from '@repo/auth-core/jwt';
-import { JWTService } from '@repo/auth-core';
-import { AUTH_ERROR_CODES } from '@repo/auth-core';
+} from '@aivo/auth-core';
+import { getJWTService } from '@aivo/auth-core/jwt';
+import { JWTService } from '@aivo/auth-core';
+import { AUTH_ERROR_CODES } from '@aivo/auth-core';
 
 /**
  * Health service auth environment

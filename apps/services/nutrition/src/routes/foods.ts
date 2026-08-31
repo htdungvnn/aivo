@@ -15,7 +15,7 @@ import {
   upsertUserCorrection,
 } from '../db/queries';
 import { NutritionCalculator } from '../services/calculations';
-import type { NutritionValues } from '@repo/nutrition-types';
+import type { NutritionValues } from '@aivo/nutrition-types';
 
 const foods = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 

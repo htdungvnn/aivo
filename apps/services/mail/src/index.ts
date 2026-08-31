@@ -21,7 +21,7 @@ import {
 import type {
   EmailVerificationQueueMessage,
   ReportReadyQueueMessage,
-} from '@repo/queue-types';
+} from '@aivo/queue-types';
 
 // Environment interface
 export interface Env {

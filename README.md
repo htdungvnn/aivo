@@ -47,14 +47,14 @@ AIVO provides:
          │
     ┌────▼────────────────────────────┐
     │         Shared Packages           │
-    │  • @repo/common-types           │
-    │  • @repo/health-types           │
-    │  • @repo/fitness-types         │
-    │  • @repo/nutrition-types       │
-    │  • @repo/queue-types           │
-    │  • @repo/exercise-engine       │
-    │  • @repo/wasm-gateway          │
-    │  • @repo/api-client            │
+    │  • @aivo/common-types           │
+    │  • @aivo/health-types           │
+    │  • @aivo/fitness-types         │
+    │  • @aivo/nutrition-types       │
+    │  • @aivo/queue-types           │
+    │  • @aivo/exercise-engine       │
+    │  • @aivo/wasm-gateway          │
+    │  • @aivo/api-client            │
     │  • @aivo/middleware            │
     └─────────────────────────────────┘
 ```
@@ -371,7 +371,7 @@ Unified API entry point with:
 
 ## 📚 Shared Packages
 
-### @repo/common-types
+### @aivo/common-types
 
 Shared utilities:
 - UUID generation with fallbacks
@@ -379,7 +379,7 @@ Shared utilities:
 - Validation helpers
 - Common enums
 
-### @repo/health-types
+### @aivo/health-types
 
 Health domain types:
 - Readiness types & schemas
@@ -388,7 +388,7 @@ Health domain types:
 - AI insights types
 - Validation functions
 
-### @repo/fitness-types
+### @aivo/fitness-types
 
 Fitness domain types:
 - Exercise definitions
@@ -397,7 +397,7 @@ Fitness domain types:
 - Correction feedback
 - WASM engine types
 
-### @repo/nutrition-types
+### @aivo/nutrition-types
 
 Nutrition domain types:
 - Meal and food schemas
@@ -405,14 +405,14 @@ Nutrition domain types:
 - AI analysis types
 - Chart data
 
-### @repo/queue-types
+### @aivo/queue-types
 
 Queue message schemas:
 - Email verification messages
 - Report delivery messages
 - Message creators and validators
 
-### @repo/exercise-engine
+### @aivo/exercise-engine
 
 Pose detection engine:
 - TypeScript implementation
@@ -420,7 +420,7 @@ Pose detection engine:
 - Exercise state machine
 - Form evaluation
 
-### @repo/wasm-gateway
+### @aivo/wasm-gateway
 
 WASM module loader:
 - Auto-fallback to TypeScript

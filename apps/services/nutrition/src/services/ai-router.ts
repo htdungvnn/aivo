@@ -3,7 +3,7 @@
  * Handles model selection, cost optimization, and fallback logic
  */
 
-import type { AIModel } from '@repo/nutrition-types';
+import type { AIModel } from '@aivo/nutrition-types';
 
 export interface AIModelConfig {
   modelId: AIModel;

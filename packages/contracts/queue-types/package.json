@@ -1,0 +1,26 @@
+{
+  "name": "@aivo/queue-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "pnpm exec eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@aivo/eslint-config": "workspace:*",
+    "@types/node": "^26.4.0",
+    "eslint": "^10.9.1",
+    "typescript": "^7.0.2",
+    "vitest": "~4.1.11"
+  }
+}

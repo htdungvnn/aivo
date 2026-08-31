@@ -3,7 +3,7 @@
  * API client for the coach service
  */
 
-import type { ExerciseDefinition, WorkoutPlan, WorkoutSession, WorkoutSummary, ProgressSummary } from '@repo/fitness-types';
+import type { ExerciseDefinition, WorkoutPlan, WorkoutSession, WorkoutSummary, ProgressSummary } from '@aivo/fitness-types';
 import { getAuthClient } from '../../lib/auth';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_COACH_API_URL || 'http://localhost:8787/api/v1';

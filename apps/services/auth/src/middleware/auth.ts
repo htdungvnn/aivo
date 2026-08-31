@@ -8,9 +8,9 @@
 import type { Context, Next } from 'hono';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { JWTPayload, ClientType, UserStatus } from '../types';
-import { getJWTService, setJWTService } from '@repo/auth-core';
-import { JWTService } from '@repo/auth-core';
-import { AUTH_ERROR_CODES } from '@repo/auth-core';
+import { getJWTService, setJWTService } from '@aivo/auth-core';
+import { JWTService } from '@aivo/auth-core';
+import { AUTH_ERROR_CODES } from '@aivo/auth-core';
 import { getValidSession, getUserById, getUserRoles } from '../db/queries';
 
 export interface AuthEnv {

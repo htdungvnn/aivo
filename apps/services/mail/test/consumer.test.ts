@@ -9,7 +9,7 @@ import {
   QueueConsumerService,
 } from '../src/services/consumer';
 import { createEmailService, EmailService, EmailServiceError } from '../src/services/email';
-import type { EmailVerificationQueueMessage } from '@repo/queue-types';
+import type { EmailVerificationQueueMessage } from '@aivo/queue-types';
 
 // Mock queue interface
 interface MockQueue {

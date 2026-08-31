@@ -3,7 +3,7 @@
  * Landmark normalization, smoothing, and filtering
  */
 
-import type { PoseLandmarks, NormalizedPose, PoseProcessingConfig } from '@repo/fitness-types/pose';
+import type { PoseLandmarks, NormalizedPose, PoseProcessingConfig } from '@aivo/fitness-types/pose';
 
 // MediaPipe Pose landmark indices
 export const LANDMARK_INDICES = {

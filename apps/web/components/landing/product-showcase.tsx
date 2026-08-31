@@ -38,7 +38,7 @@ import {
   type DailyMetric,
   type WeightTrend,
   type HabitStreak,
-} from "@repo/design-system";
+} from "@aivo/marketing-config";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
 
 function HealthScoreCard() {

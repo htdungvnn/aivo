@@ -19,7 +19,7 @@ import {
   appNavAdmin,
   isPathActive,
   type NavItem,
-} from "../../../../packages/design-system/src";
+} from "@aivo/marketing-config";
 
 // Icons
 import {

@@ -22,7 +22,7 @@ import {
   EmailVerificationQueueMessage,
   SCHEMA_VERSION,
   SupportedLocale,
-} from '@repo/queue-types';
+} from '@aivo/queue-types';
 
 // Configuration
 const VERIFICATION_CODE_TTL_SECONDS = 10 * 60; // 10 minutes

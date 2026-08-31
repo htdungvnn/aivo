@@ -19,19 +19,32 @@ aivo/
 │       ├── mail/              # Email service (Resend)
 │       └── gateway/           # API Gateway (unified entry point)
 │
-├── packages/                  # Shared libraries
+├── packages/                  # Shared libraries (@aivo/*)
 │   ├── api-client/            # API client utilities
 │   ├── common-types/          # Shared TypeScript types & utilities
-│   ├── design-system/         # Shared design components
+│   ├── marketing-config/      # Landing page configuration data
+│   ├── ui-components/         # React UI components
 │   ├── exercise-engine/       # WebAssembly-based pose detection (TS)
 │   ├── fitness-types/         # Fitness domain types (Zod schemas)
 │   ├── health-types/          # Health domain types (Zod schemas)
 │   ├── nutrition-types/       # Nutrition domain types (Zod schemas)
 │   ├── queue-types/           # Queue message types
 │   ├── swagger-utils/         # Swagger/OpenAPI utilities
-│   ├── ui/                   # React UI components
-│   ├── wasm-gateway/         # WASM module loader & executor
-│   └── eslint-config/         # ESLint configurations
+│   ├── wasm-gateway/          # WASM module loader & executor
+│   ├── wasm-core/             # WASM core utilities
+│   ├── middleware/            # HTTP middleware (CORS, rate-limit)
+│   ├── auth-core/              # JWT & auth middleware
+│   ├── observability/          # Logging, metrics, tracing
+│   ├── health-engine/          # Health calculations (WASM)
+│   ├── nutrition-engine/       # Nutrition calculations (WASM)
+│   ├── readiness-engine/        # Readiness scoring (WASM)
+│   ├── analytics-engine/       # Analytics processing (WASM)
+│   ├── notification-types/      # Notification type schemas
+│   ├── report-types/           # Report type schemas
+│   ├── i18n/                  # Internationalization
+│   ├── storage-client/         # Storage abstraction
+│   ├── runtime/                # Runtime detection
+│   └── eslint-config/          # ESLint configurations
 │
 ├── turbo.json                 # Turborepo configuration
 ├── pnpm-workspace.yaml        # pnpm workspace definition
@@ -118,28 +131,28 @@ pnpm dev
 
 ## Package Dependencies
 
-### @repo/common-types
+### @aivo/common-types
 Shared utilities used across all services:
 - UUID generation with fallbacks
 - Date/time utilities
 - Validation helpers (isFiniteNumber, clamp, roundTo)
 - Common enums (CHART_METRIC, CLIENT_TYPE, etc.)
 
-### @repo/health-types
+### @aivo/health-types
 Zod schemas and types for health tracking:
 - Readiness scores and calculations
 - Daily health data
 - Chart configurations
 - AI insights
 
-### @repo/fitness-types
+### @aivo/fitness-types
 Types for fitness coaching:
 - Exercise definitions
 - Pose detection types
 - Workout sessions
 - Correction feedback
 
-### @repo/nutrition-types
+### @aivo/nutrition-types
 Types for nutrition tracking:
 - Meal and food schemas
 - Nutrition calculations
@@ -161,9 +174,9 @@ Types for nutrition tracking:
 
 Types are exported from domain packages:
 ```typescript
-import type { HealthScore } from '@repo/health-types';
-import type { MealPlan } from '@repo/nutrition-types';
-import type { WorkoutPlan } from '@repo/fitness-types';
+import type { HealthScore } from '@aivo/health-types';
+import type { MealPlan } from '@aivo/nutrition-types';
+import type { WorkoutPlan } from '@aivo/fitness-types';
 ```
 
 ## Environment Variables

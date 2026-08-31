@@ -1,0 +1,21 @@
+{
+  "name": "@aivo/swagger-utils",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "@aivo/typescript-config": "workspace:*",
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2"
+  }
+}

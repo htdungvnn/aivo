@@ -1,0 +1,42 @@
+{
+  "name": "@aivo/exercise-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm.d.ts",
+      "default": "./dist/wasm.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && (wasm-pack build src --target bundler --out-dir dist-wasm 2>/dev/null || echo 'WASM build skipped: Rust toolchain not available')",
+    "build:ts": "tsc",
+    "build:wasm": "wasm-pack build src --target bundler --out-dir dist-wasm",
+    "build:release": "wasm-pack build src --target bundler --out-dir dist-wasm --release",
+    "wasm#build": "wasm-pack build src --target bundler --out-dir dist-wasm",
+    "wasm#build:release": "wasm-pack build src --target bundler --out-dir dist-wasm --release",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "benchmark": "node --experimental-wasm-jit-inlining bench/index.mjs"
+  },
+  "devDependencies": {
+    "@aivo/eslint-config": "workspace:*",
+    "@aivo/fitness-types": "workspace:*",
+    "@aivo/typescript-config": "workspace:*",
+    "@types/node": "26.4.0",
+    "eslint": "^10.9.1",
+    "typescript": "7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "wasm-pack": "^0.15.0"
+  }
+}

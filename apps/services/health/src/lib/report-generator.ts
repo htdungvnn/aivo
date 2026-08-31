@@ -18,13 +18,13 @@ import type {
   ReportType,
   SupportedLocale,
   DataCompleteness,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 import {
   createReportDeliverTask,
   REPORT_PRIVACY_NOTICE,
   REPORT_DISCLAIMER,
   REPORT_CONTENT_VERSION,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 import {
   getReportJobWithSchedule,
   updateReportJobStatus,

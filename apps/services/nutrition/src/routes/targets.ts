@@ -10,7 +10,7 @@ import {
   getUserNutritionTargets,
   upsertNutritionTargets,
 } from '../db/queries';
-import type { NutritionTargets, MacroTargets } from '@repo/nutrition-types';
+import type { NutritionTargets, MacroTargets } from '@aivo/nutrition-types';
 
 const targets = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 

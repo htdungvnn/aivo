@@ -434,7 +434,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build web app
-        run: pnpm build --filter='@repo/web'
+        run: pnpm build --filter='web'
 
       - name: Build mobile (prepare)
         run: |

@@ -21,19 +21,19 @@
 		"db:execute": "wrangler d1 execute aivo-auth-db --local --file"
 	},
 	"dependencies": {
-		"@repo/auth-core": "workspace:*",
-		"@repo/queue-types": "workspace:*",
-		"@repo/swagger-utils": "workspace:*",
+		"@aivo/auth-core": "workspace:*",
+		"@aivo/queue-types": "workspace:*",
+		"@aivo/swagger-utils": "workspace:*",
 		"hono": "^4.13.5",
-		"jose": "^5.9.0",
-		"zod": "^3.23.0"
+		"jose": "^6.2.10",
+		"zod": "^4.5.4"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-plugin": "^1.0.0",
+		"@aivo/eslint-config": "workspace:*",
+		"@cloudflare/vitest-plugin": "^1.1.2",
 		"@cloudflare/workers-types": "^5.20260830.1",
-		"@repo/eslint-config": "workspace:*",
 		"@types/node": "^26.4.0",
-		"eslint": "^9.24.0",
+		"eslint": "^10.9.1",
 		"vitest": "~4.1.11",
 		"wrangler": "^4.127.1"
 	}

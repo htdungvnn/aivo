@@ -5,8 +5,8 @@
 
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
-import type { CorrectionResult, FeedbackMessage, CorrectionSeverity } from '@repo/fitness-types/correction';
-import { SEVERITY_PRIORITY, DEFAULT_CORRECTION_MESSAGES } from '@repo/fitness-types/correction';
+import type { CorrectionResult, FeedbackMessage, CorrectionSeverity } from '@aivo/fitness-types/correction';
+import { SEVERITY_PRIORITY, DEFAULT_CORRECTION_MESSAGES } from '@aivo/fitness-types/correction';
 
 // Correction codes that need immediate attention
 const SAFETY_CODES = [

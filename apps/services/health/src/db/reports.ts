@@ -14,12 +14,12 @@ import type {
   ReportFrequency,
   DeliveryDay,
   DataCompleteness,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 import {
   generateIdempotencyKey,
   calculateExpirationTime,
   REPORT_RETENTION_DAYS,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 
 // =============================================================================
 // Report Schedules

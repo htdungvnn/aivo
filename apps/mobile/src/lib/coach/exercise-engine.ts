@@ -7,9 +7,9 @@ import type {
   WASMInput,
   WASMOutput,
   EngineState,
-} from '@repo/fitness-types/wasm';
-import type { ExerciseCode, ExercisePhase } from '@repo/fitness-types/exercise';
-import type { CorrectionResult, CorrectionSeverity } from '@repo/fitness-types/correction';
+} from '@aivo/fitness-types/wasm';
+import type { ExerciseCode, ExercisePhase } from '@aivo/fitness-types/exercise';
+import type { CorrectionResult, CorrectionSeverity } from '@aivo/fitness-types/correction';
 
 // Import geometry utilities
 import {

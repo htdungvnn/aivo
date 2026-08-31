@@ -36,12 +36,12 @@ import {
   isFiniteNumber,
   roundTo,
   formatDate,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 import {
   ALL_CHARTS,
   getChartDefinition as getChartDef,
   getChartsByPlatform,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 
 // Context type
 type Context = {

@@ -22,7 +22,7 @@ import type {
   UserFoodCorrection,
   MealType,
   NutritionSource,
-} from '@repo/nutrition-types';
+} from '@aivo/nutrition-types';
 
 // =============================================================================
 // FOOD CATALOG QUERIES

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { NutritionCalculator, MealPlanCalculator } from '../src/services/calculations';
-import type { NutritionValues, MealType } from '@repo/nutrition-types';
+import type { NutritionValues, MealType } from '@aivo/nutrition-types';
 
 describe('NutritionCalculator', () => {
   describe('calculateFromPer100g', () => {

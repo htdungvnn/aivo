@@ -11,7 +11,7 @@ import {
   PlanAdaptation,
   UserCheckIn,
   ChartDataPoint,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 import type { HealthEnv } from '../types/env.js';
 
 // =============================================================================

@@ -17,21 +17,21 @@
     "types": "wrangler types"
   },
   "dependencies": {
-    "@repo/auth-core": "workspace:*",
-    "@repo/fitness-types": "workspace:*",
-    "@repo/queue-types": "workspace:*",
-    "@repo/swagger-utils": "workspace:*",
+    "@aivo/auth-core": "workspace:*",
+    "@aivo/fitness-types": "workspace:*",
+    "@aivo/queue-types": "workspace:*",
+    "@aivo/swagger-utils": "workspace:*",
     "hono": "^4.13.5",
-    "zod": "^3.23.8"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@aivo/eslint-config": "workspace:*",
+    "@aivo/typescript-config": "workspace:*",
     "@cloudflare/workers-types": "^5.20260830.1",
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.20.1",
-    "eslint": "^9.0.0",
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.9",
+    "@types/node": "^26.4.0",
+    "eslint": "^10.9.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.127.1"
   }
 }

@@ -15,7 +15,7 @@ import {
   updateDailySummary,
 } from '../db/queries';
 import { NutritionCalculator, MealPlanCalculator } from '../services/calculations';
-import type { MealType, MealPlanEntry } from '@repo/nutrition-types';
+import type { MealType, MealPlanEntry } from '@aivo/nutrition-types';
 
 const plans = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 

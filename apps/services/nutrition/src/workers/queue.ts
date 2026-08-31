@@ -19,7 +19,7 @@ import {
   searchFoods,
 } from '../db/queries';
 import { sha256Base64Url } from '../lib/crypto';
-import type { MealAnalysisQueueMessage, MealAnalysisStatus } from '@repo/nutrition-types';
+import type { MealAnalysisQueueMessage, MealAnalysisStatus } from '@aivo/nutrition-types';
 import type D1Database from '@cloudflare/workers-types';
 
 export interface Env {

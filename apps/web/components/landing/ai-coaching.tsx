@@ -7,7 +7,7 @@ import { Container } from "@/components/ui/container";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { sampleAIConversations, type SampleAIConversation } from "@repo/design-system";
+import { sampleAIConversations, type SampleAIConversation } from "@aivo/marketing-config";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
 
 const categoryColors: Record<string, string> = {

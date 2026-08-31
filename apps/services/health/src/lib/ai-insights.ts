@@ -16,7 +16,7 @@ import {
   HEALTH_ALGORITHM_VERSION,
   PRIVACY_NOTICE,
   roundTo,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 
 // =============================================================================
 // Types

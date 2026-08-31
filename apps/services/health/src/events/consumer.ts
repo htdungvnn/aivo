@@ -11,7 +11,7 @@ import {
   isEventType,
   validateEventPayload,
   workoutCompletedPayloadSchema,
-} from '@repo/queue-types';
+} from '@aivo/queue-types';
 import { createEventIdempotencyStore, type EventIdempotencyStore } from './idempotency.js';
 
 // =============================================================================

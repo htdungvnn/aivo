@@ -9,7 +9,7 @@ import type {
   ReportJob,
   HealthReport,
   SupportedLocale,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 import {
   requireAuth,
   parseTimezone,
@@ -44,14 +44,14 @@ import {
   calculateNextRunTime,
   REPORT_ERROR_CODES,
   SCHEDULE_STATUS,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 import {
   generateSecureDownloadUrl,
   serveSecureDownload,
   isReportOwner,
   isReportExpired,
 } from '../lib/report-storage.js';
-import { createReportGenerateTask } from '@repo/report-types';
+import { createReportGenerateTask } from '@aivo/report-types';
 
 // Context type
 type Context = {

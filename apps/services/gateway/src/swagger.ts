@@ -8,8 +8,8 @@
  * - Nutrition Service: Meals, foods, targets, analysis
  */
 
-import { createSpec, op, path, ref, stringSchema, objectSchema, arraySchema, numberSchema } from '@repo/swagger-utils';
-import { mountSwaggerRoutes } from '@repo/swagger-utils';
+import { createSpec, op, path, ref, stringSchema, objectSchema, arraySchema, numberSchema } from '@aivo/swagger-utils';
+import { mountSwaggerRoutes } from '@aivo/swagger-utils';
 import type { Hono } from 'hono';
 import type { GatewayEnv } from './env';
 

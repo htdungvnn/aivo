@@ -1,9 +1,10 @@
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './routing';
+import type { NextRequest } from 'next/server';
 
 const intlMiddleware = createMiddleware(routing);
 
-export default function middleware(request: Request) {
+export default function middleware(request: NextRequest) {
   return intlMiddleware(request);
 }
 

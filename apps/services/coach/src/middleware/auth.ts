@@ -13,7 +13,7 @@ import {
   JWTService,
   AuthError,
   AUTH_ERROR_CODES,
-} from '@repo/auth-core';
+} from '@aivo/auth-core';
 
 // Environment types
 interface CoachEnv {

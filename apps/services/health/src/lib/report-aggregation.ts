@@ -14,8 +14,8 @@ import type {
   SupportedLocale,
   ReportType,
   DataCompleteness,
-} from '@repo/report-types';
-import { roundTo } from '@repo/health-types';
+} from '@aivo/report-types';
+import { roundTo } from '@aivo/health-types';
 
 // =============================================================================
 // Types

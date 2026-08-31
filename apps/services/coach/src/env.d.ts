@@ -3,7 +3,7 @@
  */
 
 import type { Queue } from '@cloudflare/workers-types';
-import type { QueueMessage } from '@repo/queue-types';
+import type { QueueMessage } from '@aivo/queue-types';
 
 // D1 Database binding
 export interface D1Database {

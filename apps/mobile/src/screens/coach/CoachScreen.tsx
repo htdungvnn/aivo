@@ -24,7 +24,7 @@ import { RepCounter } from '../../components/coach/RepCounter';
 import { CorrectionBanner } from '../../components/coach/CorrectionBanner';
 import { RestTimer } from '../../components/coach/RestTimer';
 import { CountdownOverlay } from '../../components/coach/CountdownOverlay';
-import { PRIVACY_NOTICE, EXERCISE_NAMES } from '@repo/fitness-types';
+import { PRIVACY_NOTICE, EXERCISE_NAMES } from '@aivo/fitness-types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 

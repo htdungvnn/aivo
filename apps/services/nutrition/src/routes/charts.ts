@@ -17,7 +17,7 @@ import type {
   ChartData,
   ChartDataPoint,
   ChartDataSummary,
-} from "@repo/nutrition-types";
+} from "@aivo/nutrition-types";
 
 const charts = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 
