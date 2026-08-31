@@ -7,6 +7,9 @@
 
 import type { LoggerConfig, RedactionConfig } from './types.js';
 
+// Re-export for convenience
+export type { LoggerConfig, RedactionConfig } from './types.js';
+
 // =============================================================================
 // Default Redaction Fields
 // =============================================================================
@@ -246,43 +249,43 @@ export function getEnvConfig(): EnvConfig {
     SERVICE_NAME:
       (typeof process !== 'undefined' ? process.env?.SERVICE_NAME : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.SERVICE_NAME
+        ? (globalThis as unknown as Record<string, string | undefined>)?.SERVICE_NAME
         : undefined),
     ENVIRONMENT:
       (typeof process !== 'undefined' ? process.env?.ENVIRONMENT : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.ENVIRONMENT
+        ? (globalThis as unknown as Record<string, string | undefined>)?.ENVIRONMENT
         : undefined),
     SERVICE_VERSION:
       (typeof process !== 'undefined' ? process.env?.SERVICE_VERSION : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.SERVICE_VERSION
+        ? (globalThis as unknown as Record<string, string | undefined>)?.SERVICE_VERSION
         : undefined),
     RUNTIME: detectRuntime(),
     LOG_LEVEL:
       (typeof process !== 'undefined' ? process.env?.LOG_LEVEL : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.LOG_LEVEL
+        ? (globalThis as unknown as Record<string, string | undefined>)?.LOG_LEVEL
         : undefined),
     LOG_STRUCTURED_JSON:
       (typeof process !== 'undefined' ? process.env?.LOG_STRUCTURED_JSON : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.LOG_STRUCTURED_JSON
+        ? (globalThis as unknown as Record<string, string | undefined>)?.LOG_STRUCTURED_JSON
         : undefined),
     LOG_PRETTY_PRINT:
       (typeof process !== 'undefined' ? process.env?.LOG_PRETTY_PRINT : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.LOG_PRETTY_PRINT
+        ? (globalThis as unknown as Record<string, string | undefined>)?.LOG_PRETTY_PRINT
         : undefined),
     LOG_SAMPLE_RATE:
       (typeof process !== 'undefined' ? process.env?.LOG_SAMPLE_RATE : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.LOG_SAMPLE_RATE
+        ? (globalThis as unknown as Record<string, string | undefined>)?.LOG_SAMPLE_RATE
         : undefined),
     LOG_EXPORT_URL:
       (typeof process !== 'undefined' ? process.env?.LOG_EXPORT_URL : undefined) ||
       (typeof globalThis !== 'undefined'
-        ? (globalThis as Record<string, string | undefined>)?.LOG_EXPORT_URL
+        ? (globalThis as unknown as Record<string, string | undefined>)?.LOG_EXPORT_URL
         : undefined),
   };
 }

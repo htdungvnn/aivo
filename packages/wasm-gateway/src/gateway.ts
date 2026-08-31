@@ -13,8 +13,6 @@ import type {
   GatewayStateListener,
   PerformanceMetrics,
   BenchmarkComparison,
-  WASMGatewayError,
-  WASMGatewayErrorCode,
 } from './types.js';
 
 export { EngineType, EngineStrategy };
@@ -203,6 +201,7 @@ export class WASMGateway {
   constructor(options: WASMGatewayOptions = {}, engineName: string = 'exercise') {
     this.engineName = engineName;
     this.config = {
+      engineName: engineName,
       engineType: options.engineType ?? 'typescript',
       strategy: options.strategy ?? 'prefer-wasm',
       cache: options.cache ?? { enabled: true, maxInstances: 2, ttl: 60000 },

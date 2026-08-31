@@ -14,7 +14,7 @@ interface ScoreRingProps {
   strokeWidth?: number;
   showLabel?: boolean;
   label?: string;
-  color?: "readiness" | "sleep" | "nutrition" | "workout" | "activity" | "ai" | "default";
+  color?: "readiness" | "sleep" | "nutrition" | "workout" | "activity" | "hydration" | "ai" | "default";
   className?: string;
 }
 
@@ -50,6 +50,11 @@ const colorMap = {
     stroke: "var(--color-activity)",
     track: "var(--color-activity-muted)",
     text: "var(--color-activity)",
+  },
+  hydration: {
+    stroke: "var(--color-hydration)",
+    track: "var(--color-hydration-muted)",
+    text: "var(--color-hydration)",
   },
   ai: {
     stroke: "var(--color-ai)",

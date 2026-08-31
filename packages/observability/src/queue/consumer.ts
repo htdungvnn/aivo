@@ -70,14 +70,15 @@ export function createQueueConsumerInstrumentation(
       
       // Extract message metadata
       const messageObj = message as Record<string, unknown>;
+      const meta = messageObj._meta as Record<string, unknown> | undefined;
       const eventType = messageObj.type as string || 'unknown';
       const eventVersion = (messageObj.version as number) || 1;
       const eventId = (messageObj.eventId || messageObj.messageId || crypto.randomUUID()) as string;
-      const correlationId = (messageObj.correlationId || messageObj._meta?.correlationId) as string | undefined;
-      const retryCount = (messageObj._meta?.retryCount || messageObj.retryCount || 0) as number;
+      const correlationId = (messageObj.correlationId || meta?.correlationId) as string | undefined;
+      const retryCount = ((meta?.retryCount || messageObj.retryCount) || 0) as number;
       
       // Extract trace context
-      const traceparent = messageObj.traceparent || messageObj._meta?.traceparent as string | undefined;
+      const traceparent = (messageObj.traceparent || meta?.traceparent) as string | undefined;
       const traceContext = traceparent
         ? sanitizeTraceContext({ traceparent })
         : { traceId: crypto.randomUUID(), spanId: crypto.randomUUID().slice(0, 16) };

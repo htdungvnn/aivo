@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./messages/*": "./src/messages/*.ts"
   },
   "dependencies": {
     "next-intl": "^4.0.0"

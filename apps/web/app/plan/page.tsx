@@ -447,7 +447,7 @@ export default function PlanPage() {
     setPlan((prev) => {
       const updated = { ...prev };
       for (const time of Object.keys(updated)) {
-        updated[time] = updated[time].map((item) =>
+        updated[time] = (updated[time] ?? []).map((item) =>
           item.id === id ? { ...item, status: "completed" as const } : item
         );
       }
@@ -459,7 +459,7 @@ export default function PlanPage() {
     setPlan((prev) => {
       const updated = { ...prev };
       for (const time of Object.keys(updated)) {
-        updated[time] = updated[time].map((item) =>
+        updated[time] = (updated[time] ?? []).map((item) =>
           item.id === id ? { ...item, status: "skipped" as const, skipReason: reason } : item
         );
       }
@@ -471,7 +471,7 @@ export default function PlanPage() {
     setPlan((prev) => {
       const updated = { ...prev };
       for (const time of Object.keys(updated)) {
-        updated[time] = updated[time].map((item) =>
+        updated[time] = (updated[time] ?? []).map((item) =>
           item.id === id ? { ...item, status: "pending" as const, skipReason: undefined } : item
         );
       }
@@ -483,7 +483,7 @@ export default function PlanPage() {
     setPlan((prev) => {
       const updated = { ...prev };
       for (const time of Object.keys(updated)) {
-        updated[time] = updated[time].map((item) =>
+        updated[time] = (updated[time] ?? []).map((item) =>
           item.id === id && item.adaptation
             ? {
                 ...item,
@@ -501,7 +501,7 @@ export default function PlanPage() {
     setPlan((prev) => {
       const updated = { ...prev };
       for (const time of Object.keys(updated)) {
-        updated[time] = updated[time].map((item) =>
+        updated[time] = (updated[time] ?? []).map((item) =>
           item.id === id && item.adaptation
             ? {
                 ...item,
@@ -594,7 +594,7 @@ export default function PlanPage() {
         <TimeSection
           title="Morning"
           icon={Sunrise}
-          items={plan.morning}
+          items={plan.morning ?? []}
           onComplete={handleComplete}
           onSkip={handleSkip}
           onRestore={handleRestore}
@@ -605,7 +605,7 @@ export default function PlanPage() {
         <TimeSection
           title="Afternoon"
           icon={Sun}
-          items={plan.afternoon}
+          items={plan.afternoon ?? []}
           onComplete={handleComplete}
           onSkip={handleSkip}
           onRestore={handleRestore}
@@ -616,7 +616,7 @@ export default function PlanPage() {
         <TimeSection
           title="Evening"
           icon={Sunset}
-          items={plan.evening}
+          items={plan.evening ?? []}
           onComplete={handleComplete}
           onSkip={handleSkip}
           onRestore={handleRestore}
@@ -627,7 +627,7 @@ export default function PlanPage() {
         <TimeSection
           title="Anytime"
           icon={Clock}
-          items={plan.anytime}
+          items={plan.anytime ?? []}
           onComplete={handleComplete}
           onSkip={handleSkip}
           onRestore={handleRestore}

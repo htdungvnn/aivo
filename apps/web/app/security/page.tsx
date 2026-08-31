@@ -410,7 +410,7 @@ export default function SecurityPage() {
                     Cancel
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="default"
                     onClick={handleDeleteAccount}
                     className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
                   >

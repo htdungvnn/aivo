@@ -327,7 +327,7 @@ function CorrelationCard({ correlation }: CorrelationCardProps) {
     weak: "border-[var(--color-muted)]",
   };
 
-  const directionIcon = correlation.direction === "positive" ? ArrowUpRight : ArrowDownRight;
+  const DirectionIcon = correlation.direction === "positive" ? ArrowUpRight : ArrowDownRight;
   const directionColor = correlation.direction === "positive" ? "text-[var(--color-success)]" : "text-[var(--color-error)]";
 
   return (
@@ -353,7 +353,7 @@ function CorrelationCard({ correlation }: CorrelationCardProps) {
               {correlation.strength}
             </Badge>
             <div className={cn("flex items-center gap-1 text-xs", directionColor)}>
-              <directionIcon className="h-3 w-3" />
+              <DirectionIcon className="h-3 w-3" />
               {correlation.direction}
             </div>
           </div>

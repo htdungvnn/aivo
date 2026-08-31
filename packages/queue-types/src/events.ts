@@ -531,7 +531,7 @@ export function validateEventPayload(event: DomainEventEnvelope): {
   valid: boolean;
   errors?: z.ZodError;
 } {
-  const schema = getPayloadSchema(event.eventType);
+  const schema = getPayloadSchema(event.eventType as EventType);
   
   if (!schema) {
     // Unknown event type, skip payload validation

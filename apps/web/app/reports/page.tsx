@@ -336,7 +336,7 @@ function ScheduleCard({ schedule, onUpdate, onToggle }: ScheduleCardProps) {
             <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
               <span className="text-sm text-[var(--color-muted-foreground)]">Email notification</span>
               <Button
-                variant={schedule.emailNotification ? "primary" : "outline"}
+                variant={schedule.emailNotification ? "default" : "outline"}
                 size="sm"
                 onClick={() => onUpdate({ emailNotification: !schedule.emailNotification })}
               >

@@ -154,15 +154,18 @@ export function calculateTargetAdherence(
   };
 }
 
-export function calculateTDEEFromMetrics(bmr: number, activityLevel: keyof typeof activityMultipliers): number {
-  const activityMultipliers = {
-    sedentary: 1.2,
-    light: 1.375,
-    moderate: 1.55,
-    active: 1.725,
-    very_active: 1.9,
-  };
-  return Math.round(bmr * activityMultipliers[activityLevel]);
+const ACTIVITY_MULTIPLIERS = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9,
+} as const;
+
+export type ActivityLevel = keyof typeof ACTIVITY_MULTIPLIERS;
+
+export function calculateTDEEFromMetrics(bmr: number, activityLevel: ActivityLevel): number {
+  return Math.round(bmr * ACTIVITY_MULTIPLIERS[activityLevel]);
 }
 
 export function calculateMacroTargetsFromCalories(

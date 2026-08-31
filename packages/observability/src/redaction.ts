@@ -17,6 +17,21 @@
 import { DEFAULT_REDACTED_FIELDS, type RedactionConfig } from './config.js';
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Convert Headers to array of entries (for Cloudflare Workers compatibility)
+ */
+function headersToEntries(headers: Headers): [string, string][] {
+  const result: [string, string][] = [];
+  headers.forEach((value, key) => {
+    result.push([key, value]);
+  });
+  return result;
+}
+
+// =============================================================================
 // Constants
 // =============================================================================
 
@@ -126,15 +141,9 @@ function redactError<T extends Error>(
     message: shouldRedact('message', fields)
       ? replacement
       : redactValue(error.message, fields, replacement, depth + 1, maxDepth, seen),
-    ...error,
   };
   
-  // Handle stack trace (redact file paths with sensitive info)
-  if (error.stack) {
-    result.stack = redactStackTrace(error.stack);
-  }
-  
-  // Redact enumerable properties
+  // Copy enumerable properties from error (excluding name, message, stack)
   for (const key of Object.keys(error)) {
     if (key !== 'name' && key !== 'message' && key !== 'stack') {
       if (shouldRedact(key, fields)) {
@@ -143,6 +152,11 @@ function redactError<T extends Error>(
         result[key] = redactValue((error as Record<string, unknown>)[key], fields, replacement, depth + 1, maxDepth, seen);
       }
     }
+  }
+  
+  // Handle stack trace (redact file paths with sensitive info)
+  if (error.stack) {
+    result.stack = redactStackTrace(error.stack);
   }
   
   return result as unknown as T;
@@ -206,7 +220,7 @@ export function redactHeaders(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   
-  for (const [key, value] of headers.entries()) {
+  for (const [key, value] of headersToEntries(headers)) {
     if (shouldRedact(key, sensitiveHeaders)) {
       result[key] = REDACTED_PLACEHOLDER;
     } else {
@@ -291,7 +305,7 @@ export function redactQueryParams(
 export function redactRequest(request: Request): Request {
   const redactedHeaders: Record<string, string> = {};
   
-  for (const [key, value] of request.headers.entries()) {
+  for (const [key, value] of headersToEntries(request.headers)) {
     if (shouldRedact(key, [...DEFAULT_REDACTED_FIELDS as unknown as string[]])) {
       redactedHeaders[key] = REDACTED_PLACEHOLDER;
     } else {

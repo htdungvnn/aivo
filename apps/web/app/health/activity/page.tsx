@@ -117,7 +117,7 @@ export default function ActivityPage() {
   const activeProgress = (ACTIVITY_DATA.activeMinutes / ACTIVITY_DATA.activeMinutesTarget) * 100;
 
   const activityTypeIcons: Record<string, React.ElementType> = {
-    walking: Walk,
+    walking: Footprints,
     workout: ActivityIcon,
     cycling: Bike,
   };
@@ -290,7 +290,7 @@ export default function ActivityPage() {
             label="Distance"
             value={ACTIVITY_DATA.distance}
             unit="km"
-            icon={<Walk className="h-4 w-4" />}
+            icon={<Footprints className="h-4 w-4" />}
             color="activity"
             trend="stable"
           />

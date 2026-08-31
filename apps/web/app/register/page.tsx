@@ -120,7 +120,7 @@ export default function RegisterPage() {
           const fieldErrors: FormErrors = {};
           const details = data.error.details;
           if (details.fieldErrors) {
-            Object.entries(details.fieldErrors).forEach(([field, msgs]) => {
+            Object.entries(details.fieldErrors as Record<string, string[]>).forEach(([field, msgs]) => {
               if (msgs && msgs.length > 0) {
                 fieldErrors[field as keyof FormErrors] = msgs[0] as string;
               }

@@ -132,8 +132,8 @@ export default function BodyPage() {
     return null;
   }
 
-  const weightChange = CURRENT_WEIGHT - WEIGHT_TREND[0].value;
-  const bodyFatChange = BODY_FAT - BODY_FAT_TREND[0].value;
+  const weightChange = CURRENT_WEIGHT - (WEIGHT_TREND[0]?.value ?? 0);
+  const bodyFatChange = BODY_FAT - (BODY_FAT_TREND[0]?.value ?? 0);
   const muscleChange = MUSCLE_MASS - 37.8; // Assume starting value
 
   const getTrendDirection = (change: number): "improving" | "stable" | "declining" => {
@@ -233,8 +233,8 @@ export default function BodyPage() {
                     )}
                     style={{
                       width: `${Math.min(
-                        ((WEIGHT_TREND[0].value - CURRENT_WEIGHT) /
-                          (WEIGHT_TREND[0].value - TARGET_WEIGHT)) *
+                        (((WEIGHT_TREND[0]?.value ?? 0) - CURRENT_WEIGHT) /
+                          ((WEIGHT_TREND[0]?.value ?? 0) - TARGET_WEIGHT)) *
                           100,
                         100
                       )}%`,
@@ -258,7 +258,7 @@ export default function BodyPage() {
             value={CURRENT_WEIGHT}
             unit="kg"
             icon={<Scale className="h-4 w-4" />}
-            color="weight"
+            color="nutrition"
             trend={weightChange < 0 ? "up" : weightChange > 0 ? "down" : "stable"}
             trendValue={`${weightChange > 0 ? "+" : ""}${weightChange.toFixed(1)} kg`}
           />

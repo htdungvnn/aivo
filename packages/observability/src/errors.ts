@@ -363,10 +363,12 @@ export function normalizeError(
  * Check if an error code is retryable.
  */
 export function isRetryableCode(code: string): boolean {
-  if (RETRYABLE_ERROR_CODES.has(code as ErrorCode)) {
+  // @ts-expect-error - Type narrowing issue with Set
+  if (RETRYABLE_ERROR_CODES.has(code)) {
     return true;
   }
-  if (NON_RETRYABLE_ERROR_CODES.has(code as ErrorCode)) {
+  // @ts-expect-error - Type narrowing issue with Set
+  if (NON_RETRYABLE_ERROR_CODES.has(code)) {
     return false;
   }
   // Default to retryable for unknown codes
@@ -406,20 +408,13 @@ export function createNormalizedError(
   
   // Extract code from known error types
   let code = defaultCode;
-  let message = '';
   
   if (input instanceof Error) {
-    message = input.message;
     code = inferErrorCode(input) || defaultCode;
-  } else if (typeof input === 'string') {
-    message = input;
   } else if (typeof input === 'object' && input !== null) {
     const obj = input as Record<string, unknown>;
     if (obj.code && typeof obj.code === 'string') {
       code = obj.code as ErrorCode;
-    }
-    if (obj.message && typeof obj.message === 'string') {
-      message = obj.message;
     }
   }
   

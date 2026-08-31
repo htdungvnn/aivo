@@ -45,7 +45,7 @@ interface Habit {
   category: "health" | "fitness" | "nutrition" | "mindfulness" | "sleep" | "custom";
   reminder?: {
     enabled: boolean;
-    time: string;
+    time?: string;
   };
   status: "active" | "paused" | "archived";
 }
@@ -412,7 +412,7 @@ export default function HabitsPage() {
             label="Today's Progress"
             value={`${completedToday}/${totalActive}`}
             icon={<CheckCircle2 className="h-4 w-4" />}
-            color="success"
+            color="activity"
           />
           <MetricCard
             label="Active Habits"

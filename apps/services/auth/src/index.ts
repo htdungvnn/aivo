@@ -12,14 +12,14 @@ import type { EmailVerificationQueueMessage } from '@repo/queue-types';
 export interface Env extends AuthEnv {
   // D1 Database
   DB: D1Database;
-  
+
   // JWT Configuration
   AUTH_JWT_PRIVATE_KEY?: string;
   AUTH_JWT_PUBLIC_KEY?: string;
   AUTH_JWT_ISSUER?: string;
   AUTH_JWT_AUDIENCE?: string;
   AUTH_JWT_ACCESS_TOKEN_TTL?: string;
-  
+
   // OAuth Configuration
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -27,27 +27,41 @@ export interface Env extends AuthEnv {
   FACEBOOK_CLIENT_ID?: string;
   FACEBOOK_CLIENT_SECRET?: string;
   FACEBOOK_REDIRECT_URI?: string;
-  
+
   // App URLs
   WEB_APP_URL?: string;
   MOBILE_REDIRECT_URI?: string;
-  
+
   // Allowed Origins (comma-separated)
   ALLOWED_ORIGINS?: string;
-  
+
   // Email Queue for transactional emails
   EMAIL_QUEUE: Queue<EmailVerificationQueueMessage>;
 }
 
-// Context type for request context
-type Context = {
-  Bindings: Env;
-  Variables: {
-    requestId: string;
+// Context Variables for request context
+export interface ContextVariables {
+  requestId: string;
+  user?: {
+    id: string;
+    email: string;
+    status: string;
   };
-};
+  session?: {
+    id: string;
+    userId: string;
+  };
+  userRoles?: string[];
+  authPayload?: {
+    sub: string;
+    sid: string;
+  };
+}
 
-const app = new Hono<Context>();
+export type AppBindings = Env;
+export type AppVariables = ContextVariables;
+
+const app = new Hono<{ Bindings: Env; Variables: ContextVariables }>();
 
 // Request ID for all requests
 app.use('*', requestId());

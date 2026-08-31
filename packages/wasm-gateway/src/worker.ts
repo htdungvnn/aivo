@@ -210,7 +210,7 @@ app.post('/process/batch', async (c) => {
     for (const input of body.inputs) {
       try {
         const result = gw.process(input);
-        results.push(result.data);
+        results.push(result.data as WASMOutput);
       } catch (error) {
         console.error(`[${requestId}] Batch item error:`, error);
         results.push({

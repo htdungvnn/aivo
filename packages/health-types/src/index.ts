@@ -23,6 +23,18 @@ export const READINESS_THRESHOLDS = {
 } as const;
 
 /**
+ * Readiness levels
+ */
+export const READINESS_LEVELS = {
+  LOW: 'low',
+  MODERATE: 'moderate',
+  GOOD: 'good',
+  HIGH: 'high',
+} as const;
+
+export type ReadinessLevel = (typeof READINESS_LEVELS)[keyof typeof READINESS_LEVELS];
+
+/**
  * Action types
  */
 export const DAILY_ACTIONS = {

@@ -35,7 +35,7 @@ export interface RuntimeInfo {
  */
 export function getRuntimeInfo(): RuntimeInfo {
   const type = detectRuntime();
-  const info: RuntimeInfo = { type };
+  const info: RuntimeInfo = { type, context: 'local' };
   
   switch (type) {
     case 'cloudflare-workers':
@@ -44,7 +44,7 @@ export function getRuntimeInfo(): RuntimeInfo {
         // Check for deployment context
         if (typeof globalThis !== 'undefined') {
           const cf = (globalThis as Record<string, unknown>).caches;
-          info.context = cf ? 'production' : 'local';
+          info.context = cf ? 'production' : 'preview';
         }
         
         // Get region from cf object
@@ -409,7 +409,8 @@ export function createDiagnosticHealthResponse(
 export function onStartup(handler: () => Promise<void>): void {
   if (typeof globalThis !== 'undefined') {
     // Cloudflare Workers
-    (globalThis as Record<string, unknown>).addEventListener?.('start', handler);
+    const addEventListener = globalThis.addEventListener;
+    addEventListener?.('start', handler);
   }
 }
 

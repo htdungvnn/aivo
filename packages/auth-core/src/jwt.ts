@@ -6,7 +6,6 @@
  */
 
 // Use jose with explicit type handling
-// @ts-expect-error - jose types can be tricky with ESM
 import * as jose from 'jose';
 import type { JWTPayload, JWTConfig, JWTGenerationOptions, JWTVerificationResult } from './types/jwt.js';
 import { JWT_DEFAULTS } from './types/jwt.js';
@@ -24,9 +23,12 @@ function base64ToUint8Array(base64: string): Uint8Array {
 }
 
 /**
- * Convert Uint8Array or ArrayBuffer to base64 string
+ * Convert Uint8Array, ArrayBuffer, or string to base64 string
  */
-function toBase64(data: Uint8Array | ArrayBuffer): string {
+function toBase64(data: Uint8Array | ArrayBuffer | string): string {
+  if (typeof data === 'string') {
+    return btoa(data);
+  }
   const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
@@ -133,11 +135,14 @@ export class JWTService {
   /**
    * Generate a new key pair
    */
-  static async generateKeyPair(): Promise<{ privateKey: CryptoKey; publicKey: CryptoKey }> {
-    const { privateKey, publicKey } = await jose.generateKeyPair(JWT_DEFAULTS.ALGORITHM, {
+  static async generateKeyPair(): Promise<{ privateKey: CryptoKey; publicKey: unknown }> {
+    const keyPair = await jose.generateKeyPair(JWT_DEFAULTS.ALGORITHM, {
       extractable: true,
     });
-    return { privateKey, publicKey };
+    return { 
+      privateKey: keyPair.privateKey as CryptoKey, 
+      publicKey: keyPair.publicKey as unknown 
+    };
   }
 
   /**
@@ -206,8 +211,8 @@ export class JWTService {
     }
 
     try {
-      // @ts-expect-error - jose types
-      const result = await jose.jwtVerify(token, this.publicKey, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await jose.jwtVerify(token, this.publicKey as any, {
         issuer: this.issuer,
         audience: this.audience,
       });

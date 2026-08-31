@@ -11,6 +11,21 @@ import { createServiceLogger, type Logger } from '../logger.js';
 import type { ServiceContext, NormalizedError } from '../types.js';
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Convert Headers to array of entries (for Cloudflare Workers compatibility)
+ */
+function headersToEntries(headers: Headers): [string, string][] {
+  const result: [string, string][] = [];
+  headers.forEach((value, key) => {
+    result.push([key, value]);
+  });
+  return result;
+}
+
+// =============================================================================
 // HTTP Client Instrumentation
 // =============================================================================
 
@@ -56,7 +71,7 @@ export function createHttpClientInstrumentation(
       const customHeaders = init.headers instanceof Headers
         ? init.headers
         : new Headers(init.headers as Record<string, string>);
-      for (const [key, value] of customHeaders.entries()) {
+      for (const [key, value] of headersToEntries(customHeaders)) {
         headers.set(key, value);
       }
     }

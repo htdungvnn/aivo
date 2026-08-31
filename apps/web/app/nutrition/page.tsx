@@ -55,7 +55,7 @@ export default function NutritionDashboard() {
   useEffect(() => {
     // In production, fetch from API
     // For now, show demo data
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0] ?? '';
     setSummary({
       date: today,
       meals: [
@@ -314,7 +314,7 @@ export default function NutritionDashboard() {
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   }}
-                  formatter={(value: number) => [`${value} kcal`, 'Calories']}
+                  formatter={(value) => [`${value} kcal`, 'Calories']}
                 />
                 <Bar dataKey="calories" radius={[6, 6, 0, 0]}>
                   {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((_, index) => (

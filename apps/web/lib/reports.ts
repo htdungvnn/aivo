@@ -102,7 +102,7 @@ export class ReportsApiClient {
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'aivo_access_token') {
-        return value;
+        return value ?? null;
       }
     }
     return null;

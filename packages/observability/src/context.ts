@@ -329,7 +329,7 @@ export async function withTraceFromHeaders<T>(
   
   const context = createCorrelationContext({
     correlationId: correlationId || undefined,
-    traceContext,
+    traceContext: traceContext ?? undefined,
   });
   
   return withCorrelationContext(context, () => fn(context));

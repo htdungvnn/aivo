@@ -1,6 +1,6 @@
 /**
  * Authentication Middleware for Auth Service
- * 
+ *
  * Uses auth-core JWT service but implements custom session validation
  * since this service owns the session database.
  */
@@ -98,7 +98,7 @@ export function getUserAgent(request: Request): string | null {
  * Validates JWT and checks session/account status
  */
 export function requireAuth() {
-  return async (c: Context<{ Bindings: AuthEnv }>, next: Next) => {
+  return async (c: Context, next: Next) => {
     const request = c.req.raw;
     const token = extractToken(request);
 

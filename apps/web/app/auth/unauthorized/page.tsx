@@ -40,8 +40,8 @@ export default function UnauthorizedPage() {
             </div>
 
             <div className="space-y-3">
-              <Button asChild className="w-full">
-                <Link href="/dashboard" className="flex items-center justify-center gap-2">
+              <Button className="w-full">
+                <Link href="/dashboard" className="flex items-center justify-center gap-2 w-full">
                   <Home className="h-4 w-4" />
                   Go to Dashboard
                 </Link>

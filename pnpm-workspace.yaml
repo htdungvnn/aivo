@@ -7,8 +7,8 @@ packages:
   - "apps/services/nutrition/**"
   - "apps/services/gateway/**"
 allowBuilds:
-  '@parcel/watcher': set this to true or false
-  '@swc/core': set this to true or false
+  '@parcel/watcher': true
+  '@swc/core': true
   esbuild: true
   wasm-pack: true
   workerd: true
@@ -20,3 +20,4 @@ minimumReleaseAgeExclude:
   - expo-constants@57.0.16
   - expo-font@57.0.2
   - expo@57.0.18
+virtualStoreDir: node_modules/.pnpm

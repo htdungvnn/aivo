@@ -111,9 +111,9 @@ export class AuthApiClient {
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'aivo_access_token') {
-        this.accessToken = value;
+        this.accessToken = value ?? null;
       } else if (name === 'aivo_refresh_token') {
-        this.refreshToken = value;
+        this.refreshToken = value ?? null;
       }
     }
   }

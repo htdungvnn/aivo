@@ -40,8 +40,8 @@ function PricingCard({ plan, billingPeriod }: { plan: PricingPlanData; billingPe
   const isLifetime = billingPeriod === "yearly" && plan.price.lifetime !== undefined;
   const displayPrice = isLifetime ? plan.price.lifetime : price;
 
-  const formatPrice = (p: number | null) => {
-    if (p === null) return "Contact";
+  const formatPrice = (p: number | null | undefined) => {
+    if (p === null || p === undefined) return "Contact";
     if (p === 0) return t("free.price");
     return `$${p}`;
   };
@@ -187,7 +187,7 @@ function BillingToggle({
 
 export function Pricing() {
   const t = useTranslations("pricing");
-  const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yeary">("monthly");
+  const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yearly">("monthly");
 
   // Get features from translations
   const freeFeatures = t.raw("free.features") as string[];

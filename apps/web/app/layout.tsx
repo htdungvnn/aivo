@@ -1,22 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing } from "@/routing";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
+// Note: Google Fonts are loaded dynamically at runtime via CSS
+// to avoid build failures when offline. The fonts are defined
+// in globals.css with system font fallbacks.
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aivo.com";
 const siteName = "AIVO";
@@ -113,11 +104,11 @@ export function generateStaticParams() {
 export default async function RootLayout({
   children,
   params,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
-}>) {
-  const { locale } = await params;
+  params: Promise<{ locale?: string }>;
+}) {
+  const { locale = routing.defaultLocale } = await params;
   setRequestLocale(locale);
   const messages = await getMessages();
 
@@ -128,9 +119,7 @@ export default async function RootLayout({
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
             {children}

@@ -669,7 +669,7 @@ function ScheduleStep({ data, onUpdate, onNext, onBack }: StepProps) {
             {days.map((day, i) => (
               <button
                 key={day}
-                onClick={() => toggleDay(dayValues[i])}
+                onClick={() => toggleDay(dayValues[i] ?? 0)}
                 className={cn(
                   "w-10 h-10 rounded-full text-sm font-medium transition-all",
                   data.workoutDays === dayValues[i]
@@ -1063,7 +1063,7 @@ export default function OnboardingPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   }, []);
 
-  const StepComponent = STEP_COMPONENTS[currentStep];
+  const StepComponent = STEP_COMPONENTS[currentStep] ?? GoalStep;
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">

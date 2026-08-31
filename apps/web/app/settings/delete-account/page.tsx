@@ -94,7 +94,7 @@ export default function DeleteAccountPage() {
             placeholder="DELETE"
             className={styles.confirmationInput}
             autoCapitalize="characters"
-            autoCorrect={false}
+            autoCorrect="off"
           />
         </div>
 

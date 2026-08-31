@@ -53,10 +53,12 @@ export default function AdminPage() {
     setIsLoadingUsers(true);
     try {
       const authClient = getAuthClient();
-      const response = await authClient.request('/admin/users', {
-        method: 'GET',
-        body: { page: page.toString(), pageSize: pageSize.toString(), status: filterStatus },
-      }) as UsersResponse;
+      const response = await authClient.adminGetUsers({
+        page,
+        pageSize,
+        status: filterStatus,
+        search: searchQuery,
+      });
 
       setUsers(response.users || []);
       setTotal(response.total || 0);

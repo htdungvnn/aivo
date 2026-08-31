@@ -13,6 +13,21 @@ import type { ServiceContext, NormalizedError } from '../types.js';
 import { createNormalizedError, ERROR_CODES } from '../errors.js';
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Convert Headers to array of entries (for Cloudflare Workers compatibility)
+ */
+function headersToEntries(headers: Headers): [string, string][] {
+  const result: [string, string][] = [];
+  headers.forEach((value, key) => {
+    result.push([key, value]);
+  });
+  return result;
+}
+
+// =============================================================================
 // HTTP Server Instrumentation
 // =============================================================================
 
@@ -75,8 +90,8 @@ export function createHttpServerInstrumentation(
           ? redactQueryParams(request.url)
           : url.search,
         headers: options.redactHeaders !== false
-          ? redactHeadersObject(Object.fromEntries(request.headers.entries()))
-          : Object.fromEntries(request.headers.entries()),
+          ? redactHeadersObject(Object.fromEntries(headersToEntries(request.headers)))
+          : Object.fromEntries(headersToEntries(request.headers)),
       };
       
       // Log request start
@@ -271,7 +286,7 @@ export function instrumentFetchHandler(
       const enhancedResponse = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers: new Headers([...response.headers.entries(), ...responseHeaders.entries()]),
+        headers: new Headers([...headersToEntries(response.headers), ...headersToEntries(responseHeaders)]),
       });
       
       instrumentation.recordResponse(enhancedResponse, context);
@@ -296,7 +311,7 @@ export function instrumentFetchHandler(
           status: 500,
           headers: new Headers([
             ['content-type', 'application/json'],
-            ...responseHeaders.entries(),
+            ...headersToEntries(responseHeaders),
           ]),
         }
       );

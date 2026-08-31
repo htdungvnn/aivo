@@ -19,7 +19,7 @@ const sectionHeaderVariants = cva("text-center", {
 });
 
 export interface SectionHeaderProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title">,
     VariantProps<typeof sectionHeaderVariants> {
   eyebrow?: string;
   title: React.ReactNode;

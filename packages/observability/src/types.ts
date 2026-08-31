@@ -421,3 +421,31 @@ export interface AiTokenUsage {
   /** Estimated cost in USD */
   estimatedCostUsd?: number;
 }
+
+// =============================================================================
+// Health Check Result
+// =============================================================================
+
+export interface HealthCheckResult {
+  /** Overall health status */
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  /** Component health checks */
+  components: ComponentHealth[];
+  /** Timestamp of the check */
+  timestamp: string;
+  /** Version information */
+  version: string;
+  /** Deployment information */
+  deployment?: {
+    environment: string;
+    region?: string;
+    runtime: string;
+  };
+}
+
+// =============================================================================
+// Worker Observability Config
+// =============================================================================
+
+// Note: WorkerObservabilityConfig is defined in worker.ts to avoid circular dependencies
+// and is re-exported from there

@@ -24,7 +24,7 @@ import {
   Target,
   Info,
   Bed,
-  Wake,
+  Sunrise,
   Sparkles,
 } from "lucide-react";
 
@@ -152,7 +152,9 @@ export default function SleepPage() {
   }
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(":").map(Number);
+    const parts = time.split(":");
+    const hours = Number(parts[0]) || 0;
+    const minutes = Number(parts[1]) || 0;
     const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
@@ -251,7 +253,7 @@ export default function SleepPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-[var(--color-accent)]/10">
-                    <Wake className="h-5 w-5 text-[var(--color-accent)]" />
+                    <Sunrise className="h-5 w-5 text-[var(--color-accent)]" />
                   </div>
                   <div>
                     <p className="text-xs text-[var(--color-muted-foreground)]">Wake time</p>

@@ -117,7 +117,7 @@ export function initWorkerObservability(config: WorkerObservabilityConfig): {
 function getEnvironment(): 'development' | 'staging' | 'production' {
   // Check for known environment markers
   if (typeof globalThis !== 'undefined') {
-    const env = (globalThis as Record<string, string | undefined>).env;
+    const env = (globalThis as unknown as { env?: Record<string, string | undefined> }).env;
     
     if (env?.ENVIRONMENT) {
       const envLower = env.ENVIRONMENT.toLowerCase();
@@ -224,10 +224,6 @@ export type {
   ComponentHealth,
   HealthCheckResult,
 } from './types.js';
-
-export type {
-  WorkerObservabilityConfig,
-} from './worker.js';
 
 export {
   // HTTP instrumentation

@@ -277,16 +277,11 @@ export function createD1Instrumentation(options: D1InstrumentationOptions) {
     /**
      * Create an instrumented prepared statement.
      */
-    prepare(sql: string): D1PreparedStatement & {
-      instrumented: {
-        all: () => Promise<D1Result>;
-        first: () => Promise<D1Result>;
-        run: () => Promise<D1Result>;
-      };
-    } {
+    prepare(sql: string) {
       const statement = options.database.prepare(sql);
       
-      return {
+      // Instrument the statement with metrics
+      const instrumentedStatement = {
         ...statement,
         bind: (...args: unknown[]) => {
           const bound = statement.bind(...args);
@@ -312,22 +307,12 @@ export function createD1Instrumentation(options: D1InstrumentationOptions) {
                   () => bound.run()
                 ),
             },
-          } as D1PreparedStatement & {
-            instrumented: {
-              all: () => Promise<D1Result>;
-              first: () => Promise<D1Result>;
-              run: () => Promise<D1Result>;
-            };
           };
         },
-      } as D1PreparedStatement & {
-        instrumented: {
-          all: () => Promise<D1Result>;
-          first: () => Promise<D1Result>;
-          run: () => Promise<D1Result>;
-        };
       };
-    },
+      
+      return instrumentedStatement;
+    }
   };
 }
 

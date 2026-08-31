@@ -207,12 +207,11 @@ export function createCloudflareQueueProducer(
       const startTime = Date.now();
       
       try {
-        await options.queue.sendBatch(
-          messages.map((msg) => ({
-            ...msg.payload,
-            _meta: msg.metadata,
-          }))
-        );
+        const batchMessages = messages.map((msg) => ({
+          ...msg.payload,
+          _meta: msg.metadata,
+        }));
+        await options.queue.sendBatch(batchMessages as any);
         
         const durationMs = Date.now() - startTime;
         

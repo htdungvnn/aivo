@@ -16,6 +16,8 @@ const nextConfig = {
       },
     ],
   },
+  // Skip font optimization to avoid network issues during build
+  optimizeFonts: false,
 };
 
 export default withNextIntl(nextConfig);

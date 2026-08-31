@@ -15,6 +15,8 @@ const badgeVariants = cva(
           "bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20",
         accent:
           "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20",
+        ai:
+          "bg-[var(--color-ai)]/10 text-[var(--color-ai)] border border-[var(--color-ai)]/20",
         success:
           "bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20",
         warning:

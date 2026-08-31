@@ -141,7 +141,7 @@ function ActivityChartCard() {
                 borderRadius: "8px",
                 color: "#F5F7F6",
               }}
-              formatter={(value: number) => [`${value.toLocaleString()} steps`, ""]}
+              formatter={(value) => [`${Number(value).toLocaleString()} steps`, ""]}
             />
             <Area
               type="monotone"
@@ -300,7 +300,7 @@ function WeightTrendCard() {
                 borderRadius: "8px",
                 color: "#F5F7F6",
               }}
-              formatter={(value: number) => [`${value} lbs`, ""]}
+              formatter={(value) => [`${value} lbs`, ""]}
             />
             <Line
               type="monotone"

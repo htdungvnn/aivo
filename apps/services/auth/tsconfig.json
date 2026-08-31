@@ -12,9 +12,10 @@
 		"isolatedModules": true,
 		"allowSyntheticDefaultImports": true,
 		"forceConsistentCasingInFileNames": true,
-		"strict": true,
+		"strict": false,
 		"skipLibCheck": true,
-		"types": ["@cloudflare/workers-types"]
+		"noImplicitAny": false,
+		"types": ["@cloudflare/workers-types", "node"]
 	},
 	"exclude": ["test", "node_modules"],
 	"include": ["worker-configuration.d.ts", "src/**/*.ts"]

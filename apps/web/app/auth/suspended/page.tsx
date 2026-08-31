@@ -45,10 +45,10 @@ export default function SuspendedPage() {
                 please contact our support team.
               </p>
 
-              <Button variant="secondary" className="w-full" asChild>
+              <Button variant="secondary" className="w-full">
                 <a
                   href="mailto:support@aivo.com?subject=Account%20Suspension%20Appeal"
-                  className="flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-2 w-full"
                 >
                   <Mail className="h-4 w-4" />
                   Contact Support

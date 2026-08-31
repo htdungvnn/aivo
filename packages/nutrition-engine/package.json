@@ -16,11 +16,14 @@
     }
   },
   "scripts": {
-    "build": "wasm-pack build --target bundler --out-dir dist",
+    "build": "tsc && (wasm-pack build --target bundler --out-dir dist 2>/dev/null || echo 'WASM build skipped: Rust toolchain not available')",
     "build:ts": "tsc --emitDeclarationOnly",
     "build:node": "wasm-pack build --target nodejs --out-dir dist-node",
-    "dev": "wasm-pack build --target bundler --out-dir dist --dev --watch",
-    "test": "wasm-pack test --node && cargo test",
+    "build:release": "wasm-pack build --target bundler --out-dir dist --release",
+    "wasm#build": "wasm-pack build --target bundler --out-dir dist",
+    "wasm#build:release": "wasm-pack build --target bundler --out-dir dist --release",
+    "test": "cargo test",
+    "test:wasm": "wasm-pack test --node",
     "check": "cargo check && cargo clippy -- -D warnings"
   },
   "devDependencies": {

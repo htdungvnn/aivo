@@ -167,7 +167,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }: NotificationCa
     system: { icon: Settings, color: "text-[var(--color-muted-foreground)] bg-[var(--color-muted)]" },
   };
 
-  const config = categoryConfig[notification.category];
+  const config = categoryConfig[notification.category] ?? { icon: Bell, color: "text-[var(--color-muted-foreground)] bg-[var(--color-muted)]" };
   const Icon = config.icon;
 
   return (

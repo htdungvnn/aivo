@@ -67,9 +67,9 @@ function FeatureCard({ feature }: FeatureCardProps) {
         {t("title")}
       </h3>
       <p className="text-sm font-medium text-[var(--color-primary)] mb-3">
-        {t.rich("description", {
+        {String(t.rich("description", {
           strong: (children) => <strong>{children}</strong>,
-        }).slice(0, 50)}...
+        })).slice(0, 50)}...
       </p>
       <p className="text-sm text-[var(--color-muted-foreground)] leading-relaxed mb-4">
         {t("description")}

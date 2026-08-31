@@ -12,7 +12,9 @@
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^check-types"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^test"],

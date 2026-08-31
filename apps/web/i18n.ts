@@ -9,6 +9,11 @@ import { getRequestConfig } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
 import { routing } from './routing';
 
+const messageModules = {
+  en: () => import('@aivo/i18n/messages/en'),
+  vn: () => import('@aivo/i18n/messages/vn'),
+};
+
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
 
@@ -17,8 +22,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = routing.defaultLocale;
   }
 
+  const loadFn = messageModules[locale as keyof typeof messageModules] ?? messageModules.en;
+  const loadedMessages = await loadFn();
+
   return {
     locale,
-    messages: (await import(`@aivo/i18n/src/messages/${locale}`)).default,
+    messages: loadedMessages.default,
   };
 });

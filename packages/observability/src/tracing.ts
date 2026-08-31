@@ -6,7 +6,7 @@
  */
 
 import { generateSpanId, sanitizeTraceContext } from './context.js';
-import type { SpanAttributes, ServiceContext } from './types.js';
+import type { SpanAttributes, ServiceContext, NormalizedError } from './types.js';
 
 // =============================================================================
 // Span Management
@@ -55,7 +55,7 @@ export class Span implements SpanAttributes {
   endTime?: number;
   status: SpanStatus = SpanStatus.UNSET;
   attributes: Record<string, string | number | boolean> = {};
-  error?: { code: string; message: string };
+  error?: NormalizedError;
   
   private readonly serviceContext: ServiceContext;
   private readonly spanId: string;
@@ -112,7 +112,13 @@ export class Span implements SpanAttributes {
    */
   recordError(code: string, message: string): void {
     this.status = SpanStatus.ERROR;
-    this.error = { code, message };
+    this.error = {
+      code,
+      category: 'internal',
+      retryable: false,
+      severity: 'error',
+      safeMessage: message,
+    };
     this.attributes['error'] = true;
     this.attributes['error.code'] = code;
   }
@@ -173,7 +179,7 @@ export class Span implements SpanAttributes {
         'span.duration_ms': this.getDuration(),
       },
       error: this.error
-        ? { code: this.error.code, category: 'internal', retryable: false, severity: 'error', safeMessage: this.error.message }
+        ? { ...this.error }
         : undefined,
     };
   }

@@ -208,11 +208,11 @@ interface FactorCardProps {
 
 function FactorCard({ factor, expanded, onToggle }: FactorCardProps) {
   const Icon = factor.icon;
-  const trendIcon = {
+  const TrendIcon = {
     up: TrendingUp,
     down: TrendingDown,
     stable: Minus,
-  }[factor.trend];
+  }[factor.trend] as React.ComponentType<{ className?: string }>;
 
   const statusColors = {
     positive: "text-[var(--color-success)]",
@@ -261,7 +261,7 @@ function FactorCard({ factor, expanded, onToggle }: FactorCardProps) {
                 >
                   {factor.score}
                 </span>
-                <trendIcon
+                <TrendIcon
                   className={cn(
                     "h-4 w-4",
                     factor.trend === "up" && "text-[var(--color-success)]",
@@ -404,7 +404,7 @@ export default function ReadinessPage() {
                           Top positive factor
                         </p>
                         <p className="text-sm text-[var(--color-muted-foreground)]">
-                          {positiveFactors[0].name} ({positiveFactors[0].score}%)
+                          {positiveFactors[0]?.name} ({positiveFactors[0]?.score}%)
                         </p>
                       </div>
                     </div>
@@ -419,7 +419,7 @@ export default function ReadinessPage() {
                           Top limiting factor
                         </p>
                         <p className="text-sm text-[var(--color-muted-foreground)]">
-                          {negativeFactors[0].name} ({negativeFactors[0].score}%)
+                          {negativeFactors[0]?.name} ({negativeFactors[0]?.score}%)
                         </p>
                       </div>
                     </div>

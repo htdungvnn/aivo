@@ -146,7 +146,7 @@ export default function IntelligenceDashboard() {
     setLoading(true);
     try {
       // For demo, use mock data since we don't have actual API
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0] ?? '';
       
       // Mock readiness data
       const mockReadiness: ReadinessData = {
@@ -186,7 +186,7 @@ export default function IntelligenceDashboard() {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
         return {
-          date: date.toISOString().split('T')[0],
+          date: date.toISOString().split('T')[0] ?? '',
           score: 60 + Math.floor(Math.random() * 30),
         };
       });
@@ -492,8 +492,8 @@ export default function IntelligenceDashboard() {
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   }}
-                  formatter={(value: number) => [`${value}`, 'Score']}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })}
+                  formatter={(value) => [`${value}`, 'Score']}
+                  labelFormatter={(label) => new Date(String(label)).toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })}
                 />
                 <Area
                   type="monotone"

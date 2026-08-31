@@ -319,6 +319,7 @@ export function createAuthMiddleware(options?: {
     }
 
     await next();
+    return;
   };
 }
 
