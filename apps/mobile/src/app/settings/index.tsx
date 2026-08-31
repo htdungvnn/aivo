@@ -1,231 +1,452 @@
 /**
- * Settings Screen
- * App settings and preferences
+ * AIVO Mobile - Settings Screen
+ * App preferences, appearance, notifications, and accessibility
  */
 
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/ui';
+
+import {
+  ScrollScreen,
+  BackHeader,
+  Card,
+  SectionHeader,
+  ListHeader,
+  Badge,
+  spacingNamed,
+  fontSize,
+  fontWeight,
+} from '@/components/mobile';
+
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuthGuard } from '@/contexts/AuthGuardContext';
+
+interface ToggleOption {
+  id: string;
+  label: string;
+  description?: string;
+  value: boolean;
+  onToggle: (value: boolean) => void;
+}
 
 export default function SettingsScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+  const { logout } = useAuthGuard();
 
-  const handleOpenPrivacyPolicy = () => {
-    Linking.openURL('https://aivo.app/privacy');
+  // Settings state
+  const [settings, setSettings] = useState({
+    // Appearance
+    darkMode: colorScheme === 'dark',
+    dynamicColors: true,
+    
+    // Notifications
+    dailyReminder: true,
+    workoutReminder: true,
+    nutritionReminder: false,
+    weeklyReport: true,
+    marketingEmails: false,
+    
+    // AI Preferences
+    aiInsights: true,
+    aiMealAnalysis: true,
+    aiPlanSuggestions: true,
+    cameraCoachVoice: true,
+    aiExplanations: 'detailed' as 'minimal' | 'detailed' | 'none',
+    
+    // Accessibility
+    reducedMotion: false,
+    largerText: false,
+    highContrast: false,
+    hapticFeedback: true,
+    soundEffects: true,
+    
+    // Privacy
+    analytics: true,
+    crashReports: true,
+  });
+
+  const updateSetting = <K extends keyof typeof settings>(
+    key: K,
+    value: typeof settings[K]
+  ) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleOpenTermsOfService = () => {
-    Linking.openURL('https://aivo.app/terms');
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
+      ]
+    );
   };
 
-  const handleDeleteAccount = () => {
-    router.push('/settings/delete-account');
-  };
+  const ToggleRow = ({ option }: { option: ToggleOption }) => (
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleInfo}>
+        <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>
+          {option.label}
+        </Text>
+        {option.description && (
+          <Text style={[styles.toggleDescription, { color: colors.textMuted }]}>
+            {option.description}
+          </Text>
+        )}
+      </View>
+      <Switch
+        value={option.value}
+        onValueChange={option.onToggle}
+        trackColor={{ false: colors.surfaceMuted, true: colors.primary + '80' }}
+        thumbColor={option.value ? colors.primary : colors.textMuted}
+      />
+    </View>
+  );
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-          {/* Notifications Section */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Notifications</ThemedText>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Receive push notifications on your device
-                </Text>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#e5e5e5', true: '#93c5fd' }}
-                thumbColor={notificationsEnabled ? '#208AEF' : '#f4f4f4'}
-              />
-            </View>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Email Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Receive email updates about your account
-                </Text>
-              </View>
-              <Switch
-                value={emailNotifications}
-                onValueChange={setEmailNotifications}
-                trackColor={{ false: '#e5e5e5', true: '#93c5fd' }}
-                thumbColor={emailNotifications ? '#208AEF' : '#f4f4f5'}
-              />
-            </View>
-          </View>
+    <ScrollScreen
+      edges={['top']}
+      contentStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.headerSpacer} />
 
-          {/* Security Section */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Security</ThemedText>
-            <TouchableOpacity style={styles.actionRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Change Password</Text>
-                <Text style={styles.settingDescription}>
-                  Update your account password
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Two-Factor Authentication</Text>
-                <Text style={styles.settingDescription}>
-                  Add an extra layer of security
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Active Sessions</Text>
-                <Text style={styles.settingDescription}>
-                  Manage your active login sessions
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-          </View>
+      <BackHeader
+        title="Settings"
+        subtitle="Customize your experience"
+      />
 
-          {/* Privacy Section */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Privacy</ThemedText>
-            <TouchableOpacity style={styles.actionRow} onPress={handleOpenPrivacyPolicy}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Privacy Policy</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow} onPress={handleOpenTermsOfService}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Terms of Service</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Data Export</Text>
-                <Text style={styles.settingDescription}>
-                  Download a copy of your data
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Appearance */}
+      <SectionHeader title="Appearance" />
+      
+      <Card padding="none">
+        <ToggleRow
+          option={{
+            id: 'darkMode',
+            label: 'Dark Mode',
+            description: 'Use dark theme throughout the app',
+            value: settings.darkMode,
+            onToggle: (v) => updateSetting('darkMode', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'dynamicColors',
+            label: 'Dynamic Colors',
+            description: 'Match your device\'s color scheme',
+            value: settings.dynamicColors,
+            onToggle: (v) => updateSetting('dynamicColors', v),
+          }}
+        />
+      </Card>
 
-          {/* Account Section */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Account</ThemedText>
-            <TouchableOpacity
-              style={[styles.actionRow, styles.dangerRow]}
-              onPress={handleDeleteAccount}
-            >
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, styles.dangerText]}>Delete Account</Text>
-                <Text style={styles.settingDescription}>
-                  Permanently delete your account and data
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Notifications */}
+      <SectionHeader title="Notifications" />
+      
+      <Card padding="none">
+        <ToggleRow
+          option={{
+            id: 'dailyReminder',
+            label: 'Daily Reminder',
+            description: 'Get reminded to check in daily',
+            value: settings.dailyReminder,
+            onToggle: (v) => updateSetting('dailyReminder', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'workoutReminder',
+            label: 'Workout Reminders',
+            value: settings.workoutReminder,
+            onToggle: (v) => updateSetting('workoutReminder', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'nutritionReminder',
+            label: 'Meal Reminders',
+            value: settings.nutritionReminder,
+            onToggle: (v) => updateSetting('nutritionReminder', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'weeklyReport',
+            label: 'Weekly Health Report',
+            value: settings.weeklyReport,
+            onToggle: (v) => updateSetting('weeklyReport', v),
+          }}
+        />
+      </Card>
 
-          {/* App Info */}
-          <View style={styles.appInfo}>
-            <Text style={styles.appVersion}>AIVO v1.0.0</Text>
-            <Text style={styles.copyright}>© 2026 AIVO. All rights reserved.</Text>
+      {/* AI Preferences */}
+      <SectionHeader title="AI Preferences" />
+      
+      <Card padding="none">
+        <ToggleRow
+          option={{
+            id: 'aiInsights',
+            label: 'AI Insights',
+            description: 'Receive personalized health insights',
+            value: settings.aiInsights,
+            onToggle: (v) => updateSetting('aiInsights', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'aiMealAnalysis',
+            label: 'AI Meal Analysis',
+            description: 'Use AI to analyze your meals',
+            value: settings.aiMealAnalysis,
+            onToggle: (v) => updateSetting('aiMealAnalysis', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'aiPlanSuggestions',
+            label: 'AI Plan Suggestions',
+            value: settings.aiPlanSuggestions,
+            onToggle: (v) => updateSetting('aiPlanSuggestions', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'cameraCoachVoice',
+            label: 'Camera Coach Voice',
+            description: 'Enable voice feedback during workouts',
+            value: settings.cameraCoachVoice,
+            onToggle: (v) => updateSetting('cameraCoachVoice', v),
+          }}
+        />
+      </Card>
+
+      {/* Accessibility */}
+      <SectionHeader title="Accessibility" />
+      
+      <Card padding="none">
+        <ToggleRow
+          option={{
+            id: 'reducedMotion',
+            label: 'Reduced Motion',
+            description: 'Minimize animations',
+            value: settings.reducedMotion,
+            onToggle: (v) => updateSetting('reducedMotion', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'largerText',
+            label: 'Larger Text',
+            value: settings.largerText,
+            onToggle: (v) => updateSetting('largerText', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'highContrast',
+            label: 'High Contrast',
+            value: settings.highContrast,
+            onToggle: (v) => updateSetting('highContrast', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'hapticFeedback',
+            label: 'Haptic Feedback',
+            value: settings.hapticFeedback,
+            onToggle: (v) => updateSetting('hapticFeedback', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'soundEffects',
+            label: 'Sound Effects',
+            value: settings.soundEffects,
+            onToggle: (v) => updateSetting('soundEffects', v),
+          }}
+        />
+      </Card>
+
+      {/* Privacy */}
+      <SectionHeader title="Privacy & Data" />
+      
+      <Card padding="none">
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => router.push('/privacy')}
+        >
+          <View style={styles.linkInfo}>
+            <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+              Privacy Policy
+            </Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </ThemedView>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => router.push('/data')}
+        >
+          <View style={styles.linkInfo}>
+            <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+              Data & Export
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'analytics',
+            label: 'Usage Analytics',
+            value: settings.analytics,
+            onToggle: (v) => updateSetting('analytics', v),
+          }}
+        />
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <ToggleRow
+          option={{
+            id: 'crashReports',
+            label: 'Crash Reports',
+            value: settings.crashReports,
+            onToggle: (v) => updateSetting('crashReports', v),
+          }}
+        />
+      </Card>
+
+      {/* About */}
+      <SectionHeader title="About" />
+      
+      <Card padding="none">
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => {}}
+        >
+          <View style={styles.linkInfo}>
+            <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+              Version
+            </Text>
+          </View>
+          <Text style={[styles.linkValue, { color: colors.textMuted }]}>
+            1.0.0 (1)
+          </Text>
+        </TouchableOpacity>
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => router.push('/licenses')}
+        >
+          <View style={styles.linkInfo}>
+            <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+              Open Source Licenses
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+      </Card>
+
+      {/* Sign Out */}
+      <TouchableOpacity
+        style={[styles.signOutButton, { backgroundColor: colors.danger + '15' }]}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+        <Text style={[styles.signOutText, { color: colors.danger }]}>
+          Sign Out
+        </Text>
+      </TouchableOpacity>
+
+      {/* Bottom padding */}
+      <View style={styles.bottomPadding} />
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: spacingNamed.lg,
   },
-  safeArea: {
-    flex: 1,
+  headerSpacer: {
+    height: 20,
   },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: Spacing.six,
-  },
-  section: {
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 8,
-    borderBottomColor: '#f5f5f5',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
-    textTransform: 'uppercase',
-    marginBottom: Spacing.three,
-  },
-  settingRow: {
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: spacingNamed.md,
+    paddingHorizontal: spacingNamed.lg,
   },
-  actionRow: {
+  toggleInfo: {
+    flex: 1,
+    marginRight: spacingNamed.md,
+  },
+  toggleLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+  },
+  toggleDescription: {
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
+  rowDivider: {
+    height: 0.5,
+    marginLeft: spacingNamed.lg,
+  },
+  linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: spacingNamed.md,
+    paddingHorizontal: spacingNamed.lg,
   },
-  settingInfo: {
+  linkInfo: {
     flex: 1,
-    marginRight: Spacing.three,
   },
-  settingLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 2,
+  linkLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
   },
-  settingDescription: {
-    fontSize: 13,
-    color: '#999',
+  linkValue: {
+    fontSize: fontSize.sm,
   },
-  chevron: {
-    fontSize: 24,
-    color: '#ccc',
-  },
-  dangerRow: {
-    borderBottomWidth: 0,
-  },
-  dangerText: {
-    color: '#ef4444',
-  },
-  appInfo: {
+  signOutButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.four,
+    justifyContent: 'center',
+    paddingVertical: spacingNamed.md,
+    borderRadius: 12,
+    marginTop: spacingNamed['2xl'],
+    gap: spacingNamed.sm,
   },
-  appVersion: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: Spacing.one,
+  signOutText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
   },
-  copyright: {
-    fontSize: 12,
-    color: '#bbb',
+  bottomPadding: {
+    height: 100,
   },
 });
+
+export {};

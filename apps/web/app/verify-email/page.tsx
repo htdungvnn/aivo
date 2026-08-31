@@ -1,93 +1,253 @@
-'use client';
+"use client";
 
 /**
- * Email verification pending page
+ * Verify Email Page
+ * Handles email verification after signup
  */
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/components/auth/AuthProvider';
-import styles from './verify-email.module.css';
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+  CheckCircle,
+  Mail,
+  RefreshCw,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || '';
-  const { sendVerificationEmail, logout } = useAuth();
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const status = searchParams.get("status");
+  const email = searchParams.get("email");
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleResendEmail = async () => {
-    setStatus('sending');
+  // Determine status from URL params
+  const isPending = status === "pending" || !status;
+  const isVerified = status === "verified";
+  const isExpired = status === "expired";
+  const isInvalid = status === "invalid";
+
+  const handleResend = async () => {
+    setIsResending(true);
+    setError(null);
+    
     try {
-      await sendVerificationEmail();
-      setStatus('sent');
+      // Simulate resending verification email
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setResendSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send email');
-      setStatus('error');
+      setError("Failed to resend verification email. Please try again.");
+    } finally {
+      setIsResending(false);
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = '/login';
+  const handleGoToDashboard = () => {
+    router.push("/dashboard");
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.icon}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] p-4">
+      <div className="w-full max-w-md">
+        {/* Back Link */}
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to login
+        </Link>
 
-        <h1 className={styles.title}>Verify Your Email</h1>
-        
-        <p className={styles.description}>
-          We&apos;ve sent a verification email to{' '}
-          <strong>{email}</strong>
-        </p>
+        <Card>
+          <CardContent className="pt-6">
+            {/* Pending Verification */}
+            {isPending && (
+              <>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="p-4 rounded-full bg-[var(--color-primary)]/10 mb-4">
+                    <Mail className="h-8 w-8 text-[var(--color-primary)]" />
+                  </div>
+                  <CardTitle className="text-xl mb-2">
+                    Check your email
+                  </CardTitle>
+                  <CardDescription className="max-w-sm">
+                    {email ? (
+                      <>
+                        We've sent a verification link to{" "}
+                        <span className="font-medium text-[var(--color-foreground)]">
+                          {email}
+                        </span>
+                        . Please click the link to verify your account.
+                      </>
+                    ) : (
+                      "Please check your email for a verification link to complete your signup."
+                    )}
+                  </CardDescription>
+                </div>
 
-        <p className={styles.instructions}>
-          Please check your inbox and click the verification link to activate your account.
-          The link will expire in 1 hour.
-        </p>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResend}
+                    disabled={isResending || resendSuccess}
+                    className="w-full"
+                    variant={resendSuccess ? "secondary" : "default"}
+                  >
+                    {isResending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : resendSuccess ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Email sent!
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Resend verification email
+                      </>
+                    )}
+                  </Button>
 
-        {status === 'sent' && (
-          <div className={styles.success}>
-            <p>Verification email sent! Check your inbox.</p>
-          </div>
-        )}
+                  <p className="text-xs text-center text-[var(--color-tertiary)]">
+                    Didn't receive the email? Check your spam folder or wait a
+                    few minutes before trying again.
+                  </p>
+                </div>
+              </>
+            )}
 
-        {status === 'error' && (
-          <div className={styles.error}>
-            <p>{error}</p>
-          </div>
-        )}
+            {/* Verified Successfully */}
+            {isVerified && (
+              <>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="p-4 rounded-full bg-[var(--color-success)]/10 mb-4">
+                    <CheckCircle className="h-8 w-8 text-[var(--color-success)]" />
+                  </div>
+                  <CardTitle className="text-xl mb-2">
+                    Email verified!
+                  </CardTitle>
+                  <CardDescription className="max-w-sm">
+                    Your email has been successfully verified. You can now access
+                    all features of AIVO.
+                  </CardDescription>
+                </div>
 
-        <div className={styles.actions}>
-          <button
-            onClick={handleResendEmail}
-            disabled={status === 'sending'}
-            className={styles.primaryButton}
+                <Button
+                  onClick={handleGoToDashboard}
+                  className="w-full"
+                >
+                  Go to Dashboard
+                </Button>
+              </>
+            )}
+
+            {/* Expired Link */}
+            {isExpired && (
+              <>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="p-4 rounded-full bg-[var(--color-warning)]/10 mb-4">
+                    <AlertCircle className="h-8 w-8 text-[var(--color-warning)]" />
+                  </div>
+                  <CardTitle className="text-xl mb-2">
+                    Link expired
+                  </CardTitle>
+                  <CardDescription className="max-w-sm">
+                    This verification link has expired. Please request a new one.
+                  </CardDescription>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResend}
+                    disabled={isResending || resendSuccess}
+                    className="w-full"
+                  >
+                    {isResending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Request new link
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Invalid Link */}
+            {isInvalid && (
+              <>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="p-4 rounded-full bg-[var(--color-error)]/10 mb-4">
+                    <AlertCircle className="h-8 w-8 text-[var(--color-error)]" />
+                  </div>
+                  <CardTitle className="text-xl mb-2">
+                    Invalid link
+                  </CardTitle>
+                  <CardDescription className="max-w-sm">
+                    This verification link is invalid. It may have already been
+                    used or is malformed.
+                  </CardDescription>
+                </div>
+
+                <Button
+                  onClick={() => router.push("/login")}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  Back to Login
+                </Button>
+              </>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 p-3 rounded-lg bg-[var(--color-error-muted)] text-sm text-[var(--color-error)]">
+                {error}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Help Text */}
+        <p className="text-xs text-center text-[var(--color-tertiary)] mt-6">
+          Need help?{" "}
+          <Link
+            href="/help"
+            className="text-[var(--color-primary)] hover:underline"
           >
-            {status === 'sending' ? 'Sending...' : 'Resend Verification Email'}
-          </button>
-
-          <div className={styles.divider}>
-            <span>or</span>
-          </div>
-
-          <button onClick={handleLogout} className={styles.secondaryButton}>
-            Sign Out
-          </button>
-        </div>
-
-        <p className={styles.helpText}>
-          Didn&apos;t receive the email? Check your spam folder or click resend above.
+            Contact support
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

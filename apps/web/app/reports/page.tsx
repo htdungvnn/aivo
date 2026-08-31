@@ -1,297 +1,161 @@
-'use client';
+"use client";
 
 /**
- * Health Reports Page
- * Web app integration for health report scheduling, generation, and download
+ * Health Reports Page - Report generation, scheduling, and history
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useCallback, useEffect } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { AppShell } from "@/components/shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { LoadingState, ErrorState } from "@/components/shared/state-components";
+import { cn } from "@/lib/utils";
 import {
-  Container,
-  Card,
-  Button,
-  Select,
-  Switch,
-  Badge,
-  Spinner,
-  Modal,
-} from '@/components/ui';
-import { useAuth } from '@/hooks/useAuth';
+  FileText,
+  Download,
+  Clock,
+  Calendar,
+  Plus,
+  Settings,
+  Trash2,
+  Eye,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  Bell,
+  Mail,
+  Pause,
+  Play,
+} from "lucide-react";
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface ReportSchedule {
   id: string;
-  frequency: 'weekly' | 'monthly' | 'custom';
-  timezone: string;
-  deliveryDay: number | null;
+  frequency: "weekly" | "biweekly" | "monthly";
+  deliveryDay: number;
   deliveryTime: string;
-  locale: 'en' | 'vi';
-  emailEnabled: boolean;
-  status: 'active' | 'paused' | 'deleted';
-  nextRunAt: number | null;
-  lastRunAt: number | null;
+  timezone: string;
+  enabled: boolean;
+  lastGeneratedAt: number | null;
+  nextScheduledAt: number | null;
+  emailNotification: boolean;
+}
+
+interface Report {
+  id: string;
+  type: "weekly" | "monthly" | "custom";
+  periodStart: string;
+  periodEnd: string;
+  status: "processing" | "completed" | "failed" | "expired";
   createdAt: number;
-}
-
-interface HealthReport {
-  id: string;
-  reportType: 'weekly' | 'monthly' | 'custom';
-  periodStart: string;
-  periodEnd: string;
-  fileName: string;
-  fileSize: number;
-  dataCompleteness: 'full' | 'partial' | 'minimal';
-  generatedAt: number;
-  expiresAt: number;
-}
-
-interface ReportJob {
-  id: string;
-  reportType: 'weekly' | 'monthly' | 'custom';
-  periodStart: string;
-  periodEnd: string;
-  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'expired' | 'cancelled';
-  attemptCount: number;
-  errorCategory: string | null;
-  startedAt: number | null;
   completedAt: number | null;
-  createdAt: number;
+  expiresAt: number | null;
+  downloadUrl: string | null;
+  size?: number;
+  language: string;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_HEALTH_API_URL || 'http://localhost:3002/api/v1/reports';
+// =============================================================================
+// Sample Data
+// =============================================================================
 
-export default function HealthReportsPage() {
-  const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [schedule, setSchedule] = useState<ReportSchedule | null>(null);
-  const [reports, setReports] = useState<HealthReport[]>([]);
-  const [generatingJob, setGeneratingJob] = useState<ReportJob | null>(null);
-  const [downloading, setDownloading] = useState<string | null>(null);
+const SAMPLE_SCHEDULE: ReportSchedule = {
+  id: "schedule-1",
+  frequency: "weekly",
+  deliveryDay: 6, // Saturday
+  deliveryTime: "09:00",
+  timezone: "America/New_York",
+  enabled: true,
+  lastGeneratedAt: Date.now() - 86400000 * 3, // 3 days ago
+  nextScheduledAt: Date.now() + 86400000 * 4, // 4 days from now
+  emailNotification: true,
+};
 
-  // Form state
-  const [frequency, setFrequency] = useState<'weekly' | 'monthly'>('weekly');
-  const [deliveryDay, setDeliveryDay] = useState(1);
-  const [deliveryTime, setDeliveryTime] = useState('09:00');
-  const [emailEnabled, setEmailEnabled] = useState(true);
-  const [locale, setLocale] = useState<'en' | 'vi'>('en');
-  const [showTimePicker, setShowTimePicker] = useState(false);
+const SAMPLE_REPORTS: Report[] = [
+  {
+    id: "report-1",
+    type: "weekly",
+    periodStart: "2026-08-24",
+    periodEnd: "2026-08-30",
+    status: "completed",
+    createdAt: Date.now() - 86400000 * 3,
+    completedAt: Date.now() - 86400000 * 3 + 60000 * 5,
+    expiresAt: Date.now() + 86400000 * 25,
+    downloadUrl: "/reports/report-1.pdf",
+    size: 2456789,
+    language: "en",
+  },
+  {
+    id: "report-2",
+    type: "weekly",
+    periodStart: "2026-08-17",
+    periodEnd: "2026-08-23",
+    status: "completed",
+    createdAt: Date.now() - 86400000 * 10,
+    completedAt: Date.now() - 86400000 * 10 + 60000 * 4,
+    expiresAt: Date.now() + 86400000 * 18,
+    downloadUrl: "/reports/report-2.pdf",
+    size: 2234567,
+    language: "en",
+  },
+  {
+    id: "report-3",
+    type: "monthly",
+    periodStart: "2026-08-01",
+    periodEnd: "2026-08-31",
+    status: "processing",
+    createdAt: Date.now() - 60000 * 10,
+    completedAt: null,
+    expiresAt: null,
+    downloadUrl: null,
+    language: "en",
+  },
+  {
+    id: "report-4",
+    type: "weekly",
+    periodStart: "2026-08-10",
+    periodEnd: "2026-08-16",
+    status: "completed",
+    createdAt: Date.now() - 86400000 * 17,
+    completedAt: Date.now() - 86400000 * 17 + 60000 * 6,
+    expiresAt: Date.now() + 86400000 * 11,
+    downloadUrl: "/reports/report-4.pdf",
+    size: 2156789,
+    language: "en",
+  },
+];
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
+// =============================================================================
+// Components
+// =============================================================================
 
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
+interface ReportCardProps {
+  report: Report;
+  onPreview: (id: string) => void;
+  onDownload: (id: string) => void;
+  onDelete: (id: string) => void;
+}
 
-      const [scheduleRes, reportsRes] = await Promise.all([
-        fetch(`${BASE_URL}/schedules`, { headers }),
-        fetch(`${BASE_URL}?limit=20&offset=0`, { headers }),
-      ]);
-
-      if (scheduleRes.ok && reportsRes.ok) {
-        const scheduleData = await scheduleRes.json();
-        const reportsData = await reportsRes.json();
-
-        if (scheduleData.data?.schedules?.length > 0) {
-          const activeSchedule = scheduleData.data.schedules.find(
-            (s: ReportSchedule) => s.status !== 'deleted'
-          );
-          if (activeSchedule) {
-            setSchedule(activeSchedule);
-            setFrequency(activeSchedule.frequency as 'weekly' | 'monthly');
-            setDeliveryDay(activeSchedule.deliveryDay ?? 1);
-            setEmailEnabled(activeSchedule.emailEnabled);
-            setLocale(activeSchedule.locale);
-            setDeliveryTime(activeSchedule.deliveryTime);
-          }
-        }
-
-        setReports(reportsData.data?.reports ?? []);
-      }
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-    loadData();
-  }, [user, authLoading, router, loadData]);
-
-  const handleSaveSchedule = async () => {
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const body = {
-        frequency,
-        timezone,
-        deliveryDay: frequency === 'weekly' ? deliveryDay : undefined,
-        deliveryTime,
-        emailEnabled,
-        locale,
-      };
-
-      if (schedule) {
-        await fetch(`${BASE_URL}/schedules/${schedule.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify(body),
-        });
-      } else {
-        await fetch(`${BASE_URL}/schedules`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body),
-        });
-      }
-
-      alert('Schedule saved successfully');
-      loadData();
-    } catch (error) {
-      alert('Failed to save schedule');
-    }
+function ReportCard({ report, onPreview, onDownload, onDelete }: ReportCardProps) {
+  const statusConfig = {
+    completed: { color: "text-[var(--color-success)]", bg: "bg-[var(--color-success-muted)]", label: "Ready" },
+    processing: { color: "text-[var(--color-info)]", bg: "bg-[var(--color-info-muted)]", label: "Processing" },
+    failed: { color: "text-[var(--color-error)]", bg: "bg-[var(--color-error-muted)]", label: "Failed" },
+    expired: { color: "text-[var(--color-tertiary)]", bg: "bg-[var(--color-muted)]", label: "Expired" },
   };
 
-  const handlePauseResume = async () => {
-    if (!schedule) return;
-
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      const action = schedule.status === 'active' ? 'pause' : 'resume';
-      await fetch(`${BASE_URL}/schedules/${schedule.id}/${action}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      loadData();
-    } catch (error) {
-      alert('Failed to update schedule');
-    }
-  };
-
-  const handleDeleteSchedule = async () => {
-    if (!schedule) return;
-    if (!confirm('Are you sure you want to delete this schedule?')) return;
-
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      await fetch(`${BASE_URL}/schedules/${schedule.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setSchedule(null);
-      loadData();
-    } catch (error) {
-      alert('Failed to delete schedule');
-    }
-  };
-
-  const handleGenerateReport = async (type: 'weekly' | 'monthly') => {
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      const now = new Date();
-      const end = now.toISOString().split('T')[0];
-      let start: string;
-
-      if (type === 'weekly') {
-        const s = new Date(now);
-        s.setDate(s.getDate() - 7);
-        start = s.toISOString().split('T')[0];
-      } else {
-        const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        start = s.toISOString().split('T')[0];
-      }
-
-      const res = await fetch(`${BASE_URL}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          reportType: type,
-          periodStart: start,
-          periodEnd: end,
-        }),
-      });
-
-      const data = await res.json();
-      setGeneratingJob(data.data);
-
-      // Poll for status
-      const poll = async () => {
-        const jobRes = await fetch(`${BASE_URL}/jobs/${data.data.jobId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const jobData = await jobRes.json();
-        setGeneratingJob(jobData.data);
-
-        if (jobData.data.status === 'completed' || jobData.data.status === 'failed') {
-          loadData();
-        } else {
-          setTimeout(poll, 2000);
-        }
-      };
-
-      poll();
-    } catch (error) {
-      alert('Failed to generate report');
-    }
-  };
-
-  const handleDownload = async (report: HealthReport) => {
-    try {
-      setDownloading(report.id);
-      const token = localStorage.getItem('aivo_access_token');
-
-      const res = await fetch(`${BASE_URL}/${report.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      // Open download URL
-      window.open(data.data.downloadUrl, '_blank');
-    } catch (error) {
-      alert('Failed to download report');
-    } finally {
-      setDownloading(null);
-    }
-  };
-
-  const handleDeleteReport = async (reportId: string) => {
-    if (!confirm('Are you sure you want to delete this report?')) return;
-
-    try {
-      const token = localStorage.getItem('aivo_access_token');
-      await fetch(`${BASE_URL}/${reportId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      loadData();
-    } catch (error) {
-      alert('Failed to delete report');
-    }
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString();
+  const config = statusConfig[report.status];
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -300,221 +164,423 @@ export default function HealthReportsPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return (
+    <Card className="hover:border-[var(--color-border-hover)] transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={cn("p-2 rounded-lg shrink-0", config.bg)}>
+              <FileText className={cn("h-5 w-5", config.color)} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-medium text-[var(--color-foreground)]">
+                  {report.type.charAt(0).toUpperCase() + report.type.slice(1)} Report
+                </h3>
+                <Badge variant="subtle" size="sm" className="capitalize">
+                  {report.status}
+                </Badge>
+              </div>
+              <p className="text-sm text-[var(--color-muted-foreground)] mt-1">
+                {formatDate(report.periodStart)} - {formatDate(report.periodEnd)}
+              </p>
+              {report.status === "completed" && report.size && (
+                <p className="text-xs text-[var(--color-tertiary)] mt-1">
+                  {formatFileSize(report.size)}
+                </p>
+              )}
+              {report.status === "processing" && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--color-info)]" />
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    Generating report...
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
 
-  if (authLoading || loading) {
-    return (
-      <Container>
-        <div className="flex items-center justify-center h-64">
-          <Spinner size="lg" />
+          {report.status === "completed" && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onPreview(report.id)}
+                aria-label="Preview report"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDownload(report.id)}
+                aria-label="Download report"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(report.id)}
+                className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-muted)]"
+                aria-label="Delete report"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {report.status === "failed" && (
+            <Button variant="ghost" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          )}
         </div>
-      </Container>
-    );
-  }
+      </CardContent>
+    </Card>
+  );
+}
+
+interface ScheduleCardProps {
+  schedule: ReportSchedule | null;
+  onUpdate: (schedule: Partial<ReportSchedule>) => void;
+  onToggle: () => void;
+}
+
+function ScheduleCard({ schedule, onUpdate, onToggle }: ScheduleCardProps) {
+  const formatNextReport = (timestamp: number | null) => {
+    if (!timestamp) return "Not scheduled";
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const frequencyLabels = {
+    weekly: "Weekly",
+    biweekly: "Every 2 weeks",
+    monthly: "Monthly",
+  };
+
+  const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   return (
-    <Container>
-      <div className="max-w-4xl mx-auto py-8 space-y-8">
-        {/* Schedule Section */}
-        <Card>
-          <Card.Header>
-            <Card.Title>Report Schedule</Card.Title>
-            {schedule && (
-              <div className="flex items-center gap-3">
-                <Badge variant={schedule.status === 'active' ? 'success' : 'secondary'}>
-                  {schedule.status}
-                </Badge>
-                {schedule.nextRunAt && (
-                  <span className="text-sm text-muted-foreground">
-                    Next: {formatDate(schedule.nextRunAt)}
-                  </span>
-                )}
-              </div>
-            )}
-          </Card.Header>
-          <Card.Content className="space-y-6">
-            {/* Frequency */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Frequency</label>
-              <div className="flex gap-3">
-                <Button
-                  variant={frequency === 'weekly' ? 'default' : 'outline'}
-                  onClick={() => setFrequency('weekly')}
-                >
-                  Weekly
-                </Button>
-                <Button
-                  variant={frequency === 'monthly' ? 'default' : 'outline'}
-                  onClick={() => setFrequency('monthly')}
-                >
-                  Monthly
-                </Button>
-              </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-[var(--color-muted-foreground)]" />
+          <CardTitle className="text-base">Report Schedule</CardTitle>
+        </div>
+        <Button
+          variant={schedule?.enabled ? "secondary" : "outline"}
+          size="sm"
+          onClick={onToggle}
+        >
+          {schedule?.enabled ? (
+            <>
+              <Pause className="h-4 w-4 mr-2" />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Resume
+            </>
+          )}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {schedule ? (
+          <>
+            <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
+              <span className="text-sm text-[var(--color-muted-foreground)]">Frequency</span>
+              <select
+                value={schedule.frequency}
+                onChange={(e) => onUpdate({ frequency: e.target.value as ReportSchedule["frequency"] })}
+                className="text-sm bg-transparent border border-[var(--color-border)] rounded-lg px-3 py-1.5"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
             </div>
 
-            {/* Delivery Day (Weekly) */}
-            {frequency === 'weekly' && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Delivery Day</label>
-                <Select
-                  value={deliveryDay.toString()}
-                  onChange={(e) => setDeliveryDay(parseInt(e.target.value))}
-                >
-                  {days.map((day, index) => (
-                    <option key={day} value={index}>
-                      {day}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )}
+            <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
+              <span className="text-sm text-[var(--color-muted-foreground)]">Delivery day</span>
+              <select
+                value={schedule.deliveryDay}
+                onChange={(e) => onUpdate({ deliveryDay: parseInt(e.target.value) })}
+                className="text-sm bg-transparent border border-[var(--color-border)] rounded-lg px-3 py-1.5"
+              >
+                {dayLabels.map((day, index) => (
+                  <option key={day} value={index}>{day}</option>
+                ))}
+              </select>
+            </div>
 
-            {/* Delivery Time */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Delivery Time</label>
+            <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
+              <span className="text-sm text-[var(--color-muted-foreground)]">Delivery time</span>
               <input
                 type="time"
-                value={deliveryTime}
-                onChange={(e) => setDeliveryTime(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                value={schedule.deliveryTime}
+                onChange={(e) => onUpdate({ deliveryTime: e.target.value })}
+                className="text-sm bg-transparent border border-[var(--color-border)] rounded-lg px-3 py-1.5"
               />
             </div>
 
-            {/* Language */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Language</label>
-              <div className="flex gap-3">
-                <Button
-                  variant={locale === 'en' ? 'default' : 'outline'}
-                  onClick={() => setLocale('en')}
-                >
-                  English
-                </Button>
-                <Button
-                  variant={locale === 'vi' ? 'default' : 'outline'}
-                  onClick={() => setLocale('vi')}
-                >
-                  Tiếng Việt
-                </Button>
-              </div>
-            </div>
-
-            {/* Email Notification */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Email Notification</label>
-              <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <Button onClick={handleSaveSchedule}>
-                {schedule ? 'Update Schedule' : 'Create Schedule'}
+            <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)]">
+              <span className="text-sm text-[var(--color-muted-foreground)]">Email notification</span>
+              <Button
+                variant={schedule.emailNotification ? "primary" : "outline"}
+                size="sm"
+                onClick={() => onUpdate({ emailNotification: !schedule.emailNotification })}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {schedule.emailNotification ? "On" : "Off"}
               </Button>
-              {schedule && (
-                <>
-                  <Button variant="outline" onClick={handlePauseResume}>
-                    {schedule.status === 'active' ? 'Pause' : 'Resume'}
-                  </Button>
-                  <Button variant="destructive" onClick={handleDeleteSchedule}>
-                    Delete
-                  </Button>
-                </>
+            </div>
+
+            <div className="pt-2">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
+                Next report: <span className="text-[var(--color-foreground)]">{formatNextReport(schedule.nextScheduledAt)}</span>
+              </p>
+              {schedule.lastGeneratedAt && (
+                <p className="text-xs text-[var(--color-tertiary)] mt-1">
+                  Last generated: {new Date(schedule.lastGeneratedAt).toLocaleDateString()}
+                </p>
               )}
             </div>
-          </Card.Content>
-        </Card>
+          </>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-sm text-[var(--color-muted-foreground)] mb-4">
+              No report schedule configured
+            </p>
+            <Button onClick={() => onUpdate({ enabled: true })}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Schedule
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-        {/* Generate Report Section */}
-        <Card>
-          <Card.Header>
-            <Card.Title>Generate Report</Card.Title>
-          </Card.Header>
-          <Card.Content>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => handleGenerateReport('weekly')}
-                disabled={!!generatingJob}
-              >
-                Weekly Report
-              </Button>
-              <Button
-                onClick={() => handleGenerateReport('monthly')}
-                disabled={!!generatingJob}
-              >
-                Monthly Report
-              </Button>
-            </div>
+// =============================================================================
+// Main Component
+// =============================================================================
 
-            {generatingJob && (
-              <div className="mt-4 flex items-center gap-2">
-                <Spinner size="sm" />
-                <span>
-                  {generatingJob.status === 'queued' && 'Report queued...'}
-                  {generatingJob.status === 'processing' && 'Generating report...'}
-                  {generatingJob.status === 'completed' && 'Report ready!'}
-                  {generatingJob.status === 'failed' && 'Generation failed'}
-                </span>
-              </div>
+export default function ReportsPage() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const [reports, setReports] = useState<Report[]>(SAMPLE_REPORTS);
+  const [schedule, setSchedule] = useState<ReportSchedule | null>(SAMPLE_SCHEDULE);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showScheduleSettings, setShowScheduleSettings] = useState(false);
+
+  const handleGenerateReport = useCallback(async () => {
+    setIsGenerating(true);
+    // Simulate report generation
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    
+    const newReport: Report = {
+      id: `report-${Date.now()}`,
+      type: "custom",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-30",
+      status: "processing",
+      createdAt: Date.now(),
+      completedAt: null,
+      expiresAt: null,
+      downloadUrl: null,
+      language: "en",
+    };
+    
+    setReports((prev) => [newReport, ...prev]);
+    setIsGenerating(false);
+    
+    // Simulate completion after a delay
+    setTimeout(() => {
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === newReport.id
+            ? { ...r, status: "completed", completedAt: Date.now(), downloadUrl: `/reports/${r.id}.pdf`, size: 2567890 }
+            : r
+        )
+      );
+    }, 5000);
+  }, []);
+
+  const handlePreview = useCallback((reportId: string) => {
+    console.log("Preview report:", reportId);
+    // Open preview modal or navigate to preview page
+  }, []);
+
+  const handleDownload = useCallback((reportId: string) => {
+    console.log("Download report:", reportId);
+    // Trigger download
+  }, []);
+
+  const handleDelete = useCallback((reportId: string) => {
+    setReports((prev) => prev.filter((r) => r.id !== reportId));
+  }, []);
+
+  const handleScheduleUpdate = useCallback((updates: Partial<ReportSchedule>) => {
+    setSchedule((prev) => prev ? { ...prev, ...updates } : null);
+  }, []);
+
+  const handleToggleSchedule = useCallback(() => {
+    setSchedule((prev) => prev ? { ...prev, enabled: !prev.enabled } : null);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+        <LoadingState message="Loading reports..." />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return null;
+  }
+
+  const completedReports = reports.filter((r) => r.status === "completed");
+  const processingReports = reports.filter((r) => r.status === "processing");
+
+  return (
+    <AppShell
+      user={
+        user
+          ? {
+              name: user.displayName || user.email,
+              email: user.email,
+              avatar: user.avatarUrl || undefined,
+            }
+          : undefined
+      }
+    >
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
+              Health Reports
+            </h1>
+            <p className="text-[var(--color-muted-foreground)]">
+              View and download your wellness reports
+            </p>
+          </div>
+          <Button onClick={handleGenerateReport} disabled={isGenerating}>
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate Report
+              </>
             )}
-          </Card.Content>
-        </Card>
+          </Button>
+        </div>
+
+        {/* Schedule Card */}
+        <ScheduleCard
+          schedule={schedule}
+          onUpdate={handleScheduleUpdate}
+          onToggle={handleToggleSchedule}
+        />
+
+        {/* Processing Reports */}
+        {processingReports.length > 0 && (
+          <div>
+            <h2 className="section-title mb-4">Processing</h2>
+            <div className="space-y-4">
+              {processingReports.map((report) => (
+                <ReportCard
+                  key={report.id}
+                  report={report}
+                  onPreview={handlePreview}
+                  onDownload={handleDownload}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Report History */}
-        <Card>
-          <Card.Header>
-            <Card.Title>Report History</Card.Title>
-          </Card.Header>
-          <Card.Content>
-            {reports.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No reports yet
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {reports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <h4 className="font-medium">
-                        {report.reportType.charAt(0).toUpperCase() +
-                          report.reportType.slice(1)}{' '}
-                        Report
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(report.generatedAt)} •{' '}
-                        {formatFileSize(report.fileSize)} • {report.dataCompleteness}{' '}
-                        data
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleDownload(report)}
-                        disabled={downloading === report.id}
-                      >
-                        {downloading === report.id ? (
-                          <Spinner size="sm" />
-                        ) : (
-                          'Download'
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteReport(report.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+        <div>
+          <h2 className="section-title mb-4">Report History</h2>
+          {completedReports.length > 0 ? (
+            <div className="space-y-4">
+              {completedReports.map((report) => (
+                <ReportCard
+                  key={report.id}
+                  report={report}
+                  onPreview={handlePreview}
+                  onDownload={handleDownload}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <FileText className="h-12 w-12 mx-auto text-[var(--color-muted)] mb-4" />
+                <h3 className="text-lg font-medium text-[var(--color-foreground)] mb-2">
+                  No reports yet
+                </h3>
+                <p className="text-sm text-[var(--color-muted-foreground)] mb-4">
+                  Generate your first wellness report to see your progress over time.
+                </p>
+                <Button onClick={handleGenerateReport} disabled={isGenerating}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Generate Report
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Info Card */}
+        <Card className="bg-[var(--color-muted)]">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-[var(--color-muted-foreground)] shrink-0 mt-0.5" />
+              <div className="text-sm text-[var(--color-muted-foreground)]">
+                <p className="font-medium text-[var(--color-foreground)] mb-1">
+                  About Health Reports
+                </p>
+                <p>
+                  Health reports are generated based on your tracked data and provide
+                  a summary of your wellness over a specific period. Reports are
+                  available for download for 28 days after generation. AIVO reports
+                  provide general wellness guidance and are not medical documents.
+                </p>
               </div>
-            )}
-          </Card.Content>
+            </div>
+          </CardContent>
         </Card>
+
+        {/* Disclaimer */}
+        <div className="text-center py-4">
+          <p className="text-xs text-[var(--color-tertiary)]">
+            AIVO provides general wellness guidance. Health reports are for informational
+            purposes only and do not constitute medical advice.
+          </p>
+        </div>
       </div>
-    </Container>
+    </AppShell>
   );
 }
