@@ -17,7 +17,7 @@ import { planningRoutes } from './planning';
 export function createRoutes(): Hono<CoachContext> {
   const app = new Hono<CoachContext>();
   
-  // Apply auth middleware to all routes
+  // Apply auth middleware to all routes (except health and swagger)
   app.use('*', authMiddleware());
   
   // Mount route groups

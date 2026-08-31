@@ -1,26 +1,17 @@
 /**
- * Coach Worker - Cloudflare Workers entry point
- * Handles workout planning, session tracking, and fitness coaching
+ * Health Worker - Cloudflare Workers entry point
+ * Handles Daily Intelligence, readiness calculation, and health tracking
  */
 
 import { Hono } from 'hono';
-import { requestId, errorHandler, cors, rateLimit } from './middleware';
+import { cors, requestId, errorHandler } from './middleware';
 import { createRoutes } from './routes';
-import { mountCoachSwagger } from './swagger';
-import type { CoachEnv } from './env.d';
+import { mountHealthSwagger } from './swagger';
+import type { HealthEnv } from './types/env';
 
-export interface Env extends CoachEnv {}
+export interface Env extends HealthEnv {}
 
-// Context type for request context
-type Context = {
-  Bindings: Env;
-  Variables: {
-    requestId: string;
-    userId: string;
-  };
-};
-
-const app = new Hono<Context>();
+const app = new Hono();
 
 // Request ID for all requests
 app.use('*', requestId());
@@ -59,22 +50,22 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-// Health check endpoint (no auth required)
+// Health check (no auth required)
 app.get('/health', (c) => {
   return c.json({
     status: 'ok',
     timestamp: Date.now(),
     version: '1.0.0',
-    service: 'coach',
+    service: 'health',
   });
 });
 
-// Mount routes under /api/v1
+// Mount routes
 const routes = createRoutes();
 app.route('/api/v1', routes);
 
 // Mount Swagger UI routes
-mountCoachSwagger(app);
+mountHealthSwagger(app);
 
 // 404 handler
 app.notFound((c) => {
@@ -95,33 +86,47 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Log request (sanitized - no sensitive data)
     const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();
-    console.log(`[${requestId}] ${request.method} ${new URL(request.url).pathname}`);
+    const pathname = new URL(request.url).pathname;
+    console.log(`[${requestId}] ${request.method} ${pathname}`);
     
     return app.fetch(request, env, ctx);
   },
   
-  // Queue consumer for planning jobs
-  async queue(messages: Message[], env: Env, ctx: ExecutionContext): Promise<void> {
-    console.log(`Processing ${messages.length} planning queue messages`);
+  // Queue consumer for async processing
+  async queue(batch: MessageBatch, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log(`Processing ${batch.messages.length} queue messages`);
     
-    for (const message of messages) {
+    for (const message of batch.messages) {
       try {
-        const payload = message.body;
+        const payload = JSON.parse(message.body);
         
+        // Handle different message types
         switch (payload.type) {
-          case 'coach.plan_adjustment':
-            console.log(`Processing plan adjustment for user ${payload.data.userId}`);
-            // Handle plan adjustment
+          case 'calculate_readiness':
+            // Calculate readiness for user
+            console.log(`Calculating readiness for user ${payload.userId}`);
+            break;
+          
+          case 'generate_actions':
+            // Generate daily actions
+            console.log(`Generating actions for user ${payload.userId}`);
+            break;
+          
+          case 'sync_health_data':
+            // Sync health data from wearables
+            console.log(`Syncing health data for user ${payload.userId}`);
             break;
           
           default:
             console.warn(`Unknown message type: ${payload.type}`);
         }
         
+        // Acknowledge message
         message.ack();
       } catch (error) {
-        console.error('Failed to process planning message:', error);
+        console.error('Failed to process message:', error);
         
+        // Retry if within retry limit
         if (message.attempts < 3) {
           message.retry();
         } else {
