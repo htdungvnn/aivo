@@ -70,7 +70,7 @@ export function exercisesRoutes(): Hono<CoachContext> {
     }
     
     // Get rule definitions
-    const { getFormRuleDefinitions } = await import('../services/rules');
+    const { getFormRuleDefinitions } = await import('../services/exercises');
     const rules = getFormRuleDefinitions(exercise.formRules);
     
     return c.json({

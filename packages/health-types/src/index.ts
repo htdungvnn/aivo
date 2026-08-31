@@ -3,15 +3,8 @@
  * Shared type definitions for the Daily Intelligence system
  */
 
-// Re-export all types
-export * from './readiness.js';
-export * from './health-data.js';
-export * from './charts.js';
-export * from './daily-intelligence.js';
-export * from './validation.js';
-
 // =============================================================================
-// Constants
+// Constants (must be defined before re-exports)
 // =============================================================================
 
 /**
@@ -164,10 +157,6 @@ export const ADAPTATION_STATUS = {
 
 export type AdaptationStatus = (typeof ADAPTATION_STATUS)[keyof typeof ADAPTATION_STATUS];
 
-// =============================================================================
-// Privacy Notice
-// =============================================================================
-
 /**
  * Privacy notice for health data
  */
@@ -175,10 +164,6 @@ export const PRIVACY_NOTICE = {
   en: "AIVO Readiness is an estimated wellness indicator based on available data. It does not provide medical advice or replace professional guidance.",
   vi: "Chỉ số Sẵn Sàng AIVO là chỉ số ước tính về sức khỏe dựa trên dữ liệu hiện có. Nó không cung cấp lời khuyên y tế hoặc thay thế hướng dẫn chuyên môn.",
 } as const;
-
-// =============================================================================
-// Default Values
-// =============================================================================
 
 /**
  * Default readiness weights for each factor
@@ -245,10 +230,18 @@ export const BASELINE_SETTINGS = {
 } as const;
 
 // =============================================================================
-// Utility Functions
+// Re-export all types (after constants are defined)
 // =============================================================================
 
-import { z } from 'zod';
+export * from './readiness.js';
+export * from './health-data.js';
+export * from './charts.js';
+export * from './daily-intelligence.js';
+export * from './validation.js';
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
 
 /**
  * Check if a value is a valid readiness level

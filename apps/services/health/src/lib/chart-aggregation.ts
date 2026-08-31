@@ -711,3 +711,50 @@ export function generateEnergyStressChart(
     options
   );
 }
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Check if a metric supports a specific range
+ */
+export function isRangeSupported(
+  metric: string,
+  range: ChartRange
+): boolean {
+  // All metrics support day and week ranges
+  if (range === CHART_RANGES.DAY || range === CHART_RANGES.WEEK) {
+    return true;
+  }
+  
+  // Monthly and quarterly only for selected metrics
+  if (range === CHART_RANGES.MONTH || range === CHART_RANGES.THREE_MONTHS) {
+    const supportedMetrics = [
+      HEALTH_METRICS.SLEEP_DURATION,
+      HEALTH_METRICS.SLEEP_QUALITY,
+      HEALTH_METRICS.RESTING_HR,
+      HEALTH_METRICS.HRV,
+      HEALTH_METRICS.STEPS,
+      HEALTH_METRICS.WEIGHT,
+      HEALTH_METRICS.READINESS,
+    ];
+    return supportedMetrics.includes(metric as any);
+  }
+  
+  // Year range only for selected metrics
+  if (range === CHART_RANGES.YEAR) {
+    const supportedMetrics = [
+      HEALTH_METRICS.SLEEP_DURATION,
+      HEALTH_METRICS.SLEEP_QUALITY,
+      HEALTH_METRICS.RESTING_HR,
+      HEALTH_METRICS.HRV,
+      HEALTH_METRICS.STEPS,
+      HEALTH_METRICS.WEIGHT,
+      HEALTH_METRICS.READINESS,
+    ];
+    return supportedMetrics.includes(metric as any);
+  }
+  
+  return true;
+}
