@@ -24,9 +24,9 @@
     "check": "cargo check && cargo clippy -- -D warnings"
   },
   "devDependencies": {
+    "@aivo/wasm-core": "workspace:*",
     "@repo/common-types": "workspace:*",
     "@repo/health-types": "workspace:*",
-    "@repo/wasm-core": "workspace:*",
     "typescript": "^5.4.0",
     "wasm-pack": "^0.13.0"
   },
@@ -35,6 +35,6 @@
     "@repo/health-types": ">=1.0.0"
   },
   "dependencies": {
-    "@repo/wasm-core": "workspace:*"
+    "@aivo/wasm-core": "workspace:*"
   }
 }

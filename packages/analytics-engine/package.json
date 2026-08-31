@@ -24,11 +24,11 @@
     "check": "cargo check && cargo clippy -- -D warnings"
   },
   "devDependencies": {
-    "@repo/wasm-core": "workspace:*",
+    "@aivo/wasm-core": "workspace:*",
     "typescript": "^5.4.0",
     "wasm-pack": "^0.13.0"
   },
   "dependencies": {
-    "@repo/wasm-core": "workspace:*"
+    "@aivo/wasm-core": "workspace:*"
   }
 }
