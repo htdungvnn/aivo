@@ -15,7 +15,7 @@ import {
 } from '../../lib/coach/pose-processing';
 import { getExerciseEngine } from '../../lib/coach/exercise-engine';
 import { getFeedbackScheduler } from '../../lib/coach/feedback-scheduler';
-import type { CorrectionResult } from '@repo/fitness-types/correction';
+import type { CorrectionResult } from '@aivo/fitness-types/correction';
 
 interface UsePoseDetectionOptions {
   exerciseCode: string;

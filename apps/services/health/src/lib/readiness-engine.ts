@@ -21,7 +21,7 @@ import {
   clamp,
   isFiniteNumber,
   DEFAULT_READINESS_WEIGHTS,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 
 // =============================================================================
 // Constants

@@ -1,5 +1,5 @@
 {
-  "name": "nutrition",
+  "name": "aivo-nutrition",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -17,21 +17,21 @@
     "migrate:list": "wrangler d1 migrations list aivo-nutrition-db --local",
     "migrate:list:remote": "wrangler d1 migrations list aivo-nutrition-db --remote",
     "db:create": "wrangler d1 create aivo-nutrition-db",
-    "queue:consume": "wrangler queues consumer add aivo-nutrition-queue --script nutrition --local"
+    "queue:consume": "wrangler queues consumer add aivo-nutrition-queue --script aivo-nutrition --local"
   },
   "dependencies": {
-    "@repo/nutrition-types": "workspace:*",
-    "@repo/queue-types": "workspace:*",
-    "@repo/swagger-utils": "workspace:*",
+    "@aivo/nutrition-types": "workspace:*",
+    "@aivo/queue-types": "workspace:*",
+    "@aivo/swagger-utils": "workspace:*",
     "hono": "^4.13.5",
-    "zod": "^3.23.0"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.0.0",
+    "@aivo/eslint-config": "workspace:*",
+    "@cloudflare/vitest-plugin": "^1.1.2",
     "@cloudflare/workers-types": "^5.20260830.1",
-    "@repo/eslint-config": "workspace:*",
-    "eslint": "^9.0.0",
-    "typescript": "^5.5.2",
+    "eslint": "^10.9.1",
+    "typescript": "^7.0.2",
     "vitest": "~4.1.11",
     "wrangler": "^4.127.1"
   }

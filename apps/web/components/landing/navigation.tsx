@@ -6,10 +6,10 @@ import { Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { mainNav, authNav } from "@repo/design-system";
+import { mainNav, authNav } from "@aivo/marketing-config";
 import { cn } from "@/lib/utils";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
-import type { NavItem } from "@repo/design-system";
+import type { NavItem } from "@aivo/marketing-config";
 import { useTranslations, useLocale } from "next-intl";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 

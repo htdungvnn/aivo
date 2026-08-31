@@ -6,9 +6,9 @@
  * by downstream services (Health, Nutrition, etc.)
  */
 
-import { createWorkoutCompletedEvent, createWorkoutStartedEvent } from '@repo/queue-types';
-import { generateCorrelationId, sanitizeTraceContext } from '@repo/observability';
-import type { DomainEventEnvelope } from '@repo/queue-types';
+import { createWorkoutCompletedEvent, createWorkoutStartedEvent } from '@aivo/queue-types';
+import { generateCorrelationId, sanitizeTraceContext } from '@aivo/observability';
+import type { DomainEventEnvelope } from '@aivo/queue-types';
 
 // =============================================================================
 // Event Producer Interface

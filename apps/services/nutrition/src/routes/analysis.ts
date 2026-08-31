@@ -31,7 +31,7 @@ import type {
   MealCorrection,
   MealAnalysisResult,
   CONFIDENCE_THRESHOLDS,
-} from '@repo/nutrition-types';
+} from '@aivo/nutrition-types';
 import type D1Database from '@cloudflare/workers-types';
 
 const analysis = new Hono<{ Bindings: Env; Variables: { userId: string } }>();

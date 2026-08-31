@@ -4,7 +4,7 @@
  */
 
 import type { R2Bucket } from '@cloudflare/workers-types';
-import type { HealthReport } from '@repo/report-types';
+import type { HealthReport } from '@aivo/report-types';
 
 // =============================================================================
 // Configuration

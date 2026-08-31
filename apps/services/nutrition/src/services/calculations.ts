@@ -12,7 +12,7 @@ import type {
   MealType,
   NUTRITION_UNITS,
   NUTRITION_PRECISION,
-} from '@repo/nutrition-types';
+} from '@aivo/nutrition-types';
 
 /**
  * Nutrition calculator class

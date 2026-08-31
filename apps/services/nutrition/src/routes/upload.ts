@@ -7,7 +7,7 @@ import type { Env } from '../types/env';
 import { requireAuth } from '../middleware/auth';
 import { NutritionError } from '../middleware';
 import { generateR2Key, sha256Base64Url } from '../lib/crypto';
-import type { ImageUploadRequestSchema } from '@repo/nutrition-types';
+import type { ImageUploadRequestSchema } from '@aivo/nutrition-types';
 
 const upload = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 

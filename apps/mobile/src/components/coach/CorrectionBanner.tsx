@@ -4,8 +4,8 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { CorrectionResult } from '@repo/fitness-types/correction';
-import { DEFAULT_CORRECTION_MESSAGES } from '@repo/fitness-types/correction';
+import type { CorrectionResult } from '@aivo/fitness-types/correction';
+import { DEFAULT_CORRECTION_MESSAGES } from '@aivo/fitness-types/correction';
 
 interface CorrectionBannerProps {
   corrections: CorrectionResult[];

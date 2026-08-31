@@ -1,0 +1,38 @@
+{
+  "name": "@aivo/middleware",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./hono": {
+      "import": "./src/hono.ts",
+      "types": "./src/hono.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "pnpm exec eslint src/",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@aivo/eslint-config": "workspace:*",
+    "@cloudflare/workers-types": "^5.20260830.1",
+    "@types/node": "^26.4.0",
+    "eslint": "^10.9.1",
+    "typescript": "^7.0.2",
+    "vitest": "~4.1.11"
+  },
+  "peerDependencies": {
+    "hono": ">=4.0.0"
+  }
+}

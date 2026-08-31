@@ -10,7 +10,7 @@
  */
 
 import type { HealthEnv } from '../types/env.js';
-import type { SupportedLocale, ReportType } from '@repo/report-types';
+import type { SupportedLocale, ReportType } from '@aivo/report-types';
 import type { ReportAggregatedData } from './report-aggregation.js';
 
 // =============================================================================

@@ -19,7 +19,7 @@ import {
   isFiniteNumber,
   roundTo,
   formatDate,
-} from "@repo/health-types";
+} from "@aivo/health-types";
 
 // =============================================================================
 // Constants

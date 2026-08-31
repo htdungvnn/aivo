@@ -15,7 +15,7 @@ import {
   isEmailVerificationMessage,
   isReportReadyMessage,
   BINDING_NAMES,
-} from '@repo/queue-types';
+} from '@aivo/queue-types';
 import { EmailService, EmailServiceError } from './email';
 import { getTemplateContent, ReportReadyTemplateData } from '../templates/email';
 

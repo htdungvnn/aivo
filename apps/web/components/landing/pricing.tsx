@@ -8,7 +8,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { authNav } from "@repo/design-system";
+import { authNav } from "@aivo/marketing-config";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
 import Link from "next/link";
 import { useTranslations } from "next-intl";

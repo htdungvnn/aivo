@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useRequireAdmin } from '@/components/auth/AuthProvider';
-import { getAuthClient } from '@repo/api-client';
+import { getAuthClient } from '@aivo/api-client';
 import styles from './admin.module.css';
 
 interface AdminUser {

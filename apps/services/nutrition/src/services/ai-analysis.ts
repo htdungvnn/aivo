@@ -10,7 +10,7 @@ import type {
   AIModel,
   NutritionSource,
   NUTRITION_SOURCE,
-} from '@repo/nutrition-types';
+} from '@aivo/nutrition-types';
 import { AIModelRouter, getAIRouter } from './ai-router';
 import { NutritionCalculator } from './calculations';
 import type D1Database from '@cloudflare/workers-types';

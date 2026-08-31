@@ -12,7 +12,7 @@
  */
 
 import type { HealthEnv } from '../types/env.js';
-import type { ReportSchedule, ReportGenerateTask, ReportType } from '@repo/report-types';
+import type { ReportSchedule, ReportGenerateTask, ReportType } from '@aivo/report-types';
 import {
   getDueSchedules,
   claimScheduleAndUpdateNextRun,
@@ -23,7 +23,7 @@ import {
   calculateReportDateRange,
   calculateNextRunTime,
   generateIdempotencyKey,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 
 /**
  * Scheduled event context

@@ -8,7 +8,7 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { mobileNavItems, isPathActive } from "../../../../packages/design-system/src";
+import { mobileNavItems, isPathActive } from "@aivo/marketing-config";
 
 // Icons
 import {

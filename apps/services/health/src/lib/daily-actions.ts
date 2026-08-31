@@ -19,7 +19,7 @@ import {
   TrainingIntensity,
   getActionMessage,
   getActionPriority,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 
 // =============================================================================
 // Types

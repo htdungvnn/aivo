@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthClient } from '@repo/api-client';
+import { getAuthClient } from '@aivo/api-client';
 import styles from './callback.module.css';
 
 interface CallbackPageProps {

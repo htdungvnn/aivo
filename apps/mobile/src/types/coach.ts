@@ -9,7 +9,7 @@ export type {
   NormalizedPose,
   PoseProcessingConfig,
   PerformanceMode,
-} from '@repo/fitness-types/pose';
+} from '@aivo/fitness-types/pose';
 
 export type {
   ExerciseCode,
@@ -20,21 +20,21 @@ export type {
   SetSummary,
   WorkoutSummary,
   UserGoal,
-} from '@repo/fitness-types/exercise';
+} from '@aivo/fitness-types/exercise';
 
 export type {
   CorrectionCode,
   CorrectionSeverity,
   CorrectionResult,
   FeedbackMessage,
-} from '@repo/fitness-types/correction';
+} from '@aivo/fitness-types/correction';
 
 export type {
   WorkoutSession,
   SessionStatus,
   RestTimer,
   SessionEvent,
-} from '@repo/fitness-types/workout-session';
+} from '@aivo/fitness-types/workout-session';
 
 export type {
   WorkoutPlan,
@@ -43,13 +43,13 @@ export type {
   ProgressSummary,
   UserFitnessGoals,
   UserExercisePreferences,
-} from '@repo/fitness-types/plan';
+} from '@aivo/fitness-types/plan';
 
 export type {
   WASMInput,
   WASMOutput,
   EngineState,
-} from '@repo/fitness-types/wasm';
+} from '@aivo/fitness-types/wasm';
 
 // =============================================================================
 // Mobile-Specific Types

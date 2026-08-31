@@ -9,7 +9,7 @@
  * - Accessible (text labels, color contrast)
  */
 
-import type { SupportedLocale } from '@repo/report-types';
+import type { SupportedLocale } from '@aivo/report-types';
 
 // =============================================================================
 // Types

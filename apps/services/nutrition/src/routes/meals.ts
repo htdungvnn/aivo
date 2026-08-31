@@ -15,7 +15,7 @@ import {
   getMealItems,
 } from '../db/queries';
 import { NutritionCalculator } from '../services/calculations';
-import type { MealType } from '@repo/nutrition-types';
+import type { MealType } from '@aivo/nutrition-types';
 
 const meals = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 

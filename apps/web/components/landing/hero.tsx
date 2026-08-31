@@ -8,7 +8,7 @@ import { ArrowRight, Shield, Smartphone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Badge } from "@/components/ui/badge";
-import { authNav } from "@repo/design-system";
+import { authNav } from "@aivo/marketing-config";
 import { fadeInUpVariants, staggerContainerVariants, createItemVariants } from "@/lib/animations";
 import { useTranslations } from "next-intl";
 

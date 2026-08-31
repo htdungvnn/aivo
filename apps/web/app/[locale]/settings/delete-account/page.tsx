@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useRequireActiveAccount } from '@/components/auth/AuthProvider';
-import { getAuthClient } from '@repo/api-client';
+import { getAuthClient } from '@aivo/api-client';
 import styles from './delete-account.module.css';
 
 export default function DeleteAccountPage() {

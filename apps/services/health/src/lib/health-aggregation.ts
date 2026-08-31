@@ -17,7 +17,7 @@ import {
   isFiniteNumber,
   roundTo,
   getLocalDateStr,
-} from '@repo/health-types';
+} from '@aivo/health-types';
 
 // =============================================================================
 // Data Source Interfaces

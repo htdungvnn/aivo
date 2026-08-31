@@ -7,7 +7,7 @@ import type {
   ReportGenerateTask,
   ReportDeliverTask,
   ReportDeleteTask,
-} from '@repo/report-types';
+} from '@aivo/report-types';
 
 // Database
 export interface HealthEnv {

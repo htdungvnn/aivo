@@ -7,7 +7,7 @@ import { cors, requestId, errorHandler, rateLimits } from './middleware';
 import { createRoutes } from './routes';
 import { getJWTService, setJWTService, JWTService } from './lib/jwt';
 import type { AuthEnv } from './middleware/auth';
-import type { EmailVerificationQueueMessage } from '@repo/queue-types';
+import type { EmailVerificationQueueMessage } from '@aivo/queue-types';
 
 export interface Env extends AuthEnv {
   // D1 Database
