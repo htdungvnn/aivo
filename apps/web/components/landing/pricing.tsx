@@ -8,32 +8,43 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  pricingPlans,
-  formatPrice,
-  getYearlySavings,
-  authNav,
-  type PricingPlan,
-} from "../../../packages/design-system/src";
+import { authNav } from "@repo/design-system";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
-interface PricingCardProps {
-  plan: PricingPlan;
-  billingPeriod: "monthly" | "yearly";
+interface PlanFeatures {
+  name: string;
+  included: boolean;
 }
 
-function PricingCard({ plan, billingPeriod }: PricingCardProps) {
-  const price =
-    billingPeriod === "yearly"
-      ? plan.price.yearly
-      : plan.price.monthly;
+interface PricingPlanData {
+  id: string;
+  name: string;
+  tagline: string;
+  price: {
+    monthly: number | null;
+    yearly: number | null;
+    lifetime?: number;
+  };
+  features: PlanFeatures[];
+  highlighted?: boolean;
+  recommended?: boolean;
+  disabled?: boolean;
+}
+
+function PricingCard({ plan, billingPeriod }: { plan: PricingPlanData; billingPeriod: "monthly" | "yearly" }) {
+  const t = useTranslations("pricing");
+  
+  const price = billingPeriod === "yearly" ? plan.price.yearly : plan.price.monthly;
   const isLifetime = billingPeriod === "yearly" && plan.price.lifetime !== undefined;
   const displayPrice = isLifetime ? plan.price.lifetime : price;
-  const yearlySavings =
-    plan.id === "pro" && billingPeriod === "yearly"
-      ? getYearlySavings(plan.price.monthly!, plan.price.yearly!)
-      : 0;
+
+  const formatPrice = (p: number | null) => {
+    if (p === null) return "Contact";
+    if (p === 0) return t("free.price");
+    return `$${p}`;
+  };
 
   return (
     <Card
@@ -49,7 +60,7 @@ function PricingCard({ plan, billingPeriod }: PricingCardProps) {
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge variant="primary" className="gap-1">
             <Sparkles className="w-3 h-3" />
-            Recommended
+            {t("pro.popular")}
           </Badge>
         </div>
       )}
@@ -57,10 +68,10 @@ function PricingCard({ plan, billingPeriod }: PricingCardProps) {
       {/* Header */}
       <div className="text-center mb-8">
         <h3 className="text-xl font-bold text-[var(--color-foreground)] mb-2">
-          {plan.name}
+          {t(`${plan.id}.name`)}
         </h3>
         <p className="text-sm text-[var(--color-muted-foreground)] mb-6">
-          {plan.tagline}
+          {t(`${plan.id}.description`)}
         </p>
 
         {/* Price */}
@@ -73,22 +84,13 @@ function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                 </span>
                 {displayPrice !== 0 && (
                   <span className="text-[var(--color-muted-foreground)]">
-                    {isLifetime
-                      ? ""
-                      : billingPeriod === "yearly"
-                        ? "/year"
-                        : "/mo"}
+                    {isLifetime ? "" : billingPeriod === "yearly" ? `/${t("yearly").toLowerCase().replace(" ", "")}` : `/${t("monthly").toLowerCase().slice(0, 2)}`}
                   </span>
                 )}
               </div>
-              {yearlySavings > 0 && billingPeriod === "yearly" && (
-                <p className="text-xs text-[var(--color-success)] mt-1">
-                  Save {yearlySavings}% vs monthly
-                </p>
-              )}
               {isLifetime && (
                 <p className="text-xs text-[var(--color-muted-foreground)] mt-1">
-                  One-time payment, lifetime access
+                  {t("pro.lifetime", { defaultValue: "One-time payment, lifetime access" })}
                 </p>
               )}
             </>
@@ -108,7 +110,7 @@ function PricingCard({ plan, billingPeriod }: PricingCardProps) {
           size="lg"
           disabled={plan.disabled}
         >
-          {plan.cta}
+          {t(`${plan.id}.cta`)}
         </Button>
       </Link>
 
@@ -131,11 +133,6 @@ function PricingCard({ plan, billingPeriod }: PricingCardProps) {
               >
                 {feature.name}
               </span>
-              {feature.description && (
-                <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
-                  {feature.description}
-                </p>
-              )}
             </div>
           </li>
         ))}
@@ -151,6 +148,8 @@ function BillingToggle({
   period: "monthly" | "yearly";
   onChange: (period: "monthly" | "yearly") => void;
 }) {
+  const t = useTranslations("pricing");
+
   return (
     <div className="flex items-center justify-center gap-4 mb-12">
       <button
@@ -162,7 +161,7 @@ function BillingToggle({
             : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
         }`}
       >
-        Monthly
+        {t("monthly")}
       </button>
       <button
         type="button"
@@ -173,11 +172,11 @@ function BillingToggle({
             : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
         }`}
       >
-        Yearly
+        {t("yearly")}
         <span className="absolute -top-2 -right-2">
           {period === "yearly" && (
             <Badge variant="success" size="sm">
-              -25%
+              {t("yearlyDiscount")}
             </Badge>
           )}
         </span>
@@ -187,9 +186,41 @@ function BillingToggle({
 }
 
 export function Pricing() {
-  const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yearly">(
-    "monthly"
-  );
+  const t = useTranslations("pricing");
+  const [billingPeriod, setBillingPeriod] = React.useState<"monthly" | "yeary">("monthly");
+
+  // Get features from translations
+  const freeFeatures = t.raw("free.features") as string[];
+  const proFeatures = t.raw("pro.features") as string[];
+  const teamFeatures = t.raw("team.features") as string[];
+
+  const plans: PricingPlanData[] = [
+    {
+      id: "free",
+      name: t("free.name"),
+      tagline: t("free.description"),
+      price: { monthly: 0, yearly: 0 },
+      features: freeFeatures.map((name) => ({ name, included: true })),
+      highlighted: false,
+    },
+    {
+      id: "pro",
+      name: t("pro.name"),
+      tagline: t("pro.description"),
+      price: { monthly: 8, yearly: 79 },
+      features: proFeatures.map((name) => ({ name, included: true })),
+      highlighted: true,
+      recommended: true,
+    },
+    {
+      id: "team",
+      name: t("team.name"),
+      tagline: t("team.description"),
+      price: { monthly: null, yearly: null },
+      features: teamFeatures.map((name) => ({ name, included: true })),
+      highlighted: false,
+    },
+  ];
 
   return (
     <section id="pricing" className="py-24 lg:py-32 relative">
@@ -199,8 +230,8 @@ export function Pricing() {
       <Container className="relative z-10">
         <SectionHeader
           eyebrow="Pricing"
-          title="Simple, transparent pricing"
-          description="Start free, upgrade when you&apos;re ready. No hidden fees, cancel anytime."
+          title={t("title")}
+          description={t("subtitle")}
           badge="Free to Start"
           badgeVariant="primary"
         />
@@ -216,7 +247,7 @@ export function Pricing() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto"
         >
-          {pricingPlans.map((plan: PricingPlan) => (
+          {plans.map((plan: PricingPlanData) => (
             <motion.div key={plan.id} variants={createItemVariants()}>
               <PricingCard plan={plan} billingPeriod={billingPeriod} />
             </motion.div>

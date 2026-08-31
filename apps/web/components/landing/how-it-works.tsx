@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { SectionHeader } from "@/components/ui/section-header";
-import { howItWorksSteps } from "../../../packages/design-system/src";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
+import { useTranslations } from "next-intl";
 
 const iconMap: Record<string, LucideIcon> = {
   UserPlus,
@@ -23,14 +23,28 @@ const iconMap: Record<string, LucideIcon> = {
   TrendingUp,
 };
 
+interface StepData {
+  id: string;
+  icon: string;
+  number: number;
+}
+
 export function HowItWorks() {
+  const t = useTranslations("howItWorks");
+
+  const steps: StepData[] = [
+    { id: "step1", icon: "UserPlus", number: 1 },
+    { id: "step2", icon: "ClipboardList", number: 2 },
+    { id: "step3", icon: "Sparkles", number: 3 },
+  ];
+
   return (
     <section id="how-it-works" className="py-24 lg:py-32 bg-[var(--color-surface)]/30">
       <Container>
         <SectionHeader
           eyebrow="How It Works"
-          title="Get started in minutes"
-          description="AIVO adapts to your lifestyle and helps you build sustainable health habits with AI-powered guidance."
+          title={t("title")}
+          description={t("subtitle")}
         />
 
         <motion.div
@@ -44,9 +58,10 @@ export function HowItWorks() {
           <div className="hidden lg:block absolute top-24 left-[calc(10%+40px)] right-[calc(10%+40px)] h-px bg-gradient-to-r from-[var(--color-primary)]/20 via-[var(--color-primary)]/40 to-[var(--color-primary)]/20" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-4">
-            {howItWorksSteps.map((step, index) => {
+            {steps.map((step, index) => {
               const Icon = iconMap[step.icon] || Sparkles;
-              const isLast = index === howItWorksSteps.length - 1;
+              const isLast = index === steps.length - 1;
+              const stepT = useTranslations(`howItWorks.${step.id}`);
 
               return (
                 <motion.div
@@ -72,10 +87,10 @@ export function HowItWorks() {
 
                     {/* Content */}
                     <h3 className="text-lg font-semibold text-[var(--color-foreground)] mb-2">
-                      {step.title}
+                      {stepT("title")}
                     </h3>
                     <p className="text-sm text-[var(--color-muted-foreground)] leading-relaxed">
-                      {step.description}
+                      {stepT("description")}
                     </p>
                   </div>
                 </motion.div>

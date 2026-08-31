@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Zap, X } from "lucide-react";
 import { Container } from "@/components/ui/container";
-import { footerNav, socialLinks, type SocialLink, type NavSection, type NavItem } from "../../../packages/design-system/src";
+import { useTranslations } from "next-intl";
 
 const iconMap: Record<string, typeof X> = {
   twitter: X,
@@ -14,6 +14,7 @@ const iconMap: Record<string, typeof X> = {
 };
 
 export function Footer() {
+  const t = useTranslations("footer");
   const currentYear = new Date().getFullYear();
 
   return (
@@ -37,7 +38,12 @@ export function Footer() {
 
             {/* Social Links */}
             <div className="flex items-center gap-4">
-              {socialLinks.map((link: SocialLink) => {
+              {[
+                { platform: "twitter", url: "https://twitter.com/aivoapp", label: "Follow AIVO on Twitter" },
+                { platform: "instagram", url: "https://instagram.com/aivoapp", label: "Follow AIVO on Instagram" },
+                { platform: "facebook", url: "https://facebook.com/aivoapp", label: "Follow AIVO on Facebook" },
+                { platform: "linkedin", url: "https://linkedin.com/company/aivoapp", label: "Follow AIVO on LinkedIn" },
+              ].map((link) => {
                 const Icon = iconMap[link.platform] || X;
                 return (
                   <a
@@ -55,51 +61,117 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Navigation Columns */}
-          {footerNav.map((section: NavSection) => (
-            <div key={section.id}>
-              <h4 className="font-semibold text-[var(--color-foreground)] mb-4">
-                {section.title}
-              </h4>
-              <ul className="space-y-3">
-                {section.items.map((item: NavItem) => (
-                  <li key={item.id}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Product */}
+          <div>
+            <h4 className="font-semibold text-[var(--color-foreground)] mb-4">
+              {t("product")}
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="#features" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("product")}
+                </Link>
+              </li>
+              <li>
+                <Link href="#pricing" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("mobileApp")}
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("changelog")}
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className="font-semibold text-[var(--color-foreground)] mb-4">
+              {t("company")}
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("careers")}
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="font-semibold text-[var(--color-foreground)] mb-4">
+              {t("legal")}
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/privacy" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("privacy")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("terms")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("cookies")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/health-data" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                  {t("healthData")}
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="py-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-[var(--color-tertiary)]">
-            &copy; {currentYear} AIVO. All rights reserved.
+            &copy; {currentYear} {t("copyright")}
           </p>
           <div className="flex items-center gap-6 text-sm text-[var(--color-tertiary)]">
             <Link
               href="/privacy"
               className="hover:text-[var(--color-foreground)] transition-colors"
             >
-              Privacy Policy
+              {t("privacy")}
             </Link>
             <Link
               href="/terms"
               className="hover:text-[var(--color-foreground)] transition-colors"
             >
-              Terms of Service
+              {t("terms")}
             </Link>
             <Link
               href="/cookies"
               className="hover:text-[var(--color-foreground)] transition-colors"
             >
-              Cookies
+              {t("cookies")}
             </Link>
           </div>
         </div>

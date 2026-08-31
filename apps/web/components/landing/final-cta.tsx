@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Shield, Heart } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
-import { authNav } from "../../../packages/design-system/src";
+import { authNav } from "@repo/design-system";
 
 export function FinalCTA() {
   return (

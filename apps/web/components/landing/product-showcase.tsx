@@ -38,7 +38,7 @@ import {
   type DailyMetric,
   type WeightTrend,
   type HabitStreak,
-} from "../../../packages/design-system/src";
+} from "@repo/design-system";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
 
 function HealthScoreCard() {
