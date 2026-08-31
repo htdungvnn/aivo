@@ -10,10 +10,7 @@ import {
   DATA_SOURCES,
   CHART_RANGES,
   HEALTH_METRICS,
-  isFiniteNumber,
-  roundTo,
-  clamp,
-} from './index.js';
+} from './constants.js';
 import {
   ReadinessInputSchema,
   ReadinessOutputSchema,

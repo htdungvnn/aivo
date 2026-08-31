@@ -10,7 +10,7 @@ import {
   ADAPTATION_TYPES,
   ADAPTATION_STATUS,
   TRAINING_INTENSITY,
-} from './index.js';
+} from './constants.js';
 
 // =============================================================================
 // Daily Intelligence Types

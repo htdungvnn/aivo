@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { HEALTH_METRICS, CHART_RANGES } from './index.js';
+import { HEALTH_METRICS, CHART_RANGES } from './constants.js';
 
 // =============================================================================
 // Chart Types

@@ -12,7 +12,8 @@
       "associatedDomains": [
         "applinks:aivo.app"
       ],
-      "bundleIdentifier": "app.aivo.mobile"
+      "bundleIdentifier": "app.aivo.mobile",
+      "supportsTablet": true
     },
     "android": {
       "package": "app.aivo.mobile",
@@ -51,6 +52,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-router",
       [
         "expo-splash-screen",
@@ -59,8 +61,26 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          },
+          "android": {
+            "minSdkVersion": 24,
+            "targetSdkVersion": 35,
+            "compileSdkVersion": 35
+          }
+        }
       ]
     ],
+    "extra": {
+      "eas": {
+        "projectId": "aivo-mobile"
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

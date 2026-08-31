@@ -17,21 +17,21 @@
     "types": "wrangler types"
   },
   "dependencies": {
-    "hono": "^4.7.0",
-    "zod": "^3.23.8",
     "@repo/auth-core": "workspace:*",
-    "@repo/queue-types": "workspace:*",
     "@repo/fitness-types": "workspace:*",
-    "@repo/swagger-utils": "workspace:*"
+    "@repo/queue-types": "workspace:*",
+    "@repo/swagger-utils": "workspace:*",
+    "hono": "^4.13.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241106.0",
+    "@cloudflare/workers-types": "^5.20260830.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.20.1",
     "eslint": "^9.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^2.0.0",
-    "wrangler": "^4.0.0"
+    "vitest": "^2.1.9",
+    "wrangler": "^4.127.1"
   }
 }

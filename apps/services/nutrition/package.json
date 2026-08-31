@@ -23,16 +23,16 @@
     "@repo/nutrition-types": "workspace:*",
     "@repo/queue-types": "workspace:*",
     "@repo/swagger-utils": "workspace:*",
-    "hono": "^4.6.0",
+    "hono": "^4.13.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.0.0",
-    "@cloudflare/workers-types": "^4.20241205.0",
+    "@cloudflare/workers-types": "^5.20260830.1",
     "@repo/eslint-config": "workspace:*",
     "eslint": "^9.0.0",
     "typescript": "^5.5.2",
-    "vitest": "~4.1.0",
-    "wrangler": "^4"
+    "vitest": "~4.1.11",
+    "wrangler": "^4.127.1"
   }
 }
