@@ -119,3 +119,4 @@ CHANGELOG.md
 *.backup
 
 tmp/
+.local
