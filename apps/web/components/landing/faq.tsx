@@ -6,11 +6,11 @@ import { HelpCircle, MessageCircle } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Accordion, AccordionItem } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { faqItems, type FAQItem } from "../../../packages/design-system/src";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
+import { useTranslations } from "next-intl";
 
 export function FAQ() {
+  const t = useTranslations("faq");
   const [openItems, setOpenItems] = React.useState<Set<string>>(new Set());
 
   const toggleItem = (id: string) => {
@@ -25,6 +25,9 @@ export function FAQ() {
     });
   };
 
+  // Get FAQ items from translations
+  const faqItems = t.raw("items") as Array<{ question: string; answer: string }>;
+
   return (
     <section id="faq" className="py-24 lg:py-32 relative">
       {/* Background */}
@@ -35,8 +38,8 @@ export function FAQ() {
       <Container className="relative z-10">
         <SectionHeader
           eyebrow="FAQ"
-          title="Frequently asked questions"
-          description="Everything you need to know about AIVO. Can&apos;t find what you&apos;re looking for? Reach out to our support team."
+          title={t("title")}
+          description={t("subtitle")}
         />
 
         <div className="max-w-3xl mx-auto">
@@ -47,21 +50,14 @@ export function FAQ() {
             viewport={{ once: true, margin: "-50px" }}
           >
             <Accordion className="space-y-0">
-              {faqItems.map((item: FAQItem) => (
-                <motion.div key={item.id} variants={createItemVariants()}>
+              {faqItems.map((item: { question: string; answer: string }, index: number) => (
+                <motion.div key={index} variants={createItemVariants()}>
                   <AccordionItem
-                    id={item.id}
-                    isOpen={openItems.has(item.id)}
-                    onToggle={toggleItem}
+                    id={`faq-${index}`}
+                    isOpen={openItems.has(`faq-${index}`)}
+                    onToggle={() => toggleItem(`faq-${index}`)}
                     trigger={
-                      <div className="flex items-center gap-3">
-                        {item.category && (
-                          <Badge variant="subtle" size="sm" className="hidden sm:flex">
-                            {item.category}
-                          </Badge>
-                        )}
-                        <span className="font-medium">{item.question}</span>
-                      </div>
+                      <span className="font-medium">{item.question}</span>
                     }
                     content={item.answer}
                   />

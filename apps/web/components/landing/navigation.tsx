@@ -6,14 +6,18 @@ import { Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { mainNav, authNav } from "../../../packages/design-system/src";
+import { mainNav, authNav } from "@repo/design-system";
 import { cn } from "@/lib/utils";
 import { staggerContainerVariants, createItemVariants } from "@/lib/animations";
-import type { NavItem } from "../../../packages/design-system/src";
+import type { NavItem } from "@repo/design-system";
+import { useTranslations, useLocale } from "next-intl";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const t = useTranslations("nav");
+  const locale = useLocale();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +27,14 @@ export function Navigation() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Navigation items with translations
+  const navItems: NavItem[] = [
+    { id: "features", label: t("features"), href: "#features" },
+    { id: "how-it-works", label: t("howItWorks"), href: "#how-it-works" },
+    { id: "pricing", label: t("pricing"), href: "#pricing" },
+    { id: "faq", label: t("faq"), href: "#faq" },
+  ];
 
   return (
     <header
@@ -48,7 +60,7 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-8">
-            {mainNav.map((item: NavItem) => (
+            {navItems.map((item: NavItem) => (
               <Link
                 key={item.id}
                 href={item.href}
@@ -59,8 +71,9 @@ export function Navigation() {
             ))}
           </div>
 
-          {/* Desktop CTA */}
+          {/* Desktop CTA & Language */}
           <div className="hidden lg:flex items-center gap-4">
+            <LanguageSwitcher />
             <Link href={authNav.signIn.href}>
               <Button variant="ghost" size="sm">
                 {authNav.signIn.label}
@@ -78,7 +91,7 @@ export function Navigation() {
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="lg:hidden p-2 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
-            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-label={isOpen ? t("closeMenu") : t("openMenu")}
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -102,7 +115,7 @@ export function Navigation() {
                 animate="animate"
                 className="flex flex-col gap-4"
               >
-                {mainNav.map((item: NavItem) => (
+                {navItems.map((item: NavItem) => (
                   <motion.div key={item.id} variants={createItemVariants()}>
                     <Link
                       href={item.href}
@@ -114,6 +127,9 @@ export function Navigation() {
                   </motion.div>
                 ))}
                 <div className="flex flex-col gap-3 pt-4 border-t border-[var(--color-border)]">
+                  <div className="flex justify-center">
+                    <LanguageSwitcher />
+                  </div>
                   <Link href={authNav.signIn.href} onClick={() => setIsOpen(false)}>
                     <Button variant="outline" className="w-full">
                       {authNav.signIn.label}

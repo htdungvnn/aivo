@@ -8,10 +8,14 @@ import { ArrowRight, Shield, Smartphone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Badge } from "@/components/ui/badge";
-import { authNav } from "../../../packages/design-system/src";
+import { authNav } from "@repo/design-system";
 import { fadeInUpVariants, staggerContainerVariants, createItemVariants } from "@/lib/animations";
+import { useTranslations } from "next-intl";
 
 export function Hero() {
+  const t = useTranslations("hero");
+  const commonT = useTranslations("common");
+
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
       {/* Background Gradient */}
@@ -37,7 +41,7 @@ export function Hero() {
           <motion.div variants={createItemVariants()} className="mb-6">
             <Badge variant="primary" className="gap-2">
               <Sparkles className="w-3 h-3" />
-              <span>AI-Powered Health Coaching</span>
+              <span>{t("badge")}</span>
             </Badge>
           </motion.div>
 
@@ -46,10 +50,10 @@ export function Hero() {
             variants={createItemVariants(0.1)}
             className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-[var(--color-foreground)] mb-6"
           >
-            Your Personal{" "}
-            <span className="text-gradient">AI Health Coach</span>
+            {t("headline")}{" "}
+            <span className="text-gradient">{t("headlinePart")}</span>
             <br />
-            Available 24/7
+            {t("headlineSubtext")}
           </motion.h1>
 
           {/* Subheadline */}
@@ -57,8 +61,7 @@ export function Hero() {
             variants={createItemVariants(0.2)}
             className="text-lg sm:text-xl text-[var(--color-muted-foreground)] max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Transform your health with personalized AI guidance, smart nutrition tracking, 
-            adaptive workouts, and weekly insights — all in one beautiful app.
+            {t("subheadline")}
           </motion.p>
 
           {/* CTAs */}
@@ -68,13 +71,13 @@ export function Hero() {
           >
             <Link href={authNav.signUp.href}>
               <Button size="xl" className="gap-2 group">
-                Start Free Today
+                {t("ctaPrimary")}
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
             <Link href="#features">
               <Button variant="outline" size="xl">
-                See How It Works
+                {t("ctaSecondary")}
               </Button>
             </Link>
           </motion.div>
@@ -86,15 +89,15 @@ export function Hero() {
           >
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-[var(--color-success)]" />
-              <span>Privacy-first design</span>
+              <span>{t("trustPrivacy")}</span>
             </div>
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-[var(--color-primary)]" />
-              <span>Web & mobile sync</span>
+              <span>{t("trustSync")}</span>
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[var(--color-accent)]" />
-              <span>AI-powered insights</span>
+              <span>{t("trustAI")}</span>
             </div>
           </motion.div>
         </motion.div>

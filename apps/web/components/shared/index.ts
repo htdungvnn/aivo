@@ -28,3 +28,6 @@ export {
   OfflineState,
   PageState,
 } from "./state-components";
+
+// i18n
+export { LanguageSwitcher } from "./language-switcher";
