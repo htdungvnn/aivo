@@ -18,12 +18,9 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "./dist",
     "paths": {
-      "@aivo/fitness-types": ["../fitness-types/src/index.ts"],
-      "@aivo/fitness-types/*": ["../fitness-types/src/*.ts"]
+      "@aivo/fitness-types": ["../../contracts/fitness-types/src/index.ts"],
+      "@aivo/fitness-types/*": ["../../contracts/fitness-types/src/*.ts"]
     }
   },
   "include": ["src/**/*"],

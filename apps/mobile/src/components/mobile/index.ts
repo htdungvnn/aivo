@@ -88,3 +88,12 @@ export type {
   ErrorStateProps,
   OfflineStateProps,
 } from './StateComponents';
+
+// Re-export theme utilities for convenience
+export {
+  spacingNamed,
+  fontSize,
+  fontWeight,
+  semanticColors,
+  semanticColorsLight,
+} from '@/constants/semantic-tokens';

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Line, Circle, Text as SvgText } from 'react-native-svg';
 
 import {

@@ -81,6 +81,16 @@ export const semanticColors = {
   textSecondary: '#C4CCC8',
   textMuted: '#8B9690',
   textDisabled: '#5A635F',
+  mutedForeground: '#8B9690',
+  foreground: '#F5F7F6',
+  text: '#F5F7F6',
+  dark: '#080B0A',
+  muted: '#1A211E',
+  elevated: '#151B18',
+  card: '#0F1412',
+  error: '#EF4444',
+  tint: '#F5F7F6',
+  tabIconDefault: '#8B9690',
 
   // Borders
   border: 'rgba(255, 255, 255, 0.08)',
@@ -194,6 +204,16 @@ export const semanticColorsLight = {
   textSecondary: '#4B5563',
   textMuted: '#9CA3AF',
   textDisabled: '#D1D5DB',
+  mutedForeground: '#9CA3AF',
+  foreground: '#080B0A',
+  text: '#080B0A',
+  dark: '#080B0A',
+  muted: '#E5E8E6',
+  elevated: '#F8FAF9',
+  card: '#FFFFFF',
+  error: '#DC2626',
+  tint: '#080B0A',
+  tabIconDefault: '#9CA3AF',
 
   // Borders
   border: 'rgba(0, 0, 0, 0.08)',
@@ -257,6 +277,16 @@ export const spacing = {
   20: 80,
   24: 96,
   32: 128,
+  // Word aliases for convenience
+  one: 4,
+  two: 8,
+  three: 12,
+  four: 16,
+  five: 20,
+  six: 24,
+  seven: 28,
+  eight: 32,
+  half: 2,
 } as const;
 
 // Named spacing
@@ -288,6 +318,10 @@ export const borderRadius = {
   '2xl': 20,
   '3xl': 24,
   full: 9999,
+  // Named radius aliases
+  controls: 8,
+  buttons: 12,
+  cards: 16,
 } as const;
 
 // Named radius

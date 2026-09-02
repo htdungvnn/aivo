@@ -7,7 +7,7 @@ import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, TouchTarget } from '@/constants/theme';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 // Tab bar icon component
 function TabBarIcon({ 

@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
         alt: `${siteName} - AI-powered health coaching`,
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${siteName} - AI Health Coach`,
     description: siteDescription,
-    images: ["/og-image.png"],
+    images: ["/og-image.svg"],
     creator: "@aivoapp",
   },
   alternates: {
@@ -111,9 +111,8 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className="dark">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
       </head>
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>

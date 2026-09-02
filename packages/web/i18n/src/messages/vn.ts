@@ -100,6 +100,14 @@ export default {
       title: 'Báo cáo Hàng tuần',
       description: 'Insights chi tiết về tiến độ sức khỏe của bạn với đề xuất cải thiện cụ thể.',
     },
+    crossPlatform: {
+      title: 'Đa nền tảng',
+      description: 'Truy cập AIVO mọi nơi - web, iOS và Android với đồng bộ dữ liệu liền mạch.',
+    },
+    privacy: {
+      title: 'Bảo mật hàng đầu',
+      description: 'Mã hóa end-to-end và bảo vệ dữ liệu tuân thủ HIPAA.',
+    },
   },
 
   // How It Works
@@ -271,5 +279,55 @@ export default {
     appearance: 'Giao diện',
     privacy: 'Quyền riêng tư',
     account: 'Tài khoản',
+  },
+
+  // About Page
+  about: {
+    hero: {
+      badge: 'Về AIVO',
+      title: 'Trao quyền cho Sức khỏe qua Đổi mới AI',
+      subtitle: 'Chúng tôi là đội ngũ kỹ sư, nhà thiết kế và những người đam mê sức khỏe với sứ mệnh mang phúc lợi cá nhân đến với mọi người.',
+    },
+    story: {
+      badge: 'Câu chuyện của chúng tôi',
+      title: 'Từ Tầm nhìn đến Cuộc cách mạng Sức khỏe',
+      paragraph1: 'AIVO được thành lập với một niềm tin đơn giản: mọi người đều xứng đáng được tiếp cận với hướng dẫn sức khỏe cá nhân hóa.',
+      paragraph2: 'Đội ngũ của chúng tôi đã dành nhiều năm nghiên cứu cách AI có thể cải thiện kết quả sức khỏe một cách ý nghĩa.',
+      paragraph3: 'Ngày nay, AIVO phục vụ người dùng tại 50+ quốc gia, giúp họ theo dõi dinh dưỡng, tối ưu bài tập, cải thiện giấc ngủ.',
+    },
+    mission: {
+      badge: 'Sứ mệnh của chúng tôi',
+      title: 'Dân chủ hóa Huấn luyện Sức khỏe Cá nhân',
+      subtitle: 'Chúng tôi tin vào một thế giới nơi mọi người đều có quyền tiếp cận các công cụ và hướng dẫn để sống khỏe hơn.',
+    },
+    team: {
+      badge: 'Ban Lãnh đạo',
+      title: 'Gặp gỡ Đội ngũ',
+      subtitle: 'Đội ngũ lãnh đạo của chúng tôi kết hợp chuyên môn sâu về công nghệ, sức khỏe và thiết kế sản phẩm.',
+    },
+    tech: {
+      badge: 'Công nghệ',
+      title: 'Xây dựng với Công cụ Hiện đại',
+      subtitle: 'Chúng tôi tận dụng công nghệ tiên tiến để cung cấp nền tảng sức khỏe nhanh, đáng tin cậy và có thể mở rộng.',
+      powered: 'Chạy trên Cloudflare',
+      poweredDesc: 'Dịch vụ của chúng tôi chạy trên mạng lưới toàn cầu của Cloudflare, đảm bảo hiệu suất nhanh như chớp và độ tin cậy cao.',
+    },
+    careers: {
+      badge: 'Tham gia cùng chúng tôi',
+      title: 'Chúng tôi Luôn Tìm kiếm Nhân tài',
+      subtitle: 'Bạn quan tâm đến việc xây dựng tương lai của công nghệ sức khỏe? Chúng tôi là một đội ngũ nhỏ, đam mê giải quyết những vấn đề lớn.',
+      ctaPositions: 'Xem Vị trí đang tuyển',
+      ctaContact: 'Liên hệ với chúng tôi',
+    },
+    values: {
+      healthFirst: 'Sức khỏe là Ưu tiên',
+      healthFirstDesc: 'Chúng tôi tin rằng công nghệ nên nâng cao sức khỏe con người, không thay thế kết nối con người.',
+      privacy: 'Quyền riêng tư & Bảo mật',
+      privacyDesc: 'Dữ liệu sức khỏe của bạn là vô cùng riêng tư. Chúng tôi sử dụng mã hóa đầu cuối và tuân thủ HIPAA.',
+      aiPurpose: 'AI có Mục đích',
+      aiPurposeDesc: 'Chúng tôi tận dụng AI để cung cấp insights cá nhân hóa ở quy mô lớn.',
+      community: 'Lấy Cộng đồng làm Trọng tâm',
+      communityDesc: 'Chúng tôi lắng nghe người dùng và cải tiến dựa trên phản hồi.',
+    },
   },
 };

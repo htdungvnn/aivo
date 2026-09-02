@@ -5,7 +5,7 @@
 
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, spacingNamed, fontSize, fontWeight, borderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   ScrollScreen,
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dangerCard: {
-    borderColor: colors.danger + '30',
+    borderColor: '#EF444430', // danger + 30% opacity
   },
   dangerAction: {
     flexDirection: 'row',

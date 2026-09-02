@@ -6,7 +6,7 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, spacingNamed, fontSize, fontWeight, TouchTarget, layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

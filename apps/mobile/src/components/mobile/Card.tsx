@@ -9,7 +9,7 @@ import { Colors, spacingNamed, borderRadius, Shadows, TouchTarget } from '@/cons
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type CardVariant = 'default' | 'elevated' | 'glass' | 'bordered' | 'accent';
-type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface CardProps {
   children: ReactNode;
@@ -25,6 +25,7 @@ const paddingMap: Record<CardPadding, number> = {
   sm: spacingNamed.sm,
   md: spacingNamed.lg,
   lg: spacingNamed['2xl'],
+  xl: spacingNamed['3xl'],
 };
 
 export function Card({

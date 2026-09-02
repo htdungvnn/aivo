@@ -20,6 +20,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as IntentLauncher from 'expo-intent-launcher';
+import * as Crypto from 'expo-crypto';
+
+// Type workaround for expo-file-system - API changed in newer versions
+const FileSystemLib = FileSystem as unknown as {
+  documentDirectory: string;
+  downloadAsync: (url: string, fileUri: string) => Promise<{ uri: string }>;
+};
 
 import { Colors } from '@/constants/theme';
 import { healthReportApi, type ReportSchedule, type HealthReport, type ReportJob } from '@/services/health-report-api';
@@ -190,24 +197,19 @@ export default function HealthReportsScreen() {
       
       const { downloadUrl } = await healthReportApi.getDownloadUrl(report.id);
       
-      // Download file
-      const fileUri = `${FileSystem.documentDirectory}${report.fileName}`;
-      const downloadResult = await FileSystem.downloadAsync(downloadUrl, fileUri);
+      // Download file using FileSystem API
+      const fileName = `${report.id}_${report.fileName}`;
+      const { uri: downloadResultUri } = await FileSystemLib.downloadAsync(
+        downloadUrl,
+        FileSystemLib.documentDirectory + fileName
+      );
       
       // Share or open
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(downloadResult.uri, {
+        await Sharing.shareAsync(downloadResultUri, {
           mimeType: 'application/pdf',
           dialogTitle: 'Share Health Report',
         });
-      } else {
-        // Open with appropriate app
-        if (Platform.OS === 'ios') {
-          await IntentLauncher.requestAsync(IntentLauncher.IntentActivity.ACTION_VIEW, {
-            data: downloadResult.uri,
-            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-          });
-        }
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to download report');

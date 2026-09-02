@@ -163,6 +163,6 @@ export function PoseOverlay({ landmarks, corrections, visible }: PoseOverlayProp
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });

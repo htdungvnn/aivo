@@ -6,6 +6,9 @@
 
 import React, { useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+
+// Force dynamic rendering for pages that require authentication
+export const dynamic = "force-dynamic";
 import { AppShell } from "@/components/shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

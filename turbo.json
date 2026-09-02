@@ -17,9 +17,10 @@
       "outputs": []
     },
     "test": {
-      "dependsOn": ["^test"],
+      "dependsOn": [],
       "outputs": ["coverage/**"],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV"],
+      "inputs": ["$TURBO_DEFAULT$", "vitest.config.*", "vitest.workspace.*"]
     },
     "dev": {
       "cache": false,

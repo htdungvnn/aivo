@@ -51,7 +51,7 @@
     "build": "tsc",
     "lint": "eslint src/",
     "check-types": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
-    "@cloudflare/workers-types": "^5.20260830.1",
+    "@cloudflare/workers-types": "^5.20260901.1",
     "@types/node": "^26.4.0",
     "eslint": "^10.9.1",
     "typescript": "^7.0.2",

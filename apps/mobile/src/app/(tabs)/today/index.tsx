@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   ScrollScreen,
@@ -523,20 +523,21 @@ function getActionIcon(type?: string): keyof typeof Ionicons.glyphMap {
   return icons[type || ''] || 'checkmark-circle';
 }
 
-function getActionIconColor(type?: string): string {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+function getActionIconColor(type?: string, colors?: ReturnType<typeof Colors.light>): string {
+  // Note: colors should be passed from component context, not hooks inside helper functions
+  const defaultColors = { workout: '#34C759', primary: '#007AFF', activity: '#FF9500', nutrition: '#FF3B30', nutritionSecondary: '#FF9500', hydration: '#00C7BE', info: '#5856D6' };
+  const resolvedColors = colors || defaultColors;
   
   const colorMap: Record<string, string> = {
-    workout: colors.workout,
-    start_workout: colors.primary,
-    light_workout: colors.activity,
-    meal: colors.nutrition,
-    add_protein: colors.nutritionSecondary,
-    drink_water: colors.hydration,
-    complete_checkin: colors.info,
+    workout: resolvedColors.workout,
+    start_workout: resolvedColors.primary,
+    light_workout: resolvedColors.activity,
+    meal: resolvedColors.nutrition,
+    add_protein: resolvedColors.nutritionSecondary,
+    drink_water: resolvedColors.hydration,
+    complete_checkin: resolvedColors.info,
   };
-  return colorMap[type || ''] || colors.primary;
+  return colorMap[type || ''] || resolvedColors.primary;
 }
 
 function getTopPositiveFactor(factors: ReadinessData['factors']): ReadinessFactor | null {

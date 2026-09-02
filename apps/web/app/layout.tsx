@@ -6,10 +6,16 @@
  * i18n providers and metadata.
  */
 
+import { AuthProvider } from "@/components/auth/AuthProvider";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  );
 }

@@ -35,6 +35,7 @@ export default {
     headline: 'Your Personal',
     headlinePart: 'AI Health Coach',
     headlineSuffix: 'Available 24/7',
+    headlineSubtext: 'Available 24/7',
     subheadline: 'Transform your health with personalized AI guidance, smart nutrition tracking, adaptive workouts, and weekly insights — all in one beautiful app.',
     ctaPrimary: 'Start Free Today',
     ctaSecondary: 'See How It Works',
@@ -98,6 +99,14 @@ export default {
     weeklyReports: {
       title: 'Weekly Reports',
       description: 'Detailed insights into your health progress with specific improvement recommendations.',
+    },
+    crossPlatform: {
+      title: 'Cross-Platform',
+      description: 'Access AIVO anywhere - web, iOS, and Android with seamless data sync.',
+    },
+    privacy: {
+      title: 'Privacy First',
+      description: 'End-to-end encryption and HIPAA compliant data protection.',
     },
   },
 
@@ -270,5 +279,55 @@ export default {
     appearance: 'Appearance',
     privacy: 'Privacy',
     account: 'Account',
+  },
+
+  // About Page
+  about: {
+    hero: {
+      badge: 'About AIVO',
+      title: 'Empowering Health Through AI Innovation',
+      subtitle: 'We\'re a team of engineers, designers, and health enthusiasts on a mission to make personalized wellness accessible to everyone.',
+    },
+    story: {
+      badge: 'Our Story',
+      title: 'From Vision to Wellness Revolution',
+      paragraph1: 'AIVO was founded with a simple belief: everyone deserves access to personalized health guidance, regardless of their location, income, or access to healthcare professionals.',
+      paragraph2: 'Our team spent years studying how AI could meaningfully improve health outcomes. We discovered that consistent, personalized feedback is the key to behavior change — and AI is perfectly suited to deliver that at scale.',
+      paragraph3: 'Today, AIVO serves users across 50+ countries, helping them track nutrition, optimize workouts, improve sleep, and achieve their health goals with an AI coach available 24/7.',
+    },
+    mission: {
+      badge: 'Why We Build',
+      title: 'Democratizing Personal Health Coaching',
+      subtitle: 'We believe in a world where everyone has access to the tools and guidance needed to live a healthier life.',
+    },
+    team: {
+      badge: 'Leadership',
+      title: 'Meet the Team',
+      subtitle: 'Our leadership team combines deep expertise in technology, health, and product design.',
+    },
+    tech: {
+      badge: 'Technology',
+      title: 'Built with Modern Tools',
+      subtitle: 'We leverage cutting-edge technologies to deliver a fast, reliable, and scalable health platform.',
+      powered: 'Powered by Cloudflare',
+      poweredDesc: 'Our services run on Cloudflare\'s global network, ensuring lightning-fast performance and rock-solid reliability.',
+    },
+    careers: {
+      badge: 'Join Our Journey',
+      title: 'We\'re Always Looking for Talent',
+      subtitle: 'Interested in building the future of health technology? We\'re a small, passionate team solving big problems.',
+      ctaPositions: 'View Open Positions',
+      ctaContact: 'Contact Us',
+    },
+    values: {
+      healthFirst: 'Health First',
+      healthFirstDesc: 'We believe technology should enhance human health, not replace human connection.',
+      privacy: 'Privacy & Security',
+      privacyDesc: 'Your health data is deeply personal. We use end-to-end encryption and are HIPAA compliant.',
+      aiPurpose: 'AI with Purpose',
+      aiPurposeDesc: 'We harness AI to provide personalized insights at scale, not to replace healthcare professionals.',
+      community: 'Community Driven',
+      communityDesc: 'We listen to our users and iterate based on feedback.',
+    },
   },
 };

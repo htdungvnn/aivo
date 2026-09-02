@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, Smartphone, Sparkles } from "lucide-react";
+import { ArrowRight, Shield, Smartphone, Sparkles, TrendingUp, Activity, Heart, Flame, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +101,7 @@ export function Hero() {
           </motion.div>
         </motion.div>
 
-        {/* Product Preview */}
+        {/* Health Dashboard Preview */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -122,27 +121,177 @@ export function Hero() {
               </div>
               <div className="flex-1 mx-4">
                 <div className="h-6 rounded-md bg-[var(--color-surface)] px-4 text-xs text-[var(--color-muted-foreground)] flex items-center">
-                  app.aivo.com
+                  app.aivo.com/dashboard
                 </div>
               </div>
             </div>
             
-            {/* Dashboard Preview */}
-            <div className="relative aspect-[16/10] bg-[var(--color-surface)]">
-              <Image
-                src="https://picsum.photos/seed/aivo-dashboard/1400/875"
-                alt="AIVO Dashboard Preview"
-                fill
-                className="object-cover opacity-80"
-                priority
-              />
-              
-              {/* Overlay gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/10 via-transparent to-[var(--color-accent)]/10" />
+            {/* Health Dashboard Content */}
+            <div className="relative aspect-[16/10] bg-[var(--color-background)] p-6 overflow-hidden">
+              <HealthDashboardPreview />
             </div>
           </div>
         </motion.div>
       </Container>
     </section>
+  );
+}
+
+// Health Dashboard Preview Component
+function HealthDashboardPreview() {
+  return (
+    <div className="h-full flex flex-col gap-4">
+      {/* Header Stats Row */}
+      <div className="grid grid-cols-4 gap-3">
+        {/* Readiness Score */}
+        <div className="col-span-1 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-[var(--color-muted-foreground)]">Readiness</span>
+            <Activity className="w-4 h-4 text-[var(--color-success)]" />
+          </div>
+          <div className="text-2xl font-bold text-[var(--color-foreground)] mb-1">87</div>
+          <div className="text-xs text-[var(--color-success)]">+12% vs avg</div>
+          {/* Mini Ring Chart */}
+          <div className="mt-2 relative w-full h-16">
+            <svg viewBox="0 0 100 50" className="w-full h-full">
+              <path
+                d="M 10 50 A 40 40 0 0 1 90 50"
+                fill="none"
+                stroke="var(--color-muted)"
+                strokeWidth="8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 10 50 A 40 40 0 0 1 90 50"
+                fill="none"
+                stroke="var(--color-success)"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray="125.6"
+                strokeDashoffset="16.3"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs font-medium text-[var(--color-foreground)]">87%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Calories */}
+        <div className="col-span-1 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-[var(--color-muted-foreground)]">Calories</span>
+            <Flame className="w-4 h-4 text-[var(--color-accent)]" />
+          </div>
+          <div className="text-2xl font-bold text-[var(--color-foreground)] mb-1">1,847</div>
+          <div className="text-xs text-[var(--color-muted-foreground)]">of 2,400 goal</div>
+          {/* Progress Bar */}
+          <div className="mt-3 h-2 bg-[var(--color-muted)] rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-primary)] rounded-full" style={{ width: '77%' }} />
+          </div>
+        </div>
+
+        {/* Sleep */}
+        <div className="col-span-1 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-[var(--color-muted-foreground)]">Sleep</span>
+            <Moon className="w-4 h-4 text-[var(--color-primary)]" />
+          </div>
+          <div className="text-2xl font-bold text-[var(--color-foreground)] mb-1">7h 32m</div>
+          <div className="text-xs text-[var(--color-success)]">Quality: Excellent</div>
+          {/* Sleep Stages */}
+          <div className="mt-3 flex gap-1 h-8">
+            <div className="w-[15%] h-full bg-[var(--color-muted)] rounded-sm" />
+            <div className="w-[25%] h-full bg-[var(--color-primary)] rounded-sm" />
+            <div className="w-[30%] h-full bg-[var(--color-primary)]/70 rounded-sm" />
+            <div className="w-[20%] h-full bg-[var(--color-accent)] rounded-sm" />
+            <div className="w-[10%] h-full bg-[var(--color-muted)] rounded-sm" />
+          </div>
+        </div>
+
+        {/* Heart Rate */}
+        <div className="col-span-1 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-[var(--color-muted-foreground)]">Heart Rate</span>
+            <Heart className="w-4 h-4 text-[var(--color-error)]" />
+          </div>
+          <div className="text-2xl font-bold text-[var(--color-foreground)] mb-1">68 <span className="text-sm font-normal text-[var(--color-muted-foreground)]">bpm</span></div>
+          <div className="text-xs text-[var(--color-success)]">Resting HRV: 45ms</div>
+          {/* Heart Rate Line Chart */}
+          <div className="mt-3 h-8">
+            <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
+              <path
+                d="M0 20 Q10 15 15 18 T25 15 T35 22 T45 12 T55 18 T65 15 T75 20 T85 15 T100 18"
+                fill="none"
+                stroke="var(--color-error)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0" style={{ height: '180px' }}>
+        {/* Weekly Activity Chart */}
+        <div className="col-span-2 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)] flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-[var(--color-foreground)]">Weekly Activity</span>
+            <TrendingUp className="w-4 h-4 text-[var(--color-success)]" />
+          </div>
+          <div className="flex-1 min-h-0 relative">
+            <WeeklyActivityChart />
+          </div>
+        </div>
+
+        {/* AI Coach Preview */}
+        <div className="col-span-1 bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)] flex flex-col">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-medium text-[var(--color-foreground)]">AI Coach</span>
+          </div>
+          <div className="flex-1 bg-[var(--color-muted)]/30 rounded-lg p-3 text-xs text-[var(--color-muted-foreground)] leading-relaxed">
+            <p className="mb-2">Based on your readiness score and sleep data, I recommend a moderate workout today. 💪</p>
+            <p>Your recovery is excellent! Consider adding 10 minutes of light stretching.</p>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <div className="flex-1 h-6 bg-[var(--color-primary)]/10 rounded-full" />
+            <div className="w-6 h-6 bg-[var(--color-accent)]/10 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Weekly Activity Bar Chart
+function WeeklyActivityChart() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const values = [65, 80, 45, 90, 70, 55, 30];
+  const maxValue = Math.max(...values);
+  
+  return (
+    <div className="h-full w-full relative flex items-stretch">
+      {days.map((day, i) => {
+        const value = values[i] ?? 0;
+        const heightPercent = (value / maxValue) * 100;
+        return (
+          <div key={day} className="flex-1 flex flex-col justify-end items-center">
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: `${heightPercent}%` }}
+              transition={{ duration: 0.8, delay: i * 0.1 }}
+              className={`w-4/5 rounded-t-sm ${
+                i === 3 ? 'bg-gradient-to-t from-[var(--color-primary)] to-[var(--color-accent)]' : 'bg-[var(--color-primary)]/60'
+              }`}
+            />
+            <span className="text-[10px] text-[var(--color-muted-foreground)] mt-2">{day}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

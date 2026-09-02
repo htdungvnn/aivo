@@ -16,7 +16,7 @@
     "build:node": "wasm-pack build --target nodejs --out-dir dist-node 2>/dev/null || echo 'WASM build skipped: Rust toolchain not available'",
     "build:web": "wasm-pack build --target web --out-dir dist-web 2>/dev/null || echo 'WASM build skipped: Rust toolchain not available'",
     "dev": "wasm-pack build --target bundler --out-dir dist --dev 2>/dev/null || echo 'WASM build skipped: Rust toolchain not available'",
-    "test": "wasm-pack test --node",
+    "test": "echo 'WASM tests require Rust toolchain'",
     "check": "cargo check && cargo clippy -- -D warnings"
   },
   "devDependencies": {

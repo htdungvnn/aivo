@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Zap, X } from "lucide-react";
 import { Container } from "@/components/ui/container";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 const iconMap: Record<string, typeof X> = {
   twitter: X,
@@ -15,6 +15,7 @@ const iconMap: Record<string, typeof X> = {
 
 export function Footer() {
   const t = useTranslations("footer");
+  const locale = useLocale();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -25,8 +26,19 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--color-primary)]">
-                <Zap className="w-5 h-5 text-[var(--color-primary-foreground)]" />
+              <div className="flex items-center justify-center w-8 h-8">
+                <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#208AEF" />
+                      <stop offset="50%" stopColor="#20B4E7" />
+                      <stop offset="100%" stopColor="#21D4C0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M8 16C8 12.686 10.686 10 14 10H16C16 10 17 12 19 12C21 12 22 10 22 10H24C24 10 24 12 22 14C20 16 18 16 18 16C18 16 17 18 19 20C21 22 22 24 22 24H20C20 24 19 22 17 22C15 22 14 24 14 24H12C8.686 24 6 21.314 6 18C6 17 6.5 16 8 16Z" fill="url(#footerLogoGradient)"/>
+                  <circle cx="12" cy="14" r="2" fill="#080B0A"/>
+                  <circle cx="12" cy="20" r="2" fill="#080B0A"/>
+                </svg>
               </div>
               <span className="text-xl font-bold text-[var(--color-foreground)]">
                 AIVO
@@ -97,7 +109,7 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link href="#" className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
+                <Link href={`/${locale}/about`} className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors">
                   About
                 </Link>
               </li>

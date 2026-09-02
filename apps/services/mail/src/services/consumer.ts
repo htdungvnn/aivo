@@ -7,7 +7,7 @@
  * - Error handling
  */
 
-import type { Queue, MessageSendFailure } from '@cloudflare/workers-types';
+import type { Queue } from '@cloudflare/workers-types';
 import {
   queueMessageSchema,
   EmailVerificationQueueMessage,
@@ -134,6 +134,7 @@ export class QueueConsumerService {
         return {
           messageId,
           success: true,
+          isRetryable: false,
           message,
         };
       }
@@ -164,6 +165,7 @@ export class QueueConsumerService {
       return {
         messageId,
         success: true,
+        isRetryable: false,
         message,
       };
     } catch (error) {
@@ -281,19 +283,20 @@ export class QueueConsumerService {
     reason: string
   ): Promise<void> {
     try {
-      const dlqMessage = {
-        ...message,
-        _dlqReason: reason,
-        _dlqTimestamp: new Date().toISOString(),
-      };
+      // Cast to any to allow additional properties for DLQ tracking
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dlqMessage: any = { ...message };
+      dlqMessage._dlqReason = reason;
+      dlqMessage._dlqTimestamp = new Date().toISOString();
 
-      const result = await this.dlq.send([dlqMessage]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (this.dlq as any).send([dlqMessage]);
       
-      if (result && result.failures) {
-        const failures = result.failures as MessageSendFailure<typeof dlqMessage>[];
-        if (failures.length > 0) {
-          console.error(`Failed to send message to DLQ: ${message.messageId}`);
-        }
+      // Log any failures (result is an array of failures or empty if successful)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyResult = result as any;
+      if (anyResult?.failures?.length > 0) {
+        console.error(`Failed to send message to DLQ: ${message.messageId}`, anyResult.failures);
       }
     } catch (error) {
       console.error(`Error sending to DLQ: ${error}`);
