@@ -75,14 +75,14 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text,
-        reply_to: options.replyTo || this.replyToAddress,
+        replyTo: options.replyTo || this.replyToAddress,
       });
 
       if (error) {
         throw new EmailServiceError(
           error.message || 'Failed to send email',
-          this.isRetryableError(error.name, error.statusCode),
-          error.statusCode
+          this.isRetryableError(error.name, error.statusCode ?? undefined),
+          error.statusCode ?? undefined
         );
       }
 

@@ -54,15 +54,6 @@ function RootLayoutNav() {
           options={{ headerShown: false }}
         />
 
-        {/* Onboarding */}
-        <Stack.Screen
-          name="onboarding"
-          options={{
-            headerShown: false,
-            presentation: 'fullScreenModal',
-          }}
-        />
-
         {/* Main App Tabs */}
         <Stack.Screen
           name="(tabs)"
@@ -78,7 +69,70 @@ function RootLayoutNav() {
           }}
         />
 
-        {/* Meals Module */}
+        {/* Reports */}
+        <Stack.Screen
+          name="reports"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Settings */}
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Security */}
+        <Stack.Screen
+          name="security"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Profile */}
+        <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Analysis */}
+        <Stack.Screen
+          name="analysis"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Nutrition */}
+        <Stack.Screen
+          name="nutrition"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Intelligence */}
+        <Stack.Screen
+          name="intelligence"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+
+        {/* Meals */}
         <Stack.Screen
           name="meals"
           options={{
@@ -87,7 +141,7 @@ function RootLayoutNav() {
           }}
         />
 
-        {/* Workouts Module */}
+        {/* Workouts */}
         <Stack.Screen
           name="workouts"
           options={{
@@ -96,12 +150,13 @@ function RootLayoutNav() {
           }}
         />
 
-        {/* Reports */}
+        {/* Coach Modal */}
         <Stack.Screen
-          name="reports"
+          name="coach-modal"
           options={{
             headerShown: false,
-            presentation: 'card',
+            presentation: 'transparentModal',
+            animation: 'fade',
           }}
         />
 
@@ -123,40 +178,12 @@ function RootLayoutNav() {
           }}
         />
 
-        {/* Profile */}
+        {/* Onboarding */}
         <Stack.Screen
-          name="profile"
+          name="onboarding"
           options={{
             headerShown: false,
-            presentation: 'card',
-          }}
-        />
-
-        {/* Security */}
-        <Stack.Screen
-          name="security"
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-
-        {/* Settings */}
-        <Stack.Screen
-          name="settings"
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-
-        {/* AI Coach Modal */}
-        <Stack.Screen
-          name="coach-modal"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
           }}
         />
       </Stack>

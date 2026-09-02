@@ -31,7 +31,7 @@
 	"devDependencies": {
 		"@aivo/eslint-config": "workspace:*",
 		"@cloudflare/vitest-plugin": "^1.1.2",
-		"@cloudflare/workers-types": "^5.20260830.1",
+		"@cloudflare/workers-types": "^5.20260901.1",
 		"@types/node": "^26.4.0",
 		"eslint": "^10.9.1",
 		"vitest": "~4.1.11",

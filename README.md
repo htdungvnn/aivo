@@ -1,6 +1,22 @@
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/logo.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./assets/logo.svg">
+    <img src="./assets/logo.svg" alt="AIVO Logo" width="120" height="120">
+  </picture>
+
 # AIVO - AI-Powered Health & Fitness Platform
 
+*AI-POWERED · INTELLIGENT · FOR YOU*
+
 AIVO is a comprehensive monorepo containing microservices and applications for an AI-powered health, fitness, and nutrition coaching platform. Built with modern technologies including Cloudflare Workers, Next.js, React Native (Expo), and TypeScript.
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![Expo](https://img.shields.io/badge/Expo-SDK%2057-black.svg)](https://expo.dev/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)](https://workers.cloudflare.com/)
+[![License](https://img.shields.io/badge/License-Private-red.svg)](#license)
+</div>
 
 ## 🎯 Project Overview
 

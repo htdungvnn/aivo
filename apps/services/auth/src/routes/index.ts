@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { cors } from '../middleware/request';
 import oauth from './oauth';
 import auth from './auth';
+import login from './login';
 import register from './register';
 import verification from './verification';
 import sessions from './sessions';
@@ -30,6 +31,7 @@ export function createRoutes() {
   // Mount routes
   app.route('/oauth', oauth);
   app.route('/auth', auth);
+  app.route('/login', login);
   app.route('/register', register);
   app.route('/verification', verification);
   app.route('/sessions', sessions);
@@ -39,4 +41,4 @@ export function createRoutes() {
   return app;
 }
 
-export { oauth, auth, register, verification, sessions, account, admin };
+export { oauth, auth, login, register, verification, sessions, account, admin };

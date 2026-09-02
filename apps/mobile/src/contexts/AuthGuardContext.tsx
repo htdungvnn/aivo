@@ -18,6 +18,7 @@ interface AuthGuardContextValue {
   needsVerification: boolean;
   isSuspended: boolean;
   refreshAuth: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthGuardContext = createContext<AuthGuardContextValue>({
@@ -30,6 +31,7 @@ const AuthGuardContext = createContext<AuthGuardContextValue>({
   needsVerification: false,
   isSuspended: false,
   refreshAuth: async () => {},
+  logout: async () => {},
 });
 
 export function useAuthGuard() {
@@ -164,6 +166,19 @@ export function AuthGuardProvider({ children }: AuthGuardProviderProps) {
   const needsVerification = state.user?.status === 'pending_verification';
   const isSuspended = state.user?.status === 'suspended';
 
+  const logout = useCallback(async () => {
+    await authClient.clearTokens();
+    setState({
+      isReady: true,
+      isAuthenticated: false,
+      isLoading: false,
+      user: null,
+      session: null,
+      roles: [],
+    });
+    router.replace('/auth/login');
+  }, []);
+
   return (
     <AuthGuardContext.Provider
       value={{
@@ -171,6 +186,7 @@ export function AuthGuardProvider({ children }: AuthGuardProviderProps) {
         needsVerification,
         isSuspended,
         refreshAuth,
+        logout,
       }}
     >
       {children}

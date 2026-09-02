@@ -130,11 +130,16 @@ export class MobileAuthClient {
     const codeVerifier = generateCodeVerifierAsync(64);
     
     // Generate code challenge (SHA256)
-    const codeChallengeArray = await Crypto.digestStringAsync(
+    const codeChallengeBase64 = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       codeVerifier,
-      { encoding: Crypto.CryptoEncoding.BASE64_URL }
+      { encoding: Crypto.CryptoEncoding.BASE64 }
     );
+    // Convert to BASE64_URL (remove padding, replace + with -, / with _)
+    const codeChallengeArray = codeChallengeBase64
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
 
     // Store for callback
     await SecureStore.setItemAsync('oauth_state', state);

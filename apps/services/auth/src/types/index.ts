@@ -25,6 +25,7 @@ export type ClientType = (typeof CLIENT_TYPE)[keyof typeof CLIENT_TYPE];
 export const PROVIDER = {
   GOOGLE: 'google',
   FACEBOOK: 'facebook',
+  PASSWORD: 'password',
 } as const;
 
 export type Provider = (typeof PROVIDER)[keyof typeof PROVIDER];

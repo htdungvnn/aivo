@@ -169,6 +169,63 @@ export class AuthApiClient {
   }
   
   /**
+   * Login with email and password
+   */
+  async login(email: string, password: string, clientType: 'web' | 'ios' | 'android' = 'web'): Promise<AuthResponse> {
+    const response = await this.request('/login', {
+      method: 'POST',
+      body: { email, password, clientType },
+    });
+
+    const data = response as { user: User; accessToken: string; refreshToken: string; expiresIn: number; tokenType: string };
+    
+    // Save tokens
+    this.setTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+      tokenType: data.tokenType,
+    });
+
+    return {
+      user: data.user,
+      tokens: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresIn: data.expiresIn,
+        tokenType: data.tokenType,
+      },
+      isNewUser: false,
+      emailVerificationRequired: data.user.status === 'pending_verification',
+      redirectUrl: undefined,
+    };
+  }
+
+  /**
+   * Register with email and password
+   */
+  async register(email: string, password: string, displayName?: string): Promise<{ message: string; requiresEmailVerification: boolean }> {
+    const response = await this.request('/register', {
+      method: 'POST',
+      body: { email, password, displayName },
+    });
+
+    return response as { message: string; requiresEmailVerification: boolean };
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(email: string): Promise<{ message: string }> {
+    const response = await this.request('/login/resend-verification', {
+      method: 'POST',
+      body: { email },
+    });
+
+    return response as { message: string };
+  }
+
+  /**
    * Start OAuth flow
    */
   async startOAuth(provider: 'google' | 'facebook', redirectUri?: string): Promise<{ authUrl: string; state: string }> {

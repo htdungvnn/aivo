@@ -9,7 +9,7 @@ import {
   isQueueMessage,
   isEmailVerificationMessage,
   SUPPORTED_LOCALES,
-  MESSAGE_TYPES,
+  AUTH_MESSAGE_TYPES,
   SCHEMA_VERSION,
 } from '../src/index';
 
@@ -217,10 +217,11 @@ describe('Queue Message Schema', () => {
       expect(message.data.verificationCode).toBe('123456');
     });
 
-    it('should set default locale to en', () => {
+    it('should create message with en locale', () => {
       const message = createEmailVerificationMessage({
         messageId: crypto.randomUUID(),
         recipient: { email: 'test@example.com' },
+        locale: 'en',
         verificationCode: '123456',
         expiresInMinutes: 10,
         userId: crypto.randomUUID(),
@@ -306,7 +307,7 @@ describe('Queue Message Schema', () => {
     });
 
     it('should have correct message types', () => {
-      expect(MESSAGE_TYPES).toEqual(['auth.email_verification_code']);
+      expect(AUTH_MESSAGE_TYPES).toEqual(['auth.email_verification_code']);
     });
   });
 });

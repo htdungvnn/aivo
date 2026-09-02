@@ -4,9 +4,28 @@
  * Premium dark-mode health and fitness platform
  */
 
-import { Platform, Dimensions } from 'react-native';
+import { Platform, Dimensions } from "react-native";
 
-// Re-export semantic tokens for backward compatibility
+// Import semantic tokens directly
+import {
+  semanticColors,
+  semanticColorsLight,
+  spacing,
+  spacingNamed,
+  borderRadius,
+  radiusNamed,
+  fontSize,
+  fontWeight,
+  lineHeight,
+  shadows,
+  duration,
+  easing,
+  zIndex,
+  touchTarget,
+  layout,
+  accessibility,
+} from './semantic-tokens';
+
 export {
   semanticColors,
   semanticColorsLight,
@@ -24,16 +43,12 @@ export {
   touchTarget,
   layout,
   accessibility,
-  getThemeColors,
-  createTheme,
-  darkTheme,
-  lightTheme,
-  type Theme,
-  type ColorScheme,
-  type ThemeColors,
-} from './use-theme-tokens';
+};
 
-export type { SemanticTokens, SemanticColors, SemanticColorsLight } from './use-theme-tokens';
+export type {
+  SemanticColors,
+  SemanticColorsLight,
+} from './semantic-tokens';
 
 // =============================================================================
 // AIVO Design System Colors (Legacy export for compatibility)
@@ -41,95 +56,95 @@ export type { SemanticTokens, SemanticColors, SemanticColorsLight } from './use-
 
 export const AIVOColors = {
   // Background Colors
-  background: '#080B0A',
-  surface: '#0F1412',
-  elevated: '#151B18',
-  muted: '#1A211E',
+  background: "#080B0A",
+  surface: "#0F1412",
+  elevated: "#151B18",
+  muted: "#1A211E",
 
   // Brand Colors
-  primary: '#22C55E',
-  primaryHover: '#16A34A',
-  primaryForeground: '#052E16',
-  accent: '#A3E635',
-  accentHover: '#84CC16',
+  primary: "#22C55E",
+  primaryHover: "#16A34A",
+  primaryForeground: "#052E16",
+  accent: "#A3E635",
+  accentHover: "#84CC16",
 
   // Text Colors
-  foreground: '#F5F7F6',
-  mutedForeground: '#9CA7A1',
-  tertiary: '#6B7872',
+  foreground: "#F5F7F6",
+  mutedForeground: "#9CA7A1",
+  tertiary: "#6B7872",
 
   // Border Colors
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderHover: 'rgba(255, 255, 255, 0.12)',
-  borderAccent: 'rgba(34, 197, 94, 0.3)',
+  border: "rgba(255, 255, 255, 0.08)",
+  borderHover: "rgba(255, 255, 255, 0.12)",
+  borderAccent: "rgba(34, 197, 94, 0.3)",
 
   // Semantic Colors
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  success: "#22C55E",
+  warning: "#F59E0B",
+  error: "#EF4444",
+  info: "#3B82F6",
 
   // Glass Effect
-  glass: 'rgba(15, 20, 18, 0.8)',
-  glassBorder: 'rgba(255, 255, 255, 0.06)',
+  glass: "rgba(15, 20, 18, 0.8)",
+  glassBorder: "rgba(255, 255, 255, 0.06)",
 
   // Domain-specific colors
-  ai: '#8B5CF6',
-  sleep: '#38BDF8',
-  hydration: '#22D3EE',
-  nutrition: '#22C55E',
-  workout: '#8B5CF6',
-  activity: '#22C55E',
-  readiness: '#10B981',
-  recovery: '#3B82F6',
-  danger: '#EF4444',
+  ai: "#8B5CF6",
+  sleep: "#38BDF8",
+  hydration: "#22D3EE",
+  nutrition: "#22C55E",
+  workout: "#8B5CF6",
+  activity: "#22C55E",
+  readiness: "#10B981",
+  recovery: "#3B82F6",
+  danger: "#EF4444",
 } as const;
 
 // Light theme (for future use)
 export const LightColors = {
-  background: '#F5F7F6',
-  surface: '#FFFFFF',
-  elevated: '#F8FAF9',
-  muted: '#E5E8E6',
+  background: "#F5F7F6",
+  surface: "#FFFFFF",
+  elevated: "#F8FAF9",
+  muted: "#E5E8E6",
 
-  primary: '#22C55E',
-  primaryHover: '#16A34A',
-  primaryForeground: '#FFFFFF',
-  accent: '#84CC16',
-  accentHover: '#65A30D',
+  primary: "#22C55E",
+  primaryHover: "#16A34A",
+  primaryForeground: "#FFFFFF",
+  accent: "#84CC16",
+  accentHover: "#65A30D",
 
-  foreground: '#080B0A',
-  mutedForeground: '#4B5563',
-  tertiary: '#9CA3AF',
+  foreground: "#080B0A",
+  mutedForeground: "#4B5563",
+  tertiary: "#9CA3AF",
 
-  border: 'rgba(0, 0, 0, 0.08)',
-  borderHover: 'rgba(0, 0, 0, 0.12)',
-  borderAccent: 'rgba(34, 197, 94, 0.3)',
+  border: "rgba(0, 0, 0, 0.08)",
+  borderHover: "rgba(0, 0, 0, 0.12)",
+  borderAccent: "rgba(34, 197, 94, 0.3)",
 
-  success: '#16A34A',
-  warning: '#D97706',
-  error: '#DC2626',
-  info: '#2563EB',
+  success: "#16A34A",
+  warning: "#D97706",
+  error: "#DC2626",
+  info: "#2563EB",
 
-  glass: 'rgba(255, 255, 255, 0.9)',
-  glassBorder: 'rgba(0, 0, 0, 0.06)',
+  glass: "rgba(255, 255, 255, 0.9)",
+  glassBorder: "rgba(0, 0, 0, 0.06)",
 
   // Domain-specific colors
-  ai: '#7C3AED',
-  sleep: '#0EA5E9',
-  hydration: '#06B6D4',
-  nutrition: '#16A34A',
-  workout: '#7C3AED',
-  activity: '#16A34A',
-  readiness: '#059669',
-  recovery: '#2563EB',
-  danger: '#DC2626',
+  ai: "#7C3AED",
+  sleep: "#0EA5E9",
+  hydration: "#06B6D4",
+  nutrition: "#16A34A",
+  workout: "#7C3AED",
+  activity: "#16A34A",
+  readiness: "#059669",
+  recovery: "#2563EB",
+  danger: "#DC2626",
 } as const;
 
 // Colors object for theme hook compatibility
 export const Colors = {
-  light: LightColors,
-  dark: AIVOColors,
+  light: semanticColorsLight,
+  dark: semanticColors,
 } as const;
 
 // =============================================================================
@@ -152,6 +167,16 @@ export const Spacing = {
   20: 80,
   24: 96,
   32: 128,
+  // Word aliases for convenience
+  one: 4,
+  two: 8,
+  three: 12,
+  four: 16,
+  five: 20,
+  six: 24,
+  seven: 28,
+  eight: 32,
+  half: 2,
 } as const;
 
 // Named spacing for clarity
@@ -161,11 +186,11 @@ export const SpacingNamed = {
   md: 12,
   lg: 16,
   xl: 20,
-  '2xl': 24,
-  '3xl': 32,
-  '4xl': 40,
-  '5xl': 48,
-  '6xl': 64,
+  "2xl": 24,
+  "3xl": 32,
+  "4xl": 40,
+  "5xl": 48,
+  "6xl": 64,
 } as const;
 
 // =============================================================================
@@ -178,8 +203,12 @@ export const BorderRadius = {
   md: 8,
   lg: 12,
   xl: 16,
-  '2xl': 24,
+  "2xl": 24,
   full: 9999,
+  // Named radius aliases
+  controls: 8,
+  buttons: 12,
+  cards: 16,
 } as const;
 
 export const RadiusNamed = {
@@ -200,21 +229,21 @@ export const FontSize = {
   base: 15,
   lg: 17,
   xl: 19,
-  '2xl': 22,
-  '3xl': 26,
-  '4xl': 30,
-  '5xl': 36,
-  '6xl': 44,
-  '7xl': 52,
+  "2xl": 22,
+  "3xl": 26,
+  "4xl": 30,
+  "5xl": 36,
+  "6xl": 44,
+  "7xl": 52,
 } as const;
 
 // Font Weights
 export const FontWeight = {
-  normal: '400' as const,
-  medium: '500' as const,
-  semibold: '600' as const,
-  bold: '700' as const,
-  extrabold: '800' as const,
+  normal: "400" as const,
+  medium: "500" as const,
+  semibold: "600" as const,
+  bold: "700" as const,
+  extrabold: "800" as const,
 };
 
 // Line Heights
@@ -231,7 +260,7 @@ export const LineHeight = {
 
 export const Shadows = {
   none: {
-    shadowColor: 'transparent',
+    shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -239,7 +268,7 @@ export const Shadows = {
   },
   sm: Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.15,
       shadowRadius: 2,
@@ -250,7 +279,7 @@ export const Shadows = {
   }),
   md: Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 6,
@@ -261,7 +290,7 @@ export const Shadows = {
   }),
   lg: Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 10 },
       shadowOpacity: 0.25,
       shadowRadius: 15,
@@ -272,7 +301,7 @@ export const Shadows = {
   }),
   xl: Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 20 },
       shadowOpacity: 0.3,
       shadowRadius: 25,
@@ -283,7 +312,7 @@ export const Shadows = {
   }),
   glow: Platform.select({
     ios: {
-      shadowColor: '#22C55E',
+      shadowColor: "#22C55E",
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.4,
       shadowRadius: 20,
@@ -303,7 +332,8 @@ export const MaxContentWidth = 600;
 export const SafeAreaPadding = Platform.select({ ios: 60, android: 50 }) ?? 50;
 
 // Screen dimensions
-export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
+  Dimensions.get("window");
 
 // =============================================================================
 // Animation Durations
@@ -348,16 +378,16 @@ export const TouchTarget = {
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'System',
-    serif: 'Georgia',
-    rounded: 'System',
-    mono: 'Menlo',
+    sans: "System",
+    serif: "Georgia",
+    rounded: "System",
+    mono: "Menlo",
   },
   default: {
-    sans: 'Roboto',
-    serif: 'serif',
-    rounded: 'sans-serif',
-    mono: 'monospace',
+    sans: "Roboto",
+    serif: "serif",
+    rounded: "sans-serif",
+    mono: "monospace",
   },
 });
 

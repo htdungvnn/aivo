@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export function Navigation() {
     { id: "features", label: t("features"), href: "#features" },
     { id: "how-it-works", label: t("howItWorks"), href: "#how-it-works" },
     { id: "pricing", label: t("pricing"), href: "#pricing" },
+    { id: "about", label: t("about"), href: `/${locale}/about` },
     { id: "faq", label: t("faq"), href: "#faq" },
   ];
 
@@ -52,8 +54,15 @@ export function Navigation() {
             href="/"
             className="flex items-center gap-2 text-[var(--color-foreground)] hover:text-[var(--color-primary)] transition-colors"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--color-primary)]">
-              <Zap className="w-5 h-5 text-[var(--color-primary-foreground)]" />
+            <div className="flex items-center justify-center w-8 h-8">
+              <Image
+                src="/icon.svg"
+                alt="AIVO Logo"
+                width={32}
+                height={32}
+                className="w-full h-full"
+                priority
+              />
             </div>
             <span className="text-xl font-bold tracking-tight">AIVO</span>
           </Link>

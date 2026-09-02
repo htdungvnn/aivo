@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter, useSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 
 import {
@@ -140,7 +140,7 @@ export default function CallbackScreen() {
       contentStyle={styles.container}
     >
       <View style={styles.content}>
-        <Card variant="elevated" padding="2xl" style={styles.card}>
+        <Card variant="elevated" padding="xl" style={styles.card}>
           <View style={styles.iconContainer}>
             {content.icon}
           </View>

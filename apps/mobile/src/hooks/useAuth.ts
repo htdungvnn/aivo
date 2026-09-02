@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { getAuthClient, MobileAuthClient, User, Session, AuthApiError } from './auth';
+import { getAuthClient, MobileAuthClient, User, Session, AuthApiError } from '@/lib/auth';
 
 interface AuthState {
   user: User | null;

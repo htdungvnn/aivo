@@ -19,6 +19,8 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (provider: 'google' | 'facebook') => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, displayName?: string) => Promise<{ requiresEmailVerification: boolean }>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -75,6 +77,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  /**
+   * Login with email and password
+   */
+  const loginWithEmail = async (email: string, password: string) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const authResponse = await authClient.login(email, password);
+      
+      setState({
+        user: authResponse.user,
+        session: null, // Session info is not returned on login
+        roles: [],
+        isLoading: false,
+        isAuthenticated: true,
+        error: null,
+      });
+      
+      // If email verification is required, redirect to verification page
+      if (authResponse.emailVerificationRequired) {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Please verify your email address before logging in' 
+        }));
+      }
+    } catch (error) {
+      console.error('Email login error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      throw error;
+    }
+  };
+
+  /**
+   * Register with email and password
+   */
+  const register = async (email: string, password: string, displayName?: string) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const result = await authClient.register(email, password, displayName);
+      setState(prev => ({ ...prev, isLoading: false }));
+      return result;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Registration failed',
+      }));
+      throw error;
+    }
+  };
 
   /**
    * Login with OAuth provider
@@ -169,6 +226,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...state,
         login,
+        loginWithEmail,
+        register,
         logout,
         logoutAll,
         refreshSession,

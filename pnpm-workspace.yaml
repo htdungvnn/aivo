@@ -11,13 +11,31 @@ allowBuilds:
   workerd: true
 
 minimumReleaseAgeExclude:
-  - "@expo/cli@57.0.20"
+  - '@expo/cli@57.0.20 || 57.0.21'
   - "@expo/env@2.4.3"
-  - "@expo/fingerprint@0.20.11"
+  - '@expo/fingerprint@0.20.11 || 0.20.12'
   - "@expo/metro-config@57.0.12"
-  - "expo-constants@57.0.16"
-  - "expo-font@57.0.2"
-  - "expo@57.0.18"
+  - expo-constants@57.0.16 || 57.0.17
+  - expo-font@57.0.2 || 57.0.3
+  - expo@57.0.18 || 57.0.19
+  - '@expo/metro-runtime@57.0.15'
+  - '@expo/router-server@57.0.9'
+  - babel-preset-expo@57.0.10
+  - expo-asset@57.0.16
+  - expo-modules-core@57.0.15
+  - expo-modules-jsi@57.0.7
+  - '@expo/ui@57.0.15'
+  - expo-image@57.0.4
+  - expo-linking@57.0.9
+  - expo-router@57.0.18
+  - expo-secure-store@57.0.3
+  - expo-task-manager@57.0.15
+  - expo-build-properties@57.0.16
+  - expo-dev-client@57.0.18
+  - expo-dev-launcher@57.0.19
+  - expo-dev-menu@57.0.18
+  - expo-sharing@57.0.17
+  - expo-image-picker@57.0.15
 
 virtualStoreDir: node_modules/.pnpm
 

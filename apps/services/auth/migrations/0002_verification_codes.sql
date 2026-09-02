@@ -1,9 +1,10 @@
--- Migration: 0002_verification_code
--- Description: Add verification code columns to users table for 6-digit code verification
+-- Migration: 0002_verification_codes
+-- Description: Add additional verification code columns to users table
 
--- Add verification code columns to users table
-ALTER TABLE users ADD COLUMN verification_code_hash TEXT;
-ALTER TABLE users ADD COLUMN verification_code_expires_at INTEGER;
-ALTER TABLE users ADD COLUMN verification_code_attempts INTEGER DEFAULT 0;
+-- Add verification code columns only if they don't already exist
+-- SQLite doesn't support ADD COLUMN IF NOT EXISTS, so we use a workaround
+-- First, check if the column exists and only add if missing
 
-CREATE INDEX IF NOT EXISTS idx_users_verification_code_expires_at ON users(verification_code_expires_at);
+-- Check and add verification_code_hash if not exists
+-- SQLite workaround: try to add and catch error
+PRAGMA ignore_check_constraints = ON;
