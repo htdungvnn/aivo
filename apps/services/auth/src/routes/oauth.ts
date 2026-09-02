@@ -102,11 +102,16 @@ oauth.post('/start', async (c) => {
   } catch (error) {
     console.error('OAuth start error:', error);
     
+    // Check if it's our auth service error
+    const isAuthError = error instanceof Error && 'code' in error;
+    const errorCode = isAuthError ? (error as any).code : 'OAUTH_ERROR';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to start OAuth flow';
+    
     return c.json(
       {
         error: {
-          code: 'OAUTH_ERROR',
-          message: 'Failed to start OAuth flow',
+          code: errorCode,
+          message: errorMessage,
           requestId: c.get('requestId'),
         },
       },

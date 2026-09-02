@@ -12,11 +12,26 @@ declare const process: {
 } | undefined;
 
 // Get environment variables safely (works in browser and Node.js)
+// Note: Next.js replaces NEXT_PUBLIC_* variables at build time
 function getEnv(): { NEXT_PUBLIC_AUTH_API_URL?: string } {
-  if (typeof process !== 'undefined' && process?.env) {
-    return process.env;
+  // In browser context with Next.js, process.env.NEXT_PUBLIC_* is replaced at build time
+  // But we need to handle cases where the replacement might not happen
+  try {
+    if (typeof process !== 'undefined' && process !== null && process.env) {
+      return process.env as { NEXT_PUBLIC_AUTH_API_URL?: string };
+    }
+  } catch {
+    // Ignore errors accessing process.env
   }
+  
+  // Fallback: try to get from window.__NEXT_DATA__ or use empty object
   return {};
+}
+
+// Get the auth API URL with fallback to gateway on port 4000
+function getAuthApiUrl(): string {
+  const env = getEnv();
+  return env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:4000';
 }
 
 export interface User {
@@ -527,8 +542,7 @@ let clientInstance: AuthApiClient | null = null;
  */
 export function getAuthClient(baseUrl?: string): AuthApiClient {
   if (!clientInstance) {
-    const env = getEnv();
-    const url = baseUrl || env.NEXT_PUBLIC_AUTH_API_URL || '';
+    const url = baseUrl || getAuthApiUrl();
     clientInstance = new AuthApiClient(url);
   }
   return clientInstance;

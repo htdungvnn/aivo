@@ -180,9 +180,11 @@ async function forwardViaServiceBinding(
   headers.set('X-Gateway-Request', 'true');
   headers.set('X-Forwarded-Host', 'api.aivo.app');
   
-  // Get the path without the /api/v1 prefix for internal service routing
+  // Get the path without the /api/v1/{service}/ prefix for internal service routing
+  // e.g., /api/v1/auth/login -> /login, /api/v1/oauth/start -> /oauth/start
+  // Note: auth routes are at root level (/login, not /auth/login)
   const url = new URL(request.url);
-  const internalPath = url.pathname.replace(/^\/api\/v1\//, '/');
+  const internalPath = url.pathname.replace(/^\/api\/v1\/(auth)\//, '/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
   const internalUrl = `${url.origin}${internalPath}${url.search}`;
   
   const forwardRequest = new Request(internalUrl, {
@@ -196,6 +198,15 @@ async function forwardViaServiceBinding(
   try {
     const response = await fetcher.fetch(forwardRequest);
     
+    // Log for debugging
+    console.log(`[Gateway] Service binding response: ${response.status} for ${internalUrl}`);
+    
+    // If response indicates the route was not found, throw to trigger HTTP fallback
+    // This handles cases where service bindings exist but route mapping differs
+    if (response.status === 404) {
+      throw new Error(`Service binding returned 404 for ${internalUrl} - route not found in service binding context`);
+    }
+    
     // Copy response headers
     const responseHeaders = new Headers(response.headers);
     responseHeaders.set('X-Gateway-Response', 'true');
@@ -208,20 +219,8 @@ async function forwardViaServiceBinding(
     });
   } catch (error) {
     console.error('[Gateway] Service binding call failed:', error);
-    return Response.json(
-      {
-        error: {
-          code: 'SERVICE_UNAVAILABLE',
-          message: 'Service is currently unavailable',
-        },
-        meta: {
-          requestId: request.headers.get('X-Request-ID'),
-          timestamp: Date.now(),
-          version: '1.0.0',
-        },
-      },
-      { status: 503 }
-    );
+    // Re-throw the error so forwardToService can fallback to HTTP
+    throw error;
   }
 }
 
@@ -233,7 +232,11 @@ async function forwardViaHttp(
   serviceUrl: string,
   targetPath: string
 ): Promise<Response> {
-  const url = `${serviceUrl}${targetPath}`;
+  // Strip /api/v1/{service}/ prefix for internal service routing
+  // e.g., /api/v1/auth/login -> /login, /api/v1/oauth/start -> /oauth/start
+  // Note: auth routes are at root level (/login, not /auth/login)
+  const internalPath = targetPath.replace(/^\/api\/v1\/(auth)\//, '/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  const url = `${serviceUrl}${internalPath}`;
   
   const headers = new Headers(request.headers);
   headers.set('X-Gateway-Request', 'true');
@@ -296,7 +299,12 @@ async function forwardToService(
   const serviceBinding = getServiceBinding(service, env);
   
   if (serviceBinding) {
-    return forwardViaServiceBinding(request, serviceBinding);
+    try {
+      return await forwardViaServiceBinding(request, serviceBinding);
+    } catch (error) {
+      console.warn(`[Gateway] Service binding failed for ${service}, falling back to HTTP:`, error);
+      // Fall through to HTTP fallback
+    }
   }
   
   // Fall back to HTTP for local development
@@ -464,6 +472,11 @@ app.all('/api/v1/auth/*', async (c) => {
   return forwardToService(c.req.raw, 'auth', c.env, c.req.path);
 });
 
+app.all('/api/v1/oauth/*', async (c) => {
+  // OAuth routes are handled by the auth service
+  return forwardToService(c.req.raw, 'auth', c.env, c.req.path);
+});
+
 app.all('/api/v1/health/*', async (c) => {
   return forwardToService(c.req.raw, 'health', c.env, c.req.path);
 });
@@ -482,6 +495,10 @@ app.all('/api/v1/mail/*', async (c) => {
 
 // Convenience routes (short paths mapped to services)
 app.all('/auth/*', async (c) => {
+  return forwardToService(c.req.raw, 'auth', c.env, `/api/v1${c.req.path}`);
+});
+
+app.all('/oauth/*', async (c) => {
   return forwardToService(c.req.raw, 'auth', c.env, `/api/v1${c.req.path}`);
 });
 
