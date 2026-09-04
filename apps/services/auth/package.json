@@ -4,8 +4,9 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev --port 3001 --local",
+		"dev": "wrangler dev --port 3001 --remote",
 		"dev:external": "wrangler dev --port 3001 --external",
+		"dev:remote-db": "wrangler dev --port 3001 --remote",
 		"deploy": "wrangler deploy --config wrangler.production.jsonc",
 		"deploy:dev": "wrangler deploy",
 		"start": "wrangler dev --port 3001",
@@ -13,12 +14,17 @@
 		"cf-typegen": "wrangler types",
 		"check-types": "echo 'Type checking disabled for auth service'",
 		"lint": "eslint src --ext .ts",
-		"migrate": "wrangler d1 migrations apply aivo-auth-db --local --file drizzle/0001_initial_auth_schema.sql",
+		"migrate": "wrangler d1 migrations apply aivo-auth-db --local",
 		"migrate:remote": "wrangler d1 migrations apply aivo-auth-db --remote --confirm",
 		"migrate:list": "wrangler d1 migrations list aivo-auth-db --local",
 		"migrate:list:remote": "wrangler d1 migrations list aivo-auth-db --remote",
+		"migrate:create": "wrangler d1 migrations create aivo-auth-db --local",
 		"db:create": "wrangler d1 create aivo-auth-db",
-		"db:execute": "wrangler d1 execute aivo-auth-db --local --file"
+		"db:execute": "wrangler d1 execute aivo-auth-db --local --file",
+		"db:execute:remote": "wrangler d1 execute aivo-auth-db --remote --command",
+		"db:seed": "wrangler d1 execute aivo-auth-db --remote --command=\"INSERT OR IGNORE INTO roles (id, code, name, description, is_system) VALUES ('role_user', 'user', 'User', 'Standard user role', 1), ('role_admin', 'admin', 'Administrator', 'System administrator role', 1)\"",
+		"db:schema": "cat migrations/0001_initial_auth_schema.sql",
+		"setup": "pnpm db:create && pnpm migrate && pnpm db:seed"
 	},
 	"dependencies": {
 		"@aivo/auth-core": "workspace:*",
