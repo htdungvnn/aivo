@@ -36,6 +36,10 @@ import { OAuthProvider, getGoogleProvider, getFacebookProvider, OAuthError } fro
 const EMAIL_VERIFICATION_TTL = 60 * 60; // 1 hour
 const OAUTH_STATE_TTL = 10 * 60; // 10 minutes (in seconds for D1)
 
+// Module-level OAuth state storage (survives across requests in the same worker instance)
+// This is a fallback for local development when D1 is not available or not working
+const oauthStateStore = new Map<string, OAuthStateData>();
+
 interface OAuthStateData {
   state: string;
   codeVerifier: string;
@@ -97,10 +101,9 @@ export class AuthService {
         )
         .run();
     } catch (error) {
-      console.error('Failed to store OAuth state:', error);
-      // Fallback to memory if D1 fails (for local dev)
-      this._memoryStates = this._memoryStates || new Map();
-      this._memoryStates.set(data.state, data);
+      console.error('Failed to store OAuth state in D1, using module-level memory store:', error);
+      // Fallback to module-level memory store (for local dev without D1)
+      oauthStateStore.set(data.state, data);
     }
   }
   
@@ -126,14 +129,13 @@ export class AuthService {
         };
       }
     } catch (error) {
-      console.error('Failed to get OAuth state from D1:', error);
-      // Fallback to memory
-      if (this._memoryStates) {
-        const memoryState = this._memoryStates.get(state);
-        if (memoryState && Date.now() - memoryState.createdAt < OAUTH_STATE_TTL * 1000) {
-          return memoryState;
-        }
-      }
+      console.error('Failed to get OAuth state from D1, falling back to memory store:', error);
+    }
+    
+    // Fallback to module-level memory store (for local dev without D1)
+    const memoryState = oauthStateStore.get(state);
+    if (memoryState && Date.now() - memoryState.createdAt < OAUTH_STATE_TTL * 1000) {
+      return memoryState;
     }
     
     return null;
@@ -143,17 +145,16 @@ export class AuthService {
    * Delete OAuth state from D1 database
    */
   private async deleteOAuthState(state: string): Promise<void> {
+    // Always remove from memory store first (it's instant)
+    oauthStateStore.delete(state);
+    
     try {
       await this.db
         .prepare('DELETE FROM oauth_states WHERE state = ?')
         .bind(state)
         .run();
     } catch (error) {
-      console.error('Failed to delete OAuth state:', error);
-      // Fallback to memory
-      if (this._memoryStates) {
-        this._memoryStates.delete(state);
-      }
+      console.error('Failed to delete OAuth state from D1:', error);
     }
   }
   
@@ -161,6 +162,14 @@ export class AuthService {
    * Cleanup expired OAuth states (D1)
    */
   private async cleanupExpiredOAuthStates(): Promise<void> {
+    // Clean up expired states from memory store
+    const now = Date.now();
+    for (const [state, data] of oauthStateStore.entries()) {
+      if (now - data.createdAt >= OAUTH_STATE_TTL * 1000) {
+        oauthStateStore.delete(state);
+      }
+    }
+    
     try {
       await this.db
         .prepare('DELETE FROM oauth_states WHERE expires_at < ?')
@@ -462,8 +471,10 @@ export class AuthService {
     // Determine initial status
     let status: UserStatus = 'pending_verification';
     
-    // Activate if provider email is verified AND from trusted domain
-    if (profile.emailVerified && isTrustedEmailDomain(profile.email)) {
+    // For OAuth providers, trust their email verification since users
+    // verify email ownership during OAuth consent flow
+    // For email/password registration, still require verification
+    if (profile.emailVerified) {
       status = 'active';
     }
     

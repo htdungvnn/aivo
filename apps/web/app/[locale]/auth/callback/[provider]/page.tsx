@@ -62,13 +62,10 @@ export default function OAuthCallbackPage({ params }: CallbackPageProps) {
 
         setStatus('success');
 
-        // Redirect based on email verification
+        // For OAuth (Google/Facebook), skip email verification since
+        // the provider has already verified the user's email during consent
         setTimeout(() => {
-          if (result.emailVerificationRequired) {
-            router.push(`/verify-email?status=pending&email=${encodeURIComponent(result.user.email)}`);
-          } else {
-            router.push('/dashboard');
-          }
+          router.push('/dashboard');
         }, 1000);
       } catch (err) {
         console.error('OAuth callback error:', err);

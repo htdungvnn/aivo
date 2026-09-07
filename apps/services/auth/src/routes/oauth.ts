@@ -130,7 +130,7 @@ oauth.get('/callback/:provider', async (c) => {
   const provider = c.req.param('provider') as 'google' | 'facebook';
   
   const code = c.req.query('code');
-  const state = c.req.query('state');
+  let state = c.req.query('state');
   const error = c.req.query('error');
   const errorDescription = c.req.query('error_description');
   
@@ -167,6 +167,20 @@ oauth.get('/callback/:provider', async (c) => {
       },
       400
     );
+  }
+  
+  // Facebook encodes state as JSON: {"state": "...", "codeChallenge": "..."}
+  // We need to extract the actual state value for lookup
+  if (provider === 'facebook') {
+    try {
+      const parsedState = JSON.parse(state);
+      if (parsedState.state) {
+        state = parsedState.state;
+      }
+    } catch (parseError) {
+      // If parsing fails, use the state as-is (might be from other sources)
+      console.warn('Failed to parse Facebook state as JSON:', parseError);
+    }
   }
   
   // Determine redirect URI based on provider

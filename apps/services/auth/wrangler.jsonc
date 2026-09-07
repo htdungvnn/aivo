@@ -14,13 +14,13 @@
 		{
 			"binding": "DB",
 			"database_name": "aivo-auth-db",
-			"database_id": "<AUTH_D1_DATABASE_ID>",
+			"database_id": "fd52f067-2774-48e7-bfd0-32485b118be8",
 		},
 	],
 	"kv_namespaces": [
 		{
 			"binding": "OAUTH_STATE",
-			"id": "<OAUTH_STATE_KV_ID>",
+			"id": "34232e5fc00f4dedb1dae02c2e8dec3f",
 		},
 	],
 	"vars": {
