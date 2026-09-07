@@ -80,8 +80,17 @@ function getServiceUrl(service: ServiceName, env: GatewayEnv): string {
 
 /**
  * Get service binding fetcher (for production with Cloudflare)
+ * Returns null if USE_HTTP_FORWARDING is set (for local development)
  */
 function getServiceBinding(service: ServiceName, env: GatewayEnv): Fetcher | null {
+  // Check if HTTP forwarding is forced (for local development)
+  // When USE_HTTP_FORWARDING=true, skip service bindings and use HTTP
+  const useHttpForwarding = (env as Record<string, unknown>)['USE_HTTP_FORWARDING'];
+  if (useHttpForwarding === true || useHttpForwarding === 'true' || useHttpForwarding === '1') {
+    console.log(`[Gateway] USE_HTTP_FORWARDING enabled, skipping service binding for ${service}`);
+    return null;
+  }
+  
   const bindings: Record<ServiceName, keyof GatewayEnv> = {
     auth: 'AUTH_SERVICE',
     health: 'HEALTH_SERVICE',
@@ -181,10 +190,10 @@ async function forwardViaServiceBinding(
   headers.set('X-Forwarded-Host', 'api.aivo.app');
   
   // Get the path without the /api/v1/{service}/ prefix for internal service routing
-  // e.g., /api/v1/auth/login -> /login, /api/v1/oauth/start -> /oauth/start
-  // Note: auth routes are at root level (/login, not /auth/login)
+  // e.g., /api/v1/auth/me -> /auth/me, /api/v1/oauth/start -> /oauth/start
+  // Note: auth routes have /auth/ prefix in the service
   const url = new URL(request.url);
-  const internalPath = url.pathname.replace(/^\/api\/v1\/(auth)\//, '/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  const internalPath = url.pathname.replace(/^\/api\/v1\/(auth)\//, '/$1/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
   const internalUrl = `${url.origin}${internalPath}${url.search}`;
   
   const forwardRequest = new Request(internalUrl, {
@@ -233,16 +242,17 @@ async function forwardViaHttp(
   targetPath: string
 ): Promise<Response> {
   // Strip /api/v1/{service}/ prefix for internal service routing
-  // e.g., /api/v1/auth/login -> /login, /api/v1/oauth/start -> /oauth/start
-  // Note: auth routes are at root level (/login, not /auth/login)
-  const internalPath = targetPath.replace(/^\/api\/v1\/(auth)\//, '/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
-  const url = `${serviceUrl}${internalPath}`;
+  // e.g., /api/v1/auth/me -> /auth/me, /api/v1/oauth/start -> /oauth/start
+  // Note: auth routes have /auth/ prefix in the service
+  const url = new URL(request.url);
+  const internalPath = targetPath.replace(/^\/api\/v1\/(auth)\//, '/$1/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  const fullUrl = `${serviceUrl}${internalPath}${url.search}`;
   
   const headers = new Headers(request.headers);
   headers.set('X-Gateway-Request', 'true');
   headers.set('X-Forwarded-Host', 'api.aivo.app');
   
-  const forwardRequest = new Request(url, {
+  const forwardRequest = new Request(fullUrl, {
     method: request.method,
     headers,
     body: request.method !== 'GET' && request.method !== 'HEAD' 

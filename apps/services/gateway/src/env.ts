@@ -22,6 +22,9 @@ export interface GatewayEnv {
   NUTRITION_SERVICE_URL?: string;
   MAIL_SERVICE_URL?: string;
   
+  // Force HTTP forwarding instead of service bindings (local development)
+  USE_HTTP_FORWARDING?: string;
+  
   // CORS
   ALLOWED_ORIGINS: string;
   

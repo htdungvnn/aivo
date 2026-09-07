@@ -317,10 +317,10 @@ export class AuthService {
         userAgent: options?.userAgent,
       });
       
-      // Log login
+      // Log login (don't include sessionId - it's stored separately in tokens)
       await createAuditLog(this.db, {
         userId: user.id,
-        sessionId: tokens.refreshToken, // Not quite right but for audit
+        sessionId: null, // Session ID not available in this context
         action: 'auth.login',
         success: true,
         ipAddress: options?.ipAddress,
@@ -350,14 +350,19 @@ export class AuthService {
           userAgent: options?.userAgent,
         });
         
-        await createAuditLog(this.db, {
-          userId: user.id,
-          action: 'account.linked',
-          success: true,
-          ipAddress: options?.ipAddress,
-          userAgent: options?.userAgent,
-          metadata: { provider: profile.provider },
-        });
+        // Don't let audit log failure break the auth flow
+        try {
+          await createAuditLog(this.db, {
+            userId: user.id,
+            action: 'account.linked',
+            success: true,
+            ipAddress: options?.ipAddress,
+            userAgent: options?.userAgent,
+            metadata: { provider: profile.provider },
+          });
+        } catch (auditError) {
+          console.error('[OAuth] WARNING: Failed to create account.linked audit log:', auditError);
+        }
         
         return {
           user,
@@ -462,37 +467,97 @@ export class AuthService {
       status = 'active';
     }
     
-    // Create user
-    const user = await createUser(this.db, {
-      email: profile.email,
-      normalizedEmail,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      status,
-    });
-    
-    // Create identity
-    await createUserIdentity(this.db, {
-      userId: user.id,
+    // Create user with detailed error tracking
+    console.log('[OAuth] Creating user with email:', profile.email, 'status:', status);
+    console.log('[OAuth] Profile:', JSON.stringify({
       provider: profile.provider,
       providerUserId: profile.providerUserId,
-      providerEmail: profile.email,
-      providerEmailVerified: profile.emailVerified,
-    });
+      emailVerified: profile.emailVerified,
+      displayName: profile.displayName,
+    }));
     
+    let user: User;
+    try {
+      user = await createUser(this.db, {
+        email: profile.email,
+        normalizedEmail,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        status,
+      });
+      console.log('[OAuth] User created successfully:', user.id);
+    } catch (error) {
+      console.error('[OAuth] ERROR creating user:', error);
+      console.error('[OAuth] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown',
+        cause: error instanceof Error && 'cause' in error ? (error as any).cause : undefined,
+        code: error instanceof Error && 'code' in error ? (error as any).code : undefined,
+      });
+      throw error;
+    }
+
+    // Create identity
+    console.log('[OAuth] Creating identity for user:', user.id);
+    try {
+      await createUserIdentity(this.db, {
+        userId: user.id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        providerEmail: profile.email,
+        providerEmailVerified: profile.emailVerified,
+      });
+      console.log('[OAuth] Identity created successfully');
+    } catch (error) {
+      console.error('[OAuth] ERROR creating identity:', error);
+      console.error('[OAuth] Error details:', {
+        userId: user.id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+      });
+      throw error;
+    }
+
     // Assign default role
+    console.log('[OAuth] Assigning role to user:', user.id);
     const userRole = await getRoleByCode(this.db, 'user');
-    if (userRole) {
-      await assignRoleToUser(this.db, user.id, userRole.id);
+    console.log('[OAuth] Got user role:', userRole);
+    
+    if (!userRole) {
+      console.error('[OAuth] ERROR: User role not found in database!');
+      throw new AuthServiceError(
+        'System role not configured. Please run database migrations.',
+        'CONFIGURATION_ERROR',
+        500
+      );
     }
     
-    // Audit
-    await createAuditLog(this.db, {
-      userId: user.id,
-      action: 'account.created',
-      success: true,
-      metadata: { provider: profile.provider, isNewUser: true },
-    });
+    try {
+      await assignRoleToUser(this.db, user.id, userRole.id);
+      console.log('[OAuth] Role assigned successfully');
+    } catch (error) {
+      console.error('[OAuth] ERROR assigning role:', error);
+      console.error('[OAuth] Role assignment details:', {
+        userId: user.id,
+        roleId: userRole.id,
+        roleCode: userRole.code,
+      });
+      throw error;
+    }
+
+    // Audit - do NOT include userId here because D1 might not have committed the user yet
+    // We'll create an audit log without userId for account creation
+    try {
+      await createAuditLog(this.db, {
+        userId: null, // Don't reference user until we confirm it exists
+        action: 'account.created',
+        success: true,
+        metadata: { provider: profile.provider, isNewUser: true, email: profile.email },
+      });
+      console.log('[OAuth] Audit log created');
+    } catch (auditError) {
+      // Log the error but don't fail the request - account creation succeeded
+      console.error('[OAuth] WARNING: Failed to create audit log:', auditError);
+    }
     
     return user;
   }

@@ -31,7 +31,9 @@ export async function createUser(
   const id = generateUUID();
   const now = Math.floor(Date.now() / 1000);
   
-  await db
+  console.log('[DB] Creating user:', { id, email: data.email, status: data.status });
+  
+  const result = await db
     .prepare(
       `INSERT INTO users (id, email, normalized_email, display_name, avatar_url, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -48,9 +50,16 @@ export async function createUser(
     )
     .run();
   
-  const result = await getUserById(db, id);
-  if (!result) throw new Error('Failed to create user');
-  return result;
+  console.log('[DB] User insert result:', result);
+  
+  if (!result.success) {
+    console.error('[DB] Failed to create user:', result.error);
+    throw new Error(`Failed to create user: ${result.error}`);
+  }
+  
+  const user = await getUserById(db, id);
+  if (!user) throw new Error('Failed to create user');
+  return user;
 }
 
 /**
@@ -186,7 +195,9 @@ export async function createUserIdentity(
   const id = generateUUID();
   const now = Math.floor(Date.now() / 1000);
   
-  await db
+  console.log('[DB] Creating user identity:', { id, userId: data.userId, provider: data.provider });
+  
+  const result = await db
     .prepare(
       `INSERT INTO user_identities (id, user_id, provider, provider_user_id, provider_email, provider_email_verified, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -202,6 +213,13 @@ export async function createUserIdentity(
       now
     )
     .run();
+  
+  console.log('[DB] Identity insert result:', result);
+  
+  if (!result.success) {
+    console.error('[DB] Failed to create user identity:', result.error);
+    throw new Error(`Failed to create user identity: ${result.error}`);
+  }
   
   return getUserIdentityById(db, id)!;
 }
@@ -313,13 +331,22 @@ export async function assignRoleToUser(
 ): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   
-  await db
+  console.log('[DB] Assigning role:', { userId, roleId, assignedBy });
+  
+  const result = await db
     .prepare(
       `INSERT OR IGNORE INTO user_roles (user_id, role_id, assigned_at, assigned_by)
        VALUES (?, ?, ?, ?)`
     )
     .bind(userId, roleId, now, assignedBy ?? null)
     .run();
+  
+  console.log('[DB] Role assignment result:', result);
+  
+  if (!result.success) {
+    console.error('[DB] Failed to assign role:', result.error);
+    throw new Error(`Failed to assign role: ${result.error}`);
+  }
   
   // Increment auth version
   await db

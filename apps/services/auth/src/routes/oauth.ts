@@ -218,6 +218,29 @@ oauth.get('/callback/:provider', async (c) => {
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
+    console.error('OAuth callback error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: (error as any)?.code,
+      cause: (error as any)?.cause,
+      provider,
+      hasCode: !!code,
+      hasState: !!state,
+    });
+    
+    // Create audit log for the error
+    await createAuditLog(c.env.DB, {
+      action: 'oauth.callback_error',
+      success: false,
+      ipAddress: getClientIP(request),
+      userAgent: getUserAgent(request),
+      metadata: { 
+        provider,
+        error: error instanceof Error ? error.message : 'Unknown',
+        errorCode: (error as any)?.code,
+      },
+    });
     
     return c.json(
       {
