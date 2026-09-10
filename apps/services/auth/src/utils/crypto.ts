@@ -107,6 +107,41 @@ function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /**
+ * Generate a cryptographically secure 6-digit verification code
+ * Uses rejection sampling for uniform distribution
+ */
+export function generateVerificationCode(length: number = 6): string {
+  const chars = '0123456789';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  
+  // Use rejection sampling for uniform distribution
+  // max value that is evenly divisible by 10
+  const maxValid = Math.floor(256 / 10) * 10;
+  
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    let num = array[i];
+    // Reject values >= maxValid to avoid bias
+    while (num >= maxValid) {
+      num = (num * 1103515245 + 12345) & 0x7fffffff;
+      num = num % 256;
+    }
+    code += chars[num % 10];
+  }
+  
+  return code;
+}
+
+/**
+ * Validate a verification code format (digits only)
+ */
+export function isValidVerificationCode(code: string, length: number = 6): boolean {
+  if (code.length !== length) return false;
+  return /^\d+$/.test(code);
+}
+
+/**
  * Generate a cryptographically secure random string
  */
 export function generateSecureToken(length: number = 32): string {

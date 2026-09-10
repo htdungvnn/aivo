@@ -64,8 +64,12 @@ export default function OAuthCallbackPage({ params }: CallbackPageProps) {
 
         // For OAuth (Google/Facebook), skip email verification since
         // the provider has already verified the user's email during consent
+
+        // Force a hard navigation to dashboard to ensure fresh state
+        // This ensures the AuthProvider re-initializes with the new tokens
         setTimeout(() => {
-          router.push('/dashboard');
+          // Use window.location for a full page reload to ensure AuthProvider state is fresh
+          window.location.href = '/dashboard';
         }, 1000);
       } catch (err) {
         console.error('OAuth callback error:', err);

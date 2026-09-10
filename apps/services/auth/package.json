@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev --port 3001 --remote",
+		"dev": "wrangler dev --port 3001 --local",
+		"dev:local": "wrangler dev --port 3001 --local",
 		"dev:external": "wrangler dev --port 3001 --external",
 		"dev:remote-db": "wrangler dev --port 3001 --remote",
 		"deploy": "wrangler deploy --config wrangler.production.jsonc",

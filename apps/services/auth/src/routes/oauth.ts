@@ -63,7 +63,8 @@ oauth.post('/start', async (c) => {
   
   // Determine client type and redirect URI
   const userAgent = getUserAgent(request) || '';
-  const clientType = userAgent.includes('Mozilla/5.0') ? 'web' : 'mobile';
+  // Map to valid client types: 'web', 'ios', or 'android'
+  const clientType = userAgent.includes('Mozilla/5.0') ? 'web' : 'android';
   
   let redirectUri = result.data.redirectUri;
   

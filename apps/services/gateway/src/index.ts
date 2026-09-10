@@ -189,11 +189,35 @@ async function forwardViaServiceBinding(
   headers.set('X-Gateway-Request', 'true');
   headers.set('X-Forwarded-Host', 'api.aivo.app');
   
-  // Get the path without the /api/v1/{service}/ prefix for internal service routing
-  // e.g., /api/v1/auth/me -> /auth/me, /api/v1/oauth/start -> /oauth/start
-  // Note: auth routes have /auth/ prefix in the service
+  // Route-specific path mapping for auth service
+  // Auth service has inconsistent mounting:
+  // - /auth/* (me, refresh, logout) - requires auth
+  // - /register, /login, /verification/* - public (at root)
+  
+  let internalPath: string;
   const url = new URL(request.url);
-  const internalPath = url.pathname.replace(/^\/api\/v1\/(auth)\//, '/$1/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  
+  if (url.pathname.startsWith('/api/v1/auth/')) {
+    const pathAfterAuth = url.pathname.replace('/api/v1/auth/', '');
+    
+    // Public auth routes (at root level)
+    if (
+      pathAfterAuth === 'register' ||
+      pathAfterAuth === 'login' ||
+      pathAfterAuth.startsWith('verification/') ||
+      pathAfterAuth === 'verification'
+    ) {
+      // These are at root level in auth service
+      internalPath = `/${pathAfterAuth}`;
+    } else {
+      // Auth-protected routes (under /auth prefix)
+      internalPath = `/auth/${pathAfterAuth}`;
+    }
+  } else {
+    // Other services use their prefix
+    internalPath = url.pathname.replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  }
+  
   const internalUrl = `${url.origin}${internalPath}${url.search}`;
   
   const forwardRequest = new Request(internalUrl, {
@@ -241,12 +265,35 @@ async function forwardViaHttp(
   serviceUrl: string,
   targetPath: string
 ): Promise<Response> {
-  // Strip /api/v1/{service}/ prefix for internal service routing
-  // e.g., /api/v1/auth/me -> /auth/me, /api/v1/oauth/start -> /oauth/start
-  // Note: auth routes have /auth/ prefix in the service
-  const url = new URL(request.url);
-  const internalPath = targetPath.replace(/^\/api\/v1\/(auth)\//, '/$1/').replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
-  const fullUrl = `${serviceUrl}${internalPath}${url.search}`;
+  // Route-specific path mapping for auth service
+  // Auth service has inconsistent mounting:
+  // - /auth/* (me, refresh, logout) - requires auth
+  // - /register, /login, /verification/* - public (at root)
+  
+  let internalPath: string;
+  
+  if (targetPath.startsWith('/api/v1/auth/')) {
+    const pathAfterAuth = targetPath.replace('/api/v1/auth/', '');
+    
+    // Public auth routes (at root level)
+    if (
+      pathAfterAuth === 'register' ||
+      pathAfterAuth === 'login' ||
+      pathAfterAuth.startsWith('verification/') ||
+      pathAfterAuth === 'verification'
+    ) {
+      // These are at root level in auth service
+      internalPath = `/${pathAfterAuth}`;
+    } else {
+      // Auth-protected routes (under /auth prefix)
+      internalPath = `/auth/${pathAfterAuth}`;
+    }
+  } else {
+    // Other services use their prefix
+    internalPath = targetPath.replace(/^\/api\/v1\/(oauth|health|coach|nutrition|mail)\//, '/$1/');
+  }
+  
+  const fullUrl = `${serviceUrl}${internalPath}${new URL(request.url).search}`;
   
   const headers = new Headers(request.headers);
   headers.set('X-Gateway-Request', 'true');
@@ -504,8 +551,11 @@ app.all('/api/v1/mail/*', async (c) => {
 });
 
 // Convenience routes (short paths mapped to services)
+// Note: Auth service mounts routes at root level, so /auth/register -> /api/v1/auth/register
 app.all('/auth/*', async (c) => {
-  return forwardToService(c.req.raw, 'auth', c.env, `/api/v1${c.req.path}`);
+  const path = c.req.path;
+  // Convert /auth/register -> /api/v1/auth/register (keeping the /auth prefix for auth service)
+  return forwardToService(c.req.raw, 'auth', c.env, `/api/v1${path}`);
 });
 
 app.all('/oauth/*', async (c) => {

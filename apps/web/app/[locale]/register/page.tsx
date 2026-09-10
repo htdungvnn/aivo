@@ -27,6 +27,13 @@ interface FormErrors {
   general?: string;
 }
 
+// Test data for development
+const TEST_USER = {
+  displayName: 'htdung',
+  email: 'htdung.vnn@gmail.com',
+  password: 'P@$$w0rd!123',
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const { login, isLoading: isAuthLoading } = useAuth();
@@ -45,6 +52,17 @@ export default function RegisterPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:3001';
+
+  // Auto-fill form with test data (development only)
+  const autoFillTestData = () => {
+    setFormData({
+      email: TEST_USER.email,
+      password: TEST_USER.password,
+      confirmPassword: TEST_USER.password,
+      displayName: TEST_USER.displayName,
+    });
+    setErrors({});
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -167,6 +185,26 @@ export default function RegisterPage() {
         <div className={authCardStyles.header}>
           <h1 className={authCardStyles.title}>Create your account</h1>
           <p className={authCardStyles.subtitle}>Start your health journey with AIVO</p>
+          
+          {/* Development: Auto-fill test data */}
+          {process.env.NODE_ENV === 'development' && (
+            <button
+              type="button"
+              onClick={autoFillTestData}
+              style={{
+                marginTop: '8px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                backgroundColor: '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              Auto-fill Test Data
+            </button>
+          )}
         </div>
 
         {errors.general && (

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --port 3002 --local",
+    "dev1": "wrangler dev --port 3002 --local",
     "dev:external": "wrangler dev --port 3002 --external",
     "deploy": "wrangler deploy --config wrangler.production.jsonc",
     "deploy:dev": "wrangler deploy",

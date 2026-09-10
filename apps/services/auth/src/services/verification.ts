@@ -14,8 +14,7 @@
 
 import type { D1Database } from '@cloudflare/workers-types';
 import type { Queue, MessageSendFailure } from '@cloudflare/workers-types';
-import { generateUUID } from '../utils/crypto';
-import { sha256Hash } from '../utils/crypto';
+import { generateUUID, sha256Hash, generateVerificationCode } from '../utils/crypto';
 import { createAuditLog } from '../db/queries';
 import {
   createEmailVerificationMessage,
@@ -25,7 +24,7 @@ import {
 } from '@aivo/queue-types';
 
 // Configuration
-const VERIFICATION_CODE_TTL_SECONDS = 10 * 60; // 10 minutes
+const VERIFICATION_CODE_TTL_SECONDS = 10 * 60; // 10 minutes (consistent with registration)
 const MAX_VERIFICATION_ATTEMPTS = 10; // Per code
 const RESEND_COOLDOWN_SECONDS = 60; // 1 minute between resends
 
@@ -42,21 +41,6 @@ export interface UserRow {
   verification_code_hash: string | null;
   verification_code_expires_at: number | null;
   verification_code_attempts: number | null;
-}
-
-/**
- * Generate a cryptographically secure 6-digit verification code
- */
-export function generateVerificationCode(): string {
-  const array = new Uint8Array(6);
-  crypto.getRandomValues(array);
-  
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += (array[i] % 10).toString();
-  }
-  
-  return code;
 }
 
 /**
