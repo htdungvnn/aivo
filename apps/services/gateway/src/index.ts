@@ -107,8 +107,19 @@ function getServiceBinding(service: ServiceName, env: GatewayEnv): Fetcher | nul
 
 /**
  * Get rate limit configuration
+ * Auth endpoints have stricter limits to prevent brute force attacks
  */
-function getRateLimitConfig(env: GatewayEnv): { max: number; windowMs: number } {
+function getRateLimitConfig(env: GatewayEnv, path: string): { max: number; windowMs: number } {
+  const isAuthEndpoint = path.includes('/auth/') || path.includes('/oauth/');
+  
+  if (isAuthEndpoint) {
+    // Stricter limits for auth endpoints: 20 requests per minute
+    return {
+      max: parseInt(env.AUTH_RATE_LIMIT_MAX || '20', 10),
+      windowMs: parseInt(env.RATE_LIMIT_WINDOW_MS || '60000', 10),
+    };
+  }
+  
   return {
     max: parseInt(env.RATE_LIMIT_MAX || '100', 10),
     windowMs: parseInt(env.RATE_LIMIT_WINDOW_MS || '60000', 10),
@@ -464,9 +475,9 @@ app.use('*', cors({
   maxAge: 86400,
 }));
 
-// Rate limiting middleware
+// Rate limiting middleware with stricter limits for auth endpoints
 app.use('*', async (c, next) => {
-  const config = getRateLimitConfig(c.env);
+  const config = getRateLimitConfig(c.env, c.req.path);
   const rateLimitKey = getRateLimitKey(c.req.raw);
   const { allowed, remaining, resetAt } = checkRateLimit(
     rateLimitKey,

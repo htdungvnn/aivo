@@ -59,12 +59,29 @@ app.use('*', async (c, next) => {
 });
 
 // Health check endpoint (no auth required)
-app.get('/health', (c) => {
+app.get('/health', async (c) => {
+  const startTime = Date.now();
+  let dbStatus = 'ok';
+  
+  // Check database connectivity
+  try {
+    const env = c.env as CoachEnv;
+    if (env.DB) {
+      await env.DB.prepare('SELECT 1').first();
+    }
+  } catch {
+    dbStatus = 'error';
+  }
+  
   return c.json({
-    status: 'ok',
+    status: dbStatus === 'ok' ? 'ok' : 'degraded',
     timestamp: Date.now(),
     version: '1.0.0',
     service: 'coach',
+    latency: Date.now() - startTime,
+    checks: {
+      database: dbStatus,
+    },
   });
 });
 

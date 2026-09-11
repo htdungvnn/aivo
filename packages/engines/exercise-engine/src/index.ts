@@ -23,6 +23,48 @@ export type {
 } from '@aivo/fitness-types/wasm';
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Angle thresholds for form evaluation (in degrees)
+ */
+export const ANGLE_THRESHOLDS = {
+  /** Torso forward lean warning threshold */
+  TORSO_FORWARD_LEAN_WARNING: 45,
+  /** Torso maximum valid angle (straight down) */
+  TORSO_MAX_VALID: 180,
+  /** Elbow flare warning threshold for push-ups */
+  ELBOW_FLARE_WARNING: 45,
+  /** Squat depth threshold - angle below this means deeper squat */
+  SQUAT_DEPTH_THRESHOLD: 100,
+  /** Knee angle for standing straight */
+  KNEE_STRAIGHT: 180,
+  /** Hip angle threshold for good form */
+  HIP_GOOD_FORM: 90,
+  /** Minimum angle for valid joint angle */
+  MIN_VALID_ANGLE: 0,
+} as const;
+
+/**
+ * Exercise-specific configuration
+ */
+export const EXERCISE_CONFIG = {
+  squat: {
+    /** Minimum knee flexion angle for rep completion */
+    minKneeAngle: 90,
+    /** Maximum knee angle for standing */
+    maxKneeAngle: 170,
+  },
+  push_up: {
+    /** Minimum elbow angle at bottom */
+    minElbowAngle: 90,
+    /** Maximum elbow angle at top */
+    maxElbowAngle: 170,
+  },
+} as const;
+
+// =============================================================================
 // Geometry Utilities
 // =============================================================================
 
@@ -586,9 +628,12 @@ export class ExerciseEngineTS implements TypeScriptEngine {
   private evaluateFormRules(angles: Record<string, number>): CorrectionResult[] {
     const corrections: CorrectionResult[] = [];
 
-    // Common rules
+    // Common rules - torso forward lean check
     const torsoAngle = angles.torso_angle ?? 0;
-    if (torsoAngle > 45 && torsoAngle < 180) {
+    if (
+      torsoAngle > ANGLE_THRESHOLDS.TORSO_FORWARD_LEAN_WARNING &&
+      torsoAngle < ANGLE_THRESHOLDS.TORSO_MAX_VALID
+    ) {
       if (this.shouldTriggerCorrection('FORWARD_LEAN_TOO_MUCH')) {
         corrections.push({
           code: 'FORWARD_LEAN_TOO_MUCH',
@@ -602,8 +647,11 @@ export class ExerciseEngineTS implements TypeScriptEngine {
     // Exercise-specific rules
     switch (this.state.exerciseCode) {
       case 'squat': {
-        const leftKnee = angles.left_knee ?? 180;
-        if (leftKnee > 100 && leftKnee < 100.1) {
+        const leftKnee = angles.left_knee ?? ANGLE_THRESHOLDS.KNEE_STRAIGHT;
+        if (
+          leftKnee > ANGLE_THRESHOLDS.SQUAT_DEPTH_THRESHOLD &&
+          leftKnee < ANGLE_THRESHOLDS.SQUAT_DEPTH_THRESHOLD + 0.1
+        ) {
           if (this.shouldTriggerCorrection('SQUAT_NOT_DEEP_ENOUGH')) {
             corrections.push({
               code: 'SQUAT_NOT_DEEP_ENOUGH',
@@ -616,8 +664,11 @@ export class ExerciseEngineTS implements TypeScriptEngine {
         break;
       }
       case 'push_up': {
-        const leftElbow = angles.left_elbow ?? 180;
-        if (leftElbow > 45 && leftElbow < 180) {
+        const leftElbow = angles.left_elbow ?? ANGLE_THRESHOLDS.KNEE_STRAIGHT;
+        if (
+          leftElbow > ANGLE_THRESHOLDS.ELBOW_FLARE_WARNING &&
+          leftElbow < ANGLE_THRESHOLDS.TORSO_MAX_VALID
+        ) {
           if (this.shouldTriggerCorrection('ELBOWS_FLARE_OUT')) {
             corrections.push({
               code: 'ELBOWS_FLARE_OUT',

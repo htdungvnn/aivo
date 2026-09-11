@@ -31,6 +31,7 @@ export interface GatewayEnv {
   // Rate Limiting
   RATE_LIMIT_MAX: string;
   RATE_LIMIT_WINDOW_MS: string;
+  AUTH_RATE_LIMIT_MAX: string;
   
   // Feature Flags
   ENABLE_SWAGGER: string;
@@ -121,6 +122,7 @@ export const DEFAULT_CONFIG: GatewayConfig = {
     max: 100,
     windowMs: 60000,
     useKV: false,
+    authMax: 20,
   },
   security: {
     requireApiKey: false,
