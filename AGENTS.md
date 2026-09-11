@@ -181,8 +181,21 @@ import type { WorkoutPlan } from '@aivo/fitness-types';
 
 ## Environment Variables
 
-### Auth Service
+For local development, each service has a `.dev.vars` file (already configured, never commit secrets).
+
+### Quick Setup (Local Dev)
+```bash
+# Each service already has .dev.vars - just add your secrets
+# Auth JWT keys need to be generated:
+# openssl ecparam -genkey -name prime256v1 | openssl base64
 ```
+
+### Local Development Variables (Used by `pnpm dev`)
+
+#### Auth Service
+```
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+WEB_APP_URL=http://localhost:3000
 AUTH_JWT_PRIVATE_KEY=<base64-encoded-private-key>
 AUTH_JWT_PUBLIC_KEY=<base64-encoded-public-key>
 AUTH_JWT_ISSUER=aivo
@@ -190,10 +203,83 @@ AUTH_JWT_AUDIENCE=aivo-app
 AUTH_JWT_ACCESS_TOKEN_TTL=900
 ```
 
-### Common
+#### Health Service
 ```
-WEB_APP_URL=https://app.aivo.app
-MOBILE_REDIRECT_URI=aivo://callback
+AUTH_SERVICE_URL=http://localhost:3001
+AI_ENABLED=false
+AI_MODEL=@cf/meta/llama-3.1-8b-instruct
+AI_MAX_TOKENS=512
+AI_TEMPERATURE=0.7
+SCHEMA_VERSION=1
+BASELINE_MIN_DAYS=7
+BASELINE_ROLLING_WINDOW=7
+CACHE_TTL_SECONDS=300
+REPORT_RETENTION_DAYS=90
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW_MS=60000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+```
+
+#### Nutrition Service
+```
+AUTH_SERVICE_URL=http://localhost:3001
+IMAGE_MAX_DIMENSION_PX=1280
+IMAGE_QUALITY=75
+AI_DAILY_LIMIT=50
+AI_HOURLY_LIMIT=10
+AI_RETRY_LIMIT=3
+AI_CONFIDENCE_THRESHOLD=0.7
+DEFAULT_MODEL=@cf/unum/uform-gen2-qwen-500m
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+```
+
+#### Coach Service
+```
+AUTH_SERVICE_URL=http://localhost:3001
+AI_MODEL=@cf/meta/llama-3.1-8b-instruct
+AI_MAX_TOKENS=512
+AI_TEMPERATURE=0.7
+SCHEMA_VERSION=1
+ENGINE_VERSION=1.0.0
+WASM_ENGINE_VERSION=1.0.0
+PLANNING_ENABLED=true
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+```
+
+#### Mail Service
+```
+RESEND_API_KEY=re_xxx
+EMAIL_FROM=AIVO Dev <dev@aivo.website>
+EMAIL_ENABLED=false
+WEB_APP_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+```
+
+#### Gateway Service
+```
+AUTH_SERVICE_URL=http://localhost:3001
+HEALTH_SERVICE_URL=http://localhost:3002
+COACH_SERVICE_URL=http://localhost:3003
+NUTRITION_SERVICE_URL=http://localhost:3004
+MAIL_SERVICE_URL=http://localhost:3005
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+RATE_LIMIT_MAX=100
+RATE_LIMIT_WINDOW_MS=60000
+```
+
+#### Web App (NEXT_PUBLIC_*)
+```
+NEXT_PUBLIC_AUTH_API_URL=/api/v1/auth
+NEXT_PUBLIC_HEALTH_API_URL=/api/v1/health
+NEXT_PUBLIC_COACH_API_URL=/api/v1/coach
+NEXT_PUBLIC_NUTRITION_API_URL=/api/v1/nutrition
+```
+
+#### Mobile App (EXPO_PUBLIC_*)
+```
+EXPO_PUBLIC_AUTH_API_URL=https://api.aivo.app/auth/v1
+EXPO_PUBLIC_COACH_API_URL=https://api.aivo.app/coach/v1
+EXPO_PUBLIC_NUTRITION_API_URL=https://api.aivo.app/nutrition/v1
 ```
 
 ## Testing
