@@ -122,3 +122,4 @@ CHANGELOG.md
 
 tmp/
 .local
+wrangler.jsonc

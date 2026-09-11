@@ -63,7 +63,8 @@ oauth.post('/start', async (c) => {
   
   // Determine client type and redirect URI
   const userAgent = getUserAgent(request) || '';
-  const clientType = userAgent.includes('Mozilla/5.0') ? 'web' : 'mobile';
+  // Map to valid client types: 'web', 'ios', or 'android'
+  const clientType = userAgent.includes('Mozilla/5.0') ? 'web' : 'android';
   
   let redirectUri = result.data.redirectUri;
   
@@ -102,11 +103,16 @@ oauth.post('/start', async (c) => {
   } catch (error) {
     console.error('OAuth start error:', error);
     
+    // Check if it's our auth service error
+    const isAuthError = error instanceof Error && 'code' in error;
+    const errorCode = isAuthError ? (error as any).code : 'OAUTH_ERROR';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to start OAuth flow';
+    
     return c.json(
       {
         error: {
-          code: 'OAUTH_ERROR',
-          message: 'Failed to start OAuth flow',
+          code: errorCode,
+          message: errorMessage,
           requestId: c.get('requestId'),
         },
       },
@@ -125,7 +131,7 @@ oauth.get('/callback/:provider', async (c) => {
   const provider = c.req.param('provider') as 'google' | 'facebook';
   
   const code = c.req.query('code');
-  const state = c.req.query('state');
+  let state = c.req.query('state');
   const error = c.req.query('error');
   const errorDescription = c.req.query('error_description');
   
@@ -162,6 +168,20 @@ oauth.get('/callback/:provider', async (c) => {
       },
       400
     );
+  }
+  
+  // Facebook encodes state as JSON: {"state": "...", "codeChallenge": "..."}
+  // We need to extract the actual state value for lookup
+  if (provider === 'facebook') {
+    try {
+      const parsedState = JSON.parse(state);
+      if (parsedState.state) {
+        state = parsedState.state;
+      }
+    } catch (parseError) {
+      // If parsing fails, use the state as-is (might be from other sources)
+      console.warn('Failed to parse Facebook state as JSON:', parseError);
+    }
   }
   
   // Determine redirect URI based on provider
@@ -213,6 +233,29 @@ oauth.get('/callback/:provider', async (c) => {
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
+    console.error('OAuth callback error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: (error as any)?.code,
+      cause: (error as any)?.cause,
+      provider,
+      hasCode: !!code,
+      hasState: !!state,
+    });
+    
+    // Create audit log for the error
+    await createAuditLog(c.env.DB, {
+      action: 'oauth.callback_error',
+      success: false,
+      ipAddress: getClientIP(request),
+      userAgent: getUserAgent(request),
+      metadata: { 
+        provider,
+        error: error instanceof Error ? error.message : 'Unknown',
+        errorCode: (error as any)?.code,
+      },
+    });
     
     return c.json(
       {

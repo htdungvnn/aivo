@@ -6,6 +6,8 @@ import { Hono } from 'hono';
 import { cors, requestId, errorHandler, rateLimits } from './middleware';
 import { createRoutes } from './routes';
 import { getJWTService, setJWTService, JWTService } from './lib/jwt';
+import { getGoogleProvider, setGoogleProvider, GoogleProvider } from './providers/google';
+import { getFacebookProvider, setFacebookProvider, FacebookProvider } from './providers/facebook';
 import type { AuthEnv } from './middleware/auth';
 import type { EmailVerificationQueueMessage } from '@aivo/queue-types';
 
@@ -125,6 +127,35 @@ async function initJWTService(env: Env) {
   }
 }
 
+// Initialize OAuth providers
+function initOAuthProviders(env: Env) {
+  // Initialize Google provider
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI) {
+    const googleProvider = GoogleProvider.fromEnv({
+      GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
+      GOOGLE_REDIRECT_URI: env.GOOGLE_REDIRECT_URI,
+    });
+    setGoogleProvider(googleProvider);
+    console.log('Google OAuth provider initialized');
+  } else {
+    console.warn('Google OAuth not configured - set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI');
+  }
+  
+  // Initialize Facebook provider
+  if (env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET && env.FACEBOOK_REDIRECT_URI) {
+    const facebookProvider = FacebookProvider.fromEnv({
+      FACEBOOK_CLIENT_ID: env.FACEBOOK_CLIENT_ID,
+      FACEBOOK_CLIENT_SECRET: env.FACEBOOK_CLIENT_SECRET,
+      FACEBOOK_REDIRECT_URI: env.FACEBOOK_REDIRECT_URI,
+    });
+    setFacebookProvider(facebookProvider);
+    console.log('Facebook OAuth provider initialized');
+  } else {
+    console.warn('Facebook OAuth not configured - set FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, and FACEBOOK_REDIRECT_URI');
+  }
+}
+
 // Health check (no rate limit)
 app.get('/health', (c) => {
   return c.json({
@@ -157,6 +188,9 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Initialize JWT service if not already done
     await initJWTService(env);
+    
+    // Initialize OAuth providers
+    initOAuthProviders(env);
     
     // Log request (sanitized)
     const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();

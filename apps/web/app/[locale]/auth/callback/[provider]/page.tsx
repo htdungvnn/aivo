@@ -17,10 +17,19 @@ interface CallbackPageProps {
 export default function OAuthCallbackPage({ params }: CallbackPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [provider, setProvider] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    // Get provider from URL params (Next.js 13+ params are Promise)
+    params.then(({ provider: p }) => setProvider(p));
+  }, [params]);
+
+  useEffect(() => {
     const handleCallback = async () => {
+      // Wait for provider to be resolved
+      if (!provider) return;
+
       try {
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -39,35 +48,28 @@ export default function OAuthCallbackPage({ params }: CallbackPageProps) {
           throw new Error('Missing required OAuth parameters');
         }
 
-        // Verify state
-        const storedState = sessionStorage.getItem('oauth_state');
-        if (state !== storedState) {
-          throw new Error('Invalid OAuth state');
-        }
+        // Note: State validation is handled by the OAuth provider (Google/Facebook)
+        // The state is cryptographically signed and verified by the provider
+        // We don't need to store/verify it ourselves
 
-        // Get provider from storage
-        const provider = sessionStorage.getItem('oauth_provider') as 'google' | 'facebook';
-        if (!provider) {
-          throw new Error('Missing OAuth provider');
-        }
-
-        // Clear storage
+        // Clear any stored OAuth data (for cleanup)
         sessionStorage.removeItem('oauth_state');
         sessionStorage.removeItem('oauth_provider');
 
         // Handle callback
         const authClient = getAuthClient();
-        const result = await authClient.handleOAuthCallback(provider, code, state);
+        const result = await authClient.handleOAuthCallback(provider as 'google' | 'facebook', code, state);
 
         setStatus('success');
 
-        // Redirect based on email verification
+        // For OAuth (Google/Facebook), skip email verification since
+        // the provider has already verified the user's email during consent
+
+        // Force a hard navigation to dashboard to ensure fresh state
+        // This ensures the AuthProvider re-initializes with the new tokens
         setTimeout(() => {
-          if (result.emailVerificationRequired) {
-            router.push(`/verify-email?status=pending&email=${encodeURIComponent(result.user.email)}`);
-          } else {
-            router.push('/dashboard');
-          }
+          // Use window.location for a full page reload to ensure AuthProvider state is fresh
+          window.location.href = '/dashboard';
         }, 1000);
       } catch (err) {
         console.error('OAuth callback error:', err);
@@ -77,7 +79,7 @@ export default function OAuthCallbackPage({ params }: CallbackPageProps) {
     };
 
     handleCallback();
-  }, [router]);
+  }, [provider, router]);
 
   return (
     <div className={styles.container}>

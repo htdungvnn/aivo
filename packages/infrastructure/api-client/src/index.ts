@@ -12,11 +12,57 @@ declare const process: {
 } | undefined;
 
 // Get environment variables safely (works in browser and Node.js)
+// Note: Next.js replaces NEXT_PUBLIC_* variables at build time
 function getEnv(): { NEXT_PUBLIC_AUTH_API_URL?: string } {
-  if (typeof process !== 'undefined' && process?.env) {
-    return process.env;
+  // In browser context with Next.js, process.env.NEXT_PUBLIC_* is replaced at build time
+  // But we need to handle cases where the replacement might not happen
+  try {
+    if (typeof process !== 'undefined' && process !== null && process.env) {
+      return process.env as { NEXT_PUBLIC_AUTH_API_URL?: string };
+    }
+  } catch {
+    // Ignore errors accessing process.env
   }
+  
+  // Fallback: try to get from window.__NEXT_DATA__ or use empty object
   return {};
+}
+
+// Check if we should use relative paths (Next.js API routes)
+// This is true when:
+// 1. We're in a browser context
+// 2. The base URL is localhost:3000 (the Next.js dev server)
+// 3. OR the base URL is the same origin as the current page
+function shouldUseRelativePath(baseUrl: string): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // If no base URL is set, use relative paths
+  if (!baseUrl) return true;
+  
+  // If base URL is the current origin, use relative paths
+  try {
+    const baseUrlObj = new URL(baseUrl);
+    const currentOrigin = window.location.origin;
+    return baseUrlObj.origin === currentOrigin;
+  } catch {
+    return true;
+  }
+}
+
+// Get the auth API URL with fallback to Next.js API routes
+function getAuthApiUrl(): string {
+  const env = getEnv();
+  const configuredUrl = env.NEXT_PUBLIC_AUTH_API_URL || '';
+  
+  // Use relative paths when:
+  // 1. No URL configured
+  // 2. URL points to localhost:3000 (Next.js dev server)
+  // 3. URL is the same origin as the current page
+  if (shouldUseRelativePath(configuredUrl)) {
+    return ''; // Use relative paths
+  }
+  
+  return configuredUrl;
 }
 
 export interface User {
@@ -101,35 +147,44 @@ export class AuthApiClient {
     this.loadTokensFromCookies();
   }
   
-  /**
+/**
    * Load tokens from cookies
    */
   private loadTokensFromCookies(): void {
     if (typeof document === 'undefined') return;
-    
+
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
+      const eqIndex = cookie.indexOf('=');
+      if (eqIndex === -1) continue;
+      const name = cookie.substring(0, eqIndex).trim();
+      const value = cookie.substring(eqIndex + 1).trim();
       if (name === 'aivo_access_token') {
-        this.accessToken = value ?? null;
+        this.accessToken = value || null;
       } else if (name === 'aivo_refresh_token') {
-        this.refreshToken = value ?? null;
+        this.refreshToken = value || null;
       }
     }
   }
   
   /**
    * Save tokens to cookies (for web)
+   * Note: We avoid 'secure' flag in development to allow cookies over HTTP
    */
   private saveTokensToCookies(tokens: TokenPair): void {
     if (typeof document === 'undefined') return;
-    
+
+    // Only use secure flag for HTTPS connections (production)
+    // In development (localhost), cookies work without secure flag
+    const isSecure = window.location.protocol === 'https:';
+    const securePart = isSecure ? '; secure' : '';
+
     // Access token - session cookie
-    document.cookie = `aivo_access_token=${tokens.accessToken}; path=/; SameSite=Lax; secure`;
-    
-    // Refresh token - secure, httpOnly cookie (but we can't set httpOnly from JS)
-    // In production, this should be set by the server
-    document.cookie = `aivo_refresh_token=${tokens.refreshToken}; path=/; SameSite=Strict; secure; max-age=${tokens.expiresIn}`;
+    document.cookie = `aivo_access_token=${tokens.accessToken}; path=/; SameSite=Lax${securePart}`;
+
+    // Refresh token - secure cookie in production
+    // Note: httpOnly should be set by the server, not from JS
+    document.cookie = `aivo_refresh_token=${tokens.refreshToken}; path=/; SameSite=Strict${securePart}; max-age=${tokens.expiresIn}`;
   }
   
   /**
@@ -172,7 +227,7 @@ export class AuthApiClient {
    * Login with email and password
    */
   async login(email: string, password: string, clientType: 'web' | 'ios' | 'android' = 'web'): Promise<AuthResponse> {
-    const response = await this.request('/login', {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: { email, password, clientType },
     });
@@ -205,7 +260,7 @@ export class AuthApiClient {
    * Register with email and password
    */
   async register(email: string, password: string, displayName?: string): Promise<{ message: string; requiresEmailVerification: boolean }> {
-    const response = await this.request('/register', {
+    const response = await this.request('/auth/register', {
       method: 'POST',
       body: { email, password, displayName },
     });
@@ -217,7 +272,7 @@ export class AuthApiClient {
    * Resend verification email
    */
   async resendVerificationEmail(email: string): Promise<{ message: string }> {
-    const response = await this.request('/login/resend-verification', {
+    const response = await this.request('/auth/login/resend-verification', {
       method: 'POST',
       body: { email },
     });
@@ -229,7 +284,7 @@ export class AuthApiClient {
    * Start OAuth flow
    */
   async startOAuth(provider: 'google' | 'facebook', redirectUri?: string): Promise<{ authUrl: string; state: string }> {
-    const response = await this.request('/oauth/start', {
+    const response = await this.request('/auth/oauth/start', {
       method: 'POST',
       body: { provider, redirectUri },
     });
@@ -241,7 +296,7 @@ export class AuthApiClient {
    * Handle OAuth callback (for web - server returns tokens)
    */
   async handleOAuthCallback(provider: 'google' | 'facebook', code: string, state: string): Promise<AuthResponse> {
-    const response = await this.request(`/oauth/callback/${provider}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+    const response = await this.request(`/auth/oauth/callback/${provider}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
     
     const data = response as AuthResponse;
     
@@ -320,15 +375,15 @@ export class AuthApiClient {
   /**
    * Send verification email
    */
-  async sendVerificationEmail(): Promise<void> {
-    await this.request('/verification/send', { method: 'POST' });
+async sendVerificationEmail(): Promise<void> {
+    await this.request('/auth/verification/send', { method: 'POST' });
   }
-  
+
   /**
    * Verify email token
    */
   async verifyEmail(token: string): Promise<{ user: User; message: string }> {
-    const response = await this.request('/verification/verify', {
+    const response = await this.request('/auth/verification/verify', {
       method: 'POST',
       body: { token },
     });
@@ -338,23 +393,23 @@ export class AuthApiClient {
   /**
    * Get user sessions
    */
-  async getSessions(): Promise<{ sessions: Session[] }> {
-    const response = await this.request('/sessions');
+async getSessions(): Promise<{ sessions: Session[] }> {
+    const response = await this.request('/auth/sessions');
     return response as { sessions: Session[] };
   }
-  
+
   /**
    * Revoke a session
    */
   async revokeSession(sessionId: string): Promise<void> {
-    await this.request(`/sessions/${sessionId}`, { method: 'DELETE' });
+    await this.request(`/auth/sessions/${sessionId}`, { method: 'DELETE' });
   }
-  
+
   /**
    * Revoke all sessions except current
    */
   async revokeAllSessions(): Promise<{ success: boolean; revokedCount: number }> {
-    const response = await this.request('/sessions', { method: 'DELETE' });
+    const response = await this.request('/auth/sessions', { method: 'DELETE' });
     return response as { success: boolean; revokedCount: number };
   }
   
@@ -363,7 +418,7 @@ export class AuthApiClient {
    */
   async deleteAccount(): Promise<void> {
     try {
-      await this.request('/account', { method: 'DELETE' });
+      await this.request('/auth/account', { method: 'DELETE' });
     } finally {
       this.clearTokens();
     }
@@ -379,7 +434,7 @@ export class AuthApiClient {
     search?: string;
   } = {}): Promise<{ users: any[]; total: number; page: number; pageSize: number }> {
     const { page = 1, pageSize = 20, status, search } = options;
-    const response = await this.request('/admin/users', {
+    const response = await this.request('/auth/admin/users', {
       method: 'GET',
       body: { page: page.toString(), pageSize: pageSize.toString(), status, search },
     });
@@ -390,39 +445,39 @@ export class AuthApiClient {
    * Admin: Get user info
    */
   async adminGetUser(userId: string): Promise<any> {
-    const response = await this.request(`/admin/users/${userId}`);
+    const response = await this.request(`/auth/admin/users/${userId}`);
     return response;
   }
   
-  /**
+/**
    * Admin: Suspend user
    */
   async adminSuspendUser(userId: string): Promise<void> {
-    await this.request(`/admin/users/${userId}/suspend`, { method: 'POST' });
+    await this.request(`/auth/admin/users/${userId}/suspend`, { method: 'POST' });
   }
-  
+
   /**
    * Admin: Reactivate user
    */
   async adminReactivateUser(userId: string): Promise<void> {
-    await this.request(`/admin/users/${userId}/reactivate`, { method: 'POST' });
+    await this.request(`/auth/admin/users/${userId}/reactivate`, { method: 'POST' });
   }
-  
+
   /**
    * Admin: Assign role
    */
   async adminAssignRole(userId: string, role: string): Promise<void> {
-    await this.request(`/admin/users/${userId}/roles`, {
+    await this.request(`/auth/admin/users/${userId}/roles`, {
       method: 'POST',
       body: { role },
     });
   }
-  
+
   /**
    * Admin: Remove role
    */
   async adminRemoveRole(userId: string, role: string): Promise<void> {
-    await this.request(`/admin/users/${userId}/roles/${role}`, { method: 'DELETE' });
+    await this.request(`/auth/admin/users/${userId}/roles/${role}`, { method: 'DELETE' });
   }
   
   /**
@@ -441,7 +496,14 @@ export class AuthApiClient {
       requestHeaders['Authorization'] = `Bearer ${this.accessToken}`;
     }
     
-    let url = `${this.baseUrl}/api/v1${endpoint}`;
+    // Build the URL - use relative path if baseUrl is empty
+    let url: string;
+    if (this.baseUrl) {
+      url = `${this.baseUrl}/api/v1${endpoint}`;
+    } else {
+      // Use relative path for Next.js API routes
+      url = `/api/v1${endpoint}`;
+    }
     
     // For GET requests, add query params
     if (method === 'GET' && body) {
@@ -527,8 +589,7 @@ let clientInstance: AuthApiClient | null = null;
  */
 export function getAuthClient(baseUrl?: string): AuthApiClient {
   if (!clientInstance) {
-    const env = getEnv();
-    const url = baseUrl || env.NEXT_PUBLIC_AUTH_API_URL || '';
+    const url = baseUrl || getAuthApiUrl();
     clientInstance = new AuthApiClient(url);
   }
   return clientInstance;

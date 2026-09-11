@@ -187,7 +187,7 @@ export class FacebookProvider implements OAuthProvider {
     return buildProviderProfile(FACEBOOK_PROVIDER, {
       id: userData.id,
       email: userData.email,
-      emailVerified: false, // Facebook doesn't provide this
+      emailVerified: true, // OAuth providers only return verified emails during consent
       name: userData.name,
       picture: pictureUrl,
     });

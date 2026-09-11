@@ -1,6 +1,16 @@
 /**
  * Registration routes
  * Handles new user registration with email/password
+ * 
+ * Complete flow:
+ * 1. Validate input (Zod schema)
+ * 2. Rate limit check (5/hour per IP)
+ * 3. Check if user exists (email enumeration prevention)
+ * 4. Hash password with Argon2
+ * 5. Create user with status='pending_verification'
+ * 6. Generate and hash verification code
+ * 7. Send email via Queue
+ * 8. Return success response
  */
 
 import { Hono } from 'hono';
@@ -8,7 +18,13 @@ import { z } from 'zod';
 import type { AuthEnv } from '../middleware/auth';
 import { createAuditLog, getUserByEmail, createUser, createUserIdentity } from '../db/queries';
 import { getClientIP, getUserAgent } from '../middleware/auth';
-import { hashPassword } from '../utils/crypto';
+import { hashPassword, generateVerificationCode, sha256Hash } from '../utils/crypto';
+import {
+  createEmailVerificationMessage,
+  EmailVerificationQueueMessage,
+  SCHEMA_VERSION,
+} from '@aivo/queue-types';
+import { generateUUID } from '../utils/crypto';
 
 const register = new Hono<{ Bindings: AuthEnv }>();
 
@@ -28,6 +44,9 @@ const registerSchema = z.object({
     .max(100, 'Display name must be at most 100 characters')
     .optional(),
 });
+
+// Configuration (consistent with verification service)
+const VERIFICATION_CODE_TTL_SECONDS = 10 * 60; // 10 minutes
 
 // Rate limiting (simple implementation - can be enhanced with KV)
 const registrationAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -54,6 +73,11 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
 /**
  * POST /register
  * Register a new user account
+ * 
+ * @returns 201 - User created successfully, verification email sent
+ * @returns 400 - Validation error
+ * @returns 429 - Rate limited
+ * @returns 500 - Server error
  */
 register.post('/', async (c) => {
   const request = c.req.raw;
@@ -123,9 +147,10 @@ register.post('/', async (c) => {
   // Hash password
   const { hash: passwordHash, version: passwordVersion } = await hashPassword(password);
   
-  // Generate verification code
+  // Generate verification code and hash
   const verificationCode = generateVerificationCode();
-  const verificationCodeExpiresAt = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24 hours
+  const verificationCodeHash = await sha256Hash(verificationCode);
+  const verificationCodeExpiresAt = Math.floor(Date.now() / 1000) + VERIFICATION_CODE_TTL_SECONDS;
   
   try {
     // Create user
@@ -145,28 +170,62 @@ register.post('/', async (c) => {
       providerEmailVerified: false,
     });
     
-    // Update user with verification code
-    // Note: For simplicity, we're storing verification code directly on user
-    // In production, use a separate verification_tokens table
-    await c.env.DB
+    // Update user with hashed verification code (NOT storing raw code)
+    const updateResult = await c.env.DB
       .prepare(
-        'UPDATE users SET verification_code = ?, verification_code_expires_at = ?, updated_at = ? WHERE id = ?'
+        'UPDATE users SET verification_code_hash = ?, verification_code_expires_at = ?, verification_code_attempts = 0, updated_at = ? WHERE id = ?'
       )
-      .bind(verificationCode, verificationCodeExpiresAt, Math.floor(Date.now() / 1000), user.id)
+      .bind(verificationCodeHash, verificationCodeExpiresAt, 0, Math.floor(Date.now() / 1000), user.id)
       .run();
     
-    // TODO: Send verification email
-    // For now, log the verification code (in production, send email via Queue)
-    console.log(`[Registration] Verification code for ${email}: ${verificationCode}`);
+    // Check if update was successful
+    if (!updateResult.success) {
+      console.error(`[Registration] Failed to update verification code for user ${user.id}`);
+      throw new Error('Failed to store verification code');
+    }
     
-    // Audit log
+    // Send verification email via Queue
+    let correlationId: string | undefined;
+    try {
+      const messageId = generateUUID();
+      const queueMessage = createEmailVerificationMessage({
+        messageId,
+        recipient: { email: normalizedEmail, displayName: displayName || email.split('@')[0] },
+        locale: 'en', // TODO: Detect from request or user preference
+        verificationCode,
+        expiresInMinutes: Math.floor(VERIFICATION_CODE_TTL_SECONDS / 60),
+        userId: user.id,
+      });
+      
+      correlationId = queueMessage.metadata.correlationId;
+      
+      // Publish to Queue
+      const publishResult = await c.env.EMAIL_QUEUE.send([queueMessage]);
+      
+      if (publishResult?.failures?.length) {
+        console.error(`[Registration] Failed to queue verification email for ${normalizedEmail}`);
+        // Continue - the code is still valid, we can log for manual resend
+      } else {
+        console.log(`[Registration] Verification email queued for ${normalizedEmail}, correlationId: ${correlationId}`);
+      }
+    } catch (queueError) {
+      // Log but don't fail registration - code is generated
+      console.error(`[Registration] Queue error for ${normalizedEmail}:`, queueError);
+    }
+    
+    // Audit log (without the raw code)
     await createAuditLog(c.env.DB, {
       userId: user.id,
       action: 'auth.register',
       success: true,
       ipAddress,
       userAgent,
-      metadata: { email: normalizedEmail },
+      metadata: { 
+        email: normalizedEmail,
+        verificationCodeExpiresAt,
+        correlationId,
+        schemaVersion: SCHEMA_VERSION,
+      },
     });
     
     return c.json({
@@ -206,19 +265,5 @@ register.post('/', async (c) => {
     );
   }
 });
-
-/**
- * Generate a 6-digit verification code
- */
-function generateVerificationCode(): string {
-  const chars = '0123456789';
-  let code = '';
-  const randomValues = new Uint8Array(6);
-  crypto.getRandomValues(randomValues);
-  for (let i = 0; i < 6; i++) {
-    code += chars[randomValues[i] % chars.length];
-  }
-  return code;
-}
 
 export default register;

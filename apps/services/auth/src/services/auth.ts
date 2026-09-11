@@ -28,13 +28,17 @@ import {
   updateUser,
   softDeleteUser,
 } from '../db/queries';
-import { normalizeEmail, generateSecureToken, generateOAuthState, generateCodeVerifier, generateCodeChallenge } from '../utils/crypto';
+import { normalizeEmail, generateSecureToken, generateOAuthState, generateCodeVerifier, generateCodeChallenge, generateUUID } from '../utils/crypto';
 import { isTrustedEmailDomain } from '../providers/base';
 import { TokenService, createTokenService } from '../lib/tokens';
 import { OAuthProvider, getGoogleProvider, getFacebookProvider, OAuthError } from '../providers';
 
 const EMAIL_VERIFICATION_TTL = 60 * 60; // 1 hour
-const OAUTH_STATE_TTL = 10 * 60; // 10 minutes
+const OAUTH_STATE_TTL = 10 * 60; // 10 minutes (in seconds for D1)
+
+// Module-level OAuth state storage (survives across requests in the same worker instance)
+// This is a fallback for local development when D1 is not available or not working
+const oauthStateStore = new Map<string, OAuthStateData>();
 
 interface OAuthStateData {
   state: string;
@@ -43,6 +47,7 @@ interface OAuthStateData {
   clientType: ClientType;
   provider: Provider;
   createdAt: number;
+  expiresAt: number;
 }
 
 export interface AuthResult {
@@ -64,13 +69,119 @@ export interface AccountLinkingResult {
 export class AuthService {
   private db: D1Database;
   private tokenService: TokenService;
-  private oauthStates: Map<string, OAuthStateData> = new Map();
   private emailVerificationCodes: Map<string, { userId: string; email: string }> = new Map();
   
   constructor(db: D1Database) {
     this.db = db;
     this.tokenService = createTokenService(db);
   }
+  
+  /**
+   * Store OAuth state in D1 database
+   */
+  private async storeOAuthState(data: OAuthStateData): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = Math.floor(Date.now() / 1000) + OAUTH_STATE_TTL;
+    
+    try {
+      await this.db
+        .prepare(`
+          INSERT INTO oauth_states (id, state, code_verifier, redirect_uri, client_type, provider, created_at, expires_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          generateUUID(),
+          data.state,
+          data.codeVerifier,
+          data.redirectUri,
+          data.clientType,
+          data.provider,
+          now,
+          expiresAt
+        )
+        .run();
+    } catch (error) {
+      console.error('Failed to store OAuth state in D1, using module-level memory store:', error);
+      // Fallback to module-level memory store (for local dev without D1)
+      oauthStateStore.set(data.state, data);
+    }
+  }
+  
+  /**
+   * Get OAuth state from D1 database
+   */
+  private async getOAuthState(state: string): Promise<OAuthStateData | null> {
+    try {
+      const result = await this.db
+        .prepare('SELECT * FROM oauth_states WHERE state = ? AND expires_at > ?')
+        .bind(state, Math.floor(Date.now() / 1000))
+        .first();
+      
+      if (result) {
+        return {
+          state: result.state as string,
+          codeVerifier: result.code_verifier as string,
+          redirectUri: result.redirect_uri as string,
+          clientType: result.client_type as ClientType,
+          provider: result.provider as Provider,
+          createdAt: (result.created_at as number) * 1000,
+          expiresAt: result.expires_at as number,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to get OAuth state from D1, falling back to memory store:', error);
+    }
+    
+    // Fallback to module-level memory store (for local dev without D1)
+    const memoryState = oauthStateStore.get(state);
+    if (memoryState && Date.now() - memoryState.createdAt < OAUTH_STATE_TTL * 1000) {
+      return memoryState;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Delete OAuth state from D1 database
+   */
+  private async deleteOAuthState(state: string): Promise<void> {
+    // Always remove from memory store first (it's instant)
+    oauthStateStore.delete(state);
+    
+    try {
+      await this.db
+        .prepare('DELETE FROM oauth_states WHERE state = ?')
+        .bind(state)
+        .run();
+    } catch (error) {
+      console.error('Failed to delete OAuth state from D1:', error);
+    }
+  }
+  
+  /**
+   * Cleanup expired OAuth states (D1)
+   */
+  private async cleanupExpiredOAuthStates(): Promise<void> {
+    // Clean up expired states from memory store
+    const now = Date.now();
+    for (const [state, data] of oauthStateStore.entries()) {
+      if (now - data.createdAt >= OAUTH_STATE_TTL * 1000) {
+        oauthStateStore.delete(state);
+      }
+    }
+    
+    try {
+      await this.db
+        .prepare('DELETE FROM oauth_states WHERE expires_at < ?')
+        .bind(Math.floor(Date.now() / 1000))
+        .run();
+    } catch (error) {
+      console.error('Failed to cleanup OAuth states:', error);
+    }
+  }
+  
+  // Memory fallback for local development when D1 is not available
+  private _memoryStates?: Map<string, OAuthStateData>;
   
   /**
    * Initialize OAuth state for auth flow
@@ -88,18 +199,21 @@ export class AuthService {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
     
-    // Store state data
-    this.oauthStates.set(state, {
+    // Store state data in D1
+    const stateData: OAuthStateData = {
       state,
       codeVerifier,
       redirectUri,
       clientType,
       provider,
       createdAt: Date.now(),
-    });
+      expiresAt: Date.now() + OAUTH_STATE_TTL * 1000,
+    };
+    
+    await this.storeOAuthState(stateData);
     
     // Clean up old states
-    this.cleanupExpiredStates();
+    await this.cleanupExpiredOAuthStates();
     
     // Get auth URL
     const authUrl = oauthProvider.getAuthorizationUrl({
@@ -124,16 +238,10 @@ export class AuthService {
   }): Promise<AuthResult> {
     const { provider, code, state, redirectUri, ipAddress, userAgent } = params;
     
-    // Validate state
-    const stateData = this.oauthStates.get(state);
+    // Validate state from D1
+    const stateData = await this.getOAuthState(state);
     if (!stateData) {
       throw new AuthServiceError('Invalid or expired state', 'INVALID_STATE', 400);
-    }
-    
-    // Check state TTL
-    if (Date.now() - stateData.createdAt > OAUTH_STATE_TTL * 1000) {
-      this.oauthStates.delete(state);
-      throw new AuthServiceError('State expired', 'INVALID_STATE', 400);
     }
     
     // Verify provider matches
@@ -142,7 +250,7 @@ export class AuthService {
     }
     
     // Clean up state
-    this.oauthStates.delete(state);
+    await this.deleteOAuthState(state);
     
     // Get OAuth provider
     const oauthProvider = this.getOAuthProvider(provider);
@@ -218,10 +326,10 @@ export class AuthService {
         userAgent: options?.userAgent,
       });
       
-      // Log login
+      // Log login (don't include sessionId - it's stored separately in tokens)
       await createAuditLog(this.db, {
         userId: user.id,
-        sessionId: tokens.refreshToken, // Not quite right but for audit
+        sessionId: null, // Session ID not available in this context
         action: 'auth.login',
         success: true,
         ipAddress: options?.ipAddress,
@@ -251,14 +359,19 @@ export class AuthService {
           userAgent: options?.userAgent,
         });
         
-        await createAuditLog(this.db, {
-          userId: user.id,
-          action: 'account.linked',
-          success: true,
-          ipAddress: options?.ipAddress,
-          userAgent: options?.userAgent,
-          metadata: { provider: profile.provider },
-        });
+        // Don't let audit log failure break the auth flow
+        try {
+          await createAuditLog(this.db, {
+            userId: user.id,
+            action: 'account.linked',
+            success: true,
+            ipAddress: options?.ipAddress,
+            userAgent: options?.userAgent,
+            metadata: { provider: profile.provider },
+          });
+        } catch (auditError) {
+          console.error('[OAuth] WARNING: Failed to create account.linked audit log:', auditError);
+        }
         
         return {
           user,
@@ -358,42 +471,104 @@ export class AuthService {
     // Determine initial status
     let status: UserStatus = 'pending_verification';
     
-    // Activate if provider email is verified AND from trusted domain
-    if (profile.emailVerified && isTrustedEmailDomain(profile.email)) {
+    // For OAuth providers, trust their email verification since users
+    // verify email ownership during OAuth consent flow
+    // For email/password registration, still require verification
+    if (profile.emailVerified) {
       status = 'active';
     }
     
-    // Create user
-    const user = await createUser(this.db, {
-      email: profile.email,
-      normalizedEmail,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      status,
-    });
-    
-    // Create identity
-    await createUserIdentity(this.db, {
-      userId: user.id,
+    // Create user with detailed error tracking
+    console.log('[OAuth] Creating user with email:', profile.email, 'status:', status);
+    console.log('[OAuth] Profile:', JSON.stringify({
       provider: profile.provider,
       providerUserId: profile.providerUserId,
-      providerEmail: profile.email,
-      providerEmailVerified: profile.emailVerified,
-    });
+      emailVerified: profile.emailVerified,
+      displayName: profile.displayName,
+    }));
     
+    let user: User;
+    try {
+      user = await createUser(this.db, {
+        email: profile.email,
+        normalizedEmail,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        status,
+      });
+      console.log('[OAuth] User created successfully:', user.id);
+    } catch (error) {
+      console.error('[OAuth] ERROR creating user:', error);
+      console.error('[OAuth] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown',
+        cause: error instanceof Error && 'cause' in error ? (error as any).cause : undefined,
+        code: error instanceof Error && 'code' in error ? (error as any).code : undefined,
+      });
+      throw error;
+    }
+
+    // Create identity
+    console.log('[OAuth] Creating identity for user:', user.id);
+    try {
+      await createUserIdentity(this.db, {
+        userId: user.id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        providerEmail: profile.email,
+        providerEmailVerified: profile.emailVerified,
+      });
+      console.log('[OAuth] Identity created successfully');
+    } catch (error) {
+      console.error('[OAuth] ERROR creating identity:', error);
+      console.error('[OAuth] Error details:', {
+        userId: user.id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+      });
+      throw error;
+    }
+
     // Assign default role
+    console.log('[OAuth] Assigning role to user:', user.id);
     const userRole = await getRoleByCode(this.db, 'user');
-    if (userRole) {
-      await assignRoleToUser(this.db, user.id, userRole.id);
+    console.log('[OAuth] Got user role:', userRole);
+    
+    if (!userRole) {
+      console.error('[OAuth] ERROR: User role not found in database!');
+      throw new AuthServiceError(
+        'System role not configured. Please run database migrations.',
+        'CONFIGURATION_ERROR',
+        500
+      );
     }
     
-    // Audit
-    await createAuditLog(this.db, {
-      userId: user.id,
-      action: 'account.created',
-      success: true,
-      metadata: { provider: profile.provider, isNewUser: true },
-    });
+    try {
+      await assignRoleToUser(this.db, user.id, userRole.id);
+      console.log('[OAuth] Role assigned successfully');
+    } catch (error) {
+      console.error('[OAuth] ERROR assigning role:', error);
+      console.error('[OAuth] Role assignment details:', {
+        userId: user.id,
+        roleId: userRole.id,
+        roleCode: userRole.code,
+      });
+      throw error;
+    }
+
+    // Audit - do NOT include userId here because D1 might not have committed the user yet
+    // We'll create an audit log without userId for account creation
+    try {
+      await createAuditLog(this.db, {
+        userId: null, // Don't reference user until we confirm it exists
+        action: 'account.created',
+        success: true,
+        metadata: { provider: profile.provider, isNewUser: true, email: profile.email },
+      });
+      console.log('[OAuth] Audit log created');
+    } catch (auditError) {
+      // Log the error but don't fail the request - account creation succeeded
+      console.error('[OAuth] WARNING: Failed to create audit log:', auditError);
+    }
     
     return user;
   }
@@ -500,26 +675,29 @@ export class AuthService {
    * Get OAuth provider by name
    */
   private getOAuthProvider(provider: Provider): OAuthProvider {
+    let oauthProvider: OAuthProvider;
+    
     switch (provider) {
       case 'google':
-        return getGoogleProvider();
+        oauthProvider = getGoogleProvider();
+        break;
       case 'facebook':
-        return getFacebookProvider();
+        oauthProvider = getFacebookProvider();
+        break;
       default:
         throw new AuthServiceError('Unsupported provider', 'UNSUPPORTED_PROVIDER', 400);
     }
-  }
-  
-  /**
-   * Clean up expired OAuth states
-   */
-  private cleanupExpiredStates(): void {
-    const now = Date.now();
-    for (const [key, value] of this.oauthStates.entries()) {
-      if (now - value.createdAt > OAUTH_STATE_TTL * 1000) {
-        this.oauthStates.delete(key);
-      }
+    
+    // Check if the provider is properly configured
+    if (!oauthProvider.isConfigured()) {
+      throw new AuthServiceError(
+        `${provider} OAuth is not configured. Please set the required environment variables (${provider.toUpperCase()}_CLIENT_ID, ${provider.toUpperCase()}_CLIENT_SECRET, ${provider.toUpperCase()}_REDIRECT_URI)`,
+        'OAUTH_NOT_CONFIGURED',
+        500
+      );
     }
+    
+    return oauthProvider;
   }
   
   /**

@@ -56,20 +56,20 @@
 
 ### Technology Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| **Web Application** | Next.js | 16.3.2 |
-| **Mobile Application** | React Native (Expo) | SDK 57 |
-| **Backend Services** | Cloudflare Workers + Hono | Latest |
-| **Database** | Cloudflare D1 (SQLite) | - |
-| **Storage** | Cloudflare R2 | - |
-| **Queues** | Cloudflare Queues | - |
-| **AI** | Cloudflare Workers AI | - |
-| **Authentication** | JWT (ES256) | - |
-| **Language** | TypeScript | 5.x / 7.0 |
-| **Validation** | Zod | 3.25.76 |
-| **Package Manager** | pnpm | 11.23.0 |
-| **Monorepo** | Turborepo | 2.10.12 |
+| Layer                  | Technology                | Version   |
+| ---------------------- | ------------------------- | --------- |
+| **Web Application**    | Next.js                   | 16.3.2    |
+| **Mobile Application** | React Native (Expo)       | SDK 57    |
+| **Backend Services**   | Cloudflare Workers + Hono | Latest    |
+| **Database**           | Cloudflare D1 (SQLite)    | -         |
+| **Storage**            | Cloudflare R2             | -         |
+| **Queues**             | Cloudflare Queues         | -         |
+| **AI**                 | Cloudflare Workers AI     | -         |
+| **Authentication**     | JWT (ES256)               | -         |
+| **Language**           | TypeScript                | 5.x / 7.0 |
+| **Validation**         | Zod                       | 3.25.76   |
+| **Package Manager**    | pnpm                      | 11.25.0   |
+| **Monorepo**           | Turborepo                 | 2.10.12   |
 
 ### Directory Structure
 
@@ -159,31 +159,32 @@ aivo/
 
 #### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/health` | No | Health check |
-| `POST` | `/register` | No | User registration |
-| `POST` | `/verification/send` | Yes | Send verification email |
-| `POST` | `/verification/verify` | No | Verify 6-digit code |
-| `GET` | `/auth/me` | Yes | Get current user |
-| `POST` | `/auth/refresh` | No | Refresh access token |
-| `POST` | `/auth/logout` | Yes | Logout current session |
-| `POST` | `/auth/logout-all` | Yes | Logout all sessions |
-| `POST` | `/oauth/start` | No | Initiate OAuth flow |
-| `GET` | `/oauth/callback/:provider` | No | OAuth callback (web) |
-| `POST` | `/oauth/mobile/callback` | No | OAuth callback (mobile) |
-| `GET` | `/sessions` | Yes | List user sessions |
-| `DELETE` | `/sessions/:id` | Yes | Revoke specific session |
-| `GET` | `/account` | Yes | Get account info |
-| `DELETE` | `/account` | Yes | Soft delete account |
-| `GET` | `/admin/users` | Admin | List all users |
-| `GET` | `/admin/users/:id` | Admin | Get user details |
-| `POST` | `/admin/users/:id/suspend` | Admin | Suspend user |
-| `POST` | `/admin/users/:id/reactivate` | Admin | Reactivate user |
-| `POST` | `/admin/users/:id/roles` | Admin | Assign role |
-| `DELETE` | `/admin/users/:id/roles/:role` | Admin | Remove role |
+| Method   | Endpoint                       | Auth  | Description             |
+| -------- | ------------------------------ | ----- | ----------------------- |
+| `GET`    | `/health`                      | No    | Health check            |
+| `POST`   | `/register`                    | No    | User registration       |
+| `POST`   | `/verification/send`           | Yes   | Send verification email |
+| `POST`   | `/verification/verify`         | No    | Verify 6-digit code     |
+| `GET`    | `/auth/me`                     | Yes   | Get current user        |
+| `POST`   | `/auth/refresh`                | No    | Refresh access token    |
+| `POST`   | `/auth/logout`                 | Yes   | Logout current session  |
+| `POST`   | `/auth/logout-all`             | Yes   | Logout all sessions     |
+| `POST`   | `/oauth/start`                 | No    | Initiate OAuth flow     |
+| `GET`    | `/oauth/callback/:provider`    | No    | OAuth callback (web)    |
+| `POST`   | `/oauth/mobile/callback`       | No    | OAuth callback (mobile) |
+| `GET`    | `/sessions`                    | Yes   | List user sessions      |
+| `DELETE` | `/sessions/:id`                | Yes   | Revoke specific session |
+| `GET`    | `/account`                     | Yes   | Get account info        |
+| `DELETE` | `/account`                     | Yes   | Soft delete account     |
+| `GET`    | `/admin/users`                 | Admin | List all users          |
+| `GET`    | `/admin/users/:id`             | Admin | Get user details        |
+| `POST`   | `/admin/users/:id/suspend`     | Admin | Suspend user            |
+| `POST`   | `/admin/users/:id/reactivate`  | Admin | Reactivate user         |
+| `POST`   | `/admin/users/:id/roles`       | Admin | Assign role             |
+| `DELETE` | `/admin/users/:id/roles/:role` | Admin | Remove role             |
 
 #### Registration Validation Schema
+
 ```typescript
 {
   email: z.string().email(),
@@ -193,6 +194,7 @@ aivo/
 ```
 
 #### Security Features
+
 - ✅ PBKDF2 password hashing (100,000 iterations)
 - ✅ JWT with ES256 signing (jose library)
 - ✅ Token rotation with reuse detection
@@ -210,47 +212,54 @@ aivo/
 #### Endpoints
 
 ##### Readiness
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/readiness/today` | Get today's readiness score |
-| `POST` | `/api/v1/readiness/recalculate` | Recalculate readiness |
-| `GET` | `/api/v1/readiness/history` | Get readiness history |
-| `GET` | `/api/v1/readiness/factors` | Get readiness factor details |
+
+| Method | Endpoint                        | Description                  |
+| ------ | ------------------------------- | ---------------------------- |
+| `GET`  | `/api/v1/readiness/today`       | Get today's readiness score  |
+| `POST` | `/api/v1/readiness/recalculate` | Recalculate readiness        |
+| `GET`  | `/api/v1/readiness/history`     | Get readiness history        |
+| `GET`  | `/api/v1/readiness/factors`     | Get readiness factor details |
 
 ##### Check-in
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+
+| Method | Endpoint          | Description           |
+| ------ | ----------------- | --------------------- |
 | `POST` | `/api/v1/checkin` | Submit daily check-in |
 
 ##### Actions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/actions` | Get today's actions |
+
+| Method  | Endpoint              | Description          |
+| ------- | --------------------- | -------------------- |
+| `GET`   | `/api/v1/actions`     | Get today's actions  |
 | `PATCH` | `/api/v1/actions/:id` | Update action status |
 
 ##### Charts
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/charts` | Get available chart definitions |
-| `GET` | `/api/v1/charts/:metric` | Get chart data for metric |
-| `POST` | `/api/v1/charts/batch` | Get multiple charts |
+
+| Method | Endpoint                 | Description                     |
+| ------ | ------------------------ | ------------------------------- |
+| `GET`  | `/api/v1/charts`         | Get available chart definitions |
+| `GET`  | `/api/v1/charts/:metric` | Get chart data for metric       |
+| `POST` | `/api/v1/charts/batch`   | Get multiple charts             |
 
 ##### Daily Intelligence
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/intelligence` | Get today's intelligence |
-| `GET` | `/api/v1/intelligence/weekly` | Get weekly summary |
+
+| Method | Endpoint                      | Description              |
+| ------ | ----------------------------- | ------------------------ |
+| `GET`  | `/api/v1/intelligence`        | Get today's intelligence |
+| `GET`  | `/api/v1/intelligence/weekly` | Get weekly summary       |
 
 ##### Reports
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/reports/schedules` | Create schedule |
-| `GET` | `/api/v1/reports/schedules` | Get schedules |
-| `POST` | `/api/v1/reports/reports/generate` | Generate report |
-| `GET` | `/api/v1/reports/reports` | List reports |
-| `GET` | `/api/v1/reports/reports/:id/download` | Download report |
+
+| Method | Endpoint                               | Description     |
+| ------ | -------------------------------------- | --------------- |
+| `POST` | `/api/v1/reports/schedules`            | Create schedule |
+| `GET`  | `/api/v1/reports/schedules`            | Get schedules   |
+| `POST` | `/api/v1/reports/reports/generate`     | Generate report |
+| `GET`  | `/api/v1/reports/reports`              | List reports    |
+| `GET`  | `/api/v1/reports/reports/:id/download` | Download report |
 
 #### Readiness Factors (13 total)
+
 1. Sleep quality and duration
 2. Daily activity levels
 3. Heart rate variability (HRV)
@@ -276,50 +285,55 @@ aivo/
 #### Endpoints
 
 ##### Exercises
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/exercises/` | List all exercises |
-| `GET` | `/api/v1/exercises/:code` | Get exercise details |
-| `GET` | `/api/v1/exercises/:code/rules` | Get form rules |
+
+| Method | Endpoint                        | Description          |
+| ------ | ------------------------------- | -------------------- |
+| `GET`  | `/api/v1/exercises/`            | List all exercises   |
+| `GET`  | `/api/v1/exercises/:code`       | Get exercise details |
+| `GET`  | `/api/v1/exercises/:code/rules` | Get form rules       |
 
 ##### Plans
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/plans/active` | Get active plan |
-| `GET` | `/api/v1/plans/` | List all user plans |
-| `POST` | `/api/v1/plans/` | Create plan |
-| `PUT` | `/api/v1/plans/:planId` | Update plan |
-| `POST` | `/api/v1/plans/:planId/activate` | Activate plan |
-| `POST` | `/api/v1/plans/:planId/archive` | Archive plan |
+
+| Method | Endpoint                         | Description         |
+| ------ | -------------------------------- | ------------------- |
+| `GET`  | `/api/v1/plans/active`           | Get active plan     |
+| `GET`  | `/api/v1/plans/`                 | List all user plans |
+| `POST` | `/api/v1/plans/`                 | Create plan         |
+| `PUT`  | `/api/v1/plans/:planId`          | Update plan         |
+| `POST` | `/api/v1/plans/:planId/activate` | Activate plan       |
+| `POST` | `/api/v1/plans/:planId/archive`  | Archive plan        |
 
 ##### Sessions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/sessions/` | List user sessions |
-| `GET` | `/api/v1/sessions/active` | Get active session |
-| `POST` | `/api/v1/sessions/start` | Start new session |
-| `PATCH` | `/api/v1/sessions/:sessionId/checkpoint` | Update checkpoint |
-| `POST` | `/api/v1/sessions/:sessionId/sets` | Submit set summary |
-| `POST` | `/api/v1/sessions/:sessionId/complete` | Complete session |
-| `POST` | `/api/v1/sessions/:sessionId/corrections` | Submit correction |
+
+| Method  | Endpoint                                  | Description        |
+| ------- | ----------------------------------------- | ------------------ |
+| `GET`   | `/api/v1/sessions/`                       | List user sessions |
+| `GET`   | `/api/v1/sessions/active`                 | Get active session |
+| `POST`  | `/api/v1/sessions/start`                  | Start new session  |
+| `PATCH` | `/api/v1/sessions/:sessionId/checkpoint`  | Update checkpoint  |
+| `POST`  | `/api/v1/sessions/:sessionId/sets`        | Submit set summary |
+| `POST`  | `/api/v1/sessions/:sessionId/complete`    | Complete session   |
+| `POST`  | `/api/v1/sessions/:sessionId/corrections` | Submit correction  |
 
 ##### Progress
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/progress/summary` | Get progress summary |
-| `GET` | `/api/v1/progress/exercises/:code` | Get exercise progress |
-| `GET` | `/api/v1/progress/history` | Get workout history |
-| `GET` | `/api/v1/progress/trends` | Get trends |
-| `GET` | `/api/v1/progress/goals` | Get user goals |
-| `PUT` | `/api/v1/progress/goals` | Update goals |
+
+| Method | Endpoint                           | Description           |
+| ------ | ---------------------------------- | --------------------- |
+| `GET`  | `/api/v1/progress/summary`         | Get progress summary  |
+| `GET`  | `/api/v1/progress/exercises/:code` | Get exercise progress |
+| `GET`  | `/api/v1/progress/history`         | Get workout history   |
+| `GET`  | `/api/v1/progress/trends`          | Get trends            |
+| `GET`  | `/api/v1/progress/goals`           | Get user goals        |
+| `PUT`  | `/api/v1/progress/goals`           | Update goals          |
 
 ##### AI Planning
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/planning/request` | Request AI plan |
-| `GET` | `/api/v1/planning/jobs` | List planning jobs |
-| `GET` | `/api/v1/planning/jobs/:jobId` | Get job status |
-| `POST` | `/api/v1/planning/adjust` | Request adjustment |
+
+| Method | Endpoint                       | Description        |
+| ------ | ------------------------------ | ------------------ |
+| `POST` | `/api/v1/planning/request`     | Request AI plan    |
+| `GET`  | `/api/v1/planning/jobs`        | List planning jobs |
+| `GET`  | `/api/v1/planning/jobs/:jobId` | Get job status     |
+| `POST` | `/api/v1/planning/adjust`      | Request adjustment |
 
 ---
 
@@ -332,53 +346,59 @@ aivo/
 #### Endpoints
 
 ##### Meals
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/meals/` | Create manual meal |
-| `GET` | `/api/v1/meals/` | List meals (with date filter) |
-| `GET` | `/api/v1/meals/today` | Get today's meals |
-| `GET` | `/api/v1/meals/:id` | Get meal by ID |
-| `PUT` | `/api/v1/meals/:id` | Update meal |
-| `DELETE` | `/api/v1/meals/:id` | Soft delete meal |
+
+| Method   | Endpoint              | Description                   |
+| -------- | --------------------- | ----------------------------- |
+| `POST`   | `/api/v1/meals/`      | Create manual meal            |
+| `GET`    | `/api/v1/meals/`      | List meals (with date filter) |
+| `GET`    | `/api/v1/meals/today` | Get today's meals             |
+| `GET`    | `/api/v1/meals/:id`   | Get meal by ID                |
+| `PUT`    | `/api/v1/meals/:id`   | Update meal                   |
+| `DELETE` | `/api/v1/meals/:id`   | Soft delete meal              |
 
 ##### Foods
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/foods/search` | Search food catalog |
-| `GET` | `/api/v1/foods/:id` | Get food by ID |
-| `GET` | `/api/v1/foods/:id/nutrition` | Get nutrition for quantity |
-| `POST` | `/api/v1/foods/corrections` | Save food correction |
+
+| Method | Endpoint                      | Description                |
+| ------ | ----------------------------- | -------------------------- |
+| `GET`  | `/api/v1/foods/search`        | Search food catalog        |
+| `GET`  | `/api/v1/foods/:id`           | Get food by ID             |
+| `GET`  | `/api/v1/foods/:id/nutrition` | Get nutrition for quantity |
+| `POST` | `/api/v1/foods/corrections`   | Save food correction       |
 
 ##### Plans
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/plans/:date` | Get meal plan |
-| `PUT` | `/api/v1/plans/:date/:mealType` | Update plan entry |
+
+| Method | Endpoint                         | Description            |
+| ------ | -------------------------------- | ---------------------- |
+| `GET`  | `/api/v1/plans/:date`            | Get meal plan          |
+| `PUT`  | `/api/v1/plans/:date/:mealType`  | Update plan entry      |
 | `POST` | `/api/v1/plans/:date/regenerate` | Regenerate suggestions |
 
 ##### Targets
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/targets/` | Get current targets |
-| `PUT` | `/api/v1/targets/` | Update targets |
-| `POST` | `/api/v1/targets/reset` | Reset to defaults |
+
+| Method | Endpoint                | Description         |
+| ------ | ----------------------- | ------------------- |
+| `GET`  | `/api/v1/targets/`      | Get current targets |
+| `PUT`  | `/api/v1/targets/`      | Update targets      |
+| `POST` | `/api/v1/targets/reset` | Reset to defaults   |
 
 ##### AI Analysis
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/analysis/` | Create analysis |
-| `GET` | `/api/v1/analysis/:id/status` | Get status |
-| `GET` | `/api/v1/analysis/:id` | Get analysis result |
-| `POST` | `/api/v1/analysis/:id/image` | Upload image |
+
+| Method | Endpoint                       | Description             |
+| ------ | ------------------------------ | ----------------------- |
+| `POST` | `/api/v1/analysis/`            | Create analysis         |
+| `GET`  | `/api/v1/analysis/:id/status`  | Get status              |
+| `GET`  | `/api/v1/analysis/:id`         | Get analysis result     |
+| `POST` | `/api/v1/analysis/:id/image`   | Upload image            |
 | `POST` | `/api/v1/analysis/:id/confirm` | Confirm and create meal |
 
 ##### Upload
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/upload/request` | Request upload URL |
-| `POST` | `/api/v1/upload/` | Direct upload |
-| `DELETE` | `/api/v1/upload/:r2Key` | Delete image |
-| `GET` | `/api/v1/upload/presigned/:r2Key` | Get presigned URL |
+
+| Method   | Endpoint                          | Description        |
+| -------- | --------------------------------- | ------------------ |
+| `POST`   | `/api/v1/upload/request`          | Request upload URL |
+| `POST`   | `/api/v1/upload/`                 | Direct upload      |
+| `DELETE` | `/api/v1/upload/:r2Key`           | Delete image       |
+| `GET`    | `/api/v1/upload/presigned/:r2Key` | Get presigned URL  |
 
 ---
 
@@ -391,21 +411,25 @@ aivo/
 #### Queue Consumers
 
 ##### Email Queue (`emailQueue`)
+
 - `auth.email_verification_code` - Verification emails
 - Handles retry logic and dead-letter queue
 
 ##### Report Queue (`reportDeliverQueue`)
+
 - `health.weekly_report_ready`
 - `health.monthly_report_ready`
 - `health.custom_report_ready`
 
 #### Templates
+
 1. Email verification code
 2. Weekly health report
 3. Monthly health report
 4. Custom health report
 
 **Features:**
+
 - Bilingual support (English, Vietnamese)
 - HTML and plain text versions
 - XSS protection via `escapeHtml()`
@@ -420,6 +444,7 @@ aivo/
 **Tech Stack:** Cloudflare Workers + Hono
 
 #### Routes
+
 ```
 /health                    # Gateway health check
 /metrics                   # Prometheus metrics
@@ -432,6 +457,7 @@ aivo/
 ```
 
 #### Features
+
 - **Service Routing**: Routes to backend services (Service Bindings in prod, HTTP in dev)
 - **Rate Limiting**: In-memory per-IP rate limiting (100/min)
 - **CORS**: Configurable allowlist
@@ -445,33 +471,33 @@ aivo/
 
 ### Shared Type Packages
 
-| Package | Purpose | Key Exports |
-|---------|---------|------------|
-| `@repo/common-types` | Shared utilities | UUID, date helpers, validation |
-| `@repo/health-types` | Health domain | Readiness schemas, chart configs |
-| `@repo/fitness-types` | Fitness domain | Exercise types, pose detection |
-| `@repo/nutrition-types` | Nutrition domain | Meal schemas, AI analysis |
-| `@repo/queue-types` | Queue messages | Event schemas, message types |
+| Package                 | Purpose          | Key Exports                      |
+| ----------------------- | ---------------- | -------------------------------- |
+| `@repo/common-types`    | Shared utilities | UUID, date helpers, validation   |
+| `@repo/health-types`    | Health domain    | Readiness schemas, chart configs |
+| `@repo/fitness-types`   | Fitness domain   | Exercise types, pose detection   |
+| `@repo/nutrition-types` | Nutrition domain | Meal schemas, AI analysis        |
+| `@repo/queue-types`     | Queue messages   | Event schemas, message types     |
 
 ### Core Packages
 
-| Package | Purpose | Key Exports |
-|---------|---------|------------|
-| `@repo/auth-core` | JWT & auth | JWTService, requireAuth middleware |
-| `@repo/middleware` | Workers middleware | Rate limiter, CORS, errors |
-| `@repo/observability` | Logging/metrics | Logger, metrics, tracing |
-| `@repo/swagger-utils` | API docs | Spec builder, Swagger handler |
+| Package               | Purpose            | Key Exports                        |
+| --------------------- | ------------------ | ---------------------------------- |
+| `@repo/auth-core`     | JWT & auth         | JWTService, requireAuth middleware |
+| `@repo/middleware`    | Workers middleware | Rate limiter, CORS, errors         |
+| `@repo/observability` | Logging/metrics    | Logger, metrics, tracing           |
+| `@repo/swagger-utils` | API docs           | Spec builder, Swagger handler      |
 
 ### Engine Packages
 
-| Package | Purpose |
-|---------|---------|
-| `@repo/exercise-engine` | WebAssembly pose detection |
-| `@repo/health-engine` | Readiness calculation |
-| `@repo/nutrition-engine` | Nutrition calculations |
-| `@repo/analytics-engine` | Analytics processing |
-| `@repo/readiness-engine` | Readiness scoring |
-| `@aivo/wasm-gateway` | WASM module loader |
+| Package                  | Purpose                    |
+| ------------------------ | -------------------------- |
+| `@repo/exercise-engine`  | WebAssembly pose detection |
+| `@repo/health-engine`    | Readiness calculation      |
+| `@repo/nutrition-engine` | Nutrition calculations     |
+| `@repo/analytics-engine` | Analytics processing       |
+| `@repo/readiness-engine` | Readiness scoring          |
+| `@aivo/wasm-gateway`     | WASM module loader         |
 
 ---
 
@@ -482,6 +508,7 @@ aivo/
 **Framework:** Next.js 16.3.2 with App Router
 
 #### Page Structure
+
 ```
 /                           # Landing page (public)
 /login                      # OAuth login
@@ -509,12 +536,14 @@ aivo/
 ```
 
 #### Components
+
 - **`components/shell/`** - AppShell, Sidebar, TopHeader, MobileNavigation
 - **`components/shared/`** - ScoreRing, MetricCard, ChartCard
 - **`components/ui/`** - Button, Card, Badge, Input, Avatar, Accordion
 - **`components/landing/`** - Hero, Features, Pricing, Testimonials
 
 #### Backend Connection
+
 ```
 Web App → API Gateway (Port 4000) → Backend Services
 ```
@@ -555,6 +584,7 @@ app/
 ```
 
 #### Features
+
 - **OAuth Authentication** with PKCE and expo-crypto
 - **Secure Token Storage** with expo-secure-store
 - **Pose Detection** with MediaPipe Tasks Vision
@@ -568,24 +598,28 @@ app/
 ### Critical Issues (Fix Immediately)
 
 #### 1. In-Memory Rate Limiting
+
 **Location:** Auth service, Gateway, all services
 **Issue:** Rate limiting uses in-memory Map which resets between requests in edge environment
 **Impact:** Rate limiting ineffective in production
 **Recommendation:** Use Cloudflare KV for distributed rate limiting
 
 #### 2. OAuth State in Memory
+
 **Location:** Auth service (`services/auth.ts`)
 **Issue:** `oauthStates` Map is in-memory, state lost between requests
 **Impact:** OAuth flow may fail randomly
 **Recommendation:** Store state in D1 or KV with TTL
 
 #### 3. PUT Meal Endpoint Doesn't Persist
+
 **Location:** Nutrition service (`routes/meals.ts`)
 **Issue:** Update logic exists but never actually executes
 **Impact:** Meal updates don't work
 **Recommendation:** Implement actual database update
 
 #### 4. Verification Code Logging
+
 **Location:** Auth service (`routes/register.ts:117`)
 **Issue:** Raw verification codes logged to console
 **Impact:** Codes visible in production logs
@@ -594,24 +628,28 @@ app/
 ### High Priority Issues
 
 #### 5. Role-Based Auth Not Enforced
+
 **Location:** Nutrition service (`middleware/auth.ts`)
 **Issue:** `requireRole()` middleware exists but does nothing
 **Impact:** Admin endpoints accessible to regular users
 **Recommendation:** Implement role validation
 
 #### 6. Chart Ranges Imported Twice
+
 **Location:** Health service (`routes/index.ts`)
 **Issue:** `CHART_RANGES` imported from two different sources
 **Impact:** Confusing, potential bugs
 **Recommendation:** Use single source
 
 #### 7. No Rate Limiting on AI Endpoints
+
 **Location:** Coach service (planning endpoints)
 **Issue:** Expensive AI calls have no rate limiting
 **Impact:** Cost overruns possible
 **Recommendation:** Add rate limiting
 
 #### 8. User ID Race Condition
+
 **Location:** Coach service (`applyAdjustedPlan`)
 **Issue:** `bind` is async but user_id used synchronously
 **Impact:** Data inconsistency
@@ -620,24 +658,28 @@ app/
 ### Medium Priority Issues
 
 #### 9. Presigned URLs Not Implemented
+
 **Location:** Nutrition service (`routes/upload.ts`)
 **Issue:** Returns internal reference instead of actual presigned URL
 **Impact:** External clients can't download images
 **Recommendation:** Implement R2 presigned URL generation
 
 #### 10. In-Memory Deduplication
+
 **Location:** Mail service (`services/consumer.ts`)
 **Issue:** Deduplication store won't work across instances
 **Impact:** Duplicate emails possible
 **Recommendation:** Use message ID as queue ID
 
 #### 11. N+1 Query Problem
+
 **Location:** Nutrition service (`listMeals`)
 **Issue:** Fetches items for each meal separately
 **Impact:** Performance degradation
 **Recommendation:** Use JOIN or batch queries
 
 #### 12. Macro Validation Lenient
+
 **Location:** Nutrition service (`routes/targets.ts`)
 **Issue:** Accepts sum 95-105% instead of exactly 100%
 **Impact:** Invalid macro distributions allowed
@@ -646,17 +688,20 @@ app/
 ### Low Priority Issues
 
 #### 13. TypeScript Version Mismatch
+
 **Location:** `fitness-types/package.json`
 **Issue:** `"typescript": "7.0.2"` doesn't exist
 **Impact:** Build errors
 **Recommendation:** Change to `"typescript": "^5.0.0"`
 
 #### 14. Copyright Year Hardcoded
+
 **Location:** Mail service templates
 **Issue:** `© 2024 AIVO` - needs dynamic year
 **Recommendation:** Use `new Date().getFullYear()`
 
 #### 15. Sequential Chart Processing
+
 **Location:** Health service (`getMultipleChartData`)
 **Issue:** Charts processed sequentially
 **Recommendation:** Process in parallel with Promise.all
@@ -668,7 +713,7 @@ app/
 ### Prerequisites
 
 - Node.js >= 24
-- pnpm >= 11.23.0
+- pnpm >= 11.25.0
 - Wrangler CLI (`npx wrangler`)
 - Cloudflare account (for deployment)
 
@@ -720,6 +765,7 @@ pnpm test
 ### Environment Variables
 
 #### Auth Service
+
 ```bash
 AUTH_JWT_PRIVATE_KEY=<base64-encoded-private-key>
 AUTH_JWT_PUBLIC_KEY=<base64-encoded-public-key>
@@ -729,6 +775,7 @@ AUTH_JWT_ACCESS_TOKEN_TTL=900
 ```
 
 #### Gateway
+
 ```bash
 AUTH_SERVICE_URL=http://localhost:3001
 HEALTH_SERVICE_URL=http://localhost:3002
@@ -741,6 +788,7 @@ RATE_LIMIT_WINDOW_MS=60000
 ```
 
 #### Common
+
 ```bash
 WEB_APP_URL=https://app.aivo.app
 MOBILE_REDIRECT_URI=aivo://callback
@@ -816,25 +864,25 @@ GET /api/v1/health/charts/calories?range=7d&target=2000
 
 ### Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| Auth (register) | 5 | per IP/hour |
-| Auth (login) | 10 | per IP/hour |
-| API Gateway | 100 | per IP/minute |
-| AI Analysis | 20 | per user/day |
+| Endpoint        | Limit | Window        |
+| --------------- | ----- | ------------- |
+| Auth (register) | 5     | per IP/hour   |
+| Auth (login)    | 10    | per IP/hour   |
+| API Gateway     | 100   | per IP/minute |
+| AI Analysis     | 20    | per user/day  |
 
 ---
 
 ## 📊 Project Statistics
 
-| Metric | Count |
-|--------|-------|
-| Services | 6 |
-| Shared Packages | 20+ |
-| Web App Pages | 25+ |
-| Mobile App Screens | 30+ |
-| API Endpoints | 100+ |
-| Zod Schemas | 50+ |
+| Metric             | Count |
+| ------------------ | ----- |
+| Services           | 6     |
+| Shared Packages    | 20+   |
+| Web App Pages      | 25+   |
+| Mobile App Screens | 30+   |
+| API Endpoints      | 100+  |
+| Zod Schemas        | 50+   |
 
 ---
 
@@ -843,28 +891,31 @@ GET /api/v1/health/charts/calories?range=7d&target=2000
 ### Common Issues
 
 #### Type Errors with globalThis
+
 ```typescript
 // ❌ Wrong
-globalThis.crypto.randomUUID()
+globalThis.crypto.randomUUID();
 
 // ✅ Correct
 const crypto = globalThis as unknown as { crypto?: CryptoGlobal };
-crypto?.randomUUID?.()
+crypto?.randomUUID?.();
 ```
 
 #### Zod v4 API Changes
+
 ```typescript
 // Use error.issues instead of error.errors
 const issues = error.issues;
 
 // z.record() requires two arguments
-z.record(z.string(), z.number())
+z.record(z.string(), z.number());
 ```
 
 #### Module Resolution
+
 ```typescript
 // Use .js extensions in imports for ESM
-import { xyz } from './xyz.js';
+import { xyz } from "./xyz.js";
 
 // Use moduleResolution: "bundler" in tsconfig
 ```
@@ -881,4 +932,4 @@ import { xyz } from './xyz.js';
 
 ---
 
-*Last Updated: September 2026*
+_Last Updated: September 2026_

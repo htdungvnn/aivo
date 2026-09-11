@@ -13,6 +13,13 @@ import { createAuditLog, getUserRoles, getUserSessions, revokeSession } from '..
 
 const auth = new Hono<{ Bindings: AuthEnv }>();
 
+// Environment config for OAuth
+interface OAuthEnv extends AuthEnv {
+  WEB_APP_URL?: string;
+  GOOGLE_REDIRECT_URI?: string;
+  FACEBOOK_REDIRECT_URI?: string;
+}
+
 /**
  * GET /auth/me
  * Get current user
@@ -166,6 +173,108 @@ auth.post('/logout-all', requireAuth(), async (c) => {
     data: { success: true },
     requestId: c.get('requestId'),
   });
+});
+
+/**
+ * GET /auth/callback/:provider
+ * Handle OAuth callback (redirects to /oauth/callback/:provider)
+ * This route exists for backward compatibility with existing redirect URIs
+ */
+auth.get('/callback/:provider', async (c) => {
+  const request = c.req.raw;
+  const provider = c.req.param('provider') as 'google' | 'facebook';
+  
+  // Forward to the oauth callback handler by constructing the internal URL
+  // The query params are: code, state, error, error_description
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  const error = c.req.query('error');
+  const errorDescription = c.req.query('error_description');
+  
+  // For web clients, we need to return the callback data in a way the page can handle
+  // The web app expects a JSON response with tokens
+  const authService = createAuthService(c.env.DB);
+  const env = c.env as OAuthEnv;
+  
+  try {
+    // Handle OAuth errors from provider
+    if (error) {
+      await createAuditLog(c.env.DB, {
+        action: 'oauth.error',
+        success: false,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        metadata: { provider, error, errorDescription },
+      });
+      
+      // Redirect to error page with query params
+      const errorPageUrl = new URL('/auth/error', env.WEB_APP_URL || 'http://localhost:3000');
+      errorPageUrl.searchParams.set('error', error);
+      if (errorDescription) errorPageUrl.searchParams.set('error_description', errorDescription);
+      
+      return c.redirect(errorPageUrl.toString(), 302);
+    }
+    
+    if (!code || !state) {
+      return c.json(
+        {
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Missing code or state parameter',
+            requestId: c.get('requestId'),
+          },
+        },
+        400
+      );
+    }
+    
+    // Determine redirect URI based on provider
+    let redirectUri: string;
+    if (provider === 'google') {
+      redirectUri = env.GOOGLE_REDIRECT_URI || `${env.WEB_APP_URL}/auth/callback/google`;
+    } else {
+      redirectUri = env.FACEBOOK_REDIRECT_URI || `${env.WEB_APP_URL}/auth/callback/facebook`;
+    }
+    
+    const result = await authService.handleOAuthCallback({
+      provider,
+      code,
+      state,
+      redirectUri,
+      ipAddress: getClientIP(request),
+      userAgent: getUserAgent(request),
+    });
+    
+    // Determine redirect URL based on email verification
+    let redirectUrl = env.WEB_APP_URL || 'http://localhost:3000';
+    
+    if (result.emailVerificationRequired) {
+      redirectUrl += `/verify-email?status=pending&email=${encodeURIComponent(result.user.email)}`;
+    } else {
+      redirectUrl += '/dashboard';
+    }
+    
+    // Add tokens as query params for the client to extract
+    const finalUrl = new URL(redirectUrl);
+    finalUrl.searchParams.set('access_token', result.tokens.accessToken);
+    finalUrl.searchParams.set('refresh_token', result.tokens.refreshToken);
+    finalUrl.searchParams.set('expires_in', String(result.tokens.expiresIn));
+    finalUrl.searchParams.set('token_type', result.tokens.tokenType);
+    if (result.isNewUser) {
+      finalUrl.searchParams.set('new_user', 'true');
+    }
+    
+    return c.redirect(finalUrl.toString(), 302);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    
+    // Redirect to error page
+    const errorPageUrl = new URL('/auth/error', env.WEB_APP_URL || 'http://localhost:3000');
+    errorPageUrl.searchParams.set('error', 'oauth_callback_failed');
+    errorPageUrl.searchParams.set('error_description', error instanceof Error ? error.message : 'OAuth authentication failed');
+    
+    return c.redirect(errorPageUrl.toString(), 302);
+  }
 });
 
 export default auth;
