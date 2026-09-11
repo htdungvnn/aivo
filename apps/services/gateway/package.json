@@ -11,12 +11,12 @@
   "dependencies": {
     "@aivo/swagger-utils": "workspace:*",
     "@hono/node-server": "^2.1.1",
-    "hono": "^4.13.5"
+    "hono": "^4.13.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260901.1",
-    "@types/node": "^26.4.0",
+    "@cloudflare/workers-types": "^5.20260910.1",
+    "@types/node": "^26.5.1",
     "typescript": "^7.0.2",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.130.0"
   }
 }

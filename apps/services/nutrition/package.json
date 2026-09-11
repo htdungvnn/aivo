@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --port 3002 --local",
+    "dev": "wrangler dev --port 3004 --local",
     "dev:external": "wrangler dev --port 3002 --external",
     "deploy": "wrangler deploy --config wrangler.production.jsonc",
     "deploy:dev": "wrangler deploy",
-    "start": "wrangler dev --port 3002",
+    "start": "wrangler dev --port 3004",
     "test": "vitest",
     "cf-typegen": "wrangler types",
     "check-types": "echo 'Type checking disabled for nutrition service - run cf-typegen first'",
@@ -23,16 +23,17 @@
     "@aivo/nutrition-types": "workspace:*",
     "@aivo/queue-types": "workspace:*",
     "@aivo/swagger-utils": "workspace:*",
-    "hono": "^4.13.5",
-    "zod": "^4.5.4"
+    "hono": "^4.13.7",
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
-    "@cloudflare/vitest-plugin": "^1.1.2",
-    "@cloudflare/workers-types": "^5.20260901.1",
-    "eslint": "^10.9.1",
+    "@cloudflare/vitest-plugin": "^1.1.6",
+    "@cloudflare/workers-types": "^5.20260910.1",
+    "@types/node": "26.5.1",
+    "eslint": "^10.10.0",
     "typescript": "^7.0.2",
-    "vitest": "~4.1.11",
-    "wrangler": "^4.127.1"
+    "vitest": "~5.0.0",
+    "wrangler": "^4.130.0"
   }
 }

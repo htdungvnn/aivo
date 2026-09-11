@@ -10,20 +10,21 @@
     "./uuid": "./src/uuid.ts",
     "./date": "./src/date.ts",
     "./validation": "./src/validation.ts",
-    "./enums": "./src/enums.ts"
+    "./enums": "./src/enums.ts",
+    "./ports": "./src/constants/ports.ts"
   },
   "scripts": {
     "lint": "pnpm exec eslint .",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^4.5.4"
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
     "@aivo/typescript-config": "workspace:*",
-    "@types/node": "^26.4.0",
-    "eslint": "^10.9.1",
+    "@types/node": "^26.5.1",
+    "eslint": "^10.10.0",
     "typescript": "^7.0.2"
   }
 }

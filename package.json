@@ -2,11 +2,13 @@
   "name": "aivo",
   "private": true,
   "scripts": {
+    "kill-ports": "lsof -ti:3000 | xargs kill -9 2>/dev/null; lsof -ti:3001 | xargs kill -9 2>/dev/null; lsof -ti:3002 | xargs kill -9 2>/dev/null; lsof -ti:3003 | xargs kill -9 2>/dev/null; lsof -ti:3004 | xargs kill -9 2>/dev/null; lsof -ti:3005 | xargs kill -9 2>/dev/null; lsof -ti:4000 | xargs kill -9 2>/dev/null; lsof -ti:8080 | xargs kill -9 2>/dev/null; lsof -ti:8081 | xargs kill -9 2>/dev/null; lsof -ti:19000 | xargs kill -9 2>/dev/null; lsof -ti:19001 | xargs kill -9 2>/dev/null; lsof -ti:19002 | xargs kill -9 2>/dev/null; pkill -9 -f 'workerd' 2>/dev/null; pkill -9 -f 'wrangler' 2>/dev/null; echo 'Ports cleared'",
     "build": "turbo run build",
-    "dev": "turbo run dev",
-    "dev:all": "turbo run dev --parallel",
+    "dev": "pnpm run kill-ports && turbo run dev",
+    "dev:all": "pnpm run kill-ports && turbo run dev --parallel",
     "dev:web": "pnpm --filter web dev",
     "dev:mobile": "pnpm --filter mobile dev",
+    "dev:services": "turbo run dev --filter=!mobile --filter=!web --filter=!@aivo/wasm-core",
     "dev:auth": "pnpm --filter @aivo/auth dev",
     "dev:nutrition": "pnpm --filter @aivo/nutrition dev",
     "dev:coach": "pnpm --filter @aivo/coach dev",
@@ -24,7 +26,7 @@
     "prettier": "3.9.6",
     "turbo": "^2.10.12",
     "typescript": "7.0.2",
-    "zod": "4.5.4"
+    "zod": "4.6.1"
   },
   "packageManager": "pnpm@11.25.0+sha512.5cde925b4f075f725eb71fbae18a42ffe784524789f19b61c731cb8721ec28aaee160e01a8d5af4fedb2a42cdbf300efe23db356b0d4a17b4d63e11f8ab7c956",
   "engines": {

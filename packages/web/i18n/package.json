@@ -8,10 +8,11 @@
     "./messages/*": "./src/messages/*.ts"
   },
   "dependencies": {
-    "next-intl": "^4.14.1"
+    "next-intl": "^4.14.2"
   },
   "devDependencies": {
     "@aivo/typescript-config": "workspace:*",
+    "@types/node": "26.5.1",
     "typescript": "^7.0.2"
   }
 }
