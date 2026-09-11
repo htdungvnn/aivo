@@ -39,7 +39,7 @@ export async function sha256Base64Url(content: string): Promise<string> {
   const hashArray = new Uint8Array(hashBuffer);
   
   // Convert to base64url
-  let base64 = btoa(String.fromCharCode(...hashArray));
+  const base64 = btoa(String.fromCharCode(...hashArray));
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 

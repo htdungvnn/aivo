@@ -46,7 +46,6 @@ import {
   Server,
   ChevronLeft,
   ChevronRight,
-  LogOut,
   Zap,
 } from "lucide-react";
 

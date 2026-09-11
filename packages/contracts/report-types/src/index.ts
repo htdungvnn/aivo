@@ -391,7 +391,7 @@ export const createScheduleRequestSchema = z.object({
   timezone: z.string().min(1),
   deliveryDay: z.number().int().min(0).max(6).optional(),
   deliveryTime: z.string().regex(/^\d{2}:\d{2}$/),
-  locale: z.enum(['en', 'vi']).optional(),
+  locale: z.enum(['en', 'vi']).default('en'),
   emailEnabled: z.boolean().optional(),
 });
 
@@ -626,11 +626,12 @@ export function calculateReportDateRange(
     periodEnd = new Date(year, month, day - dayOfWeek);
     periodStart = new Date(year, month, day - daysToSubtract);
   } else if (reportType === 'monthly') {
-    // Previous month
+    // Previous month - periodEnd is last day of previous month
     const prevMonth = month === 0 ? 11 : month - 1;
     const prevYear = month === 0 ? year - 1 : year;
     
-    const maxDay = new Date(year, month, 0).getDate();
+    // Get last day of previous month
+    const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
     periodEnd = new Date(year, month, 0);
     periodStart = new Date(prevYear, prevMonth, 1);
   } else {
@@ -640,8 +641,8 @@ export function calculateReportDateRange(
   }
   
   return {
-    periodStart: periodStart.toISOString().split('T')[0] ?? periodStart.toISOString().substring(0, 10),
-    periodEnd: periodEnd.toISOString().split('T')[0] ?? periodEnd.toISOString().substring(0, 10),
+    periodStart: `${periodStart.getFullYear()}-${String(periodStart.getMonth() + 1).padStart(2, '0')}-${String(periodStart.getDate()).padStart(2, '0')}`,
+    periodEnd: `${periodEnd.getFullYear()}-${String(periodEnd.getMonth() + 1).padStart(2, '0')}-${String(periodEnd.getDate()).padStart(2, '0')}`,
   };
 }
 

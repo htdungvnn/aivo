@@ -257,7 +257,11 @@ describe('Upload Request Validation', () => {
     };
 
     expect(() => validateUploadRequest(request)).toThrow(StorageError);
-    expect(() => validateUploadRequest(request)).toThrow(`Size .* exceeds limit`);
+    try {
+      validateUploadRequest(request);
+    } catch (e) {
+      expect((e as StorageError).message).toContain('exceeds limit');
+    }
   });
 });
 

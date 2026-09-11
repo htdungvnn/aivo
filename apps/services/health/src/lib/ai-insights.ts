@@ -379,7 +379,7 @@ export async function generateInsight(
     }
     
     // Try to parse JSON from response
-    let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('No JSON found in AI response');
       return null;

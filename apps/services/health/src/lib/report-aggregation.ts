@@ -610,7 +610,7 @@ async function aggregateFitnessData(
   const plannedWorkouts = (plannedResult?.count as number) || completedWorkouts;
   
   let totalDuration = 0;
-  let qualityScores: number[] = [];
+  const qualityScores: number[] = [];
   
   for (const row of summaryResult.results) {
     if (row.duration_ms) {

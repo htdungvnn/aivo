@@ -193,7 +193,7 @@ describe('AIResponseSchema', () => {
       
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('at least one');
+        expect(result.error.issues[0].message).toContain('Too small');
       }
     });
     
@@ -302,7 +302,7 @@ describe('AIResponseSchema', () => {
             estimatedQuantity: 100,
             unit: 'g',
             confidence: 0.9,
-            caloriesKcal: 5000, // Implausible
+            caloriesKcal: 10000, // Exceeds max 5000
             proteinG: 10,
             carbsG: 10,
             fatG: 5,

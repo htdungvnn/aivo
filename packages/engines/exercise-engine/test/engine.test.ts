@@ -257,7 +257,7 @@ describe('Exercise Engine', () => {
         });
       }
 
-      let repCount = 0;
+      const repCount = 0;
       const startTime = Date.now() + 10000;
 
       // Simulate squat: ready -> descending -> bottom -> ascending -> ready

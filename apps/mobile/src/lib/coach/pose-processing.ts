@@ -137,9 +137,9 @@ export function normalizeLandmarks(
 ): number[][] {
   return landmarks.map((lm, index) => {
     let x = lm[0];
-    let y = lm[1];
+    const y = lm[1];
     const z = lm[2] || 0;
-    let visibility = lm[3] || 0;
+    const visibility = lm[3] || 0;
 
     // Mirror X coordinate if using front camera (selfie mode)
     if (isMirrored) {

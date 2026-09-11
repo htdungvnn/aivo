@@ -18,6 +18,9 @@ import {
   getEnvironment,
   isWasmReliable,
   getRecommendedStorage,
+  isStaging,
+  isProductionEnv,
+  isDevelopment,
 } from '../src/index';
 
 describe('Runtime Detection', () => {

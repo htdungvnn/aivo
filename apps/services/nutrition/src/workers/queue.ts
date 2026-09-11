@@ -215,7 +215,7 @@ async function enrichAnalysisWithCatalog(
   let totalConfidence = 0;
   
   for (const food of result.foods) {
-    let enrichedFood = { ...food };
+    const enrichedFood = { ...food };
     const warnings: string[] = [];
     
     // Try to find matching food in catalog

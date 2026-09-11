@@ -92,7 +92,6 @@ export class JWTService {
     const keyData = base64ToUint8Array(base64);
     // Convert to UTF-8 string for PEM format
     const pemString = new TextDecoder().decode(keyData);
-    // @ts-expect-error - jose types
     this.privateKey = await jose.importPKCS8(pemString, JWT_DEFAULTS.ALGORITHM);
   }
 
@@ -103,7 +102,6 @@ export class JWTService {
     const keyData = base64ToUint8Array(base64);
     // Convert to UTF-8 string for PEM format
     const pemString = new TextDecoder().decode(keyData);
-    // @ts-expect-error - jose types
     this.publicKey = await jose.importSPKI(pemString, JWT_DEFAULTS.ALGORITHM);
   }
 

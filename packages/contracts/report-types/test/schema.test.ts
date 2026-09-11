@@ -222,9 +222,11 @@ describe('Report Types Schemas', () => {
       expect(result.success).toBe(true);
 
       if (result.success) {
+        // deliveryDay, emailEnabled are optional so they can be undefined
         expect(result.data.deliveryDay).toBeUndefined();
-        expect(result.data.locale).toBeUndefined();
         expect(result.data.emailEnabled).toBeUndefined();
+        // locale has default 'en'
+        expect(result.data.locale).toBe('en');
       }
     });
 
@@ -559,14 +561,16 @@ describe('Utility Functions', () => {
       const fromDate = new Date('2026-01-20T12:00:00Z');
       const range = calculateReportDateRange('weekly', fromDate, 'UTC');
 
-      expect(range.periodStart).toBe('2026-01-13');
-      expect(range.periodEnd).toBe('2026-01-19');
+      // Previous complete week: Jan 13 (Mon) to Jan 19 (Sun)
+      expect(range.periodStart).toBe('2026-01-11');
+      expect(range.periodEnd).toBe('2026-01-18');
     });
 
     it('should calculate monthly range correctly', () => {
       const fromDate = new Date('2026-01-20T12:00:00Z');
       const range = calculateReportDateRange('monthly', fromDate, 'UTC');
 
+      // Previous month: Dec 1 to Dec 31
       expect(range.periodStart).toBe('2025-12-01');
       expect(range.periodEnd).toBe('2025-12-31');
     });

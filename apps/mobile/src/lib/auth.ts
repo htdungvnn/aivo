@@ -345,7 +345,7 @@ export class MobileAuthClient {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
-    let url = `${this.baseUrl}/api/v1${endpoint}`;
+    const url = `${this.baseUrl}/api/v1${endpoint}`;
 
     const fetchOptions: RequestInit = {
       method,
