@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev1": "wrangler dev",
+    "dev": "wrangler dev --port 3003",
     "deploy": "wrangler deploy",
     "deploy:production": "wrangler deploy --env production",
     "test": "vitest run --passWithNoTests",
@@ -21,17 +21,17 @@
     "@aivo/fitness-types": "workspace:*",
     "@aivo/queue-types": "workspace:*",
     "@aivo/swagger-utils": "workspace:*",
-    "hono": "^4.13.5",
-    "zod": "^4.5.4"
+    "hono": "^4.13.7",
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@aivo/eslint-config": "workspace:*",
     "@aivo/typescript-config": "workspace:*",
-    "@cloudflare/workers-types": "^5.20260901.1",
-    "@types/node": "^26.4.0",
-    "eslint": "^10.9.1",
+    "@cloudflare/workers-types": "^5.20260910.1",
+    "@types/node": "^26.5.1",
+    "eslint": "^10.10.0",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.127.1"
+    "vitest": "^5.0.0",
+    "wrangler": "^4.130.0"
   }
 }

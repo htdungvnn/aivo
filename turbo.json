@@ -25,7 +25,21 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["WRANGLER_INSPECTOR_ENABLED"]
+      "env": ["WRANGLER_INSPECTOR_ENABLED"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "dev:web": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "dev:services": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
     },
     "gateway#build": {
       "dependsOn": ["^build"],

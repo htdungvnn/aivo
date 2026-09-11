@@ -30,6 +30,7 @@
     "@aivo/common-types": "workspace:*",
     "@aivo/health-types": "workspace:*",
     "@aivo/wasm-core": "workspace:*",
+    "@types/node": "26.5.1",
     "typescript": "^7.0.2",
     "wasm-pack": "^0.15.0"
   },

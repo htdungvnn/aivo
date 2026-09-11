@@ -106,6 +106,7 @@ export {
   BASELINE_SETTINGS,
   READINESS_THRESHOLDS,
   READINESS_LEVELS,
+  READINESS_FACTORS,
 };
 
 // =============================================================================

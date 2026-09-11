@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@aivo/common-types": "workspace:*",
+    "@types/node": "26.5.1",
     "wasm-pack": "^0.15.0"
   },
   "peerDependencies": {
