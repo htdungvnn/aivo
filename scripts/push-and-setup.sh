@@ -32,10 +32,22 @@ cd "$REPO_DIR"
 BRANCH="$(git branch --show-current)"
 
 echo "==> Verifying token can write to the repository"
-gh api repos/htdungvnn/aivo/contents/.write-probe --method PUT \
+# Probe on a throwaway branch so verification never adds commits to main.
+PROBE_BRANCH="_write-probe"
+PROBE_REF="refs/heads/$PROBE_BRANCH"
+gh api "repos/htdungvnn/aivo/git/refs" --method POST \
+  -f ref="$PROBE_REF" \
+  -f sha="$(gh api repos/htdungvnn/aivo/git/ref/heads/main --jq '.object.sha')" >/dev/null
+gh api "repos/htdungvnn/aivo/contents/.write-probe" --method PUT \
   -f message="chore: verify write access" \
+  -f branch="$PROBE_BRANCH" \
   -f content="$(printf '# probe\n' | base64)" >/dev/null
-gh api repos/htdungvnn/aivo/contents/.write-probe --method DELETE >/dev/null
+PROBE_SHA="$(gh api "repos/htdungvnn/aivo/contents/.write-probe?ref=$PROBE_BRANCH" --jq '.sha')"
+# `gh api` only sends DELETE body fields via --input, not via -f.
+printf '{"message":"chore: remove write probe","sha":"%s","branch":"%s"}' \
+  "$PROBE_SHA" "$PROBE_BRANCH" \
+  | gh api "repos/htdungvnn/aivo/contents/.write-probe" --method DELETE --input - >/dev/null
+gh api "repos/htdungvnn/aivo/git/refs/heads/$PROBE_BRANCH" --method DELETE >/dev/null
 echo "    OK"
 
 echo "==> Pushing $BRANCH"
