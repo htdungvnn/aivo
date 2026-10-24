@@ -47,3 +47,7 @@ yarn-error.log*
 .cursor
 
 .pnpm-store
+docs/
+
+# Playwright MCP artifacts
+.playwright-mcp
