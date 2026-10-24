@@ -3,17 +3,106 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
+		<meta name="description" content="AIVO API documentation" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<title>AIVO API</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				--ink: #09090b;
+				--surface: #111113;
+				--hairline: rgba(255, 255, 255, 0.08);
+				--primary: #a3ff12;
+				--primary-ink: #0a0f02;
+				--text: #fafafa;
+				--text-secondary: #a1a1aa;
+			}
+
+			body {
+				margin: 0;
+				background-color: var(--ink);
+				color: var(--text);
+				font-family:
+					Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+				display: flex;
+				min-height: 100vh;
+				align-items: center;
+				justify-content: center;
+			}
+
+			main {
+				width: 100%;
+				max-width: 40rem;
+				padding: 2.5rem 1.5rem;
+				text-align: center;
+			}
+
+			img {
+				width: 64px;
+				height: 64px;
+				border-radius: 14px;
+			}
+
+			.wordmark {
+				display: block;
+				width: 190px;
+				height: 56px;
+				margin: 1.25rem auto 0;
+			}
+
+			h1 {
+				margin: 1rem 0 0.5rem;
+				font-size: 2rem;
+				letter-spacing: -0.02em;
+			}
+
+			p {
+				margin: 0 0 2rem;
+				color: var(--text-secondary);
+				line-height: 1.6;
+			}
+
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+				justify-content: center;
+			}
+
+			a {
+				display: inline-flex;
+				align-items: center;
+				border-radius: 9999px;
+				padding: 0.75rem 1.25rem;
+				font-weight: 600;
+				text-decoration: none;
+				border: 1px solid var(--hairline);
+				background-color: var(--surface);
+				color: var(--text);
+				transition: transform 200ms ease-out;
+			}
+
+			a:hover {
+				transform: translateY(-2px);
+			}
+
+			a.primary {
+				background-color: var(--primary);
+				color: var(--primary-ink);
+				border-color: transparent;
+			}
+		</style>
 	</head>
 	<body>
-		<h1 id="heading"></h1>
-		<script>
-			fetch('/message')
-				.then((resp) => resp.text())
-				.then((text) => {
-					const h1 = document.getElementById('heading');
-					h1.textContent = text;
-				});
-		</script>
+		<main>
+			<img src="/favicon.svg" alt="" width="64" height="64" />
+			<img class="wordmark" src="/logo.svg" alt="AIVO" width="190" height="56" />
+			<h1>AIVO API</h1>
+			<p>AI-powered fitness, nutrition, and wellness. Explore the interactive API reference.</p>
+			<div class="actions">
+				<a class="primary" href="/docs">API Reference</a>
+				<a href="/openapi">OpenAPI Schema</a>
+			</div>
+		</main>
 	</body>
 </html>

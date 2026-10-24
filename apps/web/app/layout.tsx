@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "AIVO — AI Fitness & Nutrition Coach",
   description:
     "Personalized workouts, smarter nutrition, and AI-powered fitness insights designed around your goals.",
+  applicationName: "AIVO",
   keywords: [
     "AI fitness coach",
     "AI workout planner",
@@ -27,7 +28,14 @@ export const metadata: Metadata = {
       "Personalized workouts, smarter nutrition, and AI-powered fitness insights designed around your goals.",
     type: "website",
     siteName: "AIVO",
-    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "AIVO — AI Fitness & Nutrition Coach" }],
+    images: [
+      {
+        url: "/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "AIVO — AI Fitness & Nutrition Coach",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="960" height="320">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#A3FF12" />
+      <stop offset="100%" stop-color="#D7FF7A" />
+    </linearGradient>
+    <radialGradient id="glow" cx="20%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#A3FF12" stop-opacity="0.22" />
+      <stop offset="70%" stop-color="#A3FF12" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="960" height="320" fill="#09090B" />
+  <rect width="960" height="320" fill="url(#glow)" />
+  <g transform="translate(48 124)">
+    <rect width="72" height="72" rx="15.84" fill="#A3FF12" />
+    <g transform="translate(10.080000000000002 10.080000000000002) scale(0.72)">
+      <path d="M32 13 L48 48 H40.5 L32 28.5 L23.5 48 H16 Z" fill="#0A0F02" />
+    </g>
+  </g>
+  <text
+    x="140"
+    y="174"
+    font-family="Inter, Helvetica, Arial, sans-serif"
+    font-size="46"
+    font-weight="700"
+    letter-spacing="-1"
+    fill="#FAFAFA"
+  >AIVO</text>
+</svg>

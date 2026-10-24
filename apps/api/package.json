@@ -8,18 +8,27 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:schema": "tsx scripts/generate-auth-schema.ts",
+    "db:migrate": "wrangler d1 migrations apply aivo --local",
+    "db:migrate:remote": "wrangler d1 migrations apply aivo --remote"
   },
   "dependencies": {
+    "@better-auth/expo": "1.7.12",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
+    "@repo/auth": "workspace:*",
+    "better-auth": "1.7.12",
     "hono": "^4.13.13",
+    "jose": "^6.1.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@types/node": "^26.6.5",
     "eslint": "^10.9.1",
+    "kysely": "0.29.7",
+    "tsx": "^4.20.6",
     "typescript": "7.0.2",
     "vitest": "^5.0.5",
     "wrangler": "^4.152.0"
