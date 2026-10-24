@@ -1,0 +1,39 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "vinext": "latest",
+    "react-server-dom-webpack": "latest",
+    "@vinext/cloudflare": "latest"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "^10.9.1",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vite": "8.3.0",
+    "@vitejs/plugin-react": "latest",
+    "@vitejs/plugin-rsc": "latest",
+    "@cloudflare/vite-plugin": "beta",
+    "cf": "latest"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "start": "vite preview",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "deploy": "vinext-cloudflare deploy",
+    "preview": "pnpm run build && pnpm run start",
+    "cf-typegen": "cf workers types"
+  }
+}
