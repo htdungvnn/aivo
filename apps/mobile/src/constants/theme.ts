@@ -1,6 +1,8 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
+ * The AIVO palette for the mobile app.
+ *
+ * Values mirror `apps/web/app/globals.css` and `packages/brand`, so the
+ * three surfaces share one design system.
  */
 
 import '@/global.css';
@@ -9,18 +11,22 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#FAFAFA',
+    background: '#09090B',
+    backgroundElement: '#111113',
+    backgroundSelected: '#18181B',
+    textSecondary: '#A1A1AA',
+    primary: '#A3FF12',
+    primaryInk: '#0A0F02',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#FAFAFA',
+    background: '#09090B',
+    backgroundElement: '#111113',
+    backgroundSelected: '#18181B',
+    textSecondary: '#A1A1AA',
+    primary: '#A3FF12',
+    primaryInk: '#0A0F02',
   },
 } as const;
 

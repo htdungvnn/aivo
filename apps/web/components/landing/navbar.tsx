@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./button";
 import { Container } from "./container";
 import { CloseIcon, MenuIcon } from "./icons";
+import { Logo } from "./logo";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -54,12 +55,7 @@ export function Navbar() {
             href="/"
             className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-text focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           >
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-ink"
-            >
-              A
-            </span>
+            <Logo size={32} />
             AIVO
           </Link>
 
