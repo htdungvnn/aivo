@@ -1,7 +1,9 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -20,10 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
+    # Only deploy when CI succeeded on main, or when manually dispatched.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Deploy the exact commit CI validated.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -53,10 +62,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Deploy the exact commit CI validated.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
