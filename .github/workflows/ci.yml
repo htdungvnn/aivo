@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
+  # Allows a branch to be verified without opening a pull request.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
