@@ -15,6 +15,9 @@ env:
   TURBO_TELEMETRY_DISABLED: 1
   DO_NOT_TRACK: 1
   CI: true
+  # The Cloudflare account id is an identifier, not a credential, so it lives
+  # here rather than in repository secrets. The API token stays a secret.
+  CLOUDFLARE_ACCOUNT_ID: fb243e7d5e9d8f9abe092940eac52539
 
 jobs:
   deploy-api:
@@ -52,7 +55,6 @@ jobs:
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         # `pnpm run deploy` runs the package script; bare `pnpm deploy` would hit
         # pnpm's own built-in deploy command instead.
         run: pnpm run deploy
@@ -91,5 +93,4 @@ jobs:
         working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm run deploy

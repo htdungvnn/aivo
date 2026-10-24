@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# Set the GitHub Actions secrets required by the Deploy workflow.
+# Set the GitHub Actions secret required by the Deploy workflow.
 #
 # Required on the fine-grained PAT used for GitHub access:
 #   Actions: Read and write   (to create repository secrets)
 #
-# Run once. Both secrets are set on the htdungvnn/aivo repository.
+# The Cloudflare account id is not a credential, so it is configured as a
+# workflow-level env var in .github/workflows/deploy.yml and needs no secret.
+#
+# The Cloudflare API token must have the "Workers Scripts: Edit" permission on
+# the target account. Create one at:
+#   https://dash.cloudflare.com/profile/api-tokens -> Create Token ->
+#   Edit Cloudflare Workers -> Account -> Workers Scripts: Edit
 
 set -euo pipefail
 
@@ -21,27 +27,18 @@ import json
 print(json.load(open('$REPO_DIR/.cursor/mcp.json'))['mcpServers']['github']['headers']['Authorization'].split(' ',1)[1])
 ")"
 
-# Cloudflare account id for the "htdung-aivo" account.
-CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-fb243e7d5e9d8f9abe092940eac52539}"
-
-echo "==> Setting CLOUDFLARE_ACCOUNT_ID"
-gh variable set CLOUDFLARE_ACCOUNT_ID \
-  --repo htdungvnn/aivo \
-  --body "$CLOUDFLARE_ACCOUNT_ID"
-
-echo "==> Setting CLOUDFLARE_API_TOKEN"
-if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
-  printf '%s' "$CLOUDFLARE_API_TOKEN" | gh secret set CLOUDFLARE_API_TOKEN --repo htdungvnn/aivo
-else
-  echo "    CLOUDFLARE_API_TOKEN is not set in this shell." >&2
-  echo "    Export it and re-run:" >&2
-  echo "      export CLOUDFLARE_API_TOKEN=cfut_..." >&2
+if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  echo "CLOUDFLARE_API_TOKEN is not set in this shell." >&2
+  echo "Export it and re-run:" >&2
+  echo "  export CLOUDFLARE_API_TOKEN=cfut_..." >&2
   exit 1
 fi
 
+echo "==> Setting CLOUDFLARE_API_TOKEN"
+printf '%s' "$CLOUDFLARE_API_TOKEN" | gh secret set CLOUDFLARE_API_TOKEN --repo htdungvnn/aivo
+
 echo
-echo "==> Done. Variables and secrets:"
-gh variable list --repo htdungvnn/aivo
+echo "==> Done. Repository secrets:"
 gh secret list --repo htdungvnn/aivo
 
 echo
