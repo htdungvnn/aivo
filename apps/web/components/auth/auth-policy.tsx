@@ -6,7 +6,7 @@ import {
 } from "@repo/auth";
 import { useEffect, useState } from "react";
 
-import { apiBaseUrl } from "@/lib/auth-actions";
+import { apiBaseUrl } from "@/lib/api-url";
 
 /**
  * The authentication policy served by the API.

@@ -3,6 +3,7 @@ import { betterAuth } from "better-auth";
 
 import { authConfig } from "./config.ts";
 import { sendAuthEmail } from "./email.ts";
+import { trustedOrigins } from "./origins.ts";
 import { buildSocialProviders } from "./social.ts";
 import type { AuthEnv } from "./middleware.ts";
 
@@ -24,7 +25,7 @@ export function createAuth(env: AuthEnv["Bindings"]) {
     baseURL: env.BETTER_AUTH_URL,
     basePath: "/api/auth",
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: buildTrustedOrigins(env),
+    trustedOrigins: trustedOrigins(env),
     emailAndPassword: {
       ...authConfig.emailAndPassword,
       sendResetPassword: async ({ user, token }) => {
@@ -73,29 +74,6 @@ function buildAppUrl(
   const search = new URLSearchParams(params);
 
   return `${base}${path}?${search.toString()}`;
-}
-
-/**
- * The origins allowed to complete an authentication request.
- *
- * Only the configured application origin, the local development origins and
- * the mobile app scheme are trusted — never an arbitrary origin.
- */
-function buildTrustedOrigins(env: AuthEnv["Bindings"]): string[] {
-  const origins = new Set<string>([
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "aivo://",
-    "aivo://callback",
-    "exp://**",
-    "https://appleid.apple.com",
-  ]);
-
-  if (env.BETTER_AUTH_URL) {
-    origins.add(env.BETTER_AUTH_URL);
-  }
-
-  return [...origins];
 }
 
 export type Auth = ReturnType<typeof createAuth>;

@@ -1,5 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 
+import { apiBaseUrl } from "@/lib/api-url";
+
 /**
  * The Better Auth client used by the web app.
  *
@@ -7,6 +9,6 @@ import { createAuthClient } from "better-auth/react";
  * the client bundle.
  */
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
+  baseURL: apiBaseUrl(),
   basePath: "/api/auth",
 });

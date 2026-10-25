@@ -16,7 +16,8 @@
     "incremental": true,
     "types": [
         "node",
-        "vinext/types"
+        "vinext/types",
+        "vite/client"
     ],
     "paths": {
       "@/*": ["./*"]

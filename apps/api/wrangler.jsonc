@@ -26,13 +26,14 @@
 		{
 			"binding": "DB",
 			"database_name": "aivo",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "6da2a146-c4fe-4c6d-8fdf-37529659252e",
 			"migrations_dir": "migrations"
 		}
 	],
 	/**
 	 * Cloudflare Email Service — used for verification and password reset.
-	 * `AUTH_EMAIL_FROM` must be a verified sending address on this binding.
+	 *
+	 * `AUTH_EMAIL_FROM` must be an address on an onboarded sending domain.
 	 */
 	"send_email": [
 		{
@@ -40,13 +41,18 @@
 		}
 	],
 	/**
-	 * Non-secret configuration. Secrets (BETTER_AUTH_SECRET, OAuth client
-	 * secrets) are set with `wrangler secret put` and never live here.
+	 * Non-secret configuration.
+	 *
+	 * Secrets (BETTER_AUTH_SECRET, OAuth client secrets) are set with
+	 * `wrangler secret put` and never live here.
+	 *
+	 * These values are the deployed ones. Local development overrides them
+	 * with `apps/api/.dev.vars`, which is not committed.
 	 */
 	"vars": {
-		"BETTER_AUTH_URL": "http://localhost:3001",
-		"WEB_APP_URL": "http://localhost:3000",
-		"AUTH_EMAIL_FROM": "auth@aivo.app"
+		"BETTER_AUTH_URL": "https://api.htdung-aivo.workers.dev",
+		"WEB_APP_URL": "https://web.htdung-aivo.workers.dev",
+		"AUTH_EMAIL_FROM": "auth@mail.aivo.website"
 	}
 	/**
 	 * Smart Placement
