@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AuthBrandPanel, AuthHeader } from "@/components/auth/auth-header";
 import { AuthLayout } from "@/components/auth/auth-layout";
+import { AuthLoadingState } from "@/components/auth/auth-loading";
 import { SignInForm } from "@/components/auth/sign-in-form";
 
 export const metadata: Metadata = {
@@ -17,7 +19,15 @@ export default function SignInPage() {
         title="Welcome back"
         subtitle="Continue your journey with AIVO."
       />
-      <SignInForm />
+      {/*
+        The form reads the query string to learn where to send the user after
+        signing in. Reading the query string forces a client-side render, so
+        it needs a Suspense boundary — without one the server render bails
+        out and the route fails.
+      */}
+      <Suspense fallback={<AuthLoadingState label="Loading" />}>
+        <SignInForm />
+      </Suspense>
     </AuthLayout>
   );
 }

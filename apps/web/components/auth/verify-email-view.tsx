@@ -1,5 +1,6 @@
 "use client";
 
+import { resolvePostAuthDestination } from "@repo/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AuthError, AuthSubmitButton, Spinner } from "@/components/auth/auth-controls";
@@ -21,15 +22,17 @@ type VerifyState = "verifying" | "waiting" | "verified" | "error";
  *
  * When the token is exchanged successfully the screen routes on to the
  * authenticated destination.
+ *
+ * The navigation happens here rather than through a callback prop: this is
+ * a client component, and a server component cannot hand an event handler
+ * across the server/client boundary.
  */
 export function VerifyEmailView({
   email,
   token,
-  onVerified,
 }: {
   email: string | null;
   token: string | null;
-  onVerified: () => void;
 }) {
   const [state, setState] = useState<VerifyState>(
     token ? "verifying" : "waiting",
@@ -45,8 +48,11 @@ export function VerifyEmailView({
     }
     hasVerified.current = true;
     setState("verified");
-    onVerified();
-  }, [onVerified]);
+
+    // A full navigation is used so the destination is rendered from
+    // scratch with the new session cookie in place.
+    window.location.replace(resolvePostAuthDestination(null, false));
+  }, []);
 
   // Exchange the token from the verification link for a verified session.
   useEffect(() => {

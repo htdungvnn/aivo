@@ -4,27 +4,20 @@ import { cors } from "hono/cors";
 import { createAuth } from "./auth/auth.ts";
 import { authRoutes } from "./auth/routes.ts";
 import { sessionMiddleware, type AuthEnv } from "./auth/middleware.ts";
+import { allowedOrigins } from "./auth/origins.ts";
 
 const app = new OpenAPIHono<AuthEnv>();
 
 /**
  * The origins allowed to talk to the API.
  *
- * Only the local development origins and the deployed application origin are
- * allowed — never an arbitrary origin.
+ * The list comes from the configured application URLs plus the local
+ * development origins — never an arbitrary origin.
  */
-const ALLOWED_ORIGIN_PREFIXES = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-] as const;
-
 const corsOptions = {
-  origin: (origin: string) => {
+  origin: (origin: string, c: { env: AuthEnv["Bindings"] }) => {
     if (!origin) return null;
-    for (const prefix of ALLOWED_ORIGIN_PREFIXES) {
-      if (origin.startsWith(prefix)) return origin;
-    }
-    return null;
+    return allowedOrigins(c.env).includes(origin) ? origin : null;
   },
   allowHeaders: ["Content-Type", "Authorization"],
   allowMethods: ["POST", "GET", "OPTIONS"],

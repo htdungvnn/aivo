@@ -1,8 +1,10 @@
 "use client";
 
+import { resolvePostAuthDestination } from "@repo/auth";
 import { useEffect, useRef, useState } from "react";
 
 import { AuthError, Spinner } from "@/components/auth/auth-controls";
+import { apiBaseUrl } from "@/lib/api-url";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -13,14 +15,12 @@ type CallbackState = "loading" | "success" | "error";
  * waits for the session to be established, then routes on to the
  * authenticated destination. Provider errors are never shown verbatim —
  * only a short, actionable message.
+ *
+ * The navigation happens here rather than through a callback prop: this is
+ * a client component, and a server component cannot hand an event handler
+ * across the server/client boundary.
  */
-export function AuthCallbackView({
-  hasError,
-  onSuccess,
-}: {
-  hasError: boolean;
-  onSuccess: () => void;
-}) {
+export function AuthCallbackView({ hasError }: { hasError: boolean }) {
   const [state, setState] = useState<CallbackState>(
     hasError ? "error" : "loading",
   );
@@ -35,16 +35,19 @@ export function AuthCallbackView({
 
     async function waitForSession() {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/auth/session`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
+        const response = await fetch(`${apiBaseUrl()}/auth/session`, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
 
         if (!response.ok) {
           throw new Error(`Session request failed with ${response.status}`);
         }
 
-        const body = (await response.json()) as { user?: unknown };
+        const body = (await response.json()) as {
+          user?: unknown;
+          onboarding?: { onboardingCompleted?: boolean };
+        };
 
         if (cancelled) {
           return;
@@ -57,7 +60,15 @@ export function AuthCallbackView({
 
         hasNavigated.current = true;
         setState("success");
-        onSuccess();
+
+        // A full navigation is used so the destination is rendered from
+        // scratch with the new session cookie in place.
+        window.location.replace(
+          resolvePostAuthDestination(
+            null,
+            body.onboarding?.onboardingCompleted ?? false,
+          ),
+        );
       } catch {
         if (!cancelled) {
           setState("error");
@@ -72,7 +83,7 @@ export function AuthCallbackView({
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [hasError, onSuccess]);
+  }, [hasError]);
 
   if (state === "loading") {
     return (

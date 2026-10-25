@@ -9,6 +9,7 @@ import {
 } from "@repo/auth";
 import { useCallback, useEffect, useState } from "react";
 
+import { apiBaseUrl } from "@/lib/api-url";
 import { authClient } from "@/lib/auth-client";
 
 /**
@@ -46,9 +47,7 @@ type SessionResponse = {
 /**
  * The base URL of the API.
  */
-export function apiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-}
+export { apiBaseUrl };
 
 /**
  * Restores and exposes the authentication session.
