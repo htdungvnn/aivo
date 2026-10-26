@@ -54,6 +54,20 @@ export const authConfig = {
       sameSite: "lax",
       secure: true,
     },
+    /**
+     * Cloudflare does not set `x-forwarded-for`; it sets `cf-connecting-ip`.
+     *
+     * Without this, the rate limiter cannot resolve a client address and
+     * falls back to one shared bucket per path — which would mean a single
+     * user exhausting the one-time password limit for everyone else.
+     *
+     * The headers are tried in order, and the first one that resolves wins.
+     * `cf-connecting-ip` is always present in production and is set by the
+     * edge, so it is preferred over the client-supplied `x-forwarded-for`.
+     */
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"],
+    },
   },
   rateLimit: {
     enabled: true,

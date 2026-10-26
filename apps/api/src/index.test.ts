@@ -44,7 +44,21 @@ function createContext(): TestContext {
     AUTH_EMAIL_FROM: "auth@aivo.app",
   } as never;
 
-  return { bindings, sentEmails, headers: { "x-forwarded-for": ip } };
+  /**
+   * The address arrives the way Cloudflare delivers it.
+   *
+   * `cf-connecting-ip` is set by the edge and cannot be spoofed, so it is
+   * what the rate limiter must read. `x-forwarded-for` is included here as
+   * the single value a client could forge — it must not be preferred.
+   */
+  return {
+    bindings,
+    sentEmails,
+    headers: {
+      "cf-connecting-ip": ip,
+      "x-forwarded-for": "203.0.113.7",
+    },
+  };
 }
 
 /**
@@ -304,6 +318,38 @@ describe("email one-time password", () => {
 
     expect(body.user?.authProvider).toBe("email");
     expect(body.user?.email).toBe("provider@aivo.app");
+  });
+
+  it("rate limits the code requests per client rather than globally", async () => {
+    // The first client exhausts its own allowance.
+    const noisy = createContext();
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await request(noisy, "/api/auth/email-otp/send-verification-otp", {
+        email: "noisy@aivo.app",
+        type: "sign-in",
+      });
+    }
+
+    const blocked = await request(
+      noisy,
+      "/api/auth/email-otp/send-verification-otp",
+      { email: "noisy@aivo.app", type: "sign-in" },
+    );
+
+    expect(blocked.status).toBe(429);
+
+    // A different client is unaffected: the limit is keyed by address, so one
+    // user cannot exhaust the one-time password allowance for everyone.
+    const quiet = createContext();
+
+    const res = await request(
+      quiet,
+      "/api/auth/email-otp/send-verification-otp",
+      { email: "quiet@aivo.app", type: "sign-in" },
+    );
+
+    expect(res.status).toBe(200);
   });
 });
 
