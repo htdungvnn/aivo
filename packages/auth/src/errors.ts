@@ -69,7 +69,9 @@ export function mapAuthErrorCode(raw: unknown): AuthErrorCode {
         ? raw
         : undefined;
 
-  if (typeof code !== "string") return "UNKNOWN";
+  if (typeof code !== "string") {
+    return isRateLimited(raw) ? "RATE_LIMITED" : "UNKNOWN";
+  }
 
   switch (code) {
     case "INVALID_EMAIL_OR_PASSWORD":
@@ -103,6 +105,31 @@ export function mapAuthErrorCode(raw: unknown): AuthErrorCode {
     default:
       return "UNKNOWN";
   }
+}
+
+/**
+ * Whether a failure is the server refusing the request as too frequent.
+ *
+ * The rate limiter answers with a bare `429` and a plain message, so there
+ * is no provider code to map. The status is read from the response instead,
+ * which lets the UI explain that the user has to wait rather than showing
+ * a generic failure.
+ */
+function isRateLimited(raw: unknown): boolean {
+  if (typeof raw !== "object" || raw === null) return false;
+
+  const candidate = raw as {
+    status?: unknown;
+    statusCode?: unknown;
+    response?: { status?: unknown };
+  };
+
+  const status =
+    candidate.status ??
+    candidate.statusCode ??
+    candidate.response?.status;
+
+  return status === 429;
 }
 
 /**

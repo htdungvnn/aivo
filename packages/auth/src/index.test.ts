@@ -261,4 +261,11 @@ describe("safe error mapping", () => {
   it("collapses unknown otp failures to an invalid code", () => {
     expect(toSafeOtpError({ code: "SOMETHING_INTERNAL" }).code).toBe("INVALID_OTP");
   });
+
+  it("recognises a rate limited request by its status", () => {
+    // The limiter answers with a bare 429 and a plain message, so there is
+    // no provider code to map.
+    expect(toSafeAuthError({ status: 429 }).code).toBe("RATE_LIMITED");
+    expect(toSafeOtpError({ status: 429 }).code).toBe("RATE_LIMITED");
+  });
 });
