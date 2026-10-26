@@ -71,6 +71,14 @@ export const authConfig = {
   },
   rateLimit: {
     enabled: true,
+    /**
+     * The counter lives in D1 rather than in memory.
+     *
+     * A Worker isolates come and go, so an in-memory counter is reset
+     * constantly and the limit is never actually reached. The database
+     * counter survives every request.
+     */
+    storage: "database",
     window: 60,
     max: 60,
     customRules: {

@@ -51,6 +51,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Apply database migrations
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # The Worker needs the tables the code expects, so the migrations are
+        # applied before the new code starts serving traffic.
+        run: pnpm run db:migrate:remote
+
       - name: Deploy API
         working-directory: apps/api
         env:
