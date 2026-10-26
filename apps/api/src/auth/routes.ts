@@ -4,6 +4,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { createAuth } from "./auth.ts";
 import { requireSession, sessionMiddleware, type AuthEnv } from "./middleware.ts";
+import { otpPolicy } from "./otp-policy.ts";
 
 /**
  * Session and account endpoints.
@@ -20,7 +21,7 @@ const SessionUserSchema = z
     emailVerified: z.boolean(),
     displayName: z.string().nullable(),
     avatarUrl: z.string().nullable(),
-    authProvider: z.enum(["google", "apple", "credential"]),
+    authProvider: z.enum(["google", "facebook", "email"]),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -77,8 +78,8 @@ authRoutes.openapi(
 /**
  * Returns the authentication policy the clients render.
  *
- * The password policy is owned by the backend — the UI reads it here
- * instead of hardcoding its own rules.
+ * The one-time password rules and the available providers are owned by the
+ * backend — the UI reads them here instead of hardcoding its own rules.
  */
 authRoutes.openapi(
   createRoute({
@@ -93,8 +94,8 @@ authRoutes.openapi(
         content: {
           "application/json": {
             schema: z.object({
-              minPasswordLength: z.number(),
-              requireEmailVerification: z.boolean(),
+              otpLength: z.number(),
+              otpExpirySeconds: z.number(),
               providers: z.array(z.string()),
             }),
           },
@@ -108,9 +109,8 @@ authRoutes.openapi(
 
     return c.json(
       {
-        minPasswordLength: auth.options.emailAndPassword?.minPasswordLength ?? 8,
-        requireEmailVerification:
-          auth.options.emailAndPassword?.requireEmailVerification ?? false,
+        otpLength: otpPolicy.otpLength,
+        otpExpirySeconds: otpPolicy.expiresIn,
         providers,
       },
       200,

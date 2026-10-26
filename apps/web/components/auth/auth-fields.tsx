@@ -78,22 +78,23 @@ export function TextField({
 }
 
 /**
- * A password input with a visibility toggle.
+ * A one-time password input.
  *
- * The toggle is a real button with an accessible name, so it is reachable
- * by keyboard and announced correctly.
+ * The code is numeric and short, so the field uses a numeric input mode and
+ * a generous letter spacing. The code is masked by default — it is a
+ * secret, even though it is short-lived.
  */
-export function PasswordField({
+export function OtpField({
   label,
   name,
   value,
   onChange,
   placeholder,
-  autoComplete = "current-password",
+  length,
   required,
   disabled,
   error,
-}: Omit<FieldProps, "type" | "inputMode">) {
+}: Omit<FieldProps, "type" | "inputMode"> & { length: number }) {
   const id = useId();
   const errorId = `${id}-error`;
   const [visible, setVisible] = useState(false);
@@ -114,18 +115,20 @@ export function PasswordField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          autoComplete={autoComplete}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={length}
           required={required}
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`${inputClassName} pr-12`}
+          className={`${inputClassName} pr-12 text-center text-lg tracking-[0.6em]`}
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
           disabled={disabled}
-          aria-label={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? "Hide code" : "Show code"}
           aria-pressed={visible}
           className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-text-muted transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
         >

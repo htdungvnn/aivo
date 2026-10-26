@@ -6,15 +6,7 @@
  * are shared so web and mobile cannot disagree about them.
  */
 
-export const PUBLIC_ROUTES = [
-  "/",
-  "/auth/sign-in",
-  "/auth/sign-up",
-  "/auth/forgot-password",
-  "/auth/reset-password",
-  "/auth/verify-email",
-  "/auth/callback",
-] as const;
+export const PUBLIC_ROUTES = ["/", "/auth/sign-in", "/auth/sign-up", "/auth/callback"] as const;
 
 export const PROTECTED_ROUTE_PREFIXES = [
   "/dashboard",

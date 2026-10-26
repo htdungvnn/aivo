@@ -20,7 +20,6 @@
     "@repo/auth": "workspace:*",
     "better-auth": "1.7.12",
     "hono": "^4.13.13",
-    "jose": "^6.1.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

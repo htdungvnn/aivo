@@ -9,7 +9,8 @@ import {
 } from 'react';
 
 import { authClient } from '@/lib/auth-client';
-import { toAuthUser, type AuthUser } from '@repo/auth';
+import { apiBaseUrl } from '@/lib/auth-actions';
+import { parseAuthUser, type AuthUser } from '@repo/auth';
 
 /**
  * The authentication context.
@@ -34,9 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const { data } = await authClient.getSession();
+      const session = await fetchSession();
 
-      setUser(data?.user ? toAuthUser(data.user) : null);
+      setUser(session);
     } catch {
       setUser(null);
     } finally {
@@ -57,11 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // The session is restored asynchronously; the guard renders nothing
     // until the request settles, so no auth screen ever flashes.
-    void authClient
-      .getSession()
-      .then(({ data }) => {
+    void fetchSession()
+      .then((session) => {
         if (active) {
-          setUser(data?.user ? toAuthUser(data.user) : null);
+          setUser(session);
         }
       })
       .catch(() => {
@@ -92,6 +92,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/**
+ * Reads the current session from the API.
+ *
+ * The API is the source of truth for the session *and* for the sign-in
+ * method, so the app asks it rather than the provider client. The session
+ * cookie lives in the device's secure store, so it is attached explicitly.
+ */
+async function fetchSession(): Promise<AuthUser | null> {
+  const cookie = await authClient.getCookie();
+
+  const response = await fetch(`${apiBaseUrl()}/auth/session`, {
+    headers: {
+      Accept: 'application/json',
+      ...(cookie ? { cookie } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const body = (await response.json()) as { user?: unknown };
+
+  return parseAuthUser(body.user);
 }
 
 /**

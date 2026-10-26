@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AuthBrandPanel, AuthHeader } from "@/components/auth/auth-header";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { AuthLoadingState } from "@/components/auth/auth-loading";
-import { SignInForm } from "@/components/auth/sign-in-form";
+import { OtpForm } from "@/components/auth/otp-form";
 
 export const metadata: Metadata = {
   title: "Sign In — AIVO",
@@ -26,7 +26,7 @@ export default function SignInPage() {
         out and the route fails.
       */}
       <Suspense fallback={<AuthLoadingState label="Loading" />}>
-        <SignInForm />
+        <OtpForm mode="sign-in" />
       </Suspense>
     </AuthLayout>
   );

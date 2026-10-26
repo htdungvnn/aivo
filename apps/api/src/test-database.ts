@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
 /**
@@ -8,8 +8,8 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
  * This adapter lets the tests exercise the real Better Auth code paths
  * against a real SQL engine, using the same D1 dialect the Worker uses.
  *
- * The schema is created from the same generated migration the Worker applies,
- * so the tests run against the production schema.
+ * The schema is created from the same generated migrations the Worker
+ * applies, so the tests run against the production schema.
  */
 export function createTestDatabase(schemaSql: string) {
   const sqlite = new DatabaseSync(":memory:");
@@ -71,11 +71,16 @@ export function createTestDatabase(schemaSql: string) {
 }
 
 /**
- * The production schema, read from the generated migration.
+ * The production schema, read from the generated migrations.
  *
  * The tests run against exactly the schema the Worker applies.
  */
 export function readAuthSchema(): string {
-  const path = new URL("../migrations/0001_auth.sql", import.meta.url).pathname;
-  return readFileSync(path, "utf8");
+  const migrationsDir = new URL("../migrations/", import.meta.url).pathname;
+
+  return readdirSync(migrationsDir)
+    .filter((name) => name.endsWith(".sql"))
+    .sort()
+    .map((name) => readFileSync(`${migrationsDir}${name}`, "utf8"))
+    .join("\n");
 }

@@ -13,15 +13,21 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getMigrations } from "better-auth/db/migration";
+import { emailOTP } from "better-auth/plugins";
 
 import { authConfig } from "../src/auth/config.ts";
+import { otpPolicy } from "../src/auth/otp-policy.ts";
 import { createEmptyD1Stub } from "./d1-stub.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outFile = resolve(here, "../migrations/0001_auth.sql");
 
 const database = createEmptyD1Stub();
-const plan = await getMigrations({ ...authConfig, database: database as never });
+const plan = await getMigrations({
+  ...authConfig,
+  database: database as never,
+  plugins: [emailOTP({ ...otpPolicy, sendVerificationOTP: async () => {} })],
+} as never);
 
 if (plan.toBeAdded.length > 0) {
   console.warn(

@@ -15,10 +15,10 @@ export function SocialAuthButtons({
   disabled,
   loadingProvider,
 }: {
-  providers: readonly Exclude<AuthProvider, "credential">[];
-  onSelect: (provider: Exclude<AuthProvider, "credential">) => void;
+  providers: readonly Exclude<AuthProvider, "email">[];
+  onSelect: (provider: Exclude<AuthProvider, "email">) => void;
   disabled?: boolean;
-  loadingProvider?: Exclude<AuthProvider, "credential"> | null;
+  loadingProvider?: Exclude<AuthProvider, "email"> | null;
 }) {
   if (providers.length === 0) {
     return null;
@@ -42,7 +42,7 @@ export function SocialAuthButtons({
           )}
           {loadingProvider === provider
             ? "Connecting..."
-            : `Continue with ${provider === "google" ? "Google" : "Apple"}`}
+            : `Continue with ${providerLabel(provider)}`}
         </button>
       ))}
     </div>
@@ -97,65 +97,6 @@ export function AuthError({ message }: { message?: string | null }) {
       </svg>
       <span>{message}</span>
     </div>
-  );
-}
-
-/**
- * The password requirements checklist.
- *
- * The requirements come from the backend policy, so the list can never
- * disagree with what the server enforces.
- */
-export function PasswordRequirements({
-  requirements,
-}: {
-  requirements: readonly {
-    id: string;
-    label: string;
-    satisfied: boolean;
-  }[];
-}) {
-  return (
-    <ul className="space-y-1.5" aria-live="polite">
-      {requirements.map((requirement) => (
-        <li
-          key={requirement.id}
-          className="flex items-center gap-2 text-[13px] text-text-secondary"
-        >
-          <CheckIcon satisfied={requirement.satisfied} />
-          <span
-            className={
-              requirement.satisfied ? "text-primary" : "text-text-secondary"
-            }
-          >
-            {requirement.label}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function CheckIcon({ satisfied }: { satisfied: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={satisfied ? "text-primary" : "text-text-muted"}
-    >
-      {satisfied ? (
-        <path d="M20 6L9 17l-5-5" />
-      ) : (
-        <circle cx="12" cy="12" r="9" />
-      )}
-    </svg>
   );
 }
 
@@ -230,15 +171,19 @@ export function Spinner() {
   );
 }
 
+function providerLabel(provider: Exclude<AuthProvider, "email">): string {
+  return provider === "google" ? "Google" : "Facebook";
+}
+
 function ProviderIcon({
   provider,
 }: {
-  provider: Exclude<AuthProvider, "credential">;
+  provider: Exclude<AuthProvider, "email">;
 }) {
-  if (provider === "apple") {
+  if (provider === "facebook") {
     return (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M17.05 12.54c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.49-2.6-1.7-3.17-1.72-1.35-.14-2.63.79-3.32.79-.68 0-1.74-.77-2.86-.75-1.47.02-2.83.85-3.58 2.17-1.53 2.65-.39 6.57 1.09 8.72.73 1.05 1.6 2.23 2.74 2.19 1.1-.05 1.51-.71 2.84-.71 1.33 0 1.7.71 2.85.69 1.18-.02 1.92-1.07 2.64-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.32-3.48zM14.88 5.06c.6-.73 1.01-1.75.9-2.76-.87.04-1.93.58-2.56 1.31-.56.65-1.05 1.7-.92 2.7.97.08 1.97-.49 2.58-1.25z" />
+        <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.91h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94z" />
       </svg>
     );
   }

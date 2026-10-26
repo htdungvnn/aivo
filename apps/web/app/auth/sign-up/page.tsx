@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AuthBrandPanel, AuthHeader } from "@/components/auth/auth-header";
 import { AuthLayout } from "@/components/auth/auth-layout";
-import { SignUpForm } from "@/components/auth/sign-up-form";
+import { AuthLoadingState } from "@/components/auth/auth-loading";
+import { OtpForm } from "@/components/auth/otp-form";
 
 export const metadata: Metadata = {
   title: "Create your account — AIVO",
@@ -18,7 +20,9 @@ export default function SignUpPage() {
         title="Create your AIVO account"
         subtitle="Your personalized fitness journey starts here."
       />
-      <SignUpForm />
+      <Suspense fallback={<AuthLoadingState label="Loading" />}>
+        <OtpForm mode="sign-up" />
+      </Suspense>
     </AuthLayout>
   );
 }

@@ -31,7 +31,7 @@
 		}
 	],
 	/**
-	 * Cloudflare Email Service — used for verification and password reset.
+	 * Cloudflare Email Service — used for the one-time password.
 	 *
 	 * `AUTH_EMAIL_FROM` must be an address on an onboarded sending domain.
 	 */

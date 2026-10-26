@@ -58,13 +58,18 @@ export function AuthTextField({
 }
 
 /**
- * A password input with a visibility toggle.
+ * A one-time password input.
+ *
+ * The code is numeric and short, so the field uses a numeric keyboard and a
+ * generous letter spacing. It is masked by default — the code is a secret,
+ * even though it is short-lived.
  */
-export function AuthPasswordField({
+export function AuthOtpField({
   label,
   error,
+  length,
   ...props
-}: TextInputProps & { label: string; error?: string }) {
+}: TextInputProps & { label: string; error?: string; length: number }) {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -76,13 +81,21 @@ export function AuthPasswordField({
           accessibilityLabel={label}
           placeholderTextColor={AuthColors.textSecondary}
           secureTextEntry={!visible}
+          keyboardType="number-pad"
           autoCapitalize="none"
           autoCorrect={false}
-          style={[styles.input, styles.passwordInput, error ? styles.inputError : null, props.style]}
+          maxLength={length}
+          textContentType="oneTimeCode"
+          style={[
+            styles.input,
+            styles.otpInput,
+            error ? styles.inputError : null,
+            props.style
+          ]}
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+          accessibilityLabel={visible ? 'Hide code' : 'Show code'}
           onPress={() => setVisible((current) => !current)}
           hitSlop={8}
           style={styles.toggle}>
@@ -94,41 +107,6 @@ export function AuthPasswordField({
           {error}
         </Text>
       ) : null}
-    </View>
-  );
-}
-
-/**
- * The password requirements checklist.
- *
- * The requirements come from the backend policy, so the list can never
- * disagree with what the server enforces.
- */
-export function AuthPasswordRequirements({
-  requirements
-}: {
-  requirements: readonly { id: string; label: string; satisfied: boolean }[];
-}) {
-  return (
-    <View style={styles.requirements}>
-      {requirements.map((requirement) => (
-        <View key={requirement.id} style={styles.requirementRow}>
-          <Text
-            style={[
-              styles.requirementMark,
-              { color: requirement.satisfied ? AuthColors.primary : AuthColors.textSecondary },
-            ]}>
-            {requirement.satisfied ? '✓' : '○'}
-          </Text>
-          <Text
-            style={[
-              styles.requirementLabel,
-              { color: requirement.satisfied ? AuthColors.primary : AuthColors.textSecondary },
-            ]}>
-            {requirement.label}
-          </Text>
-        </View>
-      ))}
     </View>
   );
 }
@@ -167,8 +145,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
   },
-  passwordInput: {
+  otpInput: {
     paddingRight: 72,
+    textAlign: 'center',
+    fontSize: 20,
+    letterSpacing: 8,
   },
   toggle: {
     position: 'absolute',
@@ -182,21 +163,6 @@ const styles = StyleSheet.create({
   },
   fieldError: {
     color: AuthColors.danger,
-    fontSize: 13,
-  },
-  requirements: {
-    gap: Spacing.one,
-  },
-  requirementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  requirementMark: {
-    fontSize: 13,
-    width: 16,
-  },
-  requirementLabel: {
     fontSize: 13,
   },
 });

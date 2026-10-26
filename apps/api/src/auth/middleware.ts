@@ -26,11 +26,8 @@ export type AuthEnv = {
     AUTH_EMAIL_FROM?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
-    APPLE_CLIENT_ID?: string;
-    APPLE_TEAM_ID?: string;
-    APPLE_KEY_ID?: string;
-    APPLE_PRIVATE_KEY?: string;
-    APPLE_APP_BUNDLE_IDENTIFIER?: string;
+    FACEBOOK_CLIENT_ID?: string;
+    FACEBOOK_CLIENT_SECRET?: string;
   };
   Variables: AuthVariables;
 };
@@ -53,7 +50,9 @@ export const sessionMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
     return;
   }
 
-  c.set("user", toAuthUser(session.user));
+  const provider = await getAccountProvider(c.env.DB, session.user.id);
+
+  c.set("user", toAuthUser({ ...session.user, provider }));
   c.set("session", {
     id: session.session.id,
     expiresAt: session.session.expiresAt,
@@ -74,3 +73,23 @@ export const requireSession = createMiddleware<AuthEnv>(async (c, next) => {
   }
   await next();
 });
+
+/**
+ * Reads the social provider a user signed in with.
+ *
+ * A user who authenticated with a one-time password has no social account
+ * row at all, which is exactly how they are told apart here. The lookup is
+ * scoped to the session's own user id, so it can never expose another
+ * account's provider.
+ */
+async function getAccountProvider(
+  db: D1Database,
+  userId: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare('SELECT providerId FROM "account" WHERE userId = ? LIMIT 1')
+    .bind(userId)
+    .first<{ providerId: string | null }>();
+
+  return row?.providerId ?? null;
+}

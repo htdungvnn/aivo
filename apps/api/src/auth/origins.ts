@@ -32,7 +32,7 @@ export function allowedOrigins(env: AuthEnv["Bindings"]): string[] {
  * The origins that may complete an authentication request.
  *
  * This is a wider set than the CORS origins: the mobile app uses a custom
- * scheme, and Apple posts its response from Apple's own origin.
+ * scheme.
  */
 export function trustedOrigins(env: AuthEnv["Bindings"]): string[] {
   const origins = new Set<string>(allowedOrigins(env));
@@ -41,9 +41,6 @@ export function trustedOrigins(env: AuthEnv["Bindings"]): string[] {
   origins.add("aivo://");
   origins.add("aivo://callback");
   origins.add("exp://**");
-
-  // Sign in with Apple posts back from Apple's own origin.
-  origins.add("https://appleid.apple.com");
 
   return [...origins];
 }

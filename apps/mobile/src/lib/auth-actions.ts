@@ -1,6 +1,6 @@
 import {
   toSafeAuthError,
-  toSafeSignInError,
+  toSafeOtpError,
   trackAuthEvent,
   type AuthError,
   type AuthProvider,
@@ -10,65 +10,70 @@ import { authClient } from '@/lib/auth-client';
 
 /**
  * The base URL of the API.
+ *
+ * The deployed API is the default so a release build authenticates against
+ * production. Set `EXPO_PUBLIC_API_URL` to point at a local Worker instead.
  */
 export function apiBaseUrl(): string {
-  return process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+  return process.env.EXPO_PUBLIC_API_URL ?? 'https://api.htdung-aivo.workers.dev';
 }
 
 /**
- * Signs in with an email and password.
+ * Sends a one-time password to an email address.
  *
- * The returned error is safe to display: it never reveals whether an
- * account exists.
+ * The response never reveals whether an account exists: the code is sent
+ * either way, and the account is created the first time a valid code is
+ * submitted.
  */
-export async function signInWithEmail(
-  email: string,
-  password: string
-): Promise<AuthError | null> {
-  trackAuthEvent('auth_sign_in_started', { method: 'credential' });
+export async function requestOtpCode(email: string): Promise<AuthError | null> {
+  trackAuthEvent('auth_otp_requested', { method: 'email' });
 
   try {
-    const { error } = await authClient.signIn.email({ email, password });
+    const { error } = await authClient.emailOtp.sendVerificationOtp({
+      email,
+      type: 'sign-in',
+    });
 
     if (error) {
-      trackAuthEvent('auth_sign_in_failed', { method: 'credential' });
-      return toSafeSignInError(error);
+      trackAuthEvent('auth_otp_failed', { method: 'email' });
+      return toSafeAuthError(error);
     }
 
-    trackAuthEvent('auth_sign_in_succeeded', { method: 'credential' });
     return null;
   } catch (caught) {
-    trackAuthEvent('auth_sign_in_failed', { method: 'credential' });
-    return toSafeSignInError(caught);
+    trackAuthEvent('auth_otp_failed', { method: 'email' });
+    return toSafeAuthError(caught);
   }
 }
 
 /**
- * Signs up with an email and password.
+ * Exchanges a one-time password for a session.
+ *
+ * A valid code for an unknown address registers the account, so this single
+ * call covers both sign-up and sign-in.
  */
-export async function signUpWithEmail(
+export async function verifyOtpCode(
   email: string,
-  password: string
+  otp: string
 ): Promise<AuthError | null> {
-  trackAuthEvent('auth_sign_up_started', { method: 'credential' });
+  trackAuthEvent('auth_sign_in_started', { method: 'email' });
 
   try {
-    const { error } = await authClient.signUp.email({
-      email,
-      password,
-      name: email.split('@')[0] ?? email,
-    });
+    const { error } = await authClient.signIn.emailOtp({ email, otp });
 
     if (error) {
-      trackAuthEvent('auth_sign_up_failed', { method: 'credential' });
-      return toSafeAuthError(error);
+      trackAuthEvent('auth_otp_failed', { method: 'email' });
+      trackAuthEvent('auth_sign_in_failed', { method: 'email' });
+      return toSafeOtpError(error);
     }
 
-    trackAuthEvent('auth_sign_up_succeeded', { method: 'credential' });
+    trackAuthEvent('auth_otp_verified', { method: 'email' });
+    trackAuthEvent('auth_sign_in_succeeded', { method: 'email' });
     return null;
   } catch (caught) {
-    trackAuthEvent('auth_sign_up_failed', { method: 'credential' });
-    return toSafeAuthError(caught);
+    trackAuthEvent('auth_otp_failed', { method: 'email' });
+    trackAuthEvent('auth_sign_in_failed', { method: 'email' });
+    return toSafeOtpError(caught);
   }
 }
 
@@ -79,7 +84,7 @@ export async function signUpWithEmail(
  * cookie when the provider redirects back.
  */
 export async function signInWithProvider(
-  provider: Exclude<AuthProvider, 'credential'>
+  provider: Exclude<AuthProvider, 'email'>
 ): Promise<AuthError | null> {
   trackAuthEvent('auth_sign_in_started', { method: provider });
 
@@ -98,70 +103,6 @@ export async function signInWithProvider(
     return null;
   } catch (caught) {
     trackAuthEvent('auth_sign_in_failed', { method: provider });
-    return toSafeAuthError(caught);
-  }
-}
-
-/**
- * Requests a password reset link.
- *
- * The response never reveals whether an account exists.
- */
-export async function requestPasswordReset(email: string): Promise<AuthError | null> {
-  trackAuthEvent('auth_password_reset_requested');
-
-  try {
-    const { error } = await authClient.requestPasswordReset({ email });
-
-    if (error) {
-      return toSafeAuthError(error);
-    }
-
-    return null;
-  } catch (caught) {
-    return toSafeAuthError(caught);
-  }
-}
-
-/**
- * Sets a new password using the token from the reset link.
- */
-export async function resetPassword(
-  newPassword: string,
-  token: string
-): Promise<AuthError | null> {
-  try {
-    const { error } = await authClient.resetPassword({ newPassword, token });
-
-    if (error) {
-      return toSafeAuthError(error);
-    }
-
-    trackAuthEvent('auth_password_reset_succeeded');
-    return null;
-  } catch (caught) {
-    return toSafeAuthError(caught);
-  }
-}
-
-/**
- * Sends another verification email.
- */
-export async function resendVerificationEmail(email: string): Promise<AuthError | null> {
-  trackAuthEvent('auth_email_verification_requested');
-
-  try {
-    const { error } = await authClient.sendVerificationEmail({
-      email,
-      callbackURL: '/auth/verify-email',
-    });
-
-    if (error) {
-      return toSafeAuthError(error);
-    }
-
-    return null;
-  } catch (caught) {
     return toSafeAuthError(caught);
   }
 }

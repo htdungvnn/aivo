@@ -1,7 +1,8 @@
 "use client";
 
 import {
-  MIN_PASSWORD_LENGTH_FALLBACK,
+  OTP_EXPIRY_SECONDS_FALLBACK,
+  OTP_LENGTH_FALLBACK,
   type AuthProvider,
 } from "@repo/auth";
 import { useEffect, useState } from "react";
@@ -11,18 +12,19 @@ import { apiBaseUrl } from "@/lib/api-url";
 /**
  * The authentication policy served by the API.
  *
- * The password rules live on the server — the client renders what the
- * server enforces rather than restating a policy of its own.
+ * The one-time password rules and the available providers live on the
+ * server — the client renders what the server enforces rather than restating
+ * a policy of its own.
  */
 export type AuthPolicy = {
-  minPasswordLength: number;
-  requireEmailVerification: boolean;
-  providers: readonly Exclude<AuthProvider, "credential">[];
+  otpLength: number;
+  otpExpirySeconds: number;
+  providers: readonly Exclude<AuthProvider, "email">[];
 };
 
 const FALLBACK_POLICY: AuthPolicy = {
-  minPasswordLength: MIN_PASSWORD_LENGTH_FALLBACK,
-  requireEmailVerification: true,
+  otpLength: OTP_LENGTH_FALLBACK,
+  otpExpirySeconds: OTP_EXPIRY_SECONDS_FALLBACK,
   providers: [],
 };
 
@@ -34,9 +36,8 @@ type PolicyState = {
 /**
  * Loads the authentication policy.
  *
- * A failure falls back to the conservative defaults: the shortest password
- * the provider may accept and no social providers, so the UI never offers a
- * provider the server has not configured.
+ * A failure falls back to the conservative defaults: no social providers, so
+ * the UI never offers a provider the server has not configured.
  */
 export function useAuthPolicy(): PolicyState {
   const [state, setState] = useState<PolicyState>({
@@ -58,8 +59,8 @@ export function useAuthPolicy(): PolicyState {
         }
 
         const body = (await response.json()) as {
-          minPasswordLength?: number;
-          requireEmailVerification?: boolean;
+          otpLength?: number;
+          otpExpirySeconds?: number;
           providers?: string[];
         };
 
@@ -69,9 +70,8 @@ export function useAuthPolicy(): PolicyState {
 
         setState({
           policy: {
-            minPasswordLength:
-              body.minPasswordLength ?? MIN_PASSWORD_LENGTH_FALLBACK,
-            requireEmailVerification: body.requireEmailVerification ?? true,
+            otpLength: body.otpLength ?? OTP_LENGTH_FALLBACK,
+            otpExpirySeconds: body.otpExpirySeconds ?? OTP_EXPIRY_SECONDS_FALLBACK,
             providers: (body.providers ?? []).filter(isSocialProvider),
           },
           isLoading: false,
@@ -95,7 +95,7 @@ export function useAuthPolicy(): PolicyState {
 
 function isSocialProvider(provider: string): provider is Exclude<
   AuthProvider,
-  "credential"
+  "email"
 > {
-  return provider === "google" || provider === "apple";
+  return provider === "google" || provider === "facebook";
 }

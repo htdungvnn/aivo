@@ -11,8 +11,9 @@ export type AuthErrorCode =
   | "EMAIL_EXISTS"
   | "EMAIL_NOT_VERIFIED"
   | "INVALID_EMAIL"
-  | "INVALID_PASSWORD"
-  | "PASSWORD_TOO_SHORT"
+  | "INVALID_OTP"
+  | "OTP_EXPIRED"
+  | "TOO_MANY_ATTEMPTS"
   | "INVALID_TOKEN"
   | "TOKEN_EXPIRED"
   | "ACCOUNT_UNAVAILABLE"
@@ -31,10 +32,11 @@ const MESSAGES: Record<AuthErrorCode, string> = {
   EMAIL_EXISTS: "An account with that email already exists.",
   EMAIL_NOT_VERIFIED: "Please verify your email before signing in.",
   INVALID_EMAIL: "Enter a valid email address.",
-  INVALID_PASSWORD: "That password doesn't look right.",
-  PASSWORD_TOO_SHORT: "Choose a longer password.",
-  INVALID_TOKEN: "This reset link is no longer valid.",
-  TOKEN_EXPIRED: "This reset link has expired. Request a new one.",
+  INVALID_OTP: "That code doesn't look right. Check it and try again.",
+  OTP_EXPIRED: "That code has expired. Request a new one.",
+  TOO_MANY_ATTEMPTS: "Too many attempts. Request a new code and try again.",
+  INVALID_TOKEN: "This link is no longer valid.",
+  TOKEN_EXPIRED: "This link has expired. Request a new one.",
   ACCOUNT_UNAVAILABLE: "This account is currently unavailable. Please try again later.",
   SOCIAL_AUTH_ERROR: "We couldn't sign you in with that provider. Please try again.",
   NETWORK_ERROR: "We couldn't reach the server. Check your connection and try again.",
@@ -75,8 +77,12 @@ export function mapAuthErrorCode(raw: unknown): AuthErrorCode {
     case "USER_NOT_FOUND":
     case "ACCOUNT_NOT_FOUND":
       return "INVALID_CREDENTIALS";
-    case "INVALID_PASSWORD":
-      return "INVALID_PASSWORD";
+    case "INVALID_OTP":
+      return "INVALID_OTP";
+    case "OTP_EXPIRED":
+      return "OTP_EXPIRED";
+    case "TOO_MANY_ATTEMPTS":
+      return "TOO_MANY_ATTEMPTS";
     case "USER_ALREADY_EXISTS":
     case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
     case "EMAIL_EXISTS":
@@ -88,8 +94,6 @@ export function mapAuthErrorCode(raw: unknown): AuthErrorCode {
       return "INVALID_TOKEN";
     case "TOKEN_EXPIRED":
       return "TOKEN_EXPIRED";
-    case "PASSWORD_TOO_SHORT":
-      return "PASSWORD_TOO_SHORT";
     case "ACCOUNT_UNAVAILABLE":
     case "USER_BANNED":
       return "ACCOUNT_UNAVAILABLE";
@@ -118,16 +122,23 @@ export function toSafeAuthError(raw: unknown): AuthError {
 }
 
 /**
- * Converts a thrown value into a user-facing error for credential sign-in.
+ * Converts a thrown value into a user-facing error for the OTP flow.
  *
- * Every failure collapses to the same generic message so the response
- * cannot be used to discover whether an account exists. Rate limiting is
- * kept distinct because hiding it would make the UI misleading.
+ * The one-time password is a secret the user already received by email, so
+ * the OTP-specific failures (wrong, expired, too many attempts) are safe to
+ * show: they never reveal whether an account exists. Rate limiting is kept
+ * distinct so the UI can explain it.
  */
-export function toSafeSignInError(raw: unknown): AuthError {
+export function toSafeOtpError(raw: unknown): AuthError {
   const code = mapAuthErrorCode(raw);
-  if (code === "RATE_LIMITED") {
-    return authError(code);
+
+  switch (code) {
+    case "INVALID_OTP":
+    case "OTP_EXPIRED":
+    case "TOO_MANY_ATTEMPTS":
+    case "RATE_LIMITED":
+      return authError(code);
+    default:
+      return authError("INVALID_OTP");
   }
-  return authError("INVALID_CREDENTIALS");
 }

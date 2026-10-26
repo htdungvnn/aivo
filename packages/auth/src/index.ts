@@ -4,24 +4,17 @@ export {
   type AuthProvider,
   type AuthSessionState,
   type AuthUser,
+  type SocialProvider,
 } from "./user";
 
 export {
-  MIN_PASSWORD_LENGTH_FALLBACK,
-  buildPasswordRequirements,
+  OTP_LENGTH_FALLBACK,
   emailSchema,
-  forgotPasswordSchema,
-  passwordsMatch,
-  passwordSchema,
-  resetPasswordSchema,
+  otpSchema,
   signInSchema,
-  signUpSchema,
-  type ForgotPasswordInput,
-  type PasswordRequirement,
-  type PasswordRequirements,
-  type ResetPasswordInput,
+  verifyOtpSchema,
   type SignInInput,
-  type SignUpInput,
+  type VerifyOtpInput,
 } from "./validation";
 
 export {
@@ -48,7 +41,7 @@ export {
   authError,
   mapAuthErrorCode,
   toSafeAuthError,
-  toSafeSignInError,
+  toSafeOtpError,
   type AuthError,
   type AuthErrorCode,
 } from "./errors";
@@ -61,6 +54,7 @@ export {
 
 export {
   inferAuthProvider,
+  parseAuthUser,
   toAuthUser,
   type SessionPayload,
   type SessionUser,
@@ -73,3 +67,16 @@ export {
   type AuthAnalyticsPayload,
   type AuthAnalyticsReporter,
 } from "./analytics";
+
+export {
+  OTP_EXPIRY_SECONDS_FALLBACK,
+  OTP_RESEND_COOLDOWN_SECONDS,
+  otpRequestSchema,
+  otpVerifyRequestSchema,
+  requestOtp,
+  verifyOtp,
+  type OtpRequestResult,
+  type OtpStep,
+  type OtpTransport,
+  type OtpVerifyResult,
+} from "./otp";

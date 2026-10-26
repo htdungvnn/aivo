@@ -10,15 +10,33 @@ import type { BetterAuthOptions } from "better-auth";
  */
 export const authConfig = {
   appName: "AIVO",
+  /**
+   * AIVO has no passwords.
+   *
+   * An email address is proven with a one-time password instead, so the
+   * credential endpoints stay disabled and no password is ever stored.
+   */
   emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    minPasswordLength: 8,
+    enabled: false,
   },
   emailVerification: {
-    sendOnSignUp: true,
-    sendOnSignIn: true,
+    sendOnSignUp: false,
+    sendOnSignIn: false,
     autoSignInAfterVerification: true,
+  },
+  /**
+   * Account linking.
+   *
+   * A user who signed in with a one-time password and later uses a social
+   * provider with the same (verified) address ends up with one account
+   * instead of two.
+   */
+  account: {
+    accountLinking: {
+      trustedProviders: ["google", "facebook"],
+      requireLocalEmailVerified: true,
+      allowDifferentEmails: false,
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7,
@@ -42,10 +60,8 @@ export const authConfig = {
     window: 60,
     max: 60,
     customRules: {
-      "/sign-in/email": { window: 60, max: 10 },
-      "/sign-up/email": { window: 60, max: 5 },
-      "/request-password-reset": { window: 300, max: 3 },
-      "/reset-password": { window: 300, max: 5 },
+      "/email-otp/send-verification-otp": { window: 60, max: 3 },
+      "/sign-in/email-otp": { window: 60, max: 5 },
     },
   },
 } satisfies BetterAuthOptions;

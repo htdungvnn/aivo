@@ -1,0 +1,18 @@
+# Local development secrets for the API Worker.
+#
+# Copy to `.dev.vars` and fill in the values. `.dev.vars` is never
+# committed; this example file is.
+#
+# The same values are set on the deployed Worker with `wrangler secret put`.
+
+# The signing key for session cookies. Generate a fresh value per environment:
+#   openssl rand -base64 32
+BETTER_AUTH_SECRET=""
+
+# Social sign-in — the client ID and secret come from the provider console.
+# A provider without credentials is simply not offered in the UI.
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
+FACEBOOK_CLIENT_ID=""
+FACEBOOK_CLIENT_SECRET=""

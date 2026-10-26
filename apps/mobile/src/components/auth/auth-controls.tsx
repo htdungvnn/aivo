@@ -35,7 +35,7 @@ export function AuthButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        variant === 'secondary' ? styles.buttonSecondary : styles.buttonPrimary,
+        variant === 'primary' ? styles.buttonPrimary : styles.buttonSecondary,
         pressed && !isDisabled ? styles.buttonPressed : null,
         isDisabled ? styles.buttonDisabled : null,
       ]}>
@@ -74,9 +74,9 @@ export function AuthSocialButtons({
   onSelect,
   loadingProvider
 }: {
-  providers: readonly ('google' | 'apple')[];
-  onSelect: (provider: 'google' | 'apple') => void;
-  loadingProvider?: 'google' | 'apple' | null;
+  providers: readonly ('google' | 'facebook')[];
+  onSelect: (provider: 'google' | 'facebook') => void;
+  loadingProvider?: 'google' | 'facebook' | null;
 }) {
   if (providers.length === 0) {
     return null;
@@ -96,7 +96,7 @@ export function AuthSocialButtons({
             <ActivityIndicator color={AuthColors.text} />
           ) : (
             <Text style={styles.socialLabel}>
-              Continue with {provider === 'google' ? 'Google' : 'Apple'}
+              Continue with {provider === 'google' ? 'Google' : 'Facebook'}
             </Text>
           )}
         </Pressable>

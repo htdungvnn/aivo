@@ -50,9 +50,6 @@ function RootStack() {
         <Stack.Screen name="auth/sign-up" />
       </Stack.Protected>
 
-      <Stack.Screen name="auth/forgot-password" />
-      <Stack.Screen name="auth/reset-password" />
-      <Stack.Screen name="auth/verify-email" />
       <Stack.Screen name="auth/callback" />
     </Stack>
   );

@@ -69,6 +69,20 @@ function request(
   );
 }
 
+/**
+ * Reads the one-time password out of the email the API sent.
+ */
+function readOtp(context: TestContext): string {
+  const email = context.sentEmails.at(-1);
+  const match = email?.text.match(/code is (\d{6})/);
+
+  if (!match) {
+    throw new Error(`No one-time password found in: ${email?.text ?? "no email"}`);
+  }
+
+  return match[1] as string;
+}
+
 describe("api", () => {
   it("returns a greeting message", async () => {
     const res = await app.request("/message");
@@ -144,13 +158,13 @@ describe("auth endpoints", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      minPasswordLength: number;
-      requireEmailVerification: boolean;
+      otpLength: number;
+      otpExpirySeconds: number;
       providers: string[];
     };
 
-    expect(body.minPasswordLength).toBe(8);
-    expect(body.requireEmailVerification).toBe(true);
+    expect(body.otpLength).toBe(6);
+    expect(body.otpExpirySeconds).toBe(300);
     expect(Array.isArray(body.providers)).toBe(true);
   });
 
@@ -166,138 +180,142 @@ describe("auth endpoints", () => {
   });
 });
 
-describe("email sign up", () => {
-  it("creates an account and returns the session", async () => {
+describe("email one-time password", () => {
+  it("sends a one-time password to the address", async () => {
     const context = createContext();
 
-    const res = await request(context, "/api/auth/sign-up/email", {
+    const res = await request(context, "/api/auth/email-otp/send-verification-otp", {
       email: "athlete@aivo.app",
-      password: "correct-horse-battery",
-      name: "Athlete",
+      type: "sign-in",
     });
 
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as { user: { email: string } };
+    const email = context.sentEmails.at(-1);
+    expect(email?.to).toBe("athlete@aivo.app");
+    expect(email?.text).toContain("sign-in code is");
+  });
+
+  it("registers the account and returns a session for a valid code", async () => {
+    const context = createContext();
+
+    await request(context, "/api/auth/email-otp/send-verification-otp", {
+      email: "athlete@aivo.app",
+      type: "sign-in",
+    });
+
+    const res = await request(context, "/api/auth/sign-in/email-otp", {
+      email: "athlete@aivo.app",
+      otp: readOtp(context),
+    });
+
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as { user: { email: string; emailVerified: boolean } };
     expect(body.user.email).toBe("athlete@aivo.app");
+    expect(body.user.emailVerified).toBe(true);
   });
 
-  it("sends a verification email that links to the application", async () => {
+  it("rejects a wrong code", async () => {
     const context = createContext();
 
-    await request(context, "/api/auth/sign-up/email", {
-      email: "verify@aivo.app",
-      password: "correct-horse-battery",
-      name: "Verify",
+    await request(context, "/api/auth/email-otp/send-verification-otp", {
+      email: "wrong@aivo.app",
+      type: "sign-in",
     });
 
-    const email = context.sentEmails.find((message) =>
-      message.subject.includes("Verify"),
-    );
-
-    expect(email).toBeDefined();
-    expect(email?.to).toBe("verify@aivo.app");
-    expect(email?.text).toContain("http://localhost:3000/auth/verify-email");
-    expect(email?.text).toContain("token=");
-  });
-
-  it("rejects a weak password", async () => {
-    const context = createContext();
-
-    const res = await request(context, "/api/auth/sign-up/email", {
-      email: "weak@aivo.app",
-      password: "short",
-      name: "Weak",
-    });
-
-    expect(res.status).toBeGreaterThanOrEqual(400);
-  });
-
-  it("rejects a malformed email address", async () => {
-    const context = createContext();
-
-    const res = await request(context, "/api/auth/sign-up/email", {
-      email: "not-an-email",
-      password: "correct-horse-battery",
-      name: "Bad",
-    });
-
-    expect(res.status).toBeGreaterThanOrEqual(400);
-  });
-});
-
-describe("email sign in", () => {
-  it("rejects wrong credentials with a generic error", async () => {
-    const context = createContext();
-
-    await request(context, "/api/auth/sign-up/email", {
-      email: "athlete@aivo.app",
-      password: "correct-horse-battery",
-      name: "Athlete",
-    });
-
-    const res = await request(context, "/api/auth/sign-in/email", {
-      email: "athlete@aivo.app",
-      password: "wrong-password",
-    });
-
-    expect(res.status).toBeGreaterThanOrEqual(400);
-
-    const body = (await res.json()) as { code?: string; message?: string };
-    expect(body.code).toBe("INVALID_EMAIL_OR_PASSWORD");
-  });
-
-  it("returns the same error for an unknown account as for a wrong password", async () => {
-    const context = createContext();
-
-    const res = await request(context, "/api/auth/sign-in/email", {
-      email: "nobody@aivo.app",
-      password: "wrong-password",
+    const res = await request(context, "/api/auth/sign-in/email-otp", {
+      email: "wrong@aivo.app",
+      otp: "000000",
     });
 
     expect(res.status).toBeGreaterThanOrEqual(400);
 
     const body = (await res.json()) as { code?: string };
-    expect(body.code).toBe("INVALID_EMAIL_OR_PASSWORD");
+    expect(body.code).toBe("INVALID_OTP");
+  });
+
+  it("rejects a malformed email address", async () => {
+    const context = createContext();
+
+    const res = await request(context, "/api/auth/email-otp/send-verification-otp", {
+      email: "not-an-email",
+      type: "sign-in",
+    });
+
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(context.sentEmails).toHaveLength(0);
+  });
+
+  it("does not expose a session for an unauthenticated session request", async () => {
+    const context = createContext();
+
+    await request(context, "/api/auth/email-otp/send-verification-otp", {
+      email: "athlete@aivo.app",
+      type: "sign-in",
+    });
+
+    await request(context, "/api/auth/sign-in/email-otp", {
+      email: "athlete@aivo.app",
+      otp: readOtp(context),
+    });
+
+    // The session cookie is not carried over, so the session is anonymous.
+    const res = await app.request(
+      "/auth/session",
+      { headers: context.headers },
+      context.bindings,
+    );
+
+    const body = (await res.json()) as { user: unknown };
+    expect(body.user).toBeNull();
+  });
+
+  it("reports the session user as an email provider", async () => {
+    const context = createContext();
+
+    await request(context, "/api/auth/email-otp/send-verification-otp", {
+      email: "provider@aivo.app",
+      type: "sign-in",
+    });
+
+    const res = await request(context, "/api/auth/sign-in/email-otp", {
+      email: "provider@aivo.app",
+      otp: readOtp(context),
+    });
+
+    const cookie = res.headers.get("set-cookie");
+    expect(cookie).toBeTruthy();
+
+    const session = await app.request(
+      "/auth/session",
+      {
+        headers: {
+          ...context.headers,
+          cookie: cookie?.split(";")[0] ?? "",
+        },
+      },
+      context.bindings,
+    );
+
+    const body = (await session.json()) as {
+      user: { authProvider: string; email: string } | null;
+    };
+
+    expect(body.user?.authProvider).toBe("email");
+    expect(body.user?.email).toBe("provider@aivo.app");
   });
 });
 
-describe("password reset", () => {
-  it("does not reveal whether an account exists", async () => {
+describe("password credentials are disabled", () => {
+  it("does not accept an email and password sign-in", async () => {
     const context = createContext();
 
-    const res = await request(context, "/api/auth/request-password-reset", {
-      email: "nobody@aivo.app",
-    });
-
-    expect(res.status).toBe(200);
-
-    const body = (await res.json()) as { status: boolean; message: string };
-    expect(body.status).toBe(true);
-    expect(body.message).toContain("If this email exists");
-  });
-
-  it("emails a reset link that points at the application", async () => {
-    const context = createContext();
-
-    await request(context, "/api/auth/sign-up/email", {
-      email: "reset@aivo.app",
+    const res = await request(context, "/api/auth/sign-in/email", {
+      email: "athlete@aivo.app",
       password: "correct-horse-battery",
-      name: "Reset",
     });
 
-    const res = await request(context, "/api/auth/request-password-reset", {
-      email: "reset@aivo.app",
-    });
-
-    expect(res.status).toBe(200);
-
-    const email = context.sentEmails.find((message) =>
-      message.subject.includes("Reset"),
-    );
-
-    expect(email).toBeDefined();
-    expect(email?.text).toContain("http://localhost:3000/auth/reset-password");
-    expect(email?.text).toContain("token=");
+    expect(res.status).toBeGreaterThanOrEqual(400);
   });
 });
